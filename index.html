@@ -328,15 +328,40 @@
     /* =========================================================
        ほぞん（localStorage と IndexedDB）
        ========================================================= */
+    const newDeviceId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    function normalizeState(s) {
+      s = s && typeof s === 'object' ? s : {};
+      return {
+        version: 1, profile: s.profile || null, settings: { ...DEFAULT_SETTINGS, ...(s.settings || {}) },
+        progress: s.progress || {}, stickers: s.stickers || [],
+        sync: s.sync || {}, deviceId: s.deviceId || newDeviceId(),
+      };
+    }
     function loadState() {
       let s = null;
       try { s = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { s = null; }
-      s = s && typeof s === 'object' ? s : {};
-      const st = { version: 1, profile: s.profile || null, settings: { ...DEFAULT_SETTINGS, ...(s.settings || {}) }, progress: s.progress || {}, stickers: s.stickers || [] };
+      const st = normalizeState(s);
+      if (!s || !s.deviceId) saveState(st);
       CURRENT.settings = st.settings;
       return st;
     }
     function saveState(s) { try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch (e) { console.warn(e); } }
+
+    // 入口ページ（Apps Script）から開いたとき、URLの # のあとに 記録の送り先と合言葉が ついてくる
+    const REC_URL_RE = /^https:\/\/script\.google\.com\/(a\/macros\/[^/]+\/|macros\/)s\/[A-Za-z0-9_-]+\/(exec|dev)$/;
+    (function applyLinkConfig() {
+      if (!location.hash) return;
+      const h = new URLSearchParams(location.hash.slice(1));
+      const rec = h.get('rec');
+      if (!rec) return;
+      if (REC_URL_RE.test(rec)) {
+        const st = loadState();
+        if (st.sync.url !== rec || st.sync.key !== (h.get('key') || '')) {
+          saveState({ ...st, sync: { ...st.sync, url: rec, key: h.get('key') || '', lastSummary: null } });
+        }
+      }
+      history.replaceState(null, '', location.pathname + location.search);
+    })();
 
     const DB_NAME = 'ondoku-hakase';
     let dbPromise = null;
@@ -844,6 +869,98 @@
       return list[Math.floor(Math.random() * list.length)];
     }
     const stageLabel = stage => stage.optional ? 'じゅんびうんどう' : stage.id === 'haya' ? `とくべつ ステージ` : `ステージ${stage.no}`;
+
+    /* =========================================================
+       先生の スプレッドシートへ 記録を 送る
+       ========================================================= */
+    const SYNC_BATCH = 200;
+    function fnv(str) { let h = 2166136261; for (const c of str) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16); }
+
+    // いちらん シートの 列（ステージ1〜6 → 早口言葉 → じゅんびうんどう の順）
+    function syncColumns() {
+      const order = [...MAIN_IDS, 'haya', 'warm'];
+      return order.flatMap(id => STAGE_MAP[id].tasks.map((t, i) => ({
+        id: t.id,
+        short: id === 'haya' ? `早${i + 1}` : id === 'warm' ? `準${i + 1}` : `${STAGE_MAP[id].no}-${i + 1}`,
+        label: `${stageLabel(STAGE_MAP[id])} ${i + 1}もんめ：${t.lines.map(l => stripMarkup(l)).join(' ')}`.slice(0, 60),
+      })));
+    }
+    function syncSummary(st) {
+      const graded = ALL_TASKS.filter(x => !x.stage.optional);
+      const ps = Object.values(st.progress);
+      const next = findNextChallenge(st);
+      const title = TITLES[countCleared(st)];
+      const best = {};
+      Object.entries(st.progress).forEach(([id, p]) => { if (p.tries) best[id] = p.best; });
+      return {
+        title: `${title.icon} ${title.name}`,
+        passed: graded.filter(x => st.progress[x.task.id] && st.progress[x.task.id].passed).length,
+        graded: graded.length,
+        tries: ps.reduce((s, p) => s + (p.tries || 0), 0),
+        lastAt: ps.reduce((m, p) => Math.max(m, p.lastAt || 0), 0),
+        current: next ? `${stageLabel(next.stage)}の ${next.index + 1}もんめ` : 'ぜんぶ クリア',
+        best,
+      };
+    }
+    function syncRecord(st, h) {
+      const x = TASK_LOOKUP[h.taskId];
+      return {
+        uid: `${st.deviceId}-${h.at}-${h.taskId}`, at: h.at, taskId: h.taskId,
+        stage: x ? `${stageLabel(x.stage)} ${x.stage.name}` : '', no: x ? x.index + 1 : '', label: x ? taskLabel(x.task) : h.taskId,
+        total: h.total, vol: h.parts.vol, acc: h.parts.acc, dyn: h.parts.dyn, spd: h.parts.spd,
+        readSec: h.readSec, heard: h.heard || '', strict: (STRICTNESS[h.strict] || {}).label || '',
+      };
+    }
+    const SYNC_ERRORS = {
+      key: '合言葉が一致しません。入口ページから開き直すか、正しい合言葉を入力してください。',
+      'not-json': 'Apps Script から正しい返事がありません。デプロイの「アクセスできるユーザー」が「全員」になっているか確認してください。',
+      fetch: '送信できませんでした。インターネット接続と、Apps Script のデプロイ（アクセスできるユーザー「全員」）を確認してください。',
+    };
+    const Sync = {
+      running: null,
+      run(app, opts = {}) {
+        if (this.running) return this.running;
+        this.running = this._run(app, opts).finally(() => { this.running = null; });
+        return this.running;
+      },
+      async _run(app, { all = false } = {}) {
+        const st = app.stateRef.current;
+        const sync = st.sync || {};
+        if (!sync.url || !st.profile) return { ok: false, reason: 'nourl' };
+        if (navigator.onLine === false) return { ok: false, reason: 'offline' };
+        try {
+          const hist = (await DB.getAll('history')).sort((a, b) => a.at - b.at);
+          const targets = hist.filter(h => all || !h.sent);
+          const summary = syncSummary(st);
+          const sumKey = fnv(st.profile.name + JSON.stringify(summary));
+          if (!targets.length && !all && sync.lastSummary === sumKey) return { ok: true, sent: 0 };
+          let i = 0;
+          do {
+            const batch = targets.slice(i, i + SYNC_BATCH);
+            const payload = {
+              app: 'ondoku-hakase', v: 1, key: sync.key || '', deviceId: st.deviceId, name: st.profile.name,
+              summary, columns: syncColumns(), records: batch.map(h => syncRecord(st, h)),
+            };
+            let res;
+            try {
+              res = await fetch(sync.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+            } catch (e) { throw new Error('fetch'); }
+            let data;
+            try { data = await res.json(); } catch (e) { throw new Error('not-json'); }
+            if (!data || !data.ok) throw new Error((data && data.error) || 'server');
+            for (const h of batch) if (!h.sent) await DB.put('history', { ...h, sent: true });
+            i += SYNC_BATCH;
+          } while (i < targets.length);
+          app.update(s => ({ ...s, sync: { ...s.sync, lastOkAt: Date.now(), lastError: null, lastSummary: sumKey } }));
+          return { ok: true, sent: targets.length };
+        } catch (e) {
+          const code = String((e && e.message) || e);
+          app.update(s => ({ ...s, sync: { ...s.sync, lastError: code, lastErrorAt: Date.now() } }));
+          return { ok: false, reason: code };
+        }
+      },
+    };
+    const syncErrorText = code => SYNC_ERRORS[code] || `送信できませんでした（${code}）。`;
 
     /* =========================================================
        見た目の 部品
@@ -1415,6 +1532,7 @@
             stickers: firstPass ? [...(s.stickers || []), { emoji: sticker, taskId: task.id, at }] : (s.stickers || []),
           };
         });
+        Sync.run(app); // 先生の スプレッドシートへ（送れない ときは あとで 送りなおす）
         const stageCleared = !stage.optional && !stageWasCleared && isStageCleared(stage, after);
         const clearedAfter = countCleared(after);
         setResult({ ...res, passed, firstPass, sticker: info2.sticker, stageCleared, newTitle: clearedAfter > clearedBefore ? TITLES[clearedAfter] : null, newBestTime });
@@ -1721,7 +1839,7 @@
               <label className="block">
                 <div className="font-bold text-lg mb-1">児童の名前（ひらがながおすすめ）</div>
                 <input className={inputCls} value={name} onChange={e => setName(e.target.value)} placeholder="例：たろう" />
-                <div className="text-sm text-slate-500 mt-1">はかせが「○○さん」と呼びます。</div>
+                <div className="text-sm text-slate-500 mt-1">はかせが「○○さん」と呼びます。記録を先生のスプレッドシートに集めるときは、この名前で区別するので、ほかの児童と同じ名前にしないでください。</div>
               </label>
               <div className="grid sm:grid-cols-2 gap-4">
                 <label className="block">
@@ -2067,6 +2185,86 @@
       );
     }
 
+    function SyncPanel({ app }) {
+      const sync = app.state.sync || {};
+      const [pending, setPending] = useState(null);
+      const [busy, setBusy] = useState(false);
+      const [msg, setMsg] = useState('');
+      const [editing, setEditing] = useState(!sync.url);
+      const [url, setUrl] = useState(sync.url || '');
+      const [key, setKey] = useState(sync.key || '');
+      const countPending = async () => { try { setPending((await DB.getAll('history')).filter(h => !h.sent).length); } catch (e) { setPending(null); } };
+      useEffect(() => { countPending(); }, [sync.lastOkAt, sync.lastErrorAt]);
+      const send = async (all) => {
+        setBusy(true); setMsg('');
+        const r = await Sync.run(app, { all });
+        setBusy(false); countPending();
+        if (r.ok) setMsg(r.sent ? `${r.sent}件の記録を送りました。` : '送っていない記録はありません（一覧は最新です）。');
+        else if (r.reason === 'offline') setMsg('インターネットにつながっていません。');
+      };
+      const save = () => {
+        const u = url.trim();
+        if (!REC_URL_RE.test(u)) { setMsg('URLの形がちがいます。「https://script.google.com/macros/s/…/exec」の形のURLを入れてください。'); return; }
+        if (!key.trim()) { setMsg('合言葉を入れてください。'); return; }
+        app.update(s => ({ ...s, sync: { ...s.sync, url: u, key: key.trim(), lastError: null, lastSummary: null } }));
+        setEditing(false); setMsg('送り先を保存しました。「今すぐ送る」で送信を確かめてください。');
+      };
+      const clear = () => {
+        if (!confirm('記録の送り先を消しますか？（この端末の記録は消えません）')) return;
+        app.update(s => ({ ...s, sync: {} }));
+        setUrl(''); setKey(''); setEditing(true); setMsg('送り先を消しました。');
+      };
+      const errShown = sync.lastError && (!sync.lastOkAt || sync.lastErrorAt > sync.lastOkAt);
+      const inputCls = 'w-full rounded-xl border-2 border-slate-300 px-3 py-2 text-base';
+      return (
+        <div className="bg-white rounded-2xl border-2 border-sky-200 p-4">
+          <div className="text-xl font-bold mb-1">📡 先生のスプレッドシートへの送信</div>
+          <div className="text-slate-600 mb-3">挑戦するたびに、点数を先生のGoogleスプレッドシートへ自動で送ります（録音は送りません）。送れなかった記録は、次につながったときに送り直します。</div>
+          <div className="grid sm:grid-cols-3 gap-3 mb-3">
+            <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+              <div className="text-sm text-slate-500">送り先</div>
+              <div className={`font-bold ${sync.url ? 'text-emerald-700' : 'text-slate-500'}`}>{sync.url ? '✅ 設定ずみ' : '未設定'}</div>
+            </div>
+            <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+              <div className="text-sm text-slate-500">まだ送っていない記録</div>
+              <div className="font-bold">{pending == null ? '…' : `${pending}件`}</div>
+            </div>
+            <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+              <div className="text-sm text-slate-500">最後に送れた日時</div>
+              <div className="font-bold">{sync.lastOkAt ? fmtDate(sync.lastOkAt) : '—'}</div>
+            </div>
+          </div>
+          {errShown && <div className="mb-3 rounded-xl bg-rose-50 border border-rose-200 p-3 text-rose-800">⚠️ {syncErrorText(sync.lastError)}</div>}
+          {sync.url && (
+            <div className="flex gap-3 flex-wrap mb-2">
+              <Btn color="sky" size="md" disabled={busy} onClick={() => send(false)}>📤 今すぐ送る</Btn>
+              <Btn color="white" size="md" disabled={busy} onClick={() => send(true)}>🔁 これまでの記録をまとめて送る</Btn>
+              <Btn color="white" size="md" disabled={busy} onClick={() => setEditing(v => !v)}>✏️ 送り先を入力</Btn>
+            </div>
+          )}
+          {!sync.url && <div className="text-slate-600 mb-2">入口ページ（Apps Script）の「はじめる」から開くと、送り先は自動で設定されます。入口ページを通さずに開いた端末では、スプレッドシートのメニュー「音読はかせ → 子どもに配るURLと合言葉を表示」で出るURLと合言葉を、ここに入力してください。</div>}
+          {editing && (
+            <div className="grid gap-2 mt-2 rounded-xl bg-slate-50 border border-slate-200 p-3">
+              <label>
+                <div className="font-bold text-sm mb-1">送り先のURL（…/exec）</div>
+                <input className={inputCls} value={url} onChange={e => setUrl(e.target.value)} placeholder="https://script.google.com/macros/s/……/exec" />
+              </label>
+              <label>
+                <div className="font-bold text-sm mb-1">合言葉</div>
+                <input className={inputCls} value={key} onChange={e => setKey(e.target.value)} />
+              </label>
+              <div className="flex gap-3 flex-wrap">
+                <Btn color="green" size="sm" onClick={save}>保存</Btn>
+                {sync.url && <Btn color="white" size="sm" onClick={clear}>送り先を消す</Btn>}
+              </div>
+            </div>
+          )}
+          {busy && <div className="mt-2 text-slate-600 font-bold">送信中…</div>}
+          {msg && <div className="mt-2 text-slate-700 font-bold">{msg}</div>}
+        </div>
+      );
+    }
+
     function DataTab({ app }) {
       const [msg, setMsg] = useState('');
       const [busy, setBusy] = useState(false);
@@ -2109,7 +2307,11 @@
           for (const r of data.recordings || []) await DB.put('recordings', { id: r.id, taskId: r.taskId, mime: r.mime, total: r.total, at: r.at, blob: await dataURLToBlob(r.data) });
           for (const m of data.models || []) await DB.put('models', { taskId: m.taskId, mime: m.mime, at: m.at, blob: await dataURLToBlob(m.data) });
           const st = data.state || {};
-          app.update(() => ({ version: 1, profile: st.profile || null, settings: { ...DEFAULT_SETTINGS, ...(st.settings || {}) }, progress: st.progress || {}, stickers: st.stickers || [] }));
+          app.update(cur => {
+            const next = normalizeState({ ...st, deviceId: st.deviceId || cur.deviceId });
+            // 送り先は、この端末に 設定されている ものを 優先する
+            return { ...next, sync: cur.sync && cur.sync.url ? cur.sync : next.sync };
+          });
           setMsg('バックアップから元にもどしました。');
         } catch (e) { setMsg('読み込み中にエラーが起きました。'); }
         finally { setBusy(false); }
@@ -2123,6 +2325,7 @@
       };
       return (
         <div className="grid gap-4">
+          <SyncPanel app={app} />
           <div className="bg-white rounded-2xl border-2 border-slate-200 p-4">
             <div className="text-xl font-bold mb-1">記録の書き出し（CSV）</div>
             <div className="text-slate-600 mb-2">すべての挑戦の点数を、スプレッドシートで開けるファイルにします。</div>
@@ -2188,6 +2391,14 @@
       const [view, setView] = useState(state.profile ? { name: 'home' } : { name: 'setup' });
       const [pinOpen, setPinOpen] = useState(false);
 
+      // 送れていない 記録が あれば、ひらいた ときと ネットに つながった ときに 送る
+      useEffect(() => {
+        const trySync = () => Sync.run({ state: stateRef.current, update, stateRef });
+        trySync();
+        window.addEventListener('online', trySync);
+        return () => window.removeEventListener('online', trySync);
+      }, []);
+
       const go = v => { TTS.cancel(); setView(v); window.scrollTo(0, 0); };
       const openStage = stage => go({ name: 'stage', stageId: stage.id });
       const startTask = (stage, index) => go({ name: 'task', stageId: stage.id, index });
@@ -2201,7 +2412,7 @@
           <Header app={app} view={view} onHome={() => view.name !== 'setup' && view.name !== 'teacher' && go({ name: 'home' })} onBack={back}
                   onStickers={() => go({ name: 'stickers' })} onTeacher={() => setPinOpen(true)} />
           {view.name === 'setup' && (
-            <SetupScreen onDone={(profile) => { update(s => ({ ...s, profile })); go({ name: 'home' }); }} />
+            <SetupScreen onDone={(profile) => { update(s => ({ ...s, profile })); Sync.run(app); go({ name: 'home' }); }} />
           )}
           {view.name === 'home' && <HomeScreen app={app} onOpenStage={openStage} onStartTask={startTask} />}
           {view.name === 'stage' && <StageScreen app={app} stage={STAGE_MAP[view.stageId]} onStartTask={startTask} />}
