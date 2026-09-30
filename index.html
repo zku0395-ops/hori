@@ -1,0 +1,2243 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>おんどくはかせの ちょうせんじょう</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+  <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'BIZ UDPGothic', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif; background: #fef9ef; margin: 0; color: #1e293b; }
+    button { font-family: inherit; touch-action: manipulation; }
+    ruby rt { font-size: 0.42em; color: #64748b; font-weight: 400; }
+    .loading { display: flex; align-items: center; justify-content: center; min-height: 100vh; font-size: 28px; color: #92400e; }
+
+    /* 立体ボタン */
+    .btn3d { word-break: keep-all; border-bottom-width: 6px; border-radius: 1.1rem; font-weight: 700; transition: transform .08s, border-bottom-width .08s, filter .15s; display: inline-flex; align-items: center; justify-content: center; gap: .4em; user-select: none; }
+    .btn3d:active:not(:disabled) { transform: translateY(3px); border-bottom-width: 3px; }
+    .btn3d:disabled { opacity: .45; cursor: not-allowed; }
+
+    /* 音読の行 */
+    /* 分かち書きの すきまでだけ 折り返す */
+    .ondoku-line { line-height: 2.05; padding: 0 .35em; border-radius: .35em; transition: opacity .25s, background-color .25s; white-space: pre-wrap; word-break: keep-all; overflow-wrap: anywhere; cursor: default; }
+    .slit-on { background: #fef08a; box-shadow: 0 0 0 4px #fde047; }
+    .slit-off { opacity: .2; cursor: pointer; }
+    .miss { background: #ffedd5; text-decoration: underline wavy #f97316; text-decoration-thickness: 3px; text-underline-offset: .28em; border-radius: .15em; }
+
+    /* ホーホーはかせ */
+    .hakase-bob { animation: bob 3.2s ease-in-out infinite; }
+    @keyframes bob { 50% { transform: translateY(-5px); } }
+    .hakase-jump { animation: jump .55s ease-in-out 3; }
+    @keyframes jump { 50% { transform: translateY(-16px); } }
+    .hakase-eyes { animation: blink 5s infinite; transform-box: fill-box; transform-origin: center; }
+    @keyframes blink { 0%, 93%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+    .beak-lower { animation: talk .22s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: top center; }
+    @keyframes talk { to { transform: scaleY(1.9); } }
+    .wing-l { transform-box: fill-box; transform-origin: top right; animation: flapL .45s ease-in-out infinite alternate; }
+    .wing-r { transform-box: fill-box; transform-origin: top left; animation: flapR .45s ease-in-out infinite alternate; }
+    @keyframes flapL { to { transform: rotate(28deg); } }
+    @keyframes flapR { to { transform: rotate(-28deg); } }
+
+    /* 共通アニメーション */
+    .pop { animation: popup .45s cubic-bezier(.175,.885,.32,1.275) both; }
+    @keyframes popup { 0% { transform: scale(.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+    .float { display: inline-block; animation: float 3s ease-in-out infinite; }
+    @keyframes float { 50% { transform: translateY(-8px); } }
+    .shake { animation: shake .4s; }
+    @keyframes shake { 20%, 60% { transform: translateX(-10px); } 40%, 80% { transform: translateX(10px); } }
+    .rec-pulse { animation: recpulse 1.2s ease-out infinite; }
+    @keyframes recpulse { 0% { box-shadow: 0 0 0 0 rgba(244,63,94,.55); } 100% { box-shadow: 0 0 0 22px rgba(244,63,94,0); } }
+    .count-num { animation: countpop .9s ease-out both; }
+    @keyframes countpop { 0% { transform: scale(2.2); opacity: 0; } 30% { transform: scale(1); opacity: 1; } 100% { transform: scale(.9); opacity: .9; } }
+    .stamp { border: 6px double #e11d48; color: #e11d48; border-radius: 9999px; padding: .35em .7em; transform: rotate(-12deg); font-weight: 900; letter-spacing: .1em; animation: stampin .5s cubic-bezier(.175,.885,.32,1.275) both .9s; background: rgba(255,255,255,.8); }
+    @keyframes stampin { 0% { transform: rotate(-12deg) scale(3); opacity: 0; } 100% { transform: rotate(-12deg) scale(1); opacity: 1; } }
+    .confetti { position: fixed; top: -60px; z-index: 60; pointer-events: none; animation: fall linear forwards; }
+    @keyframes fall { to { transform: translateY(115vh) rotate(540deg); } }
+    .parchment { background: linear-gradient(180deg, #fffbeb, #fef3c7); border: 6px solid #d97706; box-shadow: inset 0 0 0 4px #fde68a, 0 20px 40px rgba(0,0,0,.25); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .float, .hakase-bob, .rec-pulse { animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"><div class="loading">🦉 よみこみちゅう…</div></div>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+    /* =========================================================
+       きほんの 設定
+       ========================================================= */
+    const PASS_SCORE = 80;                       // 合格点
+    const STORE_KEY = 'ondokuHakase.v1';         // localStorage のキー
+    const WEIGHTS = { vol: 30, acc: 40, dyn: 20, spd: 10 };       // ふつうの課題の配点
+    const WEIGHTS_HAYA = { vol: 25, acc: 40, dyn: 10, spd: 25 };  // 早口言葉の配点
+    const STRICTNESS = {
+      easy:   { label: 'やさしい', volShift: -5, snrSpan: 20, accS0: 0.30, dynScale: 0.75, dynFloor: 0.35, speedLo: 2.0, speedHi: 8.0, hayaTarget: 5.0 },
+      normal: { label: 'ふつう',   volShift: 0,  snrSpan: 24, accS0: 0.45, dynScale: 1.0,  dynFloor: 0.2,  speedLo: 2.5, speedHi: 7.0, hayaTarget: 6.0 },
+      hard:   { label: 'きびしい', volShift: 3,  snrSpan: 30, accS0: 0.55, dynScale: 1.25, dynFloor: 0,    speedLo: 3.0, speedHi: 6.5, hayaTarget: 7.0 },
+    };
+    const DEFAULT_SETTINGS = { strict: 'normal', fontSize: 'm', slit: true, sfx: true, hakaseVoice: true, modelSpeed: 'normal', unlockAll: false, micGoodDb: -30 };
+    const FONT_SCALE = { s: 0.8, m: 1, l: 1.2, xl: 1.4 };
+    const HAKASE_VOICE = { rate: 1.0, pitch: 0.8 };
+    const PART_INFO = {
+      vol: { icon: '📢', label: 'こえの おおきさ', bar: 'bg-sky-400' },
+      acc: { icon: '🎯', label: 'よみの せいかくさ', bar: 'bg-emerald-400' },
+      dyn: { icon: '🎵', label: 'つよさ・よわさ', bar: 'bg-violet-400' },
+      spd: { icon: '🏃', label: 'はやさ', bar: 'bg-amber-400' },
+    };
+    const TITLES = [
+      { name: 'おんどく たまご', icon: '🥚' },
+      { name: 'おんどく ひよこ', icon: '🐣' },
+      { name: 'おんどく みならい', icon: '📗' },
+      { name: 'おんどく じょうず', icon: '🌟' },
+      { name: 'おんどく めいじん', icon: '🏅' },
+      { name: 'おんどく たつじん', icon: '🏆' },
+      { name: 'おんどく ちょうたつじん', icon: '👑' },
+      { name: 'おんどく はかせ', icon: '🎓' },
+    ];
+    const STICKERS = ['🐶','🐱','🐰','🐼','🦁','🐯','🐨','🐸','🐧','🐬','🦄','🐞','🦋','🌻','🌷','🍓','🍒','🍉','🍩','🍦','🚗','🚒','🚀','🚂','⚽','🎈','🎁','⭐','🌈','🦖','🐳','🐙','🦒','🐘','🍎','🧸','🎵','👑','💎','🍭','🐥','🦊','🐹','🐻','🍰','🚁','🎨','🌟'];
+
+    /* =========================================================
+       課題データ
+       書き方： [漢字|よみ] でふりがな。半角スペースは分かち書き。
+       lines は 1行ずつ（リーディングスリットで 1行ずつ 表示）。
+       pic は挿絵の絵文字、bg は背景。tts は読み上げ用の文（省略可）。
+       ========================================================= */
+    const STAGES = [
+      { id: 'warm', no: 0, name: 'はっせい れんしゅう', sub: 'くちを おおきく うごかそう', icon: '🗣️', color: 'teal', optional: true, keepSpace: true, tasks: [
+        { id: 'warm-1', lines: ['あ い う え お'], pic: ['😮', '🗣️'], bg: 'sun' },
+        { id: 'warm-2', lines: ['あめんぼ あかいな あ い う え お'], pic: ['💧', '🏞️', '🎵'], bg: 'sky', source: '北原白秋「五十音」より' },
+        { id: 'warm-3', lines: ['うきもに こえびも およいでる'], pic: ['🦐', '🌿', '💧'], bg: 'sea', source: '北原白秋「五十音」より' },
+        { id: 'warm-4', lines: ['かきのき くりのき か き く け こ'], pic: ['🌳', '🌰', '🍂'], bg: 'grass', source: '北原白秋「五十音」より' },
+      ]},
+      { id: 's1', no: 1, name: 'ことば', sub: 'みじかい ことばを よもう', icon: '🔤', color: 'sky', tasks: [
+        { id: 's1-1', lines: ['[犬|いぬ]'], pic: ['🐶'], bg: 'grass' },
+        { id: 's1-2', lines: ['りんご'], pic: ['🍎'], bg: 'room' },
+        { id: 's1-3', lines: ['[電車|でんしゃ]'], pic: ['🚃'], bg: 'sky' },
+        { id: 's1-4', lines: ['ひまわり'], pic: ['🌻'], bg: 'sun' },
+        { id: 's1-5', lines: ['[雪|ゆき]だるま'], pic: ['⛄'], bg: 'snow' },
+      ]},
+      { id: 's2', no: 2, name: 'みじかい ぶん', sub: '「だれが どうする」を よもう', icon: '✏️', color: 'green', tasks: [
+        { id: 's2-1', lines: ['[犬|いぬ]が [走|はし]る。'], pic: ['🐕', '💨'], bg: 'grass' },
+        { id: 's2-2', lines: ['[花|はな]が さく。'], pic: ['🌷', '🌼'], bg: 'flower' },
+        { id: 's2-3', lines: ['[雨|あめ]が ふる。'], pic: ['🌧️', '☔'], bg: 'rain' },
+        { id: 's2-4', lines: ['ねこが ねる。'], pic: ['🐈', '💤'], bg: 'room' },
+        { id: 's2-5', lines: ['[鳥|とり]が とぶ。'], pic: ['🐦', '☁️'], bg: 'sky' },
+      ]},
+      { id: 's3', no: 3, name: 'すこし ながい ぶん', sub: 'ことばを つなげて よもう', icon: '📝', color: 'amber', tasks: [
+        { id: 's3-1', lines: ['[赤|あか]い りんごを [食|た]べる。'], pic: ['🍎', '😋'], bg: 'room' },
+        { id: 's3-2', lines: ['[大|おお]きな ぞうが [水|みず]を のむ。'], pic: ['🐘', '💧'], bg: 'grass' },
+        { id: 's3-3', lines: ['[空|そら]に にじが [出|で]た。'], pic: ['🌈', '☁️'], bg: 'sky' },
+        { id: 's3-4', lines: ['かえるが [池|いけ]で およぐ。'], pic: ['🐸', '💦'], bg: 'sea' },
+        { id: 's3-5', lines: ['[友|とも]だちと [公園|こうえん]で あそぶ。'], pic: ['👧', '👦', '🛝'], bg: 'grass' },
+      ]},
+      { id: 's4', no: 4, name: 'ふたつの ぶん', sub: '「。」で ひと やすみ', icon: '📄', color: 'orange', tasks: [
+        { id: 's4-1', lines: ['[雨|あめ]が ふって きた。', 'かさを さそう。'], pic: ['🌧️', '☂️', '🚶'], bg: 'rain' },
+        { id: 's4-2', lines: ['[朝|あさ]に なりました。', 'おひさまが にこにこ わらって います。'], pic: ['🌅', '☀️', '😊'], bg: 'sun' },
+        { id: 's4-3', lines: ['おにぎりを [作|つく]った。', '[大|おお]きな [口|くち]で ぱくっと [食|た]べた。'], pic: ['🍙', '😋'], bg: 'room' },
+        { id: 's4-4', lines: ['[池|いけ]に [魚|さかな]が いるよ。', 'すいすい およいで いるね。'], pic: ['🐟', '🐠', '💦'], bg: 'sea' },
+        { id: 's4-5', lines: ['[夜|よる]の [空|そら]を [見|み]た。', '[星|ほし]が きらきら [光|ひか]って いた。'], pic: ['🌙', '⭐', '✨'], bg: 'night' },
+      ]},
+      { id: 's5', no: 5, name: 'みじかい おはなし', sub: 'おはなしを よもう', icon: '📖', color: 'pink', tasks: [
+        { id: 's5-1', title: 'うさぎの ぴょん', lines: ['うさぎの ぴょんは はねるのが [大|だい]すき。', 'きょうも [野原|のはら]を ぴょんぴょん。', 'どこまで いけるかな。'], pic: ['🐰', '🌼', '🌿'], bg: 'flower' },
+        { id: 's5-2', title: 'どんぐりの たび', lines: ['[木|き]から どんぐりが おちて きた。', 'ころころ ころころ ころがって いく。', 'どこまで いくのかな。'], pic: ['🌳', '🌰', '🍂'], bg: 'grass' },
+        { id: 's5-3', title: 'はじめての かいもの', lines: ['お[母|かあ]さんと お[店|みせ]に いった。', 'にんじんと たまごを [買|か]った。', '[自分|じぶん]で おかねを はらったよ。'], pic: ['🛒', '🥕', '🥚'], bg: 'room' },
+        { id: 's5-4', title: 'ゆきの あさ', lines: ['[朝|あさ] おきると [外|そと]は まっしろ。', '[雪|ゆき]が たくさん つもって いる。', 'いそいで [外|そと]に [出|で]た。', '[大|おお]きな [雪|ゆき]だるまを [作|つく]ったよ。'], pic: ['❄️', '⛄', '🧤'], bg: 'snow' },
+        { id: 's5-5', title: 'なつの うみ', lines: ['[夏休|なつやす]みに [海|うみ]へ いった。', 'なみが ざぶんと やって くる。', 'すなはまで [貝|かい]を ひろった。', 'とても [楽|たの]しい [一日|いちにち]だった。'], pic: ['🏖️', '🌊', '🐚'], bg: 'sea' },
+      ]},
+      { id: 's6', no: 6, name: 'し', sub: 'リズムに のって よもう', icon: '🎼', color: 'violet', keepSpace: true, tasks: [
+        { id: 's6-1', title: 'あめの うた', lines: ['ぽつぽつ ぽつん', '[雨|あめ]の おと', 'かさの うえで', 'うたってる'], pic: ['☔', '🎵', '💧'], bg: 'rain' },
+        { id: 's6-2', title: 'おひさま', lines: ['おひさま にこにこ', 'おはようって', '[花|はな]も [木|き]も', 'のびを する'], pic: ['☀️', '🌷', '🌳'], bg: 'sun' },
+        { id: 's6-3', title: 'かぜさん', lines: ['ひゅうひゅう [風|かぜ]さん', 'どこ いくの', '[山|やま]を こえて', '[海|うみ]まで いくよ'], pic: ['🍃', '⛰️', '🌊'], bg: 'sky' },
+        { id: 's6-4', title: 'ことばの たね', lines: ['ことばの たねを', 'まいて みよう', '[声|こえ]に [出|だ]したら', '[花|はな]が さく'], pic: ['🌱', '🗣️', '🌸'], bg: 'flower' },
+        { id: 's6-5', title: 'ホーホーはかせ', lines: ['ホー ホー ホー', '[森|もり]の はかせは', '[本|ほん]が [大|だい]すき', 'きょうも [元気|げんき]に', 'おんどく しよう'], pic: ['🦉', '📚', '🌲'], bg: 'night' },
+      ]},
+      { id: 'haya', no: 7, name: 'はやくちことば', sub: 'はやく ただしく いえるかな', icon: '⚡', color: 'rose', keepSpace: true, tasks: [
+        { id: 'haya-1', lines: ['バスガス ばくはつ'], pic: ['🚌', '💥'], bg: 'sky', tts: ['バスガス爆発'] },
+        { id: 'haya-2', lines: ['なまむぎ なまごめ なまたまご'], pic: ['🌾', '🍚', '🥚'], bg: 'room', tts: ['生麦、生米、生卵'] },
+        { id: 'haya-3', lines: ['すももも ももも もものうち'], pic: ['🍑', '🍑', '🍑'], bg: 'flower', tts: ['すももも、ももも、もものうち'] },
+        { id: 'haya-4', lines: ['あかまきがみ あおまきがみ きまきがみ'], pic: ['🟥', '🟦', '🟨'], bg: 'room', tts: ['赤巻紙、青巻紙、黄巻紙'] },
+        { id: 'haya-5', lines: ['となりの きゃくは よく かき くう きゃくだ'], pic: ['🏠', '🧑', '🍊'], bg: 'room', tts: ['隣の客はよく柿食う客だ'] },
+        { id: 'haya-6', lines: ['とうきょう とっきょ きょかきょく'], pic: ['🗼', '📄', '🏢'], bg: 'sky', tts: ['東京特許許可局'] },
+        { id: 'haya-7', lines: ['ぼうずが びょうぶに じょうずに ぼうずの えを かいた'], pic: ['🧑‍🦲', '🖼️', '🖌️'], bg: 'room', tts: ['坊主が屏風に上手に坊主の絵を描いた'] },
+        { id: 'haya-8', lines: ['かえる ぴょこぴょこ みぴょこぴょこ', 'あわせて ぴょこぴょこ むぴょこぴょこ'], pic: ['🐸', '🐸', '🐸'], bg: 'grass', tts: ['かえるぴょこぴょこ、みぴょこぴょこ。', 'あわせてぴょこぴょこ、むぴょこぴょこ。'] },
+      ]},
+    ];
+
+    /* 音声認識の結果（漢字まじり）を ひらがなに もどすための 辞書。
+       課題の [漢字|よみ] は 自動で 追加されるので、ここには
+       「ひらがなで 書いた ことばが 漢字で 返ってくる」ものを 入れる。 */
+    const READING_DICT = {
+      '犬': 'いぬ', '林檎': 'りんご', '電車': 'でんしゃ', '向日葵': 'ひまわり', '雪だるま': 'ゆきだるま', '雪達磨': 'ゆきだるま',
+      '走る': 'はしる', '花': 'はな', '咲く': 'さく', '雨': 'あめ', '降る': 'ふる', '猫': 'ねこ', '寝る': 'ねる', '鳥': 'とり', '飛ぶ': 'とぶ',
+      '赤い': 'あかい', '食べる': 'たべる', '大きな': 'おおきな', '象': 'ぞう', '水': 'みず', '飲む': 'のむ', '空': 'そら', '虹': 'にじ', '出た': 'でた',
+      '蛙': 'かえる', '池': 'いけ', '泳ぐ': 'およぐ', '友達': 'ともだち', '友だち': 'ともだち', '公園': 'こうえん', '遊ぶ': 'あそぶ',
+      '降って': 'ふって', '来た': 'きた', '傘': 'かさ', '差そう': 'さそう', '朝': 'あさ', 'お日様': 'おひさま', 'お陽様': 'おひさま', '笑って': 'わらって', '居ます': 'います',
+      'お握り': 'おにぎり', '御握り': 'おにぎり', '作った': 'つくった', '造った': 'つくった', '口': 'くち', '食べた': 'たべた', '魚': 'さかな', '居る': 'いる', '泳いで': 'およいで',
+      '夜': 'よる', '見た': 'みた', '星': 'ほし', '光って': 'ひかって', '居た': 'いた',
+      '兎': 'うさぎ', '跳ねる': 'はねる', '大好き': 'だいすき', '今日': 'きょう', '野原': 'のはら', '行ける': 'いける',
+      '木': 'き', '団栗': 'どんぐり', '落ちて': 'おちて', '転がって': 'ころがって', '行く': 'いく',
+      'お母さん': 'おかあさん', 'お店': 'おみせ', '行った': 'いった', '人参': 'にんじん', '卵': 'たまご', '玉子': 'たまご', '買った': 'かった', '自分': 'じぶん', 'お金': 'おかね', '払った': 'はらった',
+      '起きる': 'おきる', '外': 'そと', '真っ白': 'まっしろ', '雪': 'ゆき', '沢山': 'たくさん', '積もって': 'つもって', '急いで': 'いそいで',
+      '夏休み': 'なつやすみ', '海': 'うみ', '波': 'なみ', '砂浜': 'すなはま', '貝': 'かい', '拾った': 'ひろった', '楽しい': 'たのしい', '一日': 'いちにち', '1日': 'いちにち',
+      '音': 'おと', '上': 'うえ', '歌ってる': 'うたってる', '伸び': 'のび', '風': 'かぜ', '何処': 'どこ', '山': 'やま', '越えて': 'こえて',
+      '言葉': 'ことば', '種': 'たね', '蒔いて': 'まいて', '撒いて': 'まいて', '声': 'こえ', '出したら': 'だしたら', '森': 'もり', '博士': 'はかせ', '本': 'ほん', '元気': 'げんき', '音読': 'おんどく',
+      '水黽': 'あめんぼ', '赤いな': 'あかいな', '浮藻': 'うきも', '浮き藻': 'うきも', '小海老': 'こえび', '小エビ': 'こえび', '泳いでる': 'およいでる', '柿の木': 'かきのき', '栗の木': 'くりのき',
+      '爆発': 'ばくはつ', '生麦': 'なまむぎ', '生米': 'なまごめ', '生卵': 'なまたまご', '李': 'すもも', '桃': 'もも', '内': 'うち',
+      '赤巻紙': 'あかまきがみ', '青巻紙': 'あおまきがみ', '黄巻紙': 'きまきがみ', '巻紙': 'まきがみ',
+      '隣': 'となり', '客': 'きゃく', '柿': 'かき', '食う': 'くう',
+      '東京': 'とうきょう', '特許': 'とっきょ', '許可局': 'きょかきょく', '許可': 'きょか', '局': 'きょく',
+      '坊主': 'ぼうず', '屏風': 'びょうぶ', '上手': 'じょうず', '絵': 'え', '描いた': 'かいた', '書いた': 'かいた',
+      '三ぴょこ': 'みぴょこ', '3ぴょこ': 'みぴょこ', '六ぴょこ': 'むぴょこ', '6ぴょこ': 'むぴょこ', '合わせて': 'あわせて',
+    };
+
+    const SCENE_BG = {
+      sky: 'linear-gradient(180deg,#bae6fd 0%,#e0f2fe 60%,#f0f9ff 100%)',
+      grass: 'linear-gradient(180deg,#bae6fd 0%,#e0f2fe 58%,#bbf7d0 59%,#86efac 100%)',
+      sun: 'linear-gradient(180deg,#fde68a 0%,#fef3c7 60%,#fffbeb 100%)',
+      rain: 'linear-gradient(180deg,#cbd5e1 0%,#e2e8f0 60%,#f1f5f9 100%)',
+      room: 'linear-gradient(180deg,#ffedd5 0%,#fff7ed 64%,#fde6c4 65%,#f5d0a0 100%)',
+      sea: 'linear-gradient(180deg,#bae6fd 0%,#e0f2fe 48%,#7dd3fc 49%,#38bdf8 100%)',
+      night: 'linear-gradient(180deg,#1e1b4b 0%,#312e81 60%,#4338ca 100%)',
+      snow: 'linear-gradient(180deg,#e2e8f0 0%,#f8fafc 60%,#ffffff 100%)',
+      flower: 'linear-gradient(180deg,#fce7f3 0%,#fdf2f8 58%,#bbf7d0 59%,#86efac 100%)',
+    };
+    const STAGE_STYLE = {
+      teal:   { card: 'bg-teal-50 border-teal-300',     badge: 'bg-teal-500',   text: 'text-teal-700' },
+      sky:    { card: 'bg-sky-50 border-sky-300',       badge: 'bg-sky-500',    text: 'text-sky-700' },
+      green:  { card: 'bg-green-50 border-green-300',   badge: 'bg-green-500',  text: 'text-green-700' },
+      amber:  { card: 'bg-amber-50 border-amber-300',   badge: 'bg-amber-500',  text: 'text-amber-700' },
+      orange: { card: 'bg-orange-50 border-orange-300', badge: 'bg-orange-500', text: 'text-orange-700' },
+      pink:   { card: 'bg-pink-50 border-pink-300',     badge: 'bg-pink-500',   text: 'text-pink-700' },
+      violet: { card: 'bg-violet-50 border-violet-300', badge: 'bg-violet-500', text: 'text-violet-700' },
+      rose:   { card: 'bg-rose-50 border-rose-300',     badge: 'bg-rose-500',   text: 'text-rose-700' },
+    };
+
+    const STAGE_MAP = Object.fromEntries(STAGES.map(s => [s.id, s]));
+    const MAIN_IDS = ['s1', 's2', 's3', 's4', 's5', 's6'];
+    const CLEAR_IDS = [...MAIN_IDS, 'haya'];
+    const ALL_TASKS = STAGES.flatMap(s => s.tasks.map((t, i) => ({ stage: s, task: t, index: i })));
+    const TASK_LOOKUP = Object.fromEntries(ALL_TASKS.map(x => [x.task.id, x]));
+
+    /* =========================================================
+       小さな 道具
+       ========================================================= */
+    const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+    const clamp01 = x => clamp(x, 0, 1);
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    const mean = a => a.reduce((s, x) => s + x, 0) / (a.length || 1);
+    const std = a => { if (a.length < 2) return 0; const m = mean(a); return Math.sqrt(mean(a.map(x => (x - m) ** 2))); };
+    function percentile(arr, p) {
+      if (!arr.length) return null;
+      const a = [...arr].sort((x, y) => x - y);
+      return a[clamp(Math.round((a.length - 1) * p), 0, a.length - 1)];
+    }
+    const MARK_RE = /\[([^|\]]+)\|([^\]]+)\]/g;
+    const stripMarkup = s => s.replace(MARK_RE, '$1');
+    const toYomiText = s => s.replace(MARK_RE, '$2');
+    const escapeRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pad2 = n => String(n).padStart(2, '0');
+    function fmtDate(ts) { const d = new Date(ts); return `${d.getFullYear()}/${pad2(d.getMonth() + 1)}/${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
+    function ymd() { const d = new Date(); return `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}`; }
+    function hashPin(pin) { let h = 2166136261; for (const c of 'ondoku:' + pin) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16); }
+    const CURRENT = { settings: { ...DEFAULT_SETTINGS } };
+
+    /* ---- かなの 正規化 ---- */
+    const KANA_FIX = { 'を': 'お', 'づ': 'ず', 'ぢ': 'じ', 'ゐ': 'い', 'ゑ': 'え', 'ゔ': 'ぶ', 'ゕ': 'か', 'ゖ': 'け' };
+    function normChar(ch, keepUnknown = false) {
+      let c = ch;
+      const code = c.charCodeAt(0);
+      if (code >= 0x30a1 && code <= 0x30f6) c = String.fromCharCode(code - 0x60);
+      c = KANA_FIX[c] || c;
+      if (/[ぁ-ゖ]/.test(c)) return c;
+      if (/[a-zA-Z0-9]/.test(c)) return c.toLowerCase();
+      if (keepUnknown && /[一-鿿々]/.test(c)) return '＊';
+      return '';
+    }
+    const isSmallKana = c => /[ゃゅょぁぃぅぇぉゎャュョァィゥェォヮ]/.test(c);
+
+    function parseLine(line) {
+      const tokens = [];
+      const pushText = (s) => { for (const ch of s) tokens.push(ch === ' ' || ch === '　' ? { type: 'space' } : { type: 'char', text: ch }); };
+      let last = 0; let m;
+      const re = new RegExp(MARK_RE.source, 'g');
+      while ((m = re.exec(line))) { pushText(line.slice(last, m.index)); tokens.push({ type: 'kanji', base: m[1], rt: m[2] }); last = re.lastIndex; }
+      pushText(line.slice(last));
+      return tokens;
+    }
+
+    const INFO_CACHE = {};
+    function getTaskInfo(task, stage) {
+      if (INFO_CACHE[task.id]) return INFO_CACHE[task.id];
+      const lines = task.lines.map(parseLine);
+      const target = []; const map = []; let mora = 0;
+      lines.forEach((toks, li) => toks.forEach((tok, ti) => {
+        const src = tok.type === 'kanji' ? tok.rt : tok.type === 'char' ? tok.text : '';
+        for (const ch of src) {
+          const n = normChar(ch.normalize('NFKC'));
+          if (n) { target.push(n); map.push([li, ti]); }
+          if (/[ぁ-ゖァ-ヺー]/.test(ch) && !isSmallKana(ch)) mora++;
+        }
+      }));
+      const own = {};
+      lines.forEach(toks => toks.forEach(tok => { if (tok.type === 'kanji') own[tok.base] = tok.rt; }));
+      const dict = {};
+      Object.entries({ ...READING_DICT, ...own }).forEach(([k, v]) => { dict[k.normalize('NFKC')] = v; });
+      const keys = Object.keys(dict).sort((a, b) => b.length - a.length);
+      const dictRe = new RegExp(keys.map(escapeRe).join('|'), 'g');
+      const keep = stage && stage.keepSpace;
+      const speech = task.tts || task.lines.map(l => { const t = stripMarkup(l); return keep ? t : t.replace(/[ 　]+/g, ''); });
+      const maxLen = Math.max(...task.lines.map(l => stripMarkup(l).length));
+      const info = { lines, target: target.join(''), map, mora, dict, dictRe, speech, maxLen, maxSec: clamp(mora * 1.0 + 10, 12, 90) };
+      INFO_CACHE[task.id] = info;
+      return info;
+    }
+    function taskLabel(task) { return task.title || stripMarkup(task.lines[0]).replace(/[ 　]+/g, ' '); }
+    function taskYomiLabel(task) { return task.title || toYomiText(task.lines[0]); }
+
+    function heardToKana(text, info) {
+      const s = text.normalize('NFKC').replace(info.dictRe, m => info.dict[m] || m);
+      return [...s].map(ch => normChar(ch, true)).join('');
+    }
+    function alignMatches(T, H) {
+      const n = T.length, m = H.length;
+      const dp = Array.from({ length: n + 1 }, () => new Uint16Array(m + 1));
+      for (let i = 0; i <= n; i++) dp[i][0] = i;
+      for (let j = 0; j <= m; j++) dp[0][j] = j;
+      for (let i = 1; i <= n; i++) for (let j = 1; j <= m; j++) {
+        dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + (T[i - 1] === H[j - 1] ? 0 : 1));
+      }
+      const matched = new Array(n).fill(false);
+      let i = n, j = m;
+      while (i > 0 && j > 0) {
+        if (T[i - 1] === H[j - 1] && dp[i][j] === dp[i - 1][j - 1]) { matched[i - 1] = true; i--; j--; }
+        else if (dp[i][j] === dp[i - 1][j - 1] + 1) { i--; j--; }
+        else if (dp[i][j] === dp[i - 1][j] + 1) { i--; }
+        else { j--; }
+      }
+      return { dist: dp[n][m], matched };
+    }
+
+    /* =========================================================
+       ほぞん（localStorage と IndexedDB）
+       ========================================================= */
+    function loadState() {
+      let s = null;
+      try { s = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { s = null; }
+      s = s && typeof s === 'object' ? s : {};
+      const st = { version: 1, profile: s.profile || null, settings: { ...DEFAULT_SETTINGS, ...(s.settings || {}) }, progress: s.progress || {}, stickers: s.stickers || [] };
+      CURRENT.settings = st.settings;
+      return st;
+    }
+    function saveState(s) { try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch (e) { console.warn(e); } }
+
+    const DB_NAME = 'ondoku-hakase';
+    let dbPromise = null;
+    function getDB() {
+      if (dbPromise) return dbPromise;
+      dbPromise = new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = () => {
+          const db = req.result;
+          if (!db.objectStoreNames.contains('history')) db.createObjectStore('history', { keyPath: 'id', autoIncrement: true }).createIndex('taskId', 'taskId');
+          if (!db.objectStoreNames.contains('recordings')) db.createObjectStore('recordings', { keyPath: 'id' }).createIndex('taskId', 'taskId');
+          if (!db.objectStoreNames.contains('models')) db.createObjectStore('models', { keyPath: 'taskId' });
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+      return dbPromise;
+    }
+    async function idbReq(storeName, mode, fn) {
+      const db = await getDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(storeName, mode);
+        const req = fn(tx.objectStore(storeName));
+        let result;
+        if (req) req.onsuccess = () => { result = req.result; };
+        tx.oncomplete = () => resolve(result);
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      });
+    }
+    const DB = {
+      add: (s, v) => idbReq(s, 'readwrite', st => st.add(v)),
+      put: (s, v) => idbReq(s, 'readwrite', st => st.put(v)),
+      get: (s, k) => idbReq(s, 'readonly', st => st.get(k)),
+      getAll: (s) => idbReq(s, 'readonly', st => st.getAll()),
+      getAllKeys: (s) => idbReq(s, 'readonly', st => st.getAllKeys()),
+      byTask: (s, taskId) => idbReq(s, 'readonly', st => st.index('taskId').getAll(taskId)),
+      del: (s, k) => idbReq(s, 'readwrite', st => st.delete(k)),
+      clear: (s) => idbReq(s, 'readwrite', st => st.clear()),
+    };
+
+    // 1回の ちょうせんを ほぞん。録音は「さいしん3回」と「さいこうてんの回」だけ のこす。
+    async function saveAttempt(entry, blob, mime) {
+      const id = await DB.add('history', entry);
+      if (blob && blob.size) {
+        await DB.put('recordings', { id, taskId: entry.taskId, blob, mime, total: entry.total, at: entry.at });
+        await pruneRecordings(entry.taskId);
+      }
+      return id;
+    }
+    async function pruneRecordings(taskId) {
+      const recs = await DB.byTask('recordings', taskId);
+      const keep = new Set([...recs].sort((a, b) => b.at - a.at).slice(0, 3).map(r => r.id));
+      const best = [...recs].sort((a, b) => (b.total - a.total) || (b.at - a.at))[0];
+      if (best) keep.add(best.id);
+      for (const r of recs) if (!keep.has(r.id)) await DB.del('recordings', r.id);
+    }
+
+    function blobToDataURL(blob) { return new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = () => rej(fr.error); fr.readAsDataURL(blob); }); }
+    async function dataURLToBlob(url) { return (await fetch(url)).blob(); }
+    function downloadFile(name, content, type) {
+      const blob = content instanceof Blob ? content : new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+    function pickFile(accept) {
+      return new Promise((resolve) => {
+        const input = document.createElement('input'); input.type = 'file'; input.accept = accept;
+        input.onchange = () => resolve(input.files && input.files[0] ? input.files[0] : null);
+        input.click();
+      });
+    }
+
+    /* =========================================================
+       音声（マイク・録音・音声認識・読み上げ・効果音）
+       ========================================================= */
+    const LEVEL = { db: -100, listeners: new Set(), timer: null };
+    const Mic = {
+      stream: null, ctx: null, analyser: null, buf: null, processed: null,
+      live() { return this.stream && this.stream.getAudioTracks().some(t => t.readyState === 'live'); },
+      async ensure() {
+        if (this.live()) { if (this.ctx.state === 'suspended') await this.ctx.resume(); return; }
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('no-media');
+        // 声の大きさを はかるので、自動音量調整などは オフにする
+        this.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+        const AC = window.AudioContext || window.webkitAudioContext;
+        this.ctx = this.ctx || new AC();
+        if (this.ctx.state === 'suspended') await this.ctx.resume();
+        const src = this.ctx.createMediaStreamSource(this.stream);
+        this.analyser = this.ctx.createAnalyser();
+        this.analyser.fftSize = 2048;
+        src.connect(this.analyser);
+        this.buf = new Float32Array(this.analyser.fftSize);
+        if (!LEVEL.timer) {
+          LEVEL.timer = setInterval(() => {
+            if (!Mic.analyser) return;
+            const fr = Mic.read();
+            LEVEL.db = fr.db;
+            LEVEL.listeners.forEach(fn => { try { fn(fr); } catch (e) { console.error(e); } });
+          }, 50);
+        }
+      },
+      // 先生の お手本録音用（ききやすい音にするため 自動調整 オン）
+      async ensureProcessed() {
+        if (this.processed && this.processed.getAudioTracks().some(t => t.readyState === 'live')) return this.processed;
+        this.processed = await navigator.mediaDevices.getUserMedia({ audio: true });
+        return this.processed;
+      },
+      read() {
+        this.analyser.getFloatTimeDomainData(this.buf);
+        let sum = 0, peak = 0;
+        for (let i = 0; i < this.buf.length; i++) { const v = this.buf[i]; sum += v * v; const a = v < 0 ? -v : v; if (a > peak) peak = a; }
+        const rms = Math.sqrt(sum / this.buf.length);
+        return { db: 20 * Math.log10(rms + 1e-10), peak, buf: this.buf, sr: this.ctx.sampleRate };
+      },
+    };
+
+    // 声の高さ（YIN法の かんたん版）
+    let PITCH_WORK = new Float32Array(1024);
+    function detectPitch(buf, sr) {
+      const n = Math.floor(buf.length / 2);
+      if (PITCH_WORK.length < n) PITCH_WORK = new Float32Array(n);
+      const x = PITCH_WORK;
+      for (let i = 0; i < n; i++) x[i] = (buf[2 * i] + buf[2 * i + 1]) * 0.5;
+      const fs = sr / 2;
+      const minTau = Math.max(2, Math.floor(fs / 650));
+      const maxTau = Math.min(Math.floor(fs / 70), Math.floor(n / 2));
+      const W = n - maxTau;
+      const d = new Float32Array(maxTau + 1);
+      for (let tau = 1; tau <= maxTau; tau++) { let s = 0; for (let j = 0; j < W; j++) { const v = x[j] - x[j + tau]; s += v * v; } d[tau] = s; }
+      let run = 0; d[0] = 1;
+      for (let tau = 1; tau <= maxTau; tau++) { run += d[tau]; d[tau] = run > 0 ? d[tau] * tau / run : 1; }
+      let tau = -1;
+      for (let t = minTau; t <= maxTau; t++) { if (d[t] < 0.18) { while (t + 1 <= maxTau && d[t + 1] < d[t]) t++; tau = t; break; } }
+      if (tau < 0) return 0;
+      const a = d[tau - 1], b = d[tau], c = tau + 1 <= maxTau ? d[tau + 1] : b;
+      const den = a - 2 * b + c;
+      const shift = den ? 0.5 * (a - c) / den : 0;
+      const f = fs / (tau + (Math.abs(shift) < 1 ? shift : 0));
+      return f >= 70 && f <= 650 ? f : 0;
+    }
+
+    function pickMime() {
+      if (!window.MediaRecorder) return '';
+      return ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'].find(m => MediaRecorder.isTypeSupported(m)) || '';
+    }
+
+    // 音声認識（Chrome の webkitSpeechRecognition）
+    class Recognizer {
+      constructor() {
+        this.SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        this.supported = !!this.SR;
+        this.segments = []; this.error = null; this.noSpeech = false;
+        this.active = false; this.running = false; this.r = null; this._onEnd = null;
+      }
+      start() { if (!this.supported || this.active) return; this.active = true; this._spawn(); }
+      _spawn() {
+        const r = new this.SR();
+        r.lang = 'ja-JP'; r.continuous = true; r.interimResults = true; r.maxAlternatives = 5;
+        const seg = { finals: [], interim: '' };
+        this.segments.push(seg);
+        r.onresult = (e) => {
+          let interim = '';
+          for (let i = e.resultIndex; i < e.results.length; i++) {
+            const res = e.results[i];
+            if (res.isFinal) { const alts = []; for (let k = 0; k < res.length; k++) alts.push(res[k].transcript); seg.finals[i] = alts; }
+            else interim += res[0].transcript;
+          }
+          seg.interim = interim;
+        };
+        r.onerror = (e) => { if (e.error === 'no-speech') this.noSpeech = true; else if (e.error !== 'aborted') this.error = e.error; };
+        r.onend = () => {
+          this.running = false;
+          if (this.active && !this.error && this.segments.length < 10) { setTimeout(() => { if (this.active) this._spawn(); }, 50); }
+          else if (this._onEnd) { const f = this._onEnd; this._onEnd = null; f(); }
+        };
+        this.r = r;
+        try { r.start(); this.running = true; } catch (err) { this.error = 'start-failed'; }
+      }
+      stop() {
+        this.active = false;
+        return new Promise((resolve) => {
+          if (!this.r || !this.running) return resolve();
+          const timer = setTimeout(() => { this._onEnd = null; try { this.r.abort(); } catch (e) {} resolve(); }, 3500);
+          this._onEnd = () => { clearTimeout(timer); resolve(); };
+          try { this.r.stop(); } catch (e) { clearTimeout(timer); resolve(); }
+        });
+      }
+      abort() { this.active = false; this._onEnd = null; try { this.r && this.r.abort(); } catch (e) {} }
+      candidates() {
+        const segs = this.segments.map(s => { const f = s.finals.filter(Boolean); return { tops: f.map(a => a[0] || ''), alts: f, interim: s.interim || '' }; });
+        const join = (ov) => segs.map((s, si) => s.tops.map((t, ri) => (ov && ov[0] === si && ov[1] === ri) ? ov[2] : t).join('') + s.interim).join('');
+        const list = [join(null)];
+        segs.forEach((s, si) => s.alts.forEach((alts, ri) => alts.slice(1).forEach(alt => list.push(join([si, ri, alt])))));
+        return [...new Set(list.map(x => x.trim()))].filter(Boolean).slice(0, 60);
+      }
+    }
+
+    // 1回の 録音（ノイズ測定 → 録音 → 音声認識）
+    class RecSession {
+      constructor({ maxSec = 60, onMax, withRecognition = true } = {}) {
+        this.maxSec = maxSec; this.onMax = onMax;
+        this.mode = 'idle'; this.noise = []; this.frames = []; this.chunks = [];
+        this.recognizer = withRecognition ? new Recognizer() : null;
+        this.tick = this.tick.bind(this);
+        LEVEL.listeners.add(this.tick);
+      }
+      tick(fr) {
+        if (this.mode === 'noise') this.noise.push(fr.db);
+        else if (this.mode === 'rec') {
+          const t = (performance.now() - this.t0) / 1000;
+          const nd = this.noiseDb == null ? -70 : this.noiseDb;
+          const f0 = fr.db > Math.max(nd + 8, -62) ? detectPitch(fr.buf, fr.sr) : 0;
+          this.frames.push({ t, db: fr.db, peak: fr.peak, f0 });
+          if (t > this.maxSec && !this.maxFired) { this.maxFired = true; this.onMax && this.onMax(); }
+        }
+      }
+      beginNoise() { this.mode = 'noise'; }
+      startRecognition() { this.recognizer && this.recognizer.start(); }
+      startRecording() {
+        this.noiseDb = this.noise.length ? percentile(this.noise, 0.5) : null;
+        this.mode = 'rec'; this.t0 = performance.now();
+        try {
+          const mime = pickMime(); this.mime = mime || 'audio/webm';
+          this.mr = new MediaRecorder(Mic.stream, mime ? { mimeType: mime, audioBitsPerSecond: 48000 } : undefined);
+          this.mr.ondataavailable = e => { if (e.data && e.data.size) this.chunks.push(e.data); };
+          this.mr.start(250);
+        } catch (e) { this.mr = null; }
+      }
+      async stop() {
+        this.mode = 'idle'; LEVEL.listeners.delete(this.tick);
+        const blobP = new Promise(res => {
+          if (!this.mr || this.mr.state === 'inactive') return res(null);
+          this.mr.onstop = () => res(new Blob(this.chunks, { type: this.mime }));
+          try { this.mr.stop(); } catch (e) { res(null); }
+        });
+        const recP = this.recognizer ? this.recognizer.stop() : Promise.resolve();
+        const [blob] = await Promise.all([blobP, recP]);
+        const rz = this.recognizer;
+        return {
+          frames: this.frames, noiseDb: this.noiseDb, blob, mime: this.mime,
+          candidates: rz ? rz.candidates() : [],
+          recogError: !rz ? null : (rz.supported ? rz.error : 'unsupported'),
+        };
+      }
+      cancel() {
+        this.mode = 'idle'; LEVEL.listeners.delete(this.tick);
+        try { if (this.mr && this.mr.state !== 'inactive') this.mr.stop(); } catch (e) {}
+        this.recognizer && this.recognizer.abort();
+      }
+    }
+
+    // 読み上げ（はかせの声・お手本）
+    const TTS = {
+      voice: null,
+      init() {
+        if (!('speechSynthesis' in window)) return;
+        const pick = () => {
+          const vs = speechSynthesis.getVoices().filter(v => /^ja/i.test(v.lang));
+          this.voice = vs.find(v => /google/i.test(v.name)) || vs[0] || null;
+        };
+        pick();
+        speechSynthesis.onvoiceschanged = pick;
+      },
+      speak(text, { rate = 1, pitch = 1 } = {}) {
+        return new Promise(resolve => {
+          if (!('speechSynthesis' in window) || !text) return resolve();
+          speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(text);
+          u.lang = 'ja-JP'; if (this.voice) u.voice = this.voice;
+          u.rate = rate; u.pitch = pitch;
+          let done = false;
+          const finish = () => { if (!done) { done = true; clearTimeout(timer); resolve(); } };
+          const timer = setTimeout(finish, 2000 + text.length * 380 / rate);
+          u.onend = finish; u.onerror = finish;
+          this.current = u; // Chrome で onend が 来なくなるのを ふせぐため 参照を のこす
+          speechSynthesis.speak(u);
+        });
+      },
+      cancel() { if ('speechSynthesis' in window) speechSynthesis.cancel(); },
+    };
+    TTS.init();
+
+    // 録音の再生（小さい声の録音は 音量を 上げて 再生）
+    let PLAY_CTX = null;
+    function playBlob(blob, { rate = 1, boost = 1 } = {}) {
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.playbackRate = rate; audio.preservesPitch = true;
+      if (boost > 1.05) {
+        try {
+          const AC = window.AudioContext || window.webkitAudioContext;
+          PLAY_CTX = PLAY_CTX || new AC();
+          if (PLAY_CTX.state === 'suspended') PLAY_CTX.resume();
+          const src = PLAY_CTX.createMediaElementSource(audio);
+          const g = PLAY_CTX.createGain(); g.gain.value = boost;
+          const comp = PLAY_CTX.createDynamicsCompressor();
+          src.connect(g); g.connect(comp); comp.connect(PLAY_CTX.destination);
+        } catch (e) { /* ふつうに再生 */ }
+      }
+      const done = new Promise(res => {
+        let fin = false;
+        const end = () => { if (fin) return; fin = true; URL.revokeObjectURL(url); res(); };
+        audio.onended = end; audio.onerror = end; audio.onpause = end;
+      });
+      audio.play().catch(() => {});
+      return { audio, done };
+    }
+    const boostFor = level => (level == null ? 1 : clamp(10 ** ((-22 - level) / 20), 1, 6));
+
+    // 効果音
+    let SFX_CTX = null;
+    const SFX_SEQ = {
+      tap: [[660, 0.07]], count: [[523, 0.12, 0.10]], go: [[880, 0.14, 0.12]],
+      pass: [[523, 0.12], [659, 0.12], [784, 0.12], [1047, 0.4]],
+      try: [[523, 0.15], [659, 0.3]],
+      sticker: [[784, 0.1], [988, 0.1], [1175, 0.3]],
+      clear: [[523, 0.12], [523, 0.12], [523, 0.12], [698, 0.35], [880, 0.2], [1047, 0.5]],
+      wrong: [[260, 0.25, 0.1]],
+    };
+    function sfx(name) {
+      if (!CURRENT.settings.sfx) return;
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        SFX_CTX = SFX_CTX || new AC();
+        if (SFX_CTX.state === 'suspended') SFX_CTX.resume();
+        let t = SFX_CTX.currentTime + 0.01;
+        (SFX_SEQ[name] || []).forEach(([freq, dur, vol = 0.14]) => {
+          const o = SFX_CTX.createOscillator(), g = SFX_CTX.createGain();
+          o.type = 'sine'; o.frequency.value = freq;
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(vol, t + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+          o.connect(g); g.connect(SFX_CTX.destination);
+          o.start(t); o.stop(t + dur + 0.05);
+          t += dur;
+        });
+      } catch (e) {}
+    }
+
+    /* =========================================================
+       採点
+       ========================================================= */
+    function firstMissedWord(info, missed) {
+      const isBreak = tok => tok.type === 'space' || (tok.type === 'char' && /[、。！？「」]/.test(tok.text));
+      for (let li = 0; li < info.lines.length; li++) {
+        const toks = info.lines[li];
+        for (let ti = 0; ti < toks.length; ti++) {
+          if (!missed.has(li + '-' + ti)) continue;
+          let a = ti; while (a > 0 && !isBreak(toks[a - 1])) a--;
+          let b = ti; while (b + 1 < toks.length && !isBreak(toks[b + 1])) b++;
+          let s = '';
+          for (let x = a; x <= b; x++) s += toks[x].type === 'kanji' ? toks[x].rt : toks[x].type === 'char' ? toks[x].text : '';
+          return s.slice(0, 12);
+        }
+      }
+      return '';
+    }
+
+    function scoreAttempt({ info, frames, noiseDb, candidates, strictKey, micGoodDb, isHaya }) {
+      const S = STRICTNESS[strictKey] || STRICTNESS.normal;
+      const W = isHaya ? WEIGHTS_HAYA : WEIGHTS;
+
+      // --- よみの せいかくさ（音声認識の 結果と お手本を くらべる）
+      let best = { sim: 0, raw: '', matched: new Array(info.target.length).fill(false) };
+      for (const c of candidates) {
+        const h = heardToKana(c, info);
+        if (!h) continue;
+        const { dist, matched } = alignMatches(info.target, h);
+        const sim = Math.max(0, 1 - dist / Math.max(1, info.target.length));
+        if (!best.raw || sim > best.sim + 1e-9) best = { sim, raw: c, matched };
+      }
+      const accR = best.raw ? clamp01((best.sim - S.accS0) / (0.95 - S.accS0)) : 0;
+
+      // --- こえの おおきさ・つよさよわさ・はやさ（マイクの 音から）
+      const dbAll = frames.map(f => f.db);
+      const p10 = percentile(dbAll, 0.1);
+      let noise = Number.isFinite(noiseDb) ? noiseDb : Infinity;
+      if (p10 != null) noise = Math.min(noise, p10 + 2);
+      noise = Number.isFinite(noise) ? clamp(noise, -95, -35) : -70;
+      const thr = Math.max(noise + 8, -62);
+      let voiced = frames.filter(f => f.db > thr);
+      // まわりが にぎやかで 声を 見分けにくいのに、ことばは 正しく 聞き取れている ときは、
+      // 録音の中で 大きい方の 音を 声として あつかう
+      if (voiced.length < 4 && best.raw && best.sim >= 0.5 && frames.length >= 8) {
+        const cut = percentile(dbAll, 0.4);
+        voiced = frames.filter(f => f.db >= cut);
+      }
+      const silent = voiced.length < 4;
+      let volR = 0, dynR = 0, spdR = 0, level = null, tooLoud = false, readSec = 0, rate = 0, speedDir = 'ok';
+      if (!silent) {
+        level = percentile(voiced.map(f => f.db), 0.75);
+        const good = micGoodDb + S.volShift;
+        const absR = clamp01((level - (good - 22)) / 22);
+        const snrR = clamp01((level - noise - 8) / S.snrSpan);
+        volR = Math.max(absR, snrR);
+        const clip = voiced.filter(f => f.peak >= 0.98).length / voiced.length;
+        if (clip > 0.08 || level > good + 14) { tooLoud = true; volR *= 0.9; }
+
+        const k = S.dynScale;
+        const rDb = clamp01((std(voiced.map(f => f.db)) - 1.5 * k) / (3.5 * k));
+        let rF0 = rDb;
+        const f0s = voiced.map(f => f.f0).filter(f => f > 0);
+        if (f0s.length >= 6) {
+          const med = percentile(f0s, 0.5);
+          const st = f0s.map(f => 12 * Math.log2(f / med)).filter(x => Math.abs(x) < 10);
+          if (st.length >= 6) rF0 = clamp01((std(st) - 0.6 * k) / (1.9 * k));
+        }
+        dynR = Math.max(S.dynFloor, 0.5 * rDb + 0.5 * rF0);
+        if (info.mora <= 6) dynR = Math.max(dynR, 0.75);
+
+        readSec = Math.max(0.3, voiced[voiced.length - 1].t - voiced[0].t + 0.05);
+        rate = info.mora / readSec;
+        if (isHaya) { spdR = clamp01((rate - 2) / (S.hayaTarget - 2)); if (spdR < 0.8) speedDir = 'slow'; }
+        else if (info.mora <= 5) spdR = 1;
+        else if (rate < S.speedLo) { spdR = clamp01((rate - S.speedLo * 0.4) / (S.speedLo * 0.6)); speedDir = 'slow'; }
+        else if (rate > S.speedHi) { spdR = clamp01(1 - (rate - S.speedHi) / S.speedHi); speedDir = 'fast'; }
+        else spdR = 1;
+      }
+
+      // 読んでいない（ちがう ことばを いった）ときは 声の点数も ひかえめに
+      const gate = best.raw ? 0.3 + 0.7 * clamp01(best.sim / 0.5) : 0.3;
+      const ratios = { vol: volR * gate, acc: accR, dyn: dynR * gate, spd: spdR * gate };
+      const parts = {
+        vol: Math.round(W.vol * ratios.vol), acc: Math.round(W.acc * ratios.acc),
+        dyn: Math.round(W.dyn * ratios.dyn), spd: Math.round(W.spd * ratios.spd),
+      };
+      const total = parts.vol + parts.acc + parts.dyn + parts.spd;
+
+      const missed = new Set();
+      if (best.raw && best.sim >= 0.3 && best.sim < 0.97) {
+        const counts = {};
+        info.map.forEach(([li, ti], idx) => {
+          const key = li + '-' + ti;
+          counts[key] = counts[key] || [0, 0];
+          counts[key][0]++;
+          if (best.matched[idx]) counts[key][1]++;
+        });
+        Object.entries(counts).forEach(([key, [n, m]]) => { if (m / n < 0.5) missed.add(key); });
+      }
+      const r = { total, parts, weights: W, ratios, sim: best.sim, heard: best.raw, missed, silent, tooLoud, readSec, rate, speedDir, level, noise };
+      r.comment = buildComment(r, info, isHaya);
+      return r;
+    }
+
+    function buildComment(r, info, isHaya) {
+      if (!r.heard && r.silent) return 'あれれ？ こえが きこえなかったぞ。マイクに むかって、もういちど よんで みよう！';
+      if (!r.heard) return 'ううむ、はかせには ことばが よく ききとれなかったのう。おてほんを きいてから、はっきり よんで みよう！';
+      const open = r.total >= 95 ? 'ほっほう！ すばらしい！' : r.total >= PASS_SCORE ? 'ほっほう！ ごうかくじゃ！' : r.total >= 60 ? 'おしい！ あと すこしじゃ！' : 'よく ちょうせん したのう！';
+      const order = ['acc', 'vol', 'spd', 'dyn'];
+      const top = order.reduce((a, k) => r.ratios[k] > r.ratios[a] ? k : a, order[0]);
+      const low = order.reduce((a, k) => r.ratios[k] < r.ratios[a] ? k : a, order[0]);
+      const praise = r.ratios[top] < 0.6 ? 'こえに だして ちょうせん できたのう。' : {
+        acc: 'ことばを ただしく よめたのう。',
+        vol: 'こえが よく きこえたぞ。',
+        spd: isHaya ? 'したが よく まわって おる！' : 'ちょうど いい はやさじゃ。',
+        dyn: 'よみかたに めりはりが あって じょうずじゃ。',
+      }[top];
+      let tip;
+      if (r.ratios[low] < 0.8 && low !== top) {
+        if (low === 'acc') { const w = firstMissedWord(info, r.missed); tip = w ? `「${w}」の ところを ゆっくり よんで みよう。` : 'おてほんを よく きいて、ゆっくり よんで みよう。'; }
+        else if (low === 'vol') tip = r.tooLoud ? 'げんき いっぱいじゃ！ つぎは ちょうど いい こえで よもう。' : 'つぎは もうすこし おおきな こえで。こえメーターの みどりを めざそう！';
+        else if (low === 'spd') tip = isHaya ? 'つぎは もうすこし はやく いえるかな？' : r.speedDir === 'fast' ? 'つぎは すこし ゆっくり よんで みよう。' : 'もうすこし すらすら よめると いいのう。';
+        else tip = 'だいじな ことばを すこし つよく よむと、もっと すてきに なるぞ。';
+      } else tip = r.total >= PASS_SCORE ? 'この ちょうしで がんばろう！' : 'もういちど よんで みよう！';
+      return `${open} ${praise} ${tip}`;
+    }
+
+    /* =========================================================
+       すすみぐあい
+       ========================================================= */
+    const isStageCleared = (stage, st) => stage.tasks.every(t => st.progress[t.id] && st.progress[t.id].passed);
+    function isStageOpen(stage, st) {
+      if (stage.optional || st.settings.unlockAll || stage.id === 's1') return true;
+      if (stage.id === 'haya') return isStageCleared(STAGE_MAP.s2, st);
+      const i = MAIN_IDS.indexOf(stage.id);
+      return isStageCleared(STAGE_MAP[MAIN_IDS[i - 1]], st);
+    }
+    function isTaskOpen(stage, i, st) {
+      if (!isStageOpen(stage, st)) return false;
+      if (stage.optional || st.settings.unlockAll || i === 0) return true;
+      const prev = st.progress[stage.tasks[i - 1].id];
+      return !!(prev && prev.passed);
+    }
+    const countCleared = st => CLEAR_IDS.filter(id => isStageCleared(STAGE_MAP[id], st)).length;
+    function findNextChallenge(st) {
+      for (const id of CLEAR_IDS) {
+        const s = STAGE_MAP[id];
+        if (!isStageOpen(s, st)) continue;
+        const i = s.tasks.findIndex((t, k) => isTaskOpen(s, k, st) && !(st.progress[t.id] && st.progress[t.id].passed));
+        if (i >= 0) return { stage: s, index: i };
+      }
+      return null;
+    }
+    function stageLockHint(stage) {
+      if (stage.id === 'haya') return 'ステージ2を クリアすると ひらくよ';
+      return `ステージ${MAIN_IDS.indexOf(stage.id)}を クリアすると ひらくよ`;
+    }
+    function pickSticker(st) {
+      const owned = new Set(Object.values(st.progress).map(p => p.sticker).filter(Boolean));
+      const pool = STICKERS.filter(e => !owned.has(e));
+      const list = pool.length ? pool : STICKERS;
+      return list[Math.floor(Math.random() * list.length)];
+    }
+    const stageLabel = stage => stage.optional ? 'じゅんびうんどう' : stage.id === 'haya' ? `とくべつ ステージ` : `ステージ${stage.no}`;
+
+    /* =========================================================
+       見た目の 部品
+       ========================================================= */
+    function Hakase({ mood = 'normal', talking = false, size = 140 }) {
+      const happy = mood === 'happy' || mood === 'cheer';
+      const eyeY = mood === 'think' ? 86 : 92;
+      const eyeR = mood === 'surprise' ? 16 : 13;
+      return (
+        <svg viewBox="0 0 200 210" width={size} height={size * 1.05} role="img" aria-label="ホーホーはかせ"
+             className={mood === 'cheer' ? 'hakase-jump' : 'hakase-bob'} style={{ overflow: 'visible', flexShrink: 0 }}>
+          <path d="M44 66 L34 24 L74 48 Z" fill="#7a4e2d" />
+          <path d="M156 66 L166 24 L126 48 Z" fill="#7a4e2d" />
+          <g className={happy ? 'wing-l' : ''}><ellipse cx="40" cy="138" rx="18" ry="42" fill="#7a4e2d" transform="rotate(12 40 138)" /></g>
+          <g className={happy ? 'wing-r' : ''}><ellipse cx="160" cy="138" rx="18" ry="42" fill="#7a4e2d" transform="rotate(-12 160 138)" /></g>
+          <ellipse cx="100" cy="126" rx="66" ry="74" fill="#9a6a43" />
+          <ellipse cx="100" cy="152" rx="42" ry="44" fill="#f3dfb8" />
+          <g stroke="#d9b98a" strokeWidth="3" fill="none" strokeLinecap="round">
+            <path d="M80 140 q6 6 12 0" /><path d="M108 140 q6 6 12 0" />
+            <path d="M86 158 q6 6 12 0" /><path d="M102 158 q6 6 12 0" /><path d="M94 176 q6 6 12 0" />
+          </g>
+          <circle cx="72" cy="92" r="30" fill="#fff4de" />
+          <circle cx="128" cy="92" r="30" fill="#fff4de" />
+          {happy ? (
+            <g stroke="#2b1b10" strokeWidth="6" fill="none" strokeLinecap="round">
+              <path d="M60 96 q12 -15 24 0" /><path d="M116 96 q12 -15 24 0" />
+            </g>
+          ) : (
+            <g className="hakase-eyes">
+              <circle cx="72" cy={eyeY} r={eyeR} fill="#2b1b10" />
+              <circle cx="128" cy={eyeY} r={eyeR} fill="#2b1b10" />
+              <circle cx="77" cy={eyeY - 5} r="4.5" fill="#fff" />
+              <circle cx="133" cy={eyeY - 5} r="4.5" fill="#fff" />
+            </g>
+          )}
+          <g stroke="#3b2a1a" strokeWidth="4" fill="none">
+            <circle cx="72" cy="92" r="24" /><circle cx="128" cy="92" r="24" /><path d="M96 90 q4 -5 8 0" />
+          </g>
+          {talking ? (
+            <g>
+              <path d="M90 110 L110 110 L100 119 Z" fill="#f59e0b" />
+              <path className="beak-lower" d="M93 120 L107 120 L100 128 Z" fill="#d97706" />
+            </g>
+          ) : (
+            <path d="M90 110 L110 110 L100 127 Z" fill="#f59e0b" />
+          )}
+          {happy && (<g fill="#fda4af" opacity=".75"><ellipse cx="50" cy="118" rx="10" ry="6" /><ellipse cx="150" cy="118" rx="10" ry="6" /></g>)}
+          <rect x="70" y="42" width="60" height="18" rx="4" fill="#111827" />
+          <path d="M100 16 L164 38 L100 58 L36 38 Z" fill="#1f2937" />
+          <path d="M100 37 L154 46 L156 72" stroke="#facc15" strokeWidth="3" fill="none" />
+          <circle cx="156" cy="75" r="5.5" fill="#facc15" />
+          {mood === 'think' && <text x="160" y="22" fontSize="30">💭</text>}
+          {mood === 'surprise' && <text x="162" y="30" fontSize="30">❗</text>}
+          <g fill="#f59e0b"><ellipse cx="82" cy="200" rx="13" ry="6" /><ellipse cx="118" cy="200" rx="13" ry="6" /></g>
+        </svg>
+      );
+    }
+
+    function Bubble({ children, className = '' }) {
+      return (
+        <div className={`relative bg-white border-4 border-amber-300 rounded-3xl px-5 py-3 text-xl md:text-2xl leading-relaxed font-bold text-slate-700 shadow-sm ${className}`}>
+          <span className="absolute -left-4 bottom-6 w-0 h-0" style={{ borderTop: '12px solid transparent', borderBottom: '12px solid transparent', borderRight: '16px solid #fcd34d' }} />
+          {children}
+        </div>
+      );
+    }
+
+    const BTN_COLORS = {
+      sky: 'bg-sky-500 hover:bg-sky-600 border-sky-700 text-white',
+      red: 'bg-rose-500 hover:bg-rose-600 border-rose-700 text-white',
+      green: 'bg-emerald-500 hover:bg-emerald-600 border-emerald-700 text-white',
+      amber: 'bg-amber-400 hover:bg-amber-500 border-amber-600 text-amber-950',
+      violet: 'bg-violet-500 hover:bg-violet-600 border-violet-700 text-white',
+      white: 'bg-white hover:bg-slate-50 border-slate-300 text-slate-700 border-2 border-b-[6px]',
+      slate: 'bg-slate-600 hover:bg-slate-700 border-slate-800 text-white',
+    };
+    const BTN_SIZES = { sm: 'px-3 py-2 text-base', md: 'px-5 py-3 text-xl', lg: 'px-6 py-4 text-2xl', xl: 'px-8 py-5 text-3xl' };
+    function Btn({ color = 'sky', size = 'md', className = '', onClick, ...p }) {
+      return <button {...p} onClick={(e) => { sfx('tap'); onClick && onClick(e); }} className={`btn3d ${BTN_COLORS[color]} ${BTN_SIZES[size]} ${className}`} />;
+    }
+
+    function SceneCard({ task, compact = false, height }) {
+      const n = task.pic.length;
+      const size = compact ? (n <= 1 ? 60 : n <= 3 ? 44 : 36) : (n <= 1 ? 110 : n <= 3 ? 84 : 66);
+      return (
+        <div className="rounded-3xl border-4 border-white shadow-md flex items-center justify-center gap-2 overflow-hidden"
+             style={{ background: SCENE_BG[task.bg] || SCENE_BG.sky, minHeight: compact ? 90 : (height || 190) }}>
+          {task.pic.map((e, i) => (
+            <span key={i} className="float select-none" style={{ fontSize: size, lineHeight: 1.15, animationDelay: `${i * 0.45}s` }}>{e}</span>
+          ))}
+        </div>
+      );
+    }
+
+    function Tok({ tok, miss }) {
+      if (tok.type === 'space') return <span style={{ display: 'inline-block', width: '0.55em' }} />;
+      if (tok.type === 'kanji') return <ruby className={miss ? 'miss' : ''}>{tok.base}<rt>{tok.rt}</rt></ruby>;
+      return <span className={miss ? 'miss' : ''}>{tok.text}</span>;
+    }
+
+    function baseFontSize(info) {
+      const L = info.maxLen;
+      return L <= 6 ? 72 : L <= 10 ? 56 : L <= 16 ? 44 : L <= 22 ? 36 : 30;
+    }
+
+    // 行の はばを 文字数で みつもる（分かち書きの すきまは 0.55文字ぶん）
+    const lineEm = toks => toks.reduce((s, t) => s + (t.type === 'space' ? 0.58 : t.type === 'kanji' ? Math.max(t.base.length * 1.06, t.rt.length * 0.45) : 1.06), 0) + 0.9;
+
+    function TextCard({ task, info, fontScale = 1, slit = false, line = 0, onLine, missed, small = false }) {
+      const boxRef = useRef(null);
+      const [box, setBox] = useState({ w: 0, vw: window.innerWidth, vh: window.innerHeight });
+      useEffect(() => {
+        const el = boxRef.current;
+        if (!el) return;
+        const measure = () => setBox({ w: el.clientWidth, vw: window.innerWidth, vh: window.innerHeight });
+        measure();
+        window.addEventListener('resize', measure);
+        const ro = window.ResizeObserver ? new ResizeObserver(measure) : null;
+        if (ro) ro.observe(el);
+        return () => { window.removeEventListener('resize', measure); if (ro) ro.disconnect(); };
+      }, []);
+      const multi = info.lines.length > 1;
+      const lh = multi ? 1.85 : 2.05;
+      // 1行が はみださない 大きさ
+      const widest = Math.max(...info.lines.map(lineEm));
+      const fitW = box.w ? (box.w - 56) / widest : Infinity;
+      // 横長の画面（Chromebook）では、ボタンまで スクロールせずに 見えるように 高さも 合わせる
+      let fitH = Infinity;
+      if (!small && box.vw >= 1024) {
+        // ヘッダーと見出し 約135px、1ぎょうずつボタン 約62px、カードの余白 約40px（ふりがなで 行が 少し 高くなるぶんも みこむ）
+        const avail = box.vh - 135 - (multi ? 62 : 0) - 20 - 40 - (task.title ? 40 : 0);
+        fitH = avail / (info.lines.length * lh * 1.08);
+      }
+      // 文字の大きさ設定は 最後に かける（はみだす ときは 分かち書きの ところで 折り返す）
+      const base = Math.max(24, Math.min(baseFontSize(info), fitW, fitH) * fontScale) * (small ? 0.62 : 1);
+      return (
+        <div ref={boxRef} className="bg-white rounded-3xl border-4 border-amber-200 shadow-md px-4 py-4 md:px-6">
+          {task.title && !small && <div className="text-center text-amber-700 font-bold mb-1" style={{ fontSize: Math.max(22, base * 0.55) }}>「{task.title}」</div>}
+          <div className="flex justify-center">
+            <div className="flex flex-col items-start gap-1 max-w-full">
+              {info.lines.map((toks, li) => (
+                <div key={li}
+                     onClick={() => { if (slit && multi && onLine) onLine(li); }}
+                     className={`ondoku-line ${slit && multi ? (li === line ? 'slit-on' : 'slit-off') : ''}`}
+                     style={{ fontSize: base, lineHeight: lh }}>
+                  {toks.map((tok, ti) => <Tok key={ti} tok={tok} miss={missed && missed.has(li + '-' + ti)} />)}
+                </div>
+              ))}
+            </div>
+          </div>
+          {task.source && !small && <div className="text-sm text-slate-400 text-right mt-1">（{task.source}）</div>}
+        </div>
+      );
+    }
+
+    function VoiceMeter({ goodDb }) {
+      const [db, setDb] = useState(-100);
+      useEffect(() => {
+        const id = setInterval(() => setDb(prev => Math.max(LEVEL.db, prev - 2.5)), 60);
+        return () => clearInterval(id);
+      }, []);
+      const lo = goodDb - 30, hi = goodDb + 10;
+      const pos = v => clamp01((v - lo) / (hi - lo)) * 100;
+      const pct = pos(db), gs = pos(goodDb - 8), ge = pos(goodDb + 5);
+      const zone = pct < gs ? 0 : pct > ge ? 2 : 1;
+      const face = ['🤫', '😄', '😲'][zone];
+      const label = ['もっと おおきく', 'ちょうど いい！', 'おおきすぎ かも'][zone];
+      return (
+        <div className="w-full">
+          <div className="flex items-center justify-between text-lg font-bold mb-1">
+            <span className="text-slate-600">📢 こえメーター</span>
+            <span className={zone === 1 ? 'text-emerald-600' : zone === 0 ? 'text-slate-500' : 'text-orange-500'}>{label}</span>
+          </div>
+          <div className="relative h-10 rounded-full bg-slate-200 overflow-hidden border-2 border-slate-300">
+            <div className="absolute inset-y-0 bg-emerald-200" style={{ left: `${gs}%`, width: `${ge - gs}%` }} />
+            <div className="absolute inset-y-0 left-0 rounded-full transition-all duration-75"
+                 style={{ width: `${pct}%`, background: zone === 1 ? '#10b981' : zone === 0 ? '#94a3b8' : '#f97316', opacity: 0.85 }} />
+            <div className="absolute inset-y-0 flex items-center text-3xl transition-all duration-75" style={{ left: `calc(${pct}% - 18px)` }}>{face}</div>
+          </div>
+        </div>
+      );
+    }
+
+    function StepBar({ step }) {
+      const steps = [['👂', 'きく'], ['🗣️', 'れんしゅう'], ['🎤', 'ろくおん'], ['💯', 'てんすう']];
+      return (
+        <div className="flex items-center gap-1 md:gap-2">
+          {steps.map(([ic, lb], i) => {
+            const n = i + 1; const on = n === step; const done = n < step;
+            return (
+              <React.Fragment key={n}>
+                {i > 0 && <span className="text-slate-300 font-bold">›</span>}
+                <div className={`flex items-center gap-1 rounded-full px-2 md:px-3 py-1 text-sm md:text-base font-bold border-2 ${on ? 'bg-amber-400 border-amber-500 text-amber-950 scale-110' : done ? 'bg-emerald-100 border-emerald-300 text-emerald-700' : 'bg-white border-slate-200 text-slate-400'}`}>
+                  <span>{done ? '✅' : ic}</span><span className="hidden sm:inline">{n}.{lb}</span>
+                </div>
+              </React.Fragment>
+            );
+          })}
+        </div>
+      );
+    }
+
+    function Stars({ n, size = 44 }) {
+      return (
+        <div className="flex justify-center gap-1">
+          {[1, 2, 3].map(i => <span key={i} className={i <= n ? 'pop' : ''} style={{ fontSize: size, filter: i <= n ? 'none' : 'grayscale(1) opacity(.25)', animationDelay: `${0.3 + i * 0.2}s` }}>⭐</span>)}
+        </div>
+      );
+    }
+
+    function Confetti() {
+      const pieces = useMemo(() => Array.from({ length: 28 }, (_, i) => ({
+        e: ['🎉', '⭐', '✨', '🌟', '🎊'][i % 5], left: Math.random() * 100, delay: Math.random() * 0.8, dur: 2.2 + Math.random() * 1.5, size: 24 + Math.random() * 20,
+      })), []);
+      return <>{pieces.map((p, i) => <span key={i} className="confetti" style={{ left: `${p.left}vw`, fontSize: p.size, animationDuration: `${p.dur}s`, animationDelay: `${p.delay}s` }}>{p.e}</span>)}</>;
+    }
+
+    function Modal({ children, onClose }) {
+      return (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
+          <div className="pop max-w-xl w-full" onClick={e => e.stopPropagation()}>{children}</div>
+        </div>
+      );
+    }
+
+    /* =========================================================
+       ホーム画面
+       ========================================================= */
+    function HomeScreen({ app, onOpenStage, onStartTask }) {
+      const { state } = app;
+      const [letter, setLetter] = useState(null);
+      const [talking, setTalking] = useState(false);
+      const next = findNextChallenge(state);
+      const cleared = countCleared(state);
+      const name = state.profile ? state.profile.name : '';
+      const greeting = next
+        ? `${name}さん、よく きたのう！ きょうも いっしょに おんどくを しよう。`
+        : `${name}さん、すべての ちょうせんを クリアしたぞ！ すきな かだいに もういちど ちょうせん しよう。`;
+
+      const hakaseSpeak = async (text) => {
+        if (!state.settings.hakaseVoice) return;
+        setTalking(true);
+        await TTS.speak(text, HAKASE_VOICE);
+        setTalking(false);
+      };
+      useEffect(() => {
+        if (navigator.userActivation && navigator.userActivation.hasBeenActive) hakaseSpeak(greeting);
+        return () => TTS.cancel();
+      }, []);
+
+      const openLetter = () => {
+        const target = next || (() => { const list = ALL_TASKS.filter(x => !x.stage.optional); return list[Math.floor(Math.random() * list.length)]; })();
+        setLetter(target);
+        const t = target.stage.tasks[target.index];
+        hakaseSpeak(`${name}さんへ。ちょうせんじょう。${stageLabel(target.stage)}、${target.stage.name}の ${target.index + 1}もんめに ちょうせん せよ！ ホーホーはかせより。`);
+      };
+
+      return (
+        <div className="max-w-6xl mx-auto p-4 md:p-6">
+          <section className="bg-white rounded-3xl border-4 border-amber-200 shadow-sm p-4 md:p-6 flex flex-col md:flex-row items-center gap-4">
+            <Hakase size={150} talking={talking} mood={next ? 'normal' : 'happy'} />
+            <div className="flex-1 w-full">
+              <Bubble>{greeting}</Bubble>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <Btn color="red" size="xl" onClick={openLetter} className="rec-pulse !text-2xl md:!text-3xl">📜 きょうの ちょうせんじょう</Btn>
+                <div className="text-lg font-bold text-amber-800 bg-amber-100 rounded-2xl px-4 py-2 border-2 border-amber-300">
+                  {TITLES[cleared].icon} しょうごう：{TITLES[cleared].name}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <h2 className="mt-6 mb-3 text-2xl font-bold text-slate-700">🗺️ ステージを えらぼう</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {STAGES.map(stage => {
+              const open = isStageOpen(stage, state);
+              const done = stage.tasks.filter(t => state.progress[t.id] && state.progress[t.id].passed).length;
+              const clearedStage = done === stage.tasks.length;
+              const sty = STAGE_STYLE[stage.color];
+              return (
+                <button key={stage.id} disabled={!open}
+                        onClick={() => { sfx('tap'); onOpenStage(stage); }}
+                        className={`relative text-left rounded-3xl border-4 p-4 shadow-sm transition-transform ${open ? `${sty.card} hover:-translate-y-1` : 'bg-slate-100 border-slate-200'} `}>
+                  {clearedStage && !stage.optional && <span className="absolute -top-3 -right-2 text-4xl pop">👑</span>}
+                  <div className="flex items-center gap-3">
+                    <span className={`text-4xl w-14 h-14 flex items-center justify-center rounded-2xl ${open ? 'bg-white' : 'bg-slate-200'}`}>{open ? stage.icon : '🔒'}</span>
+                    <div>
+                      <div className={`text-sm font-bold ${open ? sty.text : 'text-slate-400'}`}>{stageLabel(stage)}{stage.optional ? '（すきな ときに）' : ''}</div>
+                      <div className={`text-xl font-bold ${open ? 'text-slate-800' : 'text-slate-400'}`}>{stage.name}</div>
+                    </div>
+                  </div>
+                  <div className={`mt-2 text-base ${open ? 'text-slate-600' : 'text-slate-400'}`}>{open ? stage.sub : stageLockHint(stage)}</div>
+                  <div className="mt-2 flex gap-1">
+                    {stage.tasks.map(t => <span key={t.id} className={`w-5 h-5 rounded-full border-2 ${state.progress[t.id] && state.progress[t.id].passed ? `${sty.badge} border-white` : 'bg-white border-slate-300'}`} />)}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {letter && (
+            <Modal onClose={() => { TTS.cancel(); setLetter(null); }}>
+              <div className="parchment rounded-3xl p-6 text-center">
+                <div className="text-3xl font-black text-amber-800 mb-1">📜 ちょうせんじょう</div>
+                <div className="text-xl font-bold text-slate-700 mb-3">{name} どの</div>
+                <SceneCard task={letter.stage.tasks[letter.index]} compact />
+                <div className="mt-3 text-2xl font-bold text-slate-800 leading-relaxed">
+                  {stageLabel(letter.stage)}「{letter.stage.name}」の<br />{letter.index + 1}もんめに ちょうせん せよ！
+                </div>
+                <div className="mt-2 text-lg text-amber-700 font-bold">ホーホーはかせ より 🦉</div>
+                <div className="mt-5 flex justify-center gap-3 flex-wrap">
+                  <Btn color="red" size="lg" onClick={() => { TTS.cancel(); onStartTask(letter.stage, letter.index); }}>🔥 うけて たつ！</Btn>
+                  <Btn color="white" size="lg" onClick={() => { TTS.cancel(); setLetter(null); }}>あとで</Btn>
+                </div>
+              </div>
+            </Modal>
+          )}
+        </div>
+      );
+    }
+
+    /* =========================================================
+       ステージ画面（課題の いちらん）
+       ========================================================= */
+    function StageScreen({ app, stage, onStartTask }) {
+      const { state } = app;
+      const sty = STAGE_STYLE[stage.color];
+      return (
+        <div className="max-w-6xl mx-auto p-4 md:p-6">
+          <div className={`rounded-3xl border-4 p-4 mb-4 flex items-center gap-3 ${sty.card}`}>
+            <span className="text-5xl">{stage.icon}</span>
+            <div>
+              <div className={`font-bold ${sty.text}`}>{stageLabel(stage)}</div>
+              <div className="text-3xl font-bold">{stage.name}</div>
+              <div className="text-lg text-slate-600">{stage.sub}　／　{PASS_SCORE}てん いじょうで ごうかく！</div>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {stage.tasks.map((task, i) => {
+              const open = isTaskOpen(stage, i, state);
+              const p = state.progress[task.id] || {};
+              const info = getTaskInfo(task, stage);
+              return (
+                <button key={task.id} disabled={!open} onClick={() => { sfx('tap'); onStartTask(stage, i); }}
+                        className={`relative text-left rounded-3xl border-4 p-3 shadow-sm transition-transform ${open ? 'bg-white border-amber-200 hover:-translate-y-1' : 'bg-slate-100 border-slate-200 opacity-70'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`text-white font-bold rounded-full px-3 py-1 ${open ? sty.badge : 'bg-slate-400'}`}>{i + 1}もんめ</span>
+                    {p.sticker && <span className="text-4xl pop" title="シール">{p.sticker}</span>}
+                    {!open && <span className="text-3xl">🔒</span>}
+                  </div>
+                  {open ? <SceneCard task={task} compact /> : <div className="rounded-3xl bg-slate-200 flex items-center justify-center text-slate-400 text-xl font-bold" style={{ minHeight: 90 }}>まえの もんだいに ごうかくすると ひらくよ</div>}
+                  <div className="mt-2 text-2xl font-bold text-slate-800 leading-loose truncate">
+                    {open ? (task.title ? `「${task.title}」` : info.lines[0].map((tok, ti) => <Tok key={ti} tok={tok} />)) : '？？？'}
+                  </div>
+                  <div className="mt-1 flex items-center justify-between text-lg">
+                    <span className="text-slate-500">{p.tries ? `さいこう ${p.best}てん` : open ? 'まだ ちょうせん していないよ' : ''}</span>
+                    {p.passed && <span className="text-rose-600 font-black">ごうかく💮</span>}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    /* =========================================================
+       課題画面（きく → れんしゅう → ろくおん → てんすう）
+       ========================================================= */
+    function TaskScreen({ app, stage, index, onGoTask, onBackToStage }) {
+      const task = stage.tasks[index];
+      const info = getTaskInfo(task, stage);
+      const { state, update } = app;
+      const settings = state.settings;
+      const isHaya = stage.id === 'haya';
+      const fontScale = FONT_SCALE[settings.fontSize] || 1;
+
+      const [phase, setPhase] = useState('intro');   // intro | practice | countdown | recording | analyzing | result
+      const [listened, setListened] = useState(false);
+      const [count, setCount] = useState(3);
+      const [line, setLine] = useState(0);
+      const [slitOn, setSlitOn] = useState(settings.slit);
+      const [elapsed, setElapsed] = useState(0);
+      const [result, setResult] = useState(null);
+      const [talk, setTalk] = useState({ text: '', mood: 'normal', talking: false });
+      const [playing, setPlaying] = useState(null);
+      const [modelRec, setModelRec] = useState(null);
+      const [problem, setProblem] = useState(null);
+
+      const sessRef = useRef(null);
+      const audioRef = useRef(null);
+      const tokenRef = useRef(0);
+      const aliveRef = useRef(true);
+      const resultBlobRef = useRef(null);
+
+      const say = useCallback((text, mood = 'normal', speak = true) => {
+        const doSpeak = speak && CURRENT.settings.hakaseVoice;
+        setTalk({ text, mood, talking: doSpeak });
+        if (doSpeak) TTS.speak(text, HAKASE_VOICE).then(() => { if (aliveRef.current) setTalk(t => t.text === text ? { ...t, talking: false } : t); });
+      }, []);
+
+      const stopAudio = () => {
+        tokenRef.current++;
+        TTS.cancel();
+        if (audioRef.current) { try { audioRef.current.pause(); } catch (e) {} audioRef.current = null; }
+        setPlaying(null);
+        setTalk(t => ({ ...t, talking: false }));
+      };
+
+      useEffect(() => {
+        aliveRef.current = true;
+        DB.get('models', task.id).then(m => { if (aliveRef.current && m) setModelRec(m); }).catch(() => {});
+        const intro = info.mora <= 6 && info.lines.length === 1
+          ? 'この ことばを よんで みよう！ まずは おてほんを きいてね。'
+          : isHaya ? 'はやくちことばじゃ！ まずは おてほんを きいて みよう。' : 'この ぶんを よんで みよう！ まずは おてほんを きいてね。';
+        say(intro);
+        return () => {
+          aliveRef.current = false;
+          tokenRef.current++;
+          TTS.cancel();
+          if (audioRef.current) try { audioRef.current.pause(); } catch (e) {}
+          if (sessRef.current) sessRef.current.cancel();
+        };
+      }, []);
+
+      useEffect(() => {
+        if (phase !== 'recording') return;
+        const t0 = Date.now();
+        const id = setInterval(() => setElapsed((Date.now() - t0) / 1000), 200);
+        return () => clearInterval(id);
+      }, [phase]);
+
+      const playModel = async (slow) => {
+        stopAudio();
+        const token = tokenRef.current;
+        setPlaying(slow ? 'slow' : 'model');
+        if (phase === 'practice') stopPractice();
+        if (modelRec) {
+          setLine(0);
+          const p = playBlob(modelRec.blob, { rate: slow ? 0.75 : 1 });
+          audioRef.current = p.audio;
+          await p.done;
+        } else {
+          const baseRate = settings.modelSpeed === 'slow' ? 0.75 : settings.modelSpeed === 'fast' ? 1.05 : 0.9;
+          const rate = baseRate * (slow ? 0.72 : 1);
+          for (let i = 0; i < info.speech.length; i++) {
+            if (token !== tokenRef.current) return;
+            setLine(Math.min(i, info.lines.length - 1));
+            await TTS.speak(info.speech[i], { rate });
+            if (token !== tokenRef.current) return;
+            await sleep(slow ? 450 : 250);
+          }
+        }
+        if (token !== tokenRef.current || !aliveRef.current) return;
+        setPlaying(null); setLine(0);
+        if (!listened) {
+          setListened(true);
+          say('つぎは れんしゅうじゃ。こえに だして よんで みよう。じゅんびが できたら ろくおん ボタンを おしてね。');
+        }
+      };
+
+      const playMine = async () => {
+        if (!resultBlobRef.current) return;
+        stopAudio();
+        const token = tokenRef.current;
+        setPlaying('mine');
+        const p = playBlob(resultBlobRef.current, { boost: boostFor(result && result.level) });
+        audioRef.current = p.audio;
+        await p.done;
+        if (token === tokenRef.current && aliveRef.current) setPlaying(null);
+      };
+
+      const startPractice = async () => {
+        stopAudio();
+        try { await Mic.ensure(); } catch (e) { return micProblem(); }
+        setListened(true);
+        setPhase('practice'); setLine(0);
+        say('こえメーターを みながら よんで みよう。みどりの ところが ちょうど いい おおきさじゃ。');
+      };
+      const stopPractice = () => { setPhase('intro'); };
+
+      const micProblem = () => {
+        setProblem('mic');
+        setPhase('intro');
+        say('マイクが つかえないみたいじゃ。せんせいに しらせてね。', 'surprise');
+      };
+
+      const startRecording = async () => {
+        stopAudio();
+        setProblem(null);
+        try { await Mic.ensure(); } catch (e) { return micProblem(); }
+        if (resultBlobRef.current) resultBlobRef.current = null;
+        setResult(null);
+        const sess = new RecSession({ maxSec: info.maxSec, onMax: () => finishRecording() });
+        sessRef.current = sess;
+        setLine(0);
+        setPhase('countdown'); setCount(3);
+        say('3・2・1 の あとに よんでね。しずかに まってね。', 'normal', false);
+        sess.beginNoise(); sfx('count');
+        await sleep(1000); if (sessRef.current !== sess) return;
+        setCount(2); sfx('count');
+        await sleep(1000); if (sessRef.current !== sess) return;
+        setCount(1); sfx('count'); sess.startRecognition();
+        await sleep(1000); if (sessRef.current !== sess) return;
+        setCount(0); sfx('go');
+        await sleep(250); if (sessRef.current !== sess) return;
+        sess.startRecording();
+        setPhase('recording'); setElapsed(0);
+        say(info.lines.length > 1 && slitOn ? 'よみおわったら「よみおわった！」を おしてね。つぎの ぎょうは ▼で すすむよ。' : 'よみおわったら「よみおわった！」を おしてね。', 'normal', false);
+      };
+
+      const cancelRecording = () => {
+        const sess = sessRef.current;
+        sessRef.current = null;
+        if (sess) sess.cancel();
+        setPhase('intro');
+        say('とちゅうで やめたよ。じゅんびが できたら もういちど どうぞ。', 'normal', false);
+      };
+
+      const finishRecording = async () => {
+        const sess = sessRef.current;
+        if (!sess || sess.finishing) return;
+        sess.finishing = true;
+        setPhase('analyzing');
+        say('ふむふむ… はかせが きいて おるぞ…', 'think', false);
+        const raw = await sess.stop();
+        sessRef.current = null;
+        if (!aliveRef.current) return;
+
+        if (raw.recogError && raw.recogError !== 'no-speech') {
+          setProblem('recog:' + raw.recogError);
+          setPhase('intro');
+          say(raw.recogError === 'network'
+            ? 'インターネットに つながって いないみたいじゃ。せんせいに しらせてね。'
+            : 'はかせの みみが うまく はたらかなかった。もういちど ためして みてね。', 'surprise');
+          return;
+        }
+
+        const res = scoreAttempt({ info, frames: raw.frames, noiseDb: raw.noiseDb, candidates: raw.candidates, strictKey: settings.strict, micGoodDb: settings.micGoodDb, isHaya });
+        const at = Date.now();
+        const entry = {
+          taskId: task.id, stageId: stage.id, at, total: res.total, parts: res.parts, heard: res.heard,
+          sim: Math.round(res.sim * 100) / 100, readSec: Math.round(res.readSec * 10) / 10, level: res.level, strict: settings.strict,
+        };
+        try { await saveAttempt(entry, raw.blob, raw.mime); } catch (e) { console.error('save failed', e); }
+        resultBlobRef.current = raw.blob;
+
+        const passed = res.total >= PASS_SCORE;
+        let info2 = {};
+        const before = app.stateRef.current;
+        const prev = before.progress[task.id] || {};
+        const firstPass = passed && !prev.passed;
+        const stageWasCleared = isStageCleared(stage, before);
+        const clearedBefore = countCleared(before);
+        const newBestTime = isHaya && passed && (!prev.bestTime || res.readSec < prev.bestTime);
+        const after = update(s => {
+          const p = s.progress[task.id] || {};
+          const sticker = p.sticker || (firstPass ? pickSticker(s) : null);
+          info2.sticker = sticker;
+          return {
+            ...s,
+            progress: {
+              ...s.progress,
+              [task.id]: {
+                best: Math.max(p.best || 0, res.total), passed: !!(p.passed || passed), tries: (p.tries || 0) + 1, lastAt: at, sticker,
+                bestTime: newBestTime ? Math.round(res.readSec * 10) / 10 : (p.bestTime || null),
+              },
+            },
+            stickers: firstPass ? [...(s.stickers || []), { emoji: sticker, taskId: task.id, at }] : (s.stickers || []),
+          };
+        });
+        const stageCleared = !stage.optional && !stageWasCleared && isStageCleared(stage, after);
+        const clearedAfter = countCleared(after);
+        setResult({ ...res, passed, firstPass, sticker: info2.sticker, stageCleared, newTitle: clearedAfter > clearedBefore ? TITLES[clearedAfter] : null, newBestTime });
+        setPhase('result');
+        sfx(stageCleared ? 'clear' : passed ? 'pass' : 'try');
+        say(res.comment, passed ? 'cheer' : res.heard ? 'happy' : 'surprise');
+      };
+
+      const retry = () => { stopAudio(); setResult(null); setPhase('intro'); say('もういちど ちょうせんじゃ！ がんばれ！', 'happy'); };
+      const hasNext = index + 1 < stage.tasks.length;
+      const everPassed = !!(state.progress[task.id] && state.progress[task.id].passed);
+      const canGoNext = hasNext && !!result && (result.passed || everPassed || stage.optional || settings.unlockAll);
+      const goNext = () => { stopAudio(); if (hasNext) onGoTask(stage, index + 1); else onBackToStage(); };
+
+      const step = phase === 'result' || phase === 'analyzing' ? 4 : phase === 'countdown' || phase === 'recording' ? 3 : phase === 'practice' || listened ? 2 : 1;
+      const multi = info.lines.length > 1;
+      const slitActive = slitOn && multi;
+      const busy = phase === 'countdown' || phase === 'recording' || phase === 'analyzing';
+
+      return (
+        <div className="max-w-6xl mx-auto p-3 md:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <div className="text-xl font-bold text-slate-700">{stage.icon} {stageLabel(stage)}「{stage.name}」 {index + 1}もんめ</div>
+            <StepBar step={step} />
+          </div>
+
+          {/* 横長の画面：左に 挿絵・はかせ・ボタン、右に ぶん。たて長の画面：挿絵 → ぶん → はかせ → ボタン */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 lg:grid-rows-[auto_auto_1fr] gap-4">
+            <div className="lg:col-span-2 lg:col-start-1 lg:row-start-1">
+              <SceneCard task={task} height={160} />
+            </div>
+
+            <div className="lg:col-span-3 lg:col-start-3 lg:row-start-1 lg:row-span-3 flex flex-col gap-3">
+              {phase !== 'result' ? (
+                <>
+                  <div className="relative">
+                    <TextCard task={task} info={info} fontScale={fontScale} slit={slitActive} line={line} onLine={setLine} />
+                    {phase === 'countdown' && (
+                      <div className="absolute inset-0 rounded-3xl bg-white/85 flex flex-col items-center justify-center">
+                        <div key={count} className="count-num text-9xl font-black text-rose-500">{count > 0 ? count : 'はい！'}</div>
+                        <div className="text-2xl font-bold text-slate-600 mt-2">しずかに まってね</div>
+                      </div>
+                    )}
+                    {phase === 'analyzing' && (
+                      <div className="absolute inset-0 rounded-3xl bg-white/85 flex flex-col items-center justify-center gap-2">
+                        <div className="text-7xl float">🦉💭</div>
+                        <div className="text-2xl font-bold text-slate-600">はかせが きいて いるよ…</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {multi && (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button onClick={() => setSlitOn(v => !v)} className={`rounded-full px-4 py-2 text-lg font-bold border-2 ${slitOn ? 'bg-yellow-200 border-yellow-400 text-yellow-900' : 'bg-white border-slate-300 text-slate-500'}`}>
+                        📏 1ぎょうずつ：{slitOn ? 'オン' : 'オフ'}
+                      </button>
+                      {slitActive && (
+                        <>
+                          <Btn color="white" size="md" disabled={line <= 0} onClick={() => setLine(l => Math.max(0, l - 1))}>▲ まえ</Btn>
+                          <Btn color="amber" size="md" disabled={line >= info.lines.length - 1} onClick={() => setLine(l => Math.min(info.lines.length - 1, l + 1))}>▼ つぎの ぎょう</Btn>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <ResultPanel result={result} task={task} info={info} isHaya={isHaya} fontScale={fontScale}
+                             playing={playing} onPlayMine={() => playing === 'mine' ? stopAudio() : playMine()}
+                             onPlayModel={() => playing === 'model' ? stopAudio() : playModel(false)}
+                             onRetry={retry} onNext={goNext} canNext={canGoNext} hasNext={hasNext} onBackToStage={() => { stopAudio(); onBackToStage(); }} />
+              )}
+            </div>
+
+            <div className="lg:col-span-2 lg:col-start-1 lg:row-start-2 flex flex-col gap-3">
+              <div className="flex items-end gap-2">
+                <Hakase size={110} mood={talk.mood} talking={talk.talking} />
+                <Bubble className="flex-1 !text-lg md:!text-xl">{talk.text}</Bubble>
+              </div>
+              {problem && (
+                <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl p-3 text-base text-rose-800">
+                  <div className="font-bold">先生へ</div>
+                  {problem === 'mic' && <div>マイクを使えませんでした。Chromeのアドレスバー左のアイコンから「マイク」を「許可」にして、ページを再読み込みしてください。</div>}
+                  {problem.startsWith('recog:') && <div>音声認識でエラーが出ました（{problem.slice(6)}）。インターネット接続を確認してください。Chromeで開いているかも確認してください。</div>}
+                </div>
+              )}
+            </div>
+
+            {phase !== 'result' && (
+              <div className="lg:col-span-2 lg:col-start-1 lg:row-start-3 flex flex-col gap-3">
+                {(phase === 'practice' || phase === 'recording') && (
+                  <div className="bg-white rounded-2xl border-2 border-slate-200 p-3"><VoiceMeter goodDb={settings.micGoodDb} /></div>
+                )}
+                {phase === 'recording' ? (
+                  <>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 text-2xl font-bold text-rose-600">
+                        <span className="w-5 h-5 rounded-full bg-rose-500 rec-pulse" /> ろくおんちゅう {elapsed.toFixed(0)}びょう
+                      </div>
+                      <Btn color="white" size="sm" onClick={cancelRecording}>やめる</Btn>
+                    </div>
+                    <Btn color="red" size="xl" className="w-full" onClick={() => finishRecording()}>⏹ よみおわった！</Btn>
+                  </>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    <Btn color="sky" size="md" className="py-4 leading-tight" disabled={busy} onClick={() => playing === 'model' ? stopAudio() : playModel(false)}>
+                      {playing === 'model' ? '⏸ とめる' : `🔊 おてほん${modelRec ? '（せんせい）' : ''}`}
+                    </Btn>
+                    <Btn color="sky" size="md" className="py-4 leading-tight" disabled={busy} onClick={() => playing === 'slow' ? stopAudio() : playModel(true)}>
+                      {playing === 'slow' ? '⏸ とめる' : '🐢 ゆっくり おてほん'}
+                    </Btn>
+                    {phase === 'practice'
+                      ? <Btn color="white" size="md" className="py-4 leading-tight" onClick={stopPractice}>💪 れんしゅう おわり</Btn>
+                      : <Btn color="violet" size="md" className="py-4 leading-tight" disabled={busy} onClick={startPractice}>💪 れんしゅう</Btn>}
+                    <Btn color="red" size="md" className="py-4 leading-tight" disabled={busy} onClick={startRecording}>🎤 ろくおん スタート</Btn>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          {phase === 'result' && result && result.passed && <Confetti />}
+        </div>
+      );
+    }
+
+    function ResultPanel({ result, task, info, isHaya, fontScale, playing, onPlayMine, onPlayModel, onRetry, onNext, canNext, hasNext, onBackToStage }) {
+      const [shown, setShown] = useState(0);
+      useEffect(() => {
+        let raf; const t0 = performance.now();
+        const stepFn = (t) => { const k = clamp01((t - t0) / 1100); setShown(Math.round(result.total * (1 - (1 - k) ** 3))); if (k < 1) raf = requestAnimationFrame(stepFn); };
+        raf = requestAnimationFrame(stepFn);
+        return () => cancelAnimationFrame(raf);
+      }, [result]);
+      const stars = result.total >= PASS_SCORE ? 3 : result.total >= 60 ? 2 : 1;
+      return (
+        <div className="bg-white rounded-3xl border-4 border-amber-200 shadow-md p-4 md:p-5 pop">
+          <div className="flex items-center justify-center gap-4 flex-wrap">
+            <div className="flex items-end gap-1">
+              <span className="text-8xl font-black text-rose-500 tabular-nums leading-none">{shown}</span>
+              <span className="text-3xl font-bold text-slate-600 mb-2">てん</span>
+            </div>
+            {result.passed && <div className="stamp text-3xl">ごうかく</div>}
+          </div>
+          <Stars n={stars} />
+          {result.stageCleared && (
+            <div className="mt-2 rounded-2xl bg-gradient-to-r from-amber-200 to-yellow-100 border-2 border-amber-400 p-3 text-center pop">
+              <div className="text-3xl font-black text-amber-800">🎊 ステージ クリア！ 🎊</div>
+              {result.newTitle && <div className="text-xl font-bold text-amber-900 mt-1">あたらしい しょうごう：{result.newTitle.icon} {result.newTitle.name}</div>}
+            </div>
+          )}
+          {result.firstPass && result.sticker && (
+            <div className="mt-2 flex items-center justify-center gap-3 text-2xl font-bold text-emerald-700">
+              <span className="text-6xl pop" style={{ animationDelay: '1.2s' }}>{result.sticker}</span> シールを ゲット！
+            </div>
+          )}
+          {isHaya && result.readSec > 0 && (
+            <div className="mt-2 text-center text-2xl font-bold text-slate-700">
+              ⏱ {result.readSec.toFixed(1)}びょう {result.newBestTime && <span className="text-rose-600">じこベスト！</span>}
+            </div>
+          )}
+          <div className="mt-3 grid gap-2">
+            {['vol', 'acc', 'dyn', 'spd'].map(k => (
+              <div key={k} className="flex items-center gap-2 text-lg">
+                <span className="w-9 text-2xl text-center">{PART_INFO[k].icon}</span>
+                <span className="w-40 font-bold text-slate-700">{PART_INFO[k].label}</span>
+                <div className="flex-1 h-5 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
+                  <div className={`h-full ${PART_INFO[k].bar} transition-all duration-1000`} style={{ width: `${(result.parts[k] / result.weights[k]) * 100}%` }} />
+                </div>
+                <span className="w-20 text-right font-bold tabular-nums">{result.parts[k]}/{result.weights[k]}</span>
+              </div>
+            ))}
+          </div>
+          {result.missed && result.missed.size > 0 && (
+            <div className="mt-3">
+              <div className="text-base font-bold text-orange-600 mb-1">🔍 はかせに ききとりにくかった ところ</div>
+              <TextCard task={task} info={info} fontScale={fontScale} missed={result.missed} small />
+            </div>
+          )}
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <Btn color="sky" size="md" onClick={onPlayMine}>{playing === 'mine' ? '⏸ とめる' : '🔊 じぶんの こえ'}</Btn>
+            <Btn color="sky" size="md" onClick={onPlayModel}>{playing === 'model' ? '⏸ とめる' : '🦉 おてほん'}</Btn>
+            <Btn color={result.passed ? 'white' : 'red'} size="lg" onClick={onRetry}>🔁 もういちど</Btn>
+            {canNext
+              ? <Btn color="green" size="lg" onClick={onNext}>➡ つぎの もんだい</Btn>
+              : <Btn color={result.passed ? 'green' : 'white'} size="lg" onClick={onBackToStage}>{result.passed && !hasNext ? '🏁 ステージへ' : '📋 もんだい いちらん'}</Btn>}
+          </div>
+        </div>
+      );
+    }
+
+    /* =========================================================
+       シールちょう
+       ========================================================= */
+    function StickerBook({ app }) {
+      const { state } = app;
+      const list = ALL_TASKS;
+      const got = list.filter(x => state.progress[x.task.id] && state.progress[x.task.id].sticker).length;
+      return (
+        <div className="max-w-6xl mx-auto p-4 md:p-6">
+          <div className="bg-white rounded-3xl border-4 border-amber-200 p-4 mb-4 flex items-center gap-4">
+            <span className="text-5xl">📒</span>
+            <div>
+              <div className="text-3xl font-bold">シールちょう</div>
+              <div className="text-xl text-slate-600">あつめた シール：<span className="font-black text-rose-500">{got}</span> / {list.length}</div>
+            </div>
+          </div>
+          {STAGES.map(stage => (
+            <div key={stage.id} className="mb-4">
+              <div className={`text-xl font-bold mb-2 ${STAGE_STYLE[stage.color].text}`}>{stage.icon} {stageLabel(stage)}「{stage.name}」</div>
+              <div className="grid grid-cols-5 sm:grid-cols-8 gap-3">
+                {stage.tasks.map((t, i) => {
+                  const p = state.progress[t.id];
+                  return (
+                    <div key={t.id} className={`aspect-square rounded-2xl border-4 flex flex-col items-center justify-center ${p && p.sticker ? 'bg-yellow-50 border-yellow-300' : 'bg-slate-50 border-dashed border-slate-300'}`}>
+                      <span className="text-5xl">{p && p.sticker ? p.sticker : '？'}</span>
+                      <span className="text-xs text-slate-500">{i + 1}もんめ</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    /* =========================================================
+       暗証番号
+       ========================================================= */
+    function PinPad({ onSuccess, onClose, check }) {
+      const [digits, setDigits] = useState('');
+      const [shake, setShake] = useState(false);
+      const press = (d) => {
+        if (digits.length >= 4) return;
+        const v = digits + d;
+        setDigits(v);
+        if (v.length === 4) {
+          setTimeout(() => {
+            if (check(v)) onSuccess();
+            else { sfx('wrong'); setShake(true); setTimeout(() => { setShake(false); setDigits(''); }, 450); }
+          }, 150);
+        }
+      };
+      return (
+        <Modal onClose={onClose}>
+          <div className={`bg-white rounded-3xl p-6 text-center shadow-xl ${shake ? 'shake' : ''}`}>
+            <div className="text-2xl font-bold text-slate-700 mb-1">🔐 先生用の画面</div>
+            <div className="text-base text-slate-500 mb-4">4けたの暗証番号を入れてください</div>
+            <div className="flex justify-center gap-3 mb-5">
+              {[0, 1, 2, 3].map(i => <span key={i} className={`w-6 h-6 rounded-full border-2 ${i < digits.length ? 'bg-slate-700 border-slate-700' : 'border-slate-300'}`} />)}
+            </div>
+            <div className="grid grid-cols-3 gap-3 max-w-xs mx-auto">
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(d => <Btn key={d} color="white" size="lg" onClick={() => press(d)}>{d}</Btn>)}
+              <Btn color="white" size="lg" onClick={() => setDigits(s => s.slice(0, -1))}>⌫</Btn>
+              <Btn color="white" size="lg" onClick={() => press('0')}>0</Btn>
+              <Btn color="slate" size="lg" onClick={onClose}>✕</Btn>
+            </div>
+          </div>
+        </Modal>
+      );
+    }
+
+    /* =========================================================
+       はじめての 設定（先生が 行う）
+       ========================================================= */
+    function MicCheck() {
+      const [st, setSt] = useState('idle');
+      const test = async () => { try { await Mic.ensure(); setSt('ok'); } catch (e) { setSt('ng'); } };
+      return (
+        <div className="bg-slate-50 rounded-2xl p-4 border-2 border-slate-200">
+          <div className="flex items-center gap-3 flex-wrap">
+            <Btn color="sky" size="md" onClick={test}>🎤 マイクを確認する</Btn>
+            {st === 'ok' && <span className="text-emerald-600 font-bold">マイクOK。声を出すとメーターが動きます。</span>}
+            {st === 'ng' && <span className="text-rose-600 font-bold">マイクが使えません。アドレスバー左のアイコンから「マイク」を許可してください。</span>}
+          </div>
+          {st === 'ok' && <div className="mt-3"><VoiceMeter goodDb={CURRENT.settings.micGoodDb} /></div>}
+        </div>
+      );
+    }
+
+    function SetupScreen({ onDone }) {
+      const [name, setName] = useState('');
+      const [pin, setPin] = useState('');
+      const [pin2, setPin2] = useState('');
+      const [err, setErr] = useState('');
+      const srOk = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+      const submit = () => {
+        if (!name.trim()) return setErr('名前を入力してください。');
+        if (!/^\d{4}$/.test(pin)) return setErr('暗証番号は4けたの数字にしてください。');
+        if (pin !== pin2) return setErr('確認用の暗証番号が一致しません。');
+        onDone({ name: name.trim(), pin: hashPin(pin), createdAt: Date.now() });
+      };
+      const inputCls = 'w-full rounded-xl border-2 border-slate-300 px-4 py-3 text-xl focus:border-sky-400 outline-none';
+      return (
+        <div className="max-w-3xl mx-auto p-4 md:p-8">
+          <div className="bg-white rounded-3xl border-4 border-amber-200 p-6 shadow-sm">
+            <div className="flex items-center gap-4 mb-4">
+              <Hakase size={110} mood="happy" />
+              <div>
+                <div className="text-3xl font-bold text-slate-800">はじめての設定</div>
+                <div className="text-lg text-slate-600">この画面は先生が操作してください。</div>
+              </div>
+            </div>
+            <div className="grid gap-4">
+              <label className="block">
+                <div className="font-bold text-lg mb-1">児童の名前（ひらがながおすすめ）</div>
+                <input className={inputCls} value={name} onChange={e => setName(e.target.value)} placeholder="例：たろう" />
+                <div className="text-sm text-slate-500 mt-1">はかせが「○○さん」と呼びます。</div>
+              </label>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <label className="block">
+                  <div className="font-bold text-lg mb-1">先生用の暗証番号（4けた）</div>
+                  <input className={inputCls} type="password" inputMode="numeric" maxLength={4} value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, ''))} />
+                </label>
+                <label className="block">
+                  <div className="font-bold text-lg mb-1">暗証番号（確認）</div>
+                  <input className={inputCls} type="password" inputMode="numeric" maxLength={4} value={pin2} onChange={e => setPin2(e.target.value.replace(/\D/g, ''))} />
+                </label>
+              </div>
+              <MicCheck />
+              <div className={`rounded-2xl p-3 border-2 ${srOk ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'}`}>
+                {srOk ? '✅ 音声認識が使えます（読みの正確さを採点できます）。' : '⚠️ このブラウザでは音声認識が使えません。Google Chrome で開いてください。'}
+              </div>
+              {err && <div className="text-rose-600 font-bold text-lg">{err}</div>}
+              <Btn color="green" size="lg" onClick={submit}>設定を保存して はじめる</Btn>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* =========================================================
+       先生用画面
+       ========================================================= */
+    function TeacherScreen({ app, onExit }) {
+      const [tab, setTab] = useState('records');
+      const tabs = [['records', '📊 記録'], ['models', '🎙️ お手本の録音'], ['settings', '⚙️ 設定'], ['data', '💾 データ']];
+      return (
+        <div className="max-w-6xl mx-auto p-4 md:p-6">
+          <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+            <div className="text-3xl font-bold text-slate-800">先生用の画面</div>
+            <Btn color="slate" size="md" onClick={onExit}>✕ 子どもの画面にもどる</Btn>
+          </div>
+          <div className="flex gap-2 flex-wrap mb-4">
+            {tabs.map(([k, lb]) => (
+              <button key={k} onClick={() => setTab(k)} className={`rounded-2xl px-5 py-3 text-lg font-bold border-2 ${tab === k ? 'bg-sky-500 text-white border-sky-600' : 'bg-white text-slate-600 border-slate-200'}`}>{lb}</button>
+            ))}
+          </div>
+          {tab === 'records' && <RecordsTab app={app} />}
+          {tab === 'models' && <ModelsTab />}
+          {tab === 'settings' && <SettingsTab app={app} />}
+          {tab === 'data' && <DataTab app={app} />}
+        </div>
+      );
+    }
+
+    function usePlayer() {
+      const [playingId, setPlayingId] = useState(null);
+      const ref = useRef(null);
+      const stop = () => { if (ref.current) { try { ref.current.pause(); } catch (e) {} ref.current = null; } setPlayingId(null); };
+      const play = async (id, blob, opts) => {
+        stop(); if (!blob) return;
+        const p = playBlob(blob, opts); ref.current = p.audio; setPlayingId(id);
+        await p.done; if (ref.current === p.audio) { ref.current = null; setPlayingId(null); }
+      };
+      useEffect(() => stop, []);
+      return { playingId, play, stop };
+    }
+
+    function RecordsTab({ app }) {
+      const { state } = app;
+      const [hist, setHist] = useState(null);
+      const [recIds, setRecIds] = useState(new Set());
+      const [openTask, setOpenTask] = useState(null);
+      const player = usePlayer();
+      useEffect(() => {
+        (async () => {
+          try {
+            const h = await DB.getAll('history');
+            const keys = await DB.getAllKeys('recordings');
+            setHist(h.sort((a, b) => b.at - a.at)); setRecIds(new Set(keys));
+          } catch (e) { setHist([]); }
+        })();
+      }, []);
+      const playRec = async (h) => {
+        if (player.playingId === h.id) return player.stop();
+        const r = await DB.get('recordings', h.id);
+        if (r) player.play(h.id, r.blob, { boost: boostFor(h.level) });
+      };
+      if (!hist) return <div className="text-xl p-6">読み込み中…</div>;
+      const graded = ALL_TASKS.filter(x => !x.stage.optional);
+      const passedCount = graded.filter(x => state.progress[x.task.id] && state.progress[x.task.id].passed).length;
+      const cleared = countCleared(state);
+      const lastAt = hist.length ? hist[0].at : null;
+      const HistRow = ({ h, showTask }) => {
+        const x = TASK_LOOKUP[h.taskId];
+        return (
+          <tr className="border-t border-slate-100">
+            <td className="py-2 pr-2 whitespace-nowrap text-slate-600">{fmtDate(h.at)}</td>
+            {showTask && <td className="py-2 pr-2">{x ? `${stageLabel(x.stage)} ${x.index + 1}「${taskLabel(x.task)}」` : h.taskId}</td>}
+            <td className="py-2 pr-2 font-bold whitespace-nowrap">{h.total}点 {h.total >= PASS_SCORE && <span className="text-rose-600">合格</span>}</td>
+            <td className="py-2 pr-2 text-sm text-slate-600 whitespace-nowrap">大{h.parts.vol} 正{h.parts.acc} 強{h.parts.dyn} 速{h.parts.spd}</td>
+            <td className="py-2 pr-2 text-sm text-slate-600">{h.heard || '（聞き取りなし）'}</td>
+            <td className="py-2 whitespace-nowrap">
+              {recIds.has(h.id) ? <button onClick={() => playRec(h)} className="rounded-xl bg-sky-100 text-sky-700 font-bold px-3 py-1 border border-sky-300">{player.playingId === h.id ? '⏸ 停止' : '▶ 再生'}</button> : <span className="text-xs text-slate-400">録音なし</span>}
+            </td>
+          </tr>
+        );
+      };
+      return (
+        <div className="grid gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[['名前', state.profile ? state.profile.name : ''], ['称号', `${TITLES[cleared].icon} ${TITLES[cleared].name}`], ['合格した課題', `${passedCount} / ${graded.length}`], ['挑戦回数（合計）', `${hist.length}回`]].map(([k, v]) => (
+              <div key={k} className="bg-white rounded-2xl border-2 border-slate-200 p-3"><div className="text-sm text-slate-500">{k}</div><div className="text-xl font-bold">{v}</div></div>
+            ))}
+          </div>
+          <div className="text-slate-600">最後に学習した日時：{lastAt ? fmtDate(lastAt) : 'まだありません'}　／　採点のきびしさ：{STRICTNESS[state.settings.strict].label}</div>
+
+          <div className="bg-white rounded-2xl border-2 border-slate-200 p-4">
+            <div className="text-xl font-bold mb-2">課題別の記録</div>
+            {STAGES.map(stage => (
+              <div key={stage.id} className="mb-3">
+                <div className={`font-bold mb-1 ${STAGE_STYLE[stage.color].text}`}>{stage.icon} {stageLabel(stage)}「{stage.name}」</div>
+                <table className="w-full text-left text-base table-fixed">
+                  <colgroup>
+                    <col style={{ width: '2.5rem' }} /><col /><col style={{ width: '7rem' }} /><col style={{ width: '4rem' }} /><col style={{ width: '8rem' }} /><col style={{ width: '6rem' }} />
+                  </colgroup>
+                  <tbody>
+                    {stage.tasks.map((t, i) => {
+                      const p = state.progress[t.id] || {};
+                      const hs = hist.filter(h => h.taskId === t.id);
+                      const open = openTask === t.id;
+                      return (
+                        <React.Fragment key={t.id}>
+                          <tr className="border-t border-slate-100">
+                            <td className="py-2 pr-2 w-10 text-slate-500">{i + 1}</td>
+                            <td className="py-2 pr-2 truncate">{taskLabel(t)}</td>
+                            <td className="py-2 pr-2 whitespace-nowrap">{p.tries ? `最高 ${p.best}点` : '—'}</td>
+                            <td className="py-2 pr-2 whitespace-nowrap">{p.tries || 0}回</td>
+                            <td className="py-2 pr-2 whitespace-nowrap">{p.passed ? <span className="text-rose-600 font-bold">合格</span> : ''}{p.bestTime ? `（${p.bestTime}秒）` : ''}</td>
+                            <td className="py-2 text-right">{hs.length > 0 && <button onClick={() => setOpenTask(open ? null : t.id)} className="rounded-xl bg-slate-100 px-3 py-1 font-bold border border-slate-300">{open ? '閉じる' : '詳しく'}</button>}</td>
+                          </tr>
+                          {open && (
+                            <tr><td colSpan={6} className="pb-3">
+                              <div className="bg-slate-50 rounded-xl p-2 overflow-x-auto">
+                                <table className="w-full text-left"><tbody>{hs.map(h => <HistRow key={h.id} h={h} showTask={false} />)}</tbody></table>
+                              </div>
+                            </td></tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-white rounded-2xl border-2 border-slate-200 p-4 overflow-x-auto">
+            <div className="text-xl font-bold mb-2">最近の記録（新しい順・30件）</div>
+            {hist.length === 0 ? <div className="text-slate-500">まだ記録がありません。</div> : (
+              <table className="w-full text-left text-base"><tbody>{hist.slice(0, 30).map(h => <HistRow key={h.id} h={h} showTask />)}</tbody></table>
+            )}
+            <div className="text-sm text-slate-500 mt-2">※録音は課題ごとに「最新3回」と「最高得点の回」を残しています。点数の記録はすべて残ります。</div>
+          </div>
+        </div>
+      );
+    }
+
+    function ModelsTab() {
+      const [models, setModels] = useState({});
+      const [recTask, setRecTask] = useState(null);
+      const [sec, setSec] = useState(0);
+      const [msg, setMsg] = useState('');
+      const recRef = useRef(null);
+      const player = usePlayer();
+      const reload = async () => { const all = await DB.getAll('models'); setModels(Object.fromEntries(all.map(m => [m.taskId, m]))); };
+      useEffect(() => { reload(); return () => { if (recRef.current) try { recRef.current.mr.stop(); } catch (e) {} }; }, []);
+      useEffect(() => {
+        if (!recTask) return;
+        const t0 = Date.now(); const id = setInterval(() => setSec((Date.now() - t0) / 1000), 200);
+        return () => clearInterval(id);
+      }, [recTask]);
+
+      const start = async (taskId) => {
+        player.stop();
+        let stream;
+        try { stream = await Mic.ensureProcessed(); } catch (e) { setMsg('マイクが使えません。Chromeの設定でマイクを許可してください。'); return; }
+        const mime = pickMime();
+        const mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+        const chunks = [];
+        mr.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+        mr.onstop = async () => {
+          const blob = new Blob(chunks, { type: mime || 'audio/webm' });
+          if (blob.size) { await DB.put('models', { taskId, blob, mime: mime || 'audio/webm', at: Date.now() }); await reload(); setMsg('お手本を保存しました。'); }
+        };
+        mr.start(250);
+        recRef.current = { mr, taskId };
+        setSec(0); setRecTask(taskId); setMsg('');
+      };
+      const stop = () => { if (recRef.current) { try { recRef.current.mr.stop(); } catch (e) {} recRef.current = null; } setRecTask(null); };
+      const remove = async (taskId) => { if (!confirm('このお手本の録音を削除しますか？')) return; await DB.del('models', taskId); await reload(); };
+
+      const exportModels = async () => {
+        const all = await DB.getAll('models');
+        if (!all.length) { setMsg('書き出すお手本がありません。'); return; }
+        const items = await Promise.all(all.map(async m => ({ taskId: m.taskId, mime: m.mime, at: m.at, data: await blobToDataURL(m.blob) })));
+        downloadFile(`おてほんセット_${ymd()}.json`, JSON.stringify({ app: 'ondoku-hakase', kind: 'models', version: 1, items }), 'application/json');
+        setMsg(`${items.length}件のお手本を書き出しました。ファイルをGoogleドライブなどで各Chromebookに渡し、「読み込む」で取り込んでください。`);
+      };
+      const importModels = async () => {
+        const file = await pickFile('.json,application/json');
+        if (!file) return;
+        try {
+          const data = JSON.parse(await file.text());
+          if (!data || data.app !== 'ondoku-hakase' || data.kind !== 'models') throw new Error('kind');
+          let n = 0;
+          for (const it of data.items || []) {
+            if (!TASK_LOOKUP[it.taskId]) continue;
+            await DB.put('models', { taskId: it.taskId, mime: it.mime, at: it.at || Date.now(), blob: await dataURLToBlob(it.data) });
+            n++;
+          }
+          await reload();
+          setMsg(`${n}件のお手本を読み込みました。`);
+        } catch (e) { setMsg('読み込めませんでした。「おてほんセット」のファイルを選んでください。'); }
+      };
+
+      return (
+        <div className="grid gap-4">
+          <div className="bg-white rounded-2xl border-2 border-slate-200 p-4">
+            <div className="text-lg text-slate-700 leading-relaxed">
+              先生の声でお手本を録音できます。録音がある課題では、子どもの「おてほん」ボタンで先生の声が流れます（「ゆっくり」は0.75倍速で再生）。<br />
+              1台で録音したお手本は「書き出す」で1つのファイルにまとめ、他のChromebookで「読み込む」と全員に配れます。
+            </div>
+            <div className="flex gap-3 flex-wrap mt-3">
+              <Btn color="sky" size="md" onClick={exportModels}>📤 お手本セットを書き出す</Btn>
+              <Btn color="sky" size="md" onClick={importModels}>📥 お手本セットを読み込む</Btn>
+            </div>
+            {msg && <div className="mt-3 text-emerald-700 font-bold">{msg}</div>}
+          </div>
+          {STAGES.map(stage => (
+            <div key={stage.id} className="bg-white rounded-2xl border-2 border-slate-200 p-4">
+              <div className={`font-bold text-lg mb-2 ${STAGE_STYLE[stage.color].text}`}>{stage.icon} {stageLabel(stage)}「{stage.name}」</div>
+              {stage.tasks.map((t, i) => {
+                const m = models[t.id];
+                const isRec = recTask === t.id;
+                return (
+                  <div key={t.id} className="flex items-center gap-2 flex-wrap border-t border-slate-100 py-2">
+                    <span className="w-8 text-slate-500">{i + 1}</span>
+                    <span className="flex-1 min-w-[200px]">{t.lines.map(l => stripMarkup(l)).join(' ／ ')}</span>
+                    <span className={`text-sm w-20 ${m ? 'text-emerald-600 font-bold' : 'text-slate-400'}`}>{m ? '録音あり' : '録音なし'}</span>
+                    {isRec
+                      ? <button onClick={stop} className="rounded-xl bg-rose-500 text-white font-bold px-4 py-2 rec-pulse">■ 停止（{sec.toFixed(0)}秒）</button>
+                      : <button disabled={!!recTask} onClick={() => start(t.id)} className="rounded-xl bg-rose-100 text-rose-700 font-bold px-4 py-2 border border-rose-300 disabled:opacity-40">● 録音</button>}
+                    <button disabled={!m || !!recTask} onClick={() => player.playingId === t.id ? player.stop() : player.play(t.id, m.blob)} className="rounded-xl bg-sky-100 text-sky-700 font-bold px-4 py-2 border border-sky-300 disabled:opacity-40">{player.playingId === t.id ? '⏸ 停止' : '▶ 再生'}</button>
+                    <button disabled={!m || !!recTask} onClick={() => remove(t.id)} className="rounded-xl bg-slate-100 text-slate-600 font-bold px-4 py-2 border border-slate-300 disabled:opacity-40">削除</button>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    function MicCalibration({ app }) {
+      const [st, setSt] = useState('idle');
+      const [msg, setMsg] = useState('');
+      const run = async () => {
+        try { await Mic.ensure(); } catch (e) { setMsg('マイクが使えません。'); return; }
+        const noise = []; const voice = [];
+        let mode = 'quiet';
+        const fn = fr => { (mode === 'quiet' ? noise : voice).push(fr.db); };
+        LEVEL.listeners.add(fn);
+        setSt('quiet'); setMsg('');
+        await sleep(1500);
+        mode = 'speak'; setSt('speak');
+        await sleep(4500);
+        LEVEL.listeners.delete(fn);
+        setSt('idle');
+        const n = percentile(noise, 0.5) ?? -70;
+        const v = voice.filter(d => d > n + 8);
+        if (v.length < 15) { setMsg('声がうまく拾えませんでした。マイクに向かって、もう一度ふつうの声で読んでください。'); return; }
+        const L = Math.round(percentile(v, 0.75) - 2);
+        app.update(s => ({ ...s, settings: { ...s.settings, micGoodDb: clamp(L, -55, -10) } }));
+        setMsg(`基準を ${clamp(L, -55, -10)} dB に設定しました。`);
+      };
+      return (
+        <div>
+          <div className="text-slate-600 mb-2">
+            Chromebookごとにマイクの感度が違うため、「ちょうどよい声の大きさ」の基準を合わせられます。ボタンを押し、1.5秒静かにしたあと、子どもがふだん音読するくらいの声で4秒ほど読んでください。
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <Btn color="violet" size="md" disabled={st !== 'idle'} onClick={run}>🎚️ 基準を合わせる</Btn>
+            <span className="font-bold">{st === 'quiet' ? '🤫 静かにしてください…' : st === 'speak' ? '🗣️ ふつうの声で読んでください！' : `現在の基準：${app.state.settings.micGoodDb} dB`}</span>
+            <button className="text-sm underline text-slate-500" onClick={() => { app.update(s => ({ ...s, settings: { ...s.settings, micGoodDb: DEFAULT_SETTINGS.micGoodDb } })); setMsg('初期値にもどしました。'); }}>初期値にもどす</button>
+          </div>
+          {st !== 'idle' && <div className="mt-3"><VoiceMeter goodDb={app.state.settings.micGoodDb} /></div>}
+          {msg && <div className="mt-2 text-emerald-700 font-bold">{msg}</div>}
+        </div>
+      );
+    }
+
+    function Row({ label, desc, children }) {
+      return (
+        <div className="border-t border-slate-100 py-4 grid md:grid-cols-3 gap-2">
+          <div><div className="font-bold text-lg">{label}</div>{desc && <div className="text-sm text-slate-500">{desc}</div>}</div>
+          <div className="md:col-span-2 flex items-center gap-2 flex-wrap">{children}</div>
+        </div>
+      );
+    }
+
+    function SettingsTab({ app }) {
+      const { state, update } = app;
+      const s = state.settings;
+      const set = (k, v) => update(st => ({ ...st, settings: { ...st.settings, [k]: v } }));
+      const [name, setName] = useState(state.profile ? state.profile.name : '');
+      const [pin, setPin] = useState(''); const [pin2, setPin2] = useState('');
+      const [msg, setMsg] = useState('');
+      const Choice = ({ k, options }) => options.map(([v, lb]) => (
+        <button key={String(v)} onClick={() => set(k, v)} className={`rounded-xl px-4 py-2 font-bold border-2 ${s[k] === v ? 'bg-sky-500 text-white border-sky-600' : 'bg-white text-slate-600 border-slate-300'}`}>{lb}</button>
+      ));
+      const inputCls = 'rounded-xl border-2 border-slate-300 px-3 py-2 text-lg';
+      return (
+        <div className="bg-white rounded-2xl border-2 border-slate-200 p-4">
+          <Row label="児童の名前">
+            <input className={inputCls} value={name} onChange={e => setName(e.target.value)} />
+            <Btn color="sky" size="sm" onClick={() => { if (name.trim()) { update(st => ({ ...st, profile: { ...st.profile, name: name.trim() } })); setMsg('名前を変更しました。'); } }}>変更</Btn>
+          </Row>
+          <Row label="採点のきびしさ" desc={`合格点は${PASS_SCORE}点です。子どもの様子に合わせて変えてください。`}>
+            <Choice k="strict" options={[['easy', 'やさしい'], ['normal', 'ふつう'], ['hard', 'きびしい']]} />
+          </Row>
+          <Row label="文字の大きさ"><Choice k="fontSize" options={[['s', '小'], ['m', '中'], ['l', '大'], ['xl', '特大']]} /></Row>
+          <Row label="1行ずつ表示" desc="リーディングスリット（読む行以外をうすくする）の初期設定。子どもも課題画面で切り替えられます。"><Choice k="slit" options={[[true, 'オン'], [false, 'オフ']]} /></Row>
+          <Row label="効果音"><Choice k="sfx" options={[[true, 'オン'], [false, 'オフ']]} /></Row>
+          <Row label="はかせの声" desc="はかせのセリフを読み上げます。"><Choice k="hakaseVoice" options={[[true, 'オン'], [false, 'オフ']]} /></Row>
+          <Row label="お手本（機械の声）の速さ"><Choice k="modelSpeed" options={[['slow', 'ゆっくり'], ['normal', 'ふつう'], ['fast', 'はやめ']]} /></Row>
+          <Row label="すべてのステージを開く" desc="オンにすると、合格していなくても全部の課題に挑戦できます。"><Choice k="unlockAll" options={[[false, 'オフ'], [true, 'オン']]} /></Row>
+          <Row label="マイクの調整"><MicCalibration app={app} /></Row>
+          <Row label="暗証番号の変更">
+            <input className={inputCls + ' w-28'} type="password" inputMode="numeric" maxLength={4} placeholder="新しい番号" value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, ''))} />
+            <input className={inputCls + ' w-28'} type="password" inputMode="numeric" maxLength={4} placeholder="確認" value={pin2} onChange={e => setPin2(e.target.value.replace(/\D/g, ''))} />
+            <Btn color="sky" size="sm" onClick={() => {
+              if (!/^\d{4}$/.test(pin)) return setMsg('暗証番号は4けたの数字にしてください。');
+              if (pin !== pin2) return setMsg('確認用の番号が一致しません。');
+              update(st => ({ ...st, profile: { ...st.profile, pin: hashPin(pin) } })); setPin(''); setPin2(''); setMsg('暗証番号を変更しました。');
+            }}>変更</Btn>
+          </Row>
+          {msg && <div className="text-emerald-700 font-bold text-lg">{msg}</div>}
+        </div>
+      );
+    }
+
+    function DataTab({ app }) {
+      const [msg, setMsg] = useState('');
+      const [busy, setBusy] = useState(false);
+      const exportCSV = async () => {
+        const hist = (await DB.getAll('history')).sort((a, b) => a.at - b.at);
+        const esc = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+        const rows = [['日時', 'ステージ', '課題番号', '課題', '合計', '声の大きさ', '読みの正確さ', '強弱', '速さ', '合格', '読んだ時間(秒)', '聞き取った言葉', '採点のきびしさ']];
+        hist.forEach(h => {
+          const x = TASK_LOOKUP[h.taskId];
+          rows.push([fmtDate(h.at), x ? `${stageLabel(x.stage)} ${x.stage.name}` : '', x ? x.index + 1 : '', x ? taskLabel(x.task) : h.taskId, h.total, h.parts.vol, h.parts.acc, h.parts.dyn, h.parts.spd, h.total >= PASS_SCORE ? '合格' : '', h.readSec, h.heard, (STRICTNESS[h.strict] || {}).label || '']);
+        });
+        const name = app.state.profile ? app.state.profile.name : 'record';
+        downloadFile(`音読記録_${name}_${ymd()}.csv`, '﻿' + rows.map(r => r.map(esc).join(',')).join('\r\n'), 'text/csv');
+        setMsg(`${hist.length}件の記録をCSVで書き出しました。`);
+      };
+      const exportBackup = async () => {
+        setBusy(true);
+        try {
+          const history = await DB.getAll('history');
+          const recs = await DB.getAll('recordings');
+          const models = await DB.getAll('models');
+          const recordings = await Promise.all(recs.map(async r => ({ id: r.id, taskId: r.taskId, mime: r.mime, total: r.total, at: r.at, data: await blobToDataURL(r.blob) })));
+          const modelItems = await Promise.all(models.map(async m => ({ taskId: m.taskId, mime: m.mime, at: m.at, data: await blobToDataURL(m.blob) })));
+          const name = app.state.profile ? app.state.profile.name : 'backup';
+          downloadFile(`音読バックアップ_${name}_${ymd()}.json`, JSON.stringify({ app: 'ondoku-hakase', kind: 'backup', version: 1, state: app.stateRef.current, history, recordings, models: modelItems }), 'application/json');
+          setMsg('バックアップを書き出しました。');
+        } finally { setBusy(false); }
+      };
+      const importBackup = async () => {
+        const file = await pickFile('.json,application/json');
+        if (!file) return;
+        let data;
+        try { data = JSON.parse(await file.text()); } catch (e) { setMsg('ファイルを読み込めませんでした。'); return; }
+        if (!data || data.app !== 'ondoku-hakase' || data.kind !== 'backup') { setMsg('バックアップのファイルを選んでください。'); return; }
+        if (!confirm('今のChromebookの記録を、バックアップの内容で置き換えます。よろしいですか？')) return;
+        setBusy(true);
+        try {
+          await DB.clear('history'); await DB.clear('recordings'); await DB.clear('models');
+          for (const h of data.history || []) await DB.put('history', h);
+          for (const r of data.recordings || []) await DB.put('recordings', { id: r.id, taskId: r.taskId, mime: r.mime, total: r.total, at: r.at, blob: await dataURLToBlob(r.data) });
+          for (const m of data.models || []) await DB.put('models', { taskId: m.taskId, mime: m.mime, at: m.at, blob: await dataURLToBlob(m.data) });
+          const st = data.state || {};
+          app.update(() => ({ version: 1, profile: st.profile || null, settings: { ...DEFAULT_SETTINGS, ...(st.settings || {}) }, progress: st.progress || {}, stickers: st.stickers || [] }));
+          setMsg('バックアップから元にもどしました。');
+        } catch (e) { setMsg('読み込み中にエラーが起きました。'); }
+        finally { setBusy(false); }
+      };
+      const resetAll = async () => {
+        if (!confirm('この児童の記録・録音・シールをすべて消します。元にもどせません。よろしいですか？')) return;
+        if (!confirm('本当に消しますか？（先生のお手本の録音と設定は残ります）')) return;
+        await DB.clear('history'); await DB.clear('recordings');
+        app.update(s => ({ ...s, progress: {}, stickers: [] }));
+        setMsg('記録を消しました。');
+      };
+      return (
+        <div className="grid gap-4">
+          <div className="bg-white rounded-2xl border-2 border-slate-200 p-4">
+            <div className="text-xl font-bold mb-1">記録の書き出し（CSV）</div>
+            <div className="text-slate-600 mb-2">すべての挑戦の点数を、スプレッドシートで開けるファイルにします。</div>
+            <Btn color="sky" size="md" onClick={exportCSV}>📄 CSVで書き出す</Btn>
+          </div>
+          <div className="bg-white rounded-2xl border-2 border-slate-200 p-4">
+            <div className="text-xl font-bold mb-1">バックアップ</div>
+            <div className="text-slate-600 mb-2">記録・録音・お手本・設定をまとめて保存します。Chromeの閲覧データを消すと記録も消えるので、ときどきバックアップしてください。端末を替えるときにも使えます。</div>
+            <div className="flex gap-3 flex-wrap">
+              <Btn color="sky" size="md" disabled={busy} onClick={exportBackup}>💾 バックアップを書き出す</Btn>
+              <Btn color="white" size="md" disabled={busy} onClick={importBackup}>📥 バックアップから元にもどす</Btn>
+            </div>
+          </div>
+          <div className="bg-white rounded-2xl border-2 border-rose-200 p-4">
+            <div className="text-xl font-bold mb-1 text-rose-700">記録をすべて消す</div>
+            <div className="text-slate-600 mb-2">新しい児童が使うときなどに使います。</div>
+            <Btn color="red" size="md" onClick={resetAll}>🗑️ 記録を消す</Btn>
+          </div>
+          {msg && <div className="text-emerald-700 font-bold text-lg">{msg}</div>}
+        </div>
+      );
+    }
+
+    /* =========================================================
+       アプリ全体
+       ========================================================= */
+    function Header({ app, view, onHome, onBack, onStickers, onTeacher }) {
+      const { state } = app;
+      const cleared = countCleared(state);
+      return (
+        <header className="bg-white/95 backdrop-blur shadow-sm sticky top-0 z-30">
+          <div className="max-w-6xl mx-auto px-3 py-2 flex items-center gap-2">
+            {view.name !== 'home' && view.name !== 'setup' && (
+              <Btn color="white" size="sm" onClick={onBack}>◀ もどる</Btn>
+            )}
+            <button onClick={onHome} className="flex items-center gap-2 font-black text-amber-800 text-lg md:text-2xl">
+              <span className="text-3xl">🦉</span><span className="hidden sm:inline">おんどくはかせの ちょうせんじょう</span>
+            </button>
+            <div className="flex-1" />
+            {state.profile && view.name !== 'teacher' && (
+              <>
+                <span className="hidden md:inline text-lg font-bold text-slate-600">{TITLES[cleared].icon} {state.profile.name}さん</span>
+                <Btn color="amber" size="sm" onClick={onStickers}>📒 シールちょう</Btn>
+                <button onClick={onTeacher} className="text-sm text-slate-400 border border-slate-200 rounded-lg px-2 py-1 hover:bg-slate-50" title="先生用">⚙ せんせい</button>
+              </>
+            )}
+          </div>
+        </header>
+      );
+    }
+
+    function App() {
+      const [state, setState] = useState(loadState);
+      const stateRef = useRef(state);
+      const update = useCallback((fn) => {
+        const next = fn(stateRef.current);
+        stateRef.current = next;
+        CURRENT.settings = next.settings;
+        setState(next); saveState(next);
+        return next;
+      }, []);
+      const app = { state, update, stateRef };
+      const [view, setView] = useState(state.profile ? { name: 'home' } : { name: 'setup' });
+      const [pinOpen, setPinOpen] = useState(false);
+
+      const go = v => { TTS.cancel(); setView(v); window.scrollTo(0, 0); };
+      const openStage = stage => go({ name: 'stage', stageId: stage.id });
+      const startTask = (stage, index) => go({ name: 'task', stageId: stage.id, index });
+      const back = () => {
+        if (view.name === 'task') go({ name: 'stage', stageId: view.stageId });
+        else go({ name: 'home' });
+      };
+
+      return (
+        <div className="min-h-screen pb-10">
+          <Header app={app} view={view} onHome={() => view.name !== 'setup' && view.name !== 'teacher' && go({ name: 'home' })} onBack={back}
+                  onStickers={() => go({ name: 'stickers' })} onTeacher={() => setPinOpen(true)} />
+          {view.name === 'setup' && (
+            <SetupScreen onDone={(profile) => { update(s => ({ ...s, profile })); go({ name: 'home' }); }} />
+          )}
+          {view.name === 'home' && <HomeScreen app={app} onOpenStage={openStage} onStartTask={startTask} />}
+          {view.name === 'stage' && <StageScreen app={app} stage={STAGE_MAP[view.stageId]} onStartTask={startTask} />}
+          {view.name === 'task' && (
+            <TaskScreen key={`${view.stageId}-${view.index}`} app={app} stage={STAGE_MAP[view.stageId]} index={view.index}
+                        onGoTask={startTask} onBackToStage={() => go({ name: 'stage', stageId: view.stageId })} />
+          )}
+          {view.name === 'stickers' && <StickerBook app={app} />}
+          {view.name === 'teacher' && <TeacherScreen app={app} onExit={() => go({ name: 'home' })} />}
+          {pinOpen && (
+            <PinPad onClose={() => setPinOpen(false)}
+                    check={v => state.profile && hashPin(v) === state.profile.pin}
+                    onSuccess={() => { setPinOpen(false); go({ name: 'teacher' }); }} />
+          )}
+        </div>
+      );
+    }
+
+    class ErrorBoundary extends React.Component {
+      constructor(p) { super(p); this.state = { err: null }; }
+      static getDerivedStateFromError(err) { return { err }; }
+      render() {
+        if (this.state.err) return (
+          <div className="max-w-xl mx-auto p-8 text-center">
+            <div className="text-6xl mb-4">🦉💦</div>
+            <div className="text-2xl font-bold mb-2">こまったことが おきたよ</div>
+            <div className="text-lg text-slate-600 mb-4">せんせいに しらせてね。（ページを さいよみこみ すると なおることが あります）</div>
+            <pre className="text-left text-xs bg-slate-100 p-3 rounded overflow-auto">{String(this.state.err && this.state.err.stack || this.state.err)}</pre>
+            <button className="mt-4 btn3d bg-sky-500 border-sky-700 text-white px-5 py-3 text-xl" onClick={() => location.reload()}>さいよみこみ</button>
+          </div>
+        );
+        return this.props.children;
+      }
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<ErrorBoundary><App /></ErrorBoundary>);
+  </script>
+</body>
+</html>
