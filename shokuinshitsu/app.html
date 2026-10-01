@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>仮想職員室</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f5f2ea; --card: #ffffff; --ink: #1f2933; --sub: #5f6b7a; --line: #e2dccd; --soft: #efeadf;
+      --board: #23513d; --board-2: #2c634b; --board-ink: #f4f8f3;
+      --primary: #23513d; --primary-ink: #ffffff; --danger: #b42318; --warn: #b45309;
+      --sun: #c0392b; --sat: #1d4ed8; --today: #fff4d6; --today-line: #e0a21b; --off: #ebe6da;
+      --shadow: 0 1px 2px rgba(40, 30, 10, .06), 0 4px 14px rgba(40, 30, 10, .05);
+      --chip-l: 90%; --chip-s: 62%; --chip-tl: 27%; --chip-ts: 55%; --bar-l: 45%;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #16191d; --card: #1f2328; --ink: #e7e9ec; --sub: #a3abb6; --line: #343a42; --soft: #272c33;
+        --board: #1b3a2d; --board-2: #234a39; --board-ink: #e9f2ec;
+        --primary: #3d8b67; --primary-ink: #ffffff; --danger: #f87171; --warn: #fbbf24;
+        --sun: #f87171; --sat: #93c5fd; --today: #362f1c; --today-line: #d6a531; --off: #22262b;
+        --shadow: none; --chip-l: 25%; --chip-s: 32%; --chip-tl: 86%; --chip-ts: 70%; --bar-l: 55%;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font-family: 'BIZ UDPGothic', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif; font-size: 16px; line-height: 1.6; }
+    button, input, select, textarea { font: inherit; color: inherit; }
+    :focus-visible { outline: 3px solid var(--today-line); outline-offset: 2px; }
+    a { color: inherit; }
+    .loading, .fatal { min-height: 70vh; display: flex; flex-direction: column; gap: 12px; align-items: center; justify-content: center; color: var(--sub); font-size: 20px; text-align: center; padding: 16px; }
+
+    /* 上の 黒板 */
+    .top { background: var(--board); color: var(--board-ink); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; }
+    .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .logo { font-size: 28px; line-height: 1; }
+    .title { font-weight: 700; font-size: 20px; letter-spacing: .06em; }
+    .cls { font-size: 13px; opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .status { font-size: 13px; padding: 3px 12px; border-radius: 999px; background: rgba(255, 255, 255, .12); white-space: nowrap; }
+    .status.error { background: #fde2e1; color: #8a1c13; cursor: pointer; }
+    .rooms { display: flex; gap: 4px; overflow-x: auto; background: var(--board-2); padding: 6px 12px 0; scrollbar-width: thin; }
+    .room-tab { border: 0; background: transparent; color: var(--board-ink); padding: 8px 14px; border-radius: 10px 10px 0 0; cursor: pointer; white-space: nowrap; font-weight: 700; opacity: .85; }
+    .room-tab:hover { background: rgba(255, 255, 255, .1); opacity: 1; }
+    .room-tab.on { background: var(--bg); color: var(--ink); opacity: 1; }
+    .room-tab small { font-size: 11px; margin-left: 4px; padding: 0 6px; border-radius: 999px; background: rgba(255, 255, 255, .18); font-weight: 400; }
+    .room-tab.on small { background: var(--soft); }
+    .demo-banner { background: #fff7e0; color: #7a4b00; border-bottom: 1px solid #f0d58c; padding: 8px 16px; font-size: 14px; }
+    @media (prefers-color-scheme: dark) { .demo-banner { background: #3a3018; color: #f6d98a; border-color: #5a4a20; } }
+    main { max-width: 1240px; margin: 0 auto; padding: 16px; }
+
+    /* 共通の 部品 */
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; box-shadow: var(--shadow); min-width: 0; }
+    .stack { display: flex; flex-direction: column; gap: 16px; }
+    .grid2 { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; }
+    @media (max-width: 860px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+    h1, h2, h3 { line-height: 1.35; }
+    h2.sec { font-size: 18px; margin: 0; display: flex; align-items: center; gap: 8px; }
+    .btn { border: 1px solid var(--line); background: var(--card); padding: 6px 14px; border-radius: 10px; cursor: pointer; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .btn:hover { background: var(--soft); }
+    .btn.primary { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
+    .btn.primary:hover { filter: brightness(1.08); }
+    .btn.danger { color: var(--danger); border-color: currentColor; }
+    .btn.small { padding: 2px 10px; font-size: 14px; }
+    .btn.link { border: 0; background: transparent; color: var(--primary); padding: 2px 4px; }
+    .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .grow { flex: 1; }
+    .hint { color: var(--sub); font-size: 14px; margin: 0; }
+    .muted { color: var(--sub); }
+    .empty-note { color: var(--sub); padding: 12px; text-align: center; border: 2px dashed var(--line); border-radius: 12px; }
+    .subtabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 16px; }
+    .subtab { border: 1px solid var(--line); background: var(--card); padding: 6px 16px; border-radius: 999px; cursor: pointer; font-weight: 700; color: var(--sub); }
+    .subtab.on { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
+    .chip { display: inline-block; padding: 0 .6em; border-radius: 999px; font-weight: 700; font-size: 14px; line-height: 1.7; background: hsl(var(--h) var(--chip-s) var(--chip-l)); color: hsl(var(--h) var(--chip-ts) var(--chip-tl)); white-space: nowrap; }
+    .chip.gray { background: var(--soft); color: var(--sub); }
+    .tag { display: inline-block; font-size: 12px; padding: 0 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--sub); white-space: nowrap; }
+    .tag.red { color: var(--danger); border-color: currentColor; font-weight: 700; }
+    .out { display: inline-flex; align-items: baseline; gap: 2px; font-size: 12px; padding: 0 6px; border-radius: 6px; background: var(--soft); border: 1px dashed var(--sub); white-space: nowrap; }
+    .out small { font-size: 11px; color: var(--sub); }
+    .outs { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
+    .field { display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 14px; }
+    .field input, .field select, .field textarea, .input { font-weight: 400; font-size: 16px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); width: 100%; }
+    .field textarea { resize: vertical; line-height: 1.6; }
+    .row2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+    @media (max-width: 520px) { .row2 { grid-template-columns: minmax(0, 1fr); } }
+    .info { background: var(--soft); border-radius: 10px; padding: 8px 12px; font-size: 14px; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+    table.list { border-collapse: collapse; width: 100%; }
+    table.list th, table.list td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    table.list th { background: var(--soft); font-size: 14px; white-space: nowrap; }
+    table.list tr:last-child td { border-bottom: 0; }
+
+    /* ロビー */
+    .hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    .hero h1 { margin: 0; font-size: 26px; }
+    .hero .date { font-size: 18px; color: var(--sub); }
+    .day-list { list-style: none; margin: 0; padding: 0; }
+    .day-list li { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+    .day-list li:last-child { border-bottom: 0; }
+    .day-list .pname { font-weight: 700; }
+    .day-list .ptime { display: block; font-size: 12px; color: var(--sub); font-weight: 400; }
+    .day-list .what { min-width: 0; }
+    .day-list .what .content { font-size: 14px; color: var(--sub); }
+    .ev-list { list-style: none; margin: 0; padding: 0; }
+    .ev-list li { padding: 6px 0; border-bottom: 1px solid var(--line); display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+    .ev-list li:last-child { border-bottom: 0; }
+    .ev-list .when { font-weight: 700; min-width: 7.5em; }
+    .ev-list .ev-title { cursor: pointer; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+    .doors { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+    .door { text-align: left; border: 1px solid var(--line); background: var(--card); border-radius: 14px; padding: 14px; cursor: pointer; box-shadow: var(--shadow); }
+    .door:hover { border-color: var(--primary); }
+    .door .icon { font-size: 30px; }
+    .door b { display: block; font-size: 17px; margin-top: 4px; }
+    .door span { font-size: 13px; color: var(--sub); }
+    .door.soon { opacity: .7; border-style: dashed; box-shadow: none; }
+
+    /* 週案・時間割の 表 */
+    .wk-title { font-size: 18px; margin: 0 8px; }
+    table.week { border-collapse: collapse; width: 100%; min-width: 880px; table-layout: fixed; }
+    .week th, .week td { border: 1px solid var(--line); vertical-align: top; padding: 6px; }
+    .week thead th { background: var(--soft); font-weight: 700; text-align: left; font-size: 14px; }
+    .week th.pcol { width: 82px; background: var(--soft); text-align: center; vertical-align: middle; font-size: 14px; }
+    .week .ptime { display: block; font-size: 11px; color: var(--sub); font-weight: 400; }
+    .week td.cell { cursor: pointer; height: 88px; }
+    .week td.cell:hover { background: var(--soft); }
+    .week td.cell .empty { color: var(--line); font-size: 20px; }
+    .week td.cell.edited { box-shadow: inset 3px 0 0 var(--primary); }
+    .week .is-today { background: var(--today); }
+    .week thead th.is-today { box-shadow: inset 0 -3px 0 var(--today-line); }
+    .week td.offday { background: var(--off); color: var(--sub); text-align: center; vertical-align: middle; font-weight: 700; }
+    .week .unit { font-size: 12px; color: var(--sub); margin-top: 2px; }
+    .week .content { font-size: 13px; margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .week .note { font-size: 12px; color: var(--sub); margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .dh { white-space: nowrap; }
+    .todaymark { font-size: 11px; background: var(--today-line); color: #fff; border-radius: 999px; padding: 0 6px; margin-left: 4px; }
+    .hol-name { font-size: 12px; color: var(--sun); font-weight: 700; }
+    .add-ev { border: 0; background: transparent; color: var(--sub); font-size: 12px; cursor: pointer; padding: 0; margin-top: 2px; }
+    .add-ev:hover { color: var(--primary); text-decoration: underline; }
+    .ttcell select { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; font-weight: 700; background: hsl(var(--h) var(--chip-s) var(--chip-l)); color: hsl(var(--h) var(--chip-ts) var(--chip-tl)); }
+    .ttcell select.gray { background: var(--bg); color: var(--sub); }
+    .ttcell input { width: 100%; margin-top: 4px; border: 1px solid var(--line); border-radius: 8px; padding: 3px 6px; font-size: 13px; background: var(--bg); }
+    .stay { font-size: 12px; color: var(--sub); margin-top: 4px; }
+    .xcell { cursor: pointer; }
+    .xcell:hover { background: var(--soft); }
+    .xcell .base { font-size: 12px; color: var(--sub); }
+    .xcell.on { background: hsl(180 50% 92%); }
+    @media (prefers-color-scheme: dark) { .xcell.on { background: hsl(180 30% 20%); } }
+    .xcell .xlabel { font-weight: 700; font-size: 14px; }
+    .pills { display: flex; gap: 6px; flex-wrap: wrap; }
+    .pill { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 4px 14px; cursor: pointer; font-weight: 700; }
+    .pill.on { background: var(--primary); color: var(--primary-ink); border-color: var(--primary); }
+    .hours { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+    /* 月の 予定 */
+    .month { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-left: 1px solid var(--line); border-top: 1px solid var(--line); background: var(--card); border-radius: 14px; overflow: hidden; }
+    .month .wd { padding: 4px; font-weight: 700; text-align: center; background: var(--soft); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); font-size: 14px; }
+    .month .wd.sun { color: var(--sun); } .month .wd.sat { color: var(--sat); }
+    .mday { min-height: 104px; padding: 4px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); cursor: pointer; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .mday:hover { background: var(--soft); }
+    .mday.other { background: var(--off); }
+    .mday.other .num { opacity: .5; }
+    .mday .num { font-weight: 700; font-size: 14px; }
+    .mday.sun .num, .mday.hol .num { color: var(--sun); }
+    .mday.sat .num { color: var(--sat); }
+    .mday.today { background: var(--today); box-shadow: inset 0 0 0 2px var(--today-line); }
+    .mday.kyugyo { background: var(--off); }
+    .ev { display: block; width: 100%; text-align: left; border: 0; border-left: 4px solid hsl(var(--h) 60% var(--bar-l)); background: hsl(var(--h) var(--chip-s) var(--chip-l)); color: hsl(var(--h) var(--chip-ts) var(--chip-tl)); font-size: 12px; line-height: 1.5; padding: 1px 5px; border-radius: 4px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+    .ev.gray { background: var(--soft); color: var(--sub); border-left-color: var(--sub); }
+    @media (max-width: 640px) { .mday { min-height: 70px; padding: 2px; } .ev { font-size: 10px; padding: 0 2px; border-left-width: 2px; } }
+
+    /* 学習の 部屋 */
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    .unit-card { cursor: pointer; display: flex; flex-direction: column; gap: 6px; }
+    .unit-card:hover, .mat:hover { border-color: var(--primary); }
+    .unit-card h3, .mat h3 { margin: 0; font-size: 17px; }
+    .meta { font-size: 13px; color: var(--sub); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .bar { height: 10px; background: var(--soft); border-radius: 999px; overflow: hidden; display: flex; }
+    .bar i { display: block; height: 100%; background: var(--primary); }
+    .bar i.plan { background: hsl(150 30% 70%); }
+    @media (prefers-color-scheme: dark) { .bar i.plan { background: hsl(150 20% 35%); } }
+    .goal { margin: 0; font-size: 14px; }
+    .group-title { font-size: 15px; color: var(--sub); margin: 18px 0 8px; }
+    .mat { display: grid; grid-template-columns: 44px minmax(0, 1fr); grid-template-rows: 1fr auto; gap: 10px; }
+    .mat-icon { font-size: 30px; line-height: 1; }
+    .mat p { margin: 4px 0 0; font-size: 14px; color: var(--sub); }
+    .mat-act { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
+    .date-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+
+    /* 設定 */
+    .ptable input { width: 100%; }
+    .ptable td { padding: 4px 6px; }
+
+    /* 準備中の 部屋 */
+    .soon-room { text-align: center; max-width: 640px; margin: 24px auto; }
+    .soon-room .big { font-size: 64px; }
+    .soon-room ul { text-align: left; display: inline-block; margin: 8px auto 16px; }
+    .soon-room li { margin: 6px 0; }
+
+    /* ダイアログ */
+    dialog { border: 0; border-radius: 16px; padding: 0; width: min(580px, calc(100vw - 32px)); background: var(--card); color: var(--ink); box-shadow: 0 20px 60px rgba(0, 0, 0, .3); }
+    dialog::backdrop { background: rgba(20, 25, 20, .45); }
+    dialog header { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid var(--line); gap: 12px; }
+    dialog h2 { margin: 0; font-size: 18px; }
+    .dlg-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; max-height: min(65vh, 640px); overflow: auto; }
+    dialog footer { display: flex; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+    .x { border: 0; background: transparent; font-size: 20px; cursor: pointer; color: var(--sub); }
+
+    .print-only { display: none; }
+    @media print {
+      @page { size: A4 landscape; margin: 8mm; }
+      body { background: #fff; color: #000; font-size: 11px; }
+      .top, .rooms, .demo-banner, .subtabs, .noprint { display: none !important; }
+      .print-only { display: block; }
+      main { max-width: none; padding: 0; }
+      .table-wrap { overflow: visible; border: 0; }
+      table.week { min-width: 0; }
+      .week td.cell { height: auto; }
+      .week .content, .week .note { display: block; -webkit-line-clamp: unset; overflow: visible; }
+      .card { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app"><div class="loading">🏫<div>職員室の かぎを あけています…</div></div></div>
+  <dialog id="dlg"></dialog>
+
+  <script>
+  'use strict';
+
+  /* =========================================================
+     決まりごと
+     ========================================================= */
+  const KINDS = ['events', 'timetable', 'weekly', 'children', 'exchange', 'units', 'materials'];
+  const DAYS = [1, 2, 3, 4, 5]; // 月〜金
+  const WD = ['日', '月', '火', '水', '木', '金', '土'];
+  const KYUGYO = '休業日';
+  // 予定の 種類と 色（色相）。-1 は 灰色
+  const CATS = { '行事': 28, '会議': 212, '出張': 268, '締め切り': 0, '保護者': 145, '交流': 180, [KYUGYO]: -1, 'その他': 48 };
+  const MAT_KINDS = { 'プリント': '📄', 'スライド': '🖼️', '動画': '🎬', 'アプリ': '📱', '絵本・本': '📚', '絵カード・写真': '🃏', '教具・具体物': '🧩', 'その他': '📎' };
+  const NONE = 'なし';
+  const GRADES = ['1年', '2年', '3年', '4年', '5年', '6年'];
+  const ONDOKU_URL = 'https://zku0395-ops.github.io/hori/';
+  const DEFAULT_SETTINGS = {
+    className: '',
+    periods: [
+      { id: '1', name: '1校時', start: '08:45', end: '09:30' },
+      { id: '2', name: '2校時', start: '09:35', end: '10:20' },
+      { id: '3', name: '3校時', start: '10:40', end: '11:25' },
+      { id: '4', name: '4校時', start: '11:30', end: '12:15' },
+      { id: '5', name: '5校時', start: '13:35', end: '14:20' },
+      { id: '6', name: '6校時', start: '14:25', end: '15:10' },
+    ],
+    subjects: ['国語', '算数', '生活', '社会', '理科', '音楽', '図工', '体育', '外国語活動', '道徳', '学級活動', '総合', '自立活動', '日常生活の指導', '生活単元学習', '遊びの指導'],
+  };
+  const ROOMS = [
+    { id: 'lobby', icon: '🏠', name: 'ロビー' },
+    { id: 'yotei', icon: '📅', name: '予定の部屋', desc: '週案・月の予定・時間割・交流学級' },
+    { id: 'gakushu', icon: '📚', name: '学習の部屋', desc: '単元計画・教材の置き場' },
+    { id: 'koumu', icon: '📝', name: '公務の部屋', soon: true, desc: '締め切り・分掌・会議メモ',
+      ideas: ['提出物の締め切り一覧（あと何日かが分かる）', '校務分掌の仕事の1年の流れ', '会議のメモ', '文書のひな形（学級だより・お知らせなど）'] },
+    { id: 'kodomo', icon: '🧒', name: '子どもの部屋', soon: true, desc: '個別の指導計画・日々の記録',
+      ideas: ['個別の教育支援計画・個別の指導計画（目標と、見直しの時期）', '日々の様子の短いメモ（積み上げて所見や評価に使う）', '保護者との連絡の記録'] },
+    { id: 'renkei', icon: '🤝', name: '連携の部屋', soon: true, desc: '交流学級・支援員・関係機関',
+      ideas: ['交流学級の担任への申し送り', '支援員さんと共有する1日の動き', '関係機関（放課後等デイサービス・医療など）の連絡先と連絡の記録'] },
+    { id: 'settings', icon: '⚙️', name: '設定' },
+  ];
+
+  /* =========================================================
+     日付の 道具（日付は いつも 'yyyy-mm-dd' の 文字で あつかう）
+     ========================================================= */
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function ymd(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function parse(s) { const p = String(s).split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+  function addDays(s, n) { const d = parse(s); d.setDate(d.getDate() + n); return ymd(d); }
+  function today() { return ymd(new Date()); }
+  function dayOf(s) { return parse(s).getDay(); }
+  function mondayOf(s) { return addDays(s, -((dayOf(s) + 6) % 7)); }
+  function md(s) { const d = parse(s); return (d.getMonth() + 1) + '/' + d.getDate(); }
+  function jdate(s) { const d = parse(s); return (d.getMonth() + 1) + '月' + d.getDate() + '日（' + WD[d.getDay()] + '）'; }
+  function wareki(y) { return y >= 2019 ? '令和' + (y === 2019 ? '元' : y - 2018) + '年' : y + '年'; }
+  function isDate(s) { return /^\d{4}-\d{2}-\d{2}$/.test(String(s || '')); }
+  function daysBetween(a, b) { return Math.round((parse(b) - parse(a)) / 86400000); }
+
+  // 国民の祝日（振替休日・国民の休日を ふくむ）
+  const holidayCache = {};
+  function holidaysOf(y) {
+    if (holidayCache[y]) return holidayCache[y];
+    const h = {};
+    const set = (m, d, name) => { h[y + '-' + pad(m) + '-' + pad(d)] = name; };
+    const nthMonday = (m, n) => 1 + ((8 - new Date(y, m - 1, 1).getDay()) % 7) + (n - 1) * 7;
+    const k = y - 1980;
+    set(1, 1, '元日');
+    set(1, nthMonday(1, 2), '成人の日');
+    set(2, 11, '建国記念の日');
+    set(2, 23, '天皇誕生日');
+    set(3, Math.floor(20.8431 + 0.242194 * k - Math.floor(k / 4)), '春分の日');
+    set(4, 29, '昭和の日');
+    set(5, 3, '憲法記念日');
+    set(5, 4, 'みどりの日');
+    set(5, 5, 'こどもの日');
+    set(7, nthMonday(7, 3), '海の日');
+    set(8, 11, '山の日');
+    set(9, nthMonday(9, 3), '敬老の日');
+    set(9, Math.floor(23.2488 + 0.242194 * k - Math.floor(k / 4)), '秋分の日');
+    set(10, nthMonday(10, 2), 'スポーツの日');
+    set(11, 3, '文化の日');
+    set(11, 23, '勤労感謝の日');
+    const base = Object.keys(h);
+    base.forEach((s) => {
+      // 祝日に はさまれた日は 国民の休日
+      const mid = addDays(s, 1);
+      if (!h[mid] && h[addDays(s, 2)] && base.includes(addDays(s, 2))) h[mid] = '国民の休日';
+    });
+    base.forEach((s) => {
+      // 日曜日の 祝日の あとの 最初の 平日は 振替休日
+      if (dayOf(s) !== 0) return;
+      let d = addDays(s, 1);
+      while (h[d]) d = addDays(d, 1);
+      h[d] = '振替休日';
+    });
+    holidayCache[y] = h;
+    return h;
+  }
+  function holiday(s) { return holidaysOf(parse(s).getFullYear())[s] || ''; }
+
+  /* =========================================================
+     データの 置き場所（Apps Script の 中なら スプレッドシート、外なら この端末）
+     ========================================================= */
+  const IN_GAS = typeof google !== 'undefined' && !!(google.script && google.script.run);
+
+  function gasCall(fn, ...args) {
+    return new Promise((resolve, reject) => {
+      google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
+    });
+  }
+
+  const api = IN_GAS ? {
+    load: async () => JSON.parse(await gasCall('apiGetAll')),
+    put: (kind, recs) => gasCall('apiPut', kind, JSON.stringify(recs)),
+    remove: (kind, ids) => gasCall('apiRemove', kind, JSON.stringify(ids)),
+    saveSettings: (s) => gasCall('apiSaveSettings', JSON.stringify(s)),
+  } : localApi();
+
+  // 試作モード：この端末の ブラウザに だけ 保存する
+  function localApi() {
+    const KEY = 'kasou-shokuinshitsu-demo-v1';
+    let mem = null;
+    const read = () => { try { const s = localStorage.getItem(KEY); return s ? JSON.parse(s) : mem; } catch (e) { return mem; } };
+    const write = (d) => { mem = d; try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) { /* 保存できない ときは この画面の あいだだけ 覚える */ } };
+    const data = () => { let d = read(); if (!d) { d = sampleData(); write(d); } d.tables = d.tables || {}; d.settings = d.settings || {}; return d; };
+    return {
+      load: async () => data(),
+      put: async (kind, recs) => {
+        const d = data();
+        const arr = d.tables[kind] || (d.tables[kind] = []);
+        recs.forEach((r) => { const i = arr.findIndex((x) => x.id === r.id); if (i >= 0) arr[i] = Object.assign({}, arr[i], r); else arr.push(r); });
+        write(d);
+      },
+      remove: async (kind, ids) => { const d = data(); d.tables[kind] = (d.tables[kind] || []).filter((r) => !ids.includes(r.id)); write(d); },
+      saveSettings: async (s) => { const d = data(); Object.assign(d.settings, s); write(d); },
+      reset: (withSample) => write(withSample ? sampleData() : { settings: {}, tables: {} }),
+    };
+  }
+
+  /* =========================================================
+     画面の 状態と データ
+     ========================================================= */
+  let S = null;                 // 設定
+  const T = {};                 // 種類ごとの Map（id → 記録）
+  const meta = { sheetUrl: '' };
+  const view = {
+    room: 'lobby',
+    tab: { yotei: 'week', gakushu: 'units' },
+    week: mondayOf(today()),
+    month: today().slice(0, 7),
+    childId: '',
+    unitSubj: '',
+    matSubj: '', matKind: '', matQ: '',
+    periodsDraft: null,
+  };
+
+  function list(kind) { return Array.from(T[kind].values()); }
+  function get(kind, id) { return id ? T[kind].get(id) : undefined; }
+  function uid(prefix) { return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+  function esc(s) { return String(s === undefined || s === null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  function nl(s) { return esc(s).replace(/\n/g, '<br>'); }
+  function opt(value, selected, label) { return `<option value="${esc(value)}"${value === selected ? ' selected' : ''}>${esc(label === undefined ? value : label)}</option>`; }
+  function safeUrl(u) { return /^https?:\/\/\S+$/i.test(String(u || '').trim()) ? String(u).trim() : ''; }
+
+  /* ---------- 保存（画面は すぐ 変え、保存は 順番に 送る） ---------- */
+  let queue = Promise.resolve();
+  let pending = 0;
+  let lastError = null;
+  function persist(task) {
+    pending++;
+    setStatus();
+    queue = queue.then(task).then(
+      () => { pending--; setStatus(); },
+      (err) => { pending--; lastError = err; setStatus(); console.error(err); }
+    );
+  }
+  function putRecs(kind, recs, opt) {
+    const full = [].concat(recs).map((r) => Object.assign({}, get(kind, r.id) || {}, r));
+    full.forEach((r) => T[kind].set(r.id, r));
+    if (!opt || opt.render !== false) render();
+    persist(() => api.put(kind, full));
+  }
+  function removeRecs(kind, ids, opt) {
+    ids = [].concat(ids).filter((id) => T[kind].has(id));
+    if (!ids.length) return;
+    ids.forEach((id) => T[kind].delete(id));
+    if (!opt || opt.render !== false) render();
+    persist(() => api.remove(kind, ids));
+  }
+  function saveSettings(patch) {
+    Object.assign(S, patch);
+    render();
+    persist(() => api.saveSettings(patch));
+  }
+  function setStatus() {
+    const el = document.getElementById('status');
+    if (!el) return;
+    el.className = 'status' + (lastError ? ' error' : '');
+    if (lastError) {
+      el.textContent = '⚠ 保存できなかった変更があります（押すと読み込み直します）';
+      el.dataset.act = 'reload';
+    } else {
+      el.textContent = pending ? '保存しています…' : '✓ 保存ずみ';
+      delete el.dataset.act;
+    }
+  }
+
+  /* ---------- 設定 ---------- */
+  function mergeSettings(s) {
+    s = s || {};
+    const out = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
+    if (typeof s.className === 'string') out.className = s.className;
+    if (Array.isArray(s.periods) && s.periods.length) {
+      out.periods = s.periods.filter((p) => p && p.id).map((p) => ({ id: String(p.id), name: String(p.name || ''), start: String(p.start || ''), end: String(p.end || '') }));
+    }
+    if (Array.isArray(s.subjects) && s.subjects.length) out.subjects = s.subjects.map(String).filter(Boolean);
+    return out;
+  }
+
+  /* ---------- 時間割・週案の 読み方 ---------- */
+  const ttId = (day, pid) => `t${day}-${pid}`;
+  const wkId = (date, pid) => `w${date}-${pid}`;
+  const xId = (cid, day, pid) => `x${cid}-${day}-${pid}`;
+
+  function hueOf(subject) {
+    const i = S.subjects.indexOf(subject);
+    return i < 0 ? -1 : Math.round((i * 137.508 + 15) % 360);
+  }
+  function chip(subject) {
+    if (!subject) return '';
+    const h = hueOf(subject);
+    return `<span class="chip${h < 0 ? ' gray' : ''}" style="--h:${Math.max(h, 0)}">${esc(subject)}</span>`;
+  }
+  function subjOptions(selected, firstLabel) {
+    const subs = S.subjects.slice();
+    if (selected && selected !== NONE && !subs.includes(selected)) subs.push(selected);
+    return (firstLabel !== undefined ? opt('', selected || '', firstLabel) : '') + subs.map((s) => opt(s, selected)).join('');
+  }
+  function baseLesson(day, pid) { return get('timetable', ttId(day, pid)); }
+  function lesson(date, pid) {
+    const w = get('weekly', wkId(date, pid));
+    const base = baseLesson(dayOf(date), pid);
+    let subject = w && w.subject ? w.subject : (base ? base.subject : '');
+    if (subject === NONE) subject = '';
+    const unit = w && w.unitId ? get('units', w.unitId) : null;
+    return { w, base, subject, unit, content: w ? w.content : '', note: w ? w.note : '' };
+  }
+  function children() {
+    return list('children').sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0) || String(a.name).localeCompare(String(b.name), 'ja'));
+  }
+  function childOrder(id) { return children().findIndex((c) => c.id === id); }
+  function outsAt(day, pid) {
+    return list('exchange')
+      .filter((x) => Number(x.day) === day && String(x.period) === pid && get('children', x.childId))
+      .map((x) => ({ x, child: get('children', x.childId) }))
+      .sort((a, b) => childOrder(a.child.id) - childOrder(b.child.id));
+  }
+  function outChip(o) {
+    const room = o.x.room || o.child.homeroom || '交流';
+    return `<span class="out" title="${esc(o.child.name)}：${esc(room)} ${esc(o.x.subject || '')}">🚶${esc(o.child.name)}<small>→${esc(room)}${o.x.subject ? ' ' + esc(o.x.subject) : ''}</small></span>`;
+  }
+  function eventsOn(date) {
+    return list('events')
+      .filter((e) => isDate(e.date) && e.date <= date && date <= (isDate(e.end) && e.end > e.date ? e.end : e.date))
+      .sort((a, b) => (a.time || '99').localeCompare(b.time || '99'));
+  }
+  function offReason(date) {
+    const d = dayOf(date);
+    if (d === 0) return '日曜日';
+    if (d === 6) return '土曜日';
+    const h = holiday(date);
+    if (h) return h;
+    const k = eventsOn(date).find((e) => e.cat === KYUGYO);
+    return k ? (k.title || KYUGYO) : '';
+  }
+  function nextSchoolDay(date) {
+    let d = date;
+    for (let i = 0; i < 120; i++) { d = addDays(d, 1); if (!offReason(d)) return d; }
+    return addDays(date, 1);
+  }
+  function catHue(cat) { return Object.prototype.hasOwnProperty.call(CATS, cat) ? CATS[cat] : CATS['その他']; }
+  function evChip(e) {
+    const h = catHue(e.cat);
+    return `<button class="ev${h < 0 ? ' gray' : ''}" style="--h:${Math.max(h, 0)}" data-act="editEvent" data-id="${esc(e.id)}" title="${esc((e.time ? e.time + ' ' : '') + e.title)}">${e.time ? esc(e.time) + ' ' : ''}${esc(e.title)}</button>`;
+  }
+
+  /* ---------- 単元 ---------- */
+  function unitStats(u) {
+    const t = today();
+    let done = 0, plan = 0;
+    const dates = [];
+    list('weekly').forEach((w) => {
+      if (w.unitId !== u.id || !isDate(w.date)) return;
+      dates.push(w.date);
+      if (w.date <= t) done++; else plan++;
+    });
+    return { done, plan, dates: dates.sort() };
+  }
+  function unitPhase(u) {
+    const t = today();
+    if (isDate(u.end) && u.end < t) return 'done';
+    if (isDate(u.start) && u.start <= t) return 'now';
+    if (!isDate(u.start) && isDate(u.end)) return 'now';
+    return 'next';
+  }
+  function unitInRange(u, date) { return (!isDate(u.start) || u.start <= date) && (!isDate(u.end) || date <= u.end); }
+  function autoUnit(subject, date) {
+    const c = list('units').filter((u) => u.subject === subject && (isDate(u.start) || isDate(u.end)) && unitInRange(u, date));
+    return c.length === 1 ? c[0].id : '';
+  }
+  function unitRange(u) {
+    if (!isDate(u.start) && !isDate(u.end)) return '期間 未設定';
+    return (isDate(u.start) ? md(u.start) : '') + '〜' + (isDate(u.end) ? md(u.end) : '');
+  }
+  function unitOptions(subject, date, selected) {
+    const us = list('units').filter((u) => !subject || u.subject === subject || u.id === selected);
+    us.sort((a, b) => Number(unitInRange(b, date)) - Number(unitInRange(a, date)) || String(a.start).localeCompare(String(b.start)));
+    return opt('', selected, '（単元を選ばない）') + us.map((u) => opt(u.id, selected, u.name + (unitInRange(u, date) ? '' : '（期間外）'))).join('');
+  }
+
+  /* =========================================================
+     画面を 描く
+     ========================================================= */
+  function render() {
+    const y = window.scrollY;
+    document.getElementById('app').innerHTML = viewHeader() + `<main>${viewBody()}</main>`;
+    setStatus();
+    window.scrollTo(0, y);
+  }
+
+  function viewHeader() {
+    return `<header class="top">
+        <div class="brand"><span class="logo">🏫</span><div style="min-width:0"><div class="title">仮想職員室</div><div class="cls">${esc(S.className || '学級名は「設定」で入れられます')}</div></div></div>
+        <div id="status" class="status"></div>
+      </header>
+      <nav class="rooms" aria-label="部屋">${ROOMS.map((r) => `<button class="room-tab${view.room === r.id ? ' on' : ''}" data-act="go" data-room="${r.id}">${r.icon} ${esc(r.name)}${r.soon ? '<small>準備中</small>' : ''}</button>`).join('')}</nav>
+      ${IN_GAS ? '' : '<div class="demo-banner">🧪 試作モード：Apps Script の外で開いているため、データはこの端末のブラウザにだけ保存されます。子どもの本当の情報は入れないでください。</div>'}`;
+  }
+
+  function viewBody() {
+    const room = ROOMS.find((r) => r.id === view.room) || ROOMS[0];
+    if (room.soon) return viewSoon(room);
+    switch (room.id) {
+      case 'yotei': return subtabs('yotei', [['week', '📝 週案'], ['month', '🗓 月の予定'], ['timetable', '🕘 基本の時間割'], ['koryu', '🚶 交流学級']]) + ({ week: viewWeek, month: viewMonth, timetable: viewTimetable, koryu: viewKoryu })[view.tab.yotei]();
+      case 'gakushu': return subtabs('gakushu', [['units', '📘 単元計画'], ['materials', '🧰 教材の置き場']]) + ({ units: viewUnits, materials: viewMaterials })[view.tab.gakushu]();
+      case 'settings': return viewSettings();
+      default: return viewLobby();
+    }
+  }
+
+  function subtabs(room, tabs) {
+    return `<div class="subtabs" role="tablist">${tabs.map(([id, label]) => `<button class="subtab${view.tab[room] === id ? ' on' : ''}" role="tab" aria-selected="${view.tab[room] === id}" data-act="tab" data-room="${room}" data-tab="${id}">${label}</button>`).join('')}</div>`;
+  }
+
+  /* ---------- ロビー ---------- */
+  function viewLobby() {
+    const t = today();
+    const hour = new Date().getHours();
+    const greet = hour < 11 ? 'おはようございます' : hour < 17 ? 'こんにちは' : 'おつかれさまです';
+    const off = offReason(t);
+    const day = off ? nextSchoolDay(t) : t;
+
+    const lessons = S.periods.map((p) => {
+      const L = lesson(day, p.id);
+      const outs = outsAt(dayOf(day), p.id);
+      if (!L.subject && !L.content && !outs.length) return '';
+      return `<li><div class="pname">${esc(p.name)}<span class="ptime">${esc(p.start)}〜${esc(p.end)}</span></div>
+        <div class="what">${L.subject ? chip(L.subject) : '<span class="muted">（なし）</span>'}
+          ${L.unit ? `<span class="muted" style="font-size:13px">📘 ${esc(L.unit.name)}</span>` : ''}
+          ${L.content ? `<div class="content">${nl(L.content)}</div>` : ''}
+          ${outs.length ? `<div class="outs">${outs.map(outChip).join('')}</div>` : ''}</div></li>`;
+    }).join('');
+
+    const until = addDays(t, 14);
+    const upcoming = list('events')
+      .filter((e) => isDate(e.date) && (isDate(e.end) && e.end > e.date ? e.end : e.date) >= t && e.date <= until)
+      .sort((a, b) => (a.date + (a.time || '99')).localeCompare(b.date + (b.time || '99')));
+    const evHtml = upcoming.map((e) => {
+      const start = e.date < t ? t : e.date;
+      const left = daysBetween(t, e.date);
+      const when = start === t ? 'きょう' : start === addDays(t, 1) ? 'あした' : jdate(start);
+      const h = catHue(e.cat);
+      return `<li><span class="when">${when}${e.time ? ' ' + esc(e.time) : ''}</span>
+        <span class="chip${h < 0 ? ' gray' : ''}" style="--h:${Math.max(h, 0)};font-size:12px">${esc(e.cat || 'その他')}</span>
+        <span class="ev-title" data-act="editEvent" data-id="${esc(e.id)}" role="button" tabindex="0">${esc(e.title)}</span>
+        ${e.cat === '締め切り' && left >= 0 ? `<span class="tag red">${left ? `あと${left}日` : 'きょうまで'}</span>` : ''}</li>`;
+    }).join('');
+
+    const nowUnits = list('units').filter((u) => unitPhase(u) === 'now').sort((a, b) => S.subjects.indexOf(a.subject) - S.subjects.indexOf(b.subject));
+
+    return `<div class="hero">
+        <div><h1>${greet}。</h1><div class="date">${wareki(parse(t).getFullYear())} ${jdate(t)}${off ? `　きょうは ${esc(off)} です` : ''}</div></div>
+        <button class="btn primary" data-act="newEvent" data-date="${t}">＋ 予定を追加</button>
+      </div>
+      <div class="grid2">
+        <section class="card">
+          <div class="toolbar"><h2 class="sec">🕘 ${off ? `次の登校日 ${jdate(day)} の時間割` : 'きょうの時間割'}</h2><span class="grow"></span>
+            <button class="btn small" data-act="openWeek" data-date="${day}">週案を開く</button></div>
+          ${lessons ? `<ul class="day-list">${lessons}</ul>` : `<div class="empty-note">時間割がまだ入っていません。<br><button class="btn link" data-act="goTab" data-room="yotei" data-tab="timetable">「基本の時間割」を入れる</button></div>`}
+        </section>
+        <div class="stack">
+          <section class="card">
+            <div class="toolbar"><h2 class="sec">📌 これからの予定（2週間）</h2><span class="grow"></span>
+              <button class="btn small" data-act="goTab" data-room="yotei" data-tab="month">月の予定</button></div>
+            ${evHtml ? `<ul class="ev-list">${evHtml}</ul>` : '<div class="empty-note">2週間以内の予定はありません。</div>'}
+          </section>
+          <section class="card">
+            <div class="toolbar"><h2 class="sec">📘 進行中の単元</h2><span class="grow"></span>
+              <button class="btn small" data-act="goTab" data-room="gakushu" data-tab="units">単元計画</button></div>
+            ${nowUnits.length ? `<div class="stack" style="gap:10px">${nowUnits.map(unitMini).join('')}</div>` : '<div class="empty-note">進行中の単元はありません。</div>'}
+          </section>
+        </div>
+      </div>
+      <h2 class="sec" style="margin:24px 0 12px">🚪 部屋</h2>
+      <div class="doors">${ROOMS.filter((r) => r.id !== 'lobby').map((r) => `<button class="door${r.soon ? ' soon' : ''}" data-act="go" data-room="${r.id}"><div class="icon">${r.icon}</div><b>${esc(r.name)}${r.soon ? ' <span class="tag">準備中</span>' : ''}</b><span>${esc(r.desc || '学級名・校時・教科')}</span></button>`).join('')}</div>`;
+  }
+
+  function unitMini(u) {
+    const st = unitStats(u);
+    return `<div data-act="editUnit" data-id="${esc(u.id)}" role="button" tabindex="0" style="cursor:pointer">
+      <div class="meta">${chip(u.subject)} <b style="color:var(--ink);font-size:15px">${esc(u.name)}</b></div>
+      ${progress(u, st)}</div>`;
+  }
+
+  function progress(u, st) {
+    const hours = Number(u.hours) || 0;
+    const total = Math.max(hours, st.done + st.plan, 1);
+    const label = hours ? `実施 ${st.done} ／ 計画 ${hours} 時間` : `実施 ${st.done} 時間`;
+    return `<div class="bar" title="${esc(label)}"><i style="width:${(st.done / total) * 100}%"></i><i class="plan" style="width:${(st.plan / total) * 100}%"></i></div>
+      <div class="meta"><span>${label}</span>${st.plan ? `<span>（週案に このあと ${st.plan} 時間）</span>` : ''}${hours && st.done >= hours ? '<span class="tag">計画時数に達しました</span>' : ''}</div>`;
+  }
+
+  /* ---------- 予定の部屋：週案 ---------- */
+  function viewWeek() {
+    const t = today();
+    const mon = view.week;
+    const dates = DAYS.map((_, i) => addDays(mon, i));
+    const offs = dates.map(offReason);
+    const fri = dates[4];
+    const title = `${wareki(parse(mon).getFullYear())} ${jdate(mon)} 〜 ${jdate(fri)}`;
+
+    const head = dates.map((d) => `<th class="${d === t ? 'is-today' : ''}">
+        <div class="dh"><b>${md(d)}</b>（${WD[dayOf(d)]}）${d === t ? '<span class="todaymark">きょう</span>' : ''}</div>
+        ${holiday(d) ? `<div class="hol-name">${esc(holiday(d))}</div>` : ''}
+        ${eventsOn(d).map(evChip).join('')}
+        <button class="add-ev noprint" data-act="newEvent" data-date="${d}">＋予定</button></th>`).join('');
+
+    const rows = S.periods.map((p, r) => `<tr><th class="pcol">${esc(p.name)}<span class="ptime">${esc(p.start)}〜${esc(p.end)}</span></th>${dates.map((d, i) => {
+      if (offs[i]) return r === 0 ? `<td class="offday" rowspan="${S.periods.length}">${esc(offs[i])}<br><small>お休み</small></td>` : '';
+      return lessonCell(d, p.id, d === t);
+    }).join('')}</tr>`).join('');
+
+    // この週の 教科ごとの 時数
+    const count = {};
+    dates.forEach((d, i) => {
+      if (offs[i]) return;
+      S.periods.forEach((p) => { const s = lesson(d, p.id).subject; if (s) count[s] = (count[s] || 0) + 1; });
+    });
+    const subjects = Object.keys(count).sort((a, b) => (hueOf(a) < 0) - (hueOf(b) < 0) || S.subjects.indexOf(a) - S.subjects.indexOf(b));
+
+    return `<div class="toolbar noprint">
+        <button class="btn" data-act="weekMove" data-n="-7">◀ 前の週</button>
+        <button class="btn" data-act="weekMove" data-n="0">今週</button>
+        <button class="btn" data-act="weekMove" data-n="7">次の週 ▶</button>
+        <input class="input" type="date" style="width:auto" value="${mon}" data-chg="weekJump" aria-label="日付を選んで その週を開く">
+        <span class="grow"></span>
+        <button class="btn" data-act="print">🖨 印刷</button>
+      </div>
+      <h2 class="wk-title" style="margin:0 0 10px">${title}<span class="print-only">${esc(S.className)} 週案</span></h2>
+      <div class="table-wrap"><table class="week"><thead><tr><th class="pcol">校時</th>${head}</tr></thead><tbody>${rows}</tbody></table></div>
+      <div class="card" style="margin-top:12px"><div class="hours"><b>この週の時数</b>${subjects.length ? subjects.map((s) => `${chip(s)}<span>${count[s]}</span>`).join(' ') : '<span class="muted">まだありません</span>'}</div></div>
+      <p class="hint noprint" style="margin-top:8px">マスを押すと、その時間の学習内容や単元を書きこめます。何も書かない時間は「基本の時間割」のとおりに表示します。左に緑の線があるマスは、この週だけ書きこんだ時間です。</p>`;
+  }
+
+  function lessonCell(date, pid, isToday) {
+    const L = lesson(date, pid);
+    const outs = outsAt(dayOf(date), pid);
+    return `<td class="cell${isToday ? ' is-today' : ''}${L.w ? ' edited' : ''}" data-act="editLesson" data-date="${date}" data-pid="${esc(pid)}" tabindex="0" role="button">
+      ${L.subject ? chip(L.subject) : '<span class="empty noprint">＋</span>'}
+      ${L.unit ? `<div class="unit">📘 ${esc(L.unit.name)}</div>` : ''}
+      ${L.content ? `<div class="content">${nl(L.content)}</div>` : ''}
+      ${L.note ? `<div class="note">📝 ${nl(L.note)}</div>` : ''}
+      ${outs.length ? `<div class="outs">${outs.map(outChip).join('')}</div>` : ''}</td>`;
+  }
+
+  function editLesson(date, pid) {
+    const p = S.periods.find((x) => x.id === pid);
+    if (!p) return;
+    const id = wkId(date, pid);
+    const w = get('weekly', id) || {};
+    const base = baseLesson(dayOf(date), pid);
+    const baseSubj = base ? base.subject : '';
+    const chosen = w.subject || '';
+    const effective = chosen === NONE ? '' : (chosen || baseSubj);
+    const unitId = w.unitId || (w.id ? '' : autoUnit(effective, date));
+    const outs = outsAt(dayOf(date), pid);
+    openDialog({
+      title: `${jdate(date)} ${p.name}`,
+      attrs: `data-date="${date}" data-base="${esc(baseSubj)}"`,
+      body: `<p class="hint">${esc(p.start)}〜${esc(p.end)}　／　基本の時間割：${baseSubj ? chip(baseSubj) : 'なし'}</p>
+        <div class="row2">
+          <label class="field">教科
+            <select name="subject" data-chg="lessonSubj">${opt('', chosen, '基本の時間割のとおり' + (baseSubj ? `（${baseSubj}）` : ''))}${S.subjects.concat(chosen && chosen !== NONE && !S.subjects.includes(chosen) ? [chosen] : []).map((s) => opt(s, chosen)).join('')}${opt(NONE, chosen, 'なし（授業なし）')}</select></label>
+          <label class="field">単元 <select name="unitId">${unitOptions(effective, date, unitId)}</select></label>
+        </div>
+        <label class="field">学習内容 <textarea name="content" rows="3" maxlength="1000" placeholder="例：「おおきな かぶ」を 役に分かれて 音読する">${esc(w.content)}</textarea></label>
+        <label class="field">メモ・ふりかえり <textarea name="note" rows="2" maxlength="1000" placeholder="例：準備物、子どもの様子、次の時間への引きつぎ">${esc(w.note)}</textarea></label>
+        ${outs.length ? `<div class="info">この時間の交流：<div class="outs">${outs.map(outChip).join('')}</div></div>` : ''}`,
+      deleteLabel: w.id ? 'この時間の書きこみを消す' : '',
+      onDelete: () => removeRecs('weekly', id),
+      onSave: (f) => {
+        const rec = { id, date, period: pid, subject: f.subject, unitId: f.unitId, content: f.content.trim(), note: f.note.trim() };
+        if (!rec.subject && !rec.unitId && !rec.content && !rec.note) { if (w.id) removeRecs('weekly', id); else render(); return; }
+        putRecs('weekly', rec);
+      },
+    });
+  }
+
+  /* ---------- 予定の部屋：月の予定 ---------- */
+  function viewMonth() {
+    const [y, m] = view.month.split('-').map(Number);
+    const first = `${y}-${pad(m)}-01`;
+    const start = addDays(first, -dayOf(first));
+    const t = today();
+    let cells = '';
+    let d = start;
+    for (let i = 0; i < 42; i++) {
+      const inMonth = d.slice(0, 7) === view.month;
+      if (i === 35 && !inMonth) break;
+      const evs = eventsOn(d);
+      const hol = holiday(d);
+      const w = dayOf(d);
+      const cls = ['mday', inMonth ? '' : 'other', w === 0 ? 'sun' : w === 6 ? 'sat' : '', hol ? 'hol' : '', d === t ? 'today' : '', evs.some((e) => e.cat === KYUGYO) ? 'kyugyo' : ''].filter(Boolean).join(' ');
+      cells += `<div class="${cls}" data-act="newEvent" data-date="${d}" title="${jdate(d)} に予定を追加">
+        <div class="num">${parse(d).getDate()}</div>${hol ? `<div class="hol-name">${esc(hol)}</div>` : ''}${evs.map(evChip).join('')}</div>`;
+      d = addDays(d, 1);
+    }
+    const monthEvents = list('events')
+      .filter((e) => isDate(e.date) && e.date.slice(0, 7) <= view.month && (isDate(e.end) && e.end > e.date ? e.end : e.date).slice(0, 7) >= view.month)
+      .sort((a, b) => (a.date + (a.time || '99')).localeCompare(b.date + (b.time || '99')));
+
+    return `<div class="toolbar">
+        <button class="btn" data-act="monthMove" data-n="-1">◀ 前の月</button>
+        <button class="btn" data-act="monthMove" data-n="0">今月</button>
+        <button class="btn" data-act="monthMove" data-n="1">次の月 ▶</button>
+        <h2 class="wk-title">${wareki(y)}（${y}年）${m}月</h2>
+        <span class="grow"></span>
+        <button class="btn primary" data-act="newEvent" data-date="${view.month === t.slice(0, 7) ? t : first}">＋ 予定を追加</button>
+      </div>
+      <div class="month">${WD.map((n, i) => `<div class="wd${i === 0 ? ' sun' : i === 6 ? ' sat' : ''}">${n}</div>`).join('')}${cells}</div>
+      <p class="hint" style="margin-top:8px">日付のマスを押すと予定を追加できます。種類を「${KYUGYO}」にした日（運動会の振替休業日など）は、週案でお休みとして表示します。</p>
+      <h2 class="sec" style="margin:20px 0 8px">この月の予定（${monthEvents.length}件）</h2>
+      ${monthEvents.length ? `<div class="table-wrap"><table class="list"><thead><tr><th>日付</th><th>時刻</th><th>種類</th><th>内容</th><th>メモ</th></tr></thead><tbody>${monthEvents.map((e) => `<tr>
+        <td style="white-space:nowrap">${jdate(e.date)}${isDate(e.end) && e.end > e.date ? `〜${jdate(e.end)}` : ''}</td><td>${esc(e.time)}</td>
+        <td><span class="chip${catHue(e.cat) < 0 ? ' gray' : ''}" style="--h:${Math.max(catHue(e.cat), 0)};font-size:12px">${esc(e.cat || 'その他')}</span></td>
+        <td><button class="btn link" data-act="editEvent" data-id="${esc(e.id)}">${esc(e.title)}</button></td><td class="muted" style="font-size:14px">${nl(e.memo)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty-note">この月の予定はまだありません。</div>'}`;
+  }
+
+  function editEvent(id, date) {
+    const e = id ? get('events', id) : { date: isDate(date) ? date : today(), cat: '行事' };
+    if (!e) return;
+    openDialog({
+      title: id ? '予定を直す' : '予定を追加',
+      body: `<label class="field">内容 <input name="title" required maxlength="200" value="${esc(e.title)}" placeholder="例：職員会議／校外学習／個別の指導計画 提出"></label>
+        <div class="row2">
+          <label class="field">日付 <input type="date" name="date" required value="${esc(e.date)}"></label>
+          <label class="field">終わりの日（何日か続くとき） <input type="date" name="end" value="${esc(e.end)}"></label>
+        </div>
+        <div class="row2">
+          <label class="field">時刻 <input type="time" name="time" value="${esc(e.time)}"></label>
+          <label class="field">種類 <select name="cat">${Object.keys(CATS).map((c) => opt(c, e.cat || 'その他')).join('')}</select></label>
+        </div>
+        <label class="field">メモ <textarea name="memo" rows="3" maxlength="1000">${esc(e.memo)}</textarea></label>
+        <p class="hint">「締め切り」はロビーに「あと○日」と出ます。「${KYUGYO}」の日は週案でお休みになります。</p>`,
+      deleteLabel: id ? 'この予定を消す' : '',
+      onDelete: () => removeRecs('events', id),
+      onSave: (f) => {
+        if (!isDate(f.date)) return '日付を入れてください。';
+        putRecs('events', { id: id || uid('e'), title: f.title.trim(), date: f.date, end: isDate(f.end) && f.end > f.date ? f.end : '', time: f.time, cat: f.cat, memo: f.memo.trim() });
+      },
+    });
+  }
+
+  /* ---------- 予定の部屋：基本の時間割 ---------- */
+  function viewTimetable() {
+    const rows = S.periods.map((p) => `<tr><th class="pcol">${esc(p.name)}<span class="ptime">${esc(p.start)}〜${esc(p.end)}</span></th>${DAYS.map((d) => {
+      const b = baseLesson(d, p.id) || {};
+      const h = hueOf(b.subject);
+      const outs = outsAt(d, p.id);
+      return `<td class="ttcell">
+        <select data-chg="tt" data-day="${d}" data-pid="${esc(p.id)}" class="${h < 0 ? 'gray' : ''}" style="--h:${Math.max(h, 0)}" aria-label="${WD[d]}曜日 ${esc(p.name)}の教科">${subjOptions(b.subject || '', '（なし）')}</select>
+        <input data-chg="tt" data-day="${d}" data-pid="${esc(p.id)}" value="${esc(b.memo)}" maxlength="200" placeholder="メモ（場所・担当など）" aria-label="${WD[d]}曜日 ${esc(p.name)}のメモ">
+        ${outs.length ? `<div class="outs">${outs.map(outChip).join('')}</div>` : ''}</td>`;
+    }).join('')}</tr>`).join('');
+    return `<p class="hint" style="margin-bottom:10px">ふだんの1週間の時間割です。週案は、この時間割をもとに表示されます。行事などで変わる週は「週案」で直します。校時の名前や時刻は「設定」で変えられます。</p>
+      <div class="table-wrap"><table class="week"><thead><tr><th class="pcol">校時</th>${DAYS.map((d) => `<th>${WD[d]}曜日</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+
+  function changeTimetable(el) {
+    const td = el.closest('td');
+    const sel = td.querySelector('select');
+    const memo = td.querySelector('input');
+    const day = Number(sel.dataset.day), pid = sel.dataset.pid;
+    const id = ttId(day, pid);
+    const subject = sel.value, m = memo.value.trim();
+    const h = hueOf(subject);
+    sel.className = h < 0 ? 'gray' : '';
+    sel.style.setProperty('--h', Math.max(h, 0));
+    if (!subject && !m) removeRecs('timetable', id, { render: false });
+    else putRecs('timetable', { id, day, period: pid, subject, memo: m }, { render: false });
+  }
+
+  /* ---------- 予定の部屋：交流学級 ---------- */
+  function viewKoryu() {
+    const kids = children();
+    if (!kids.some((k) => k.id === view.childId)) view.childId = kids.length ? kids[0].id : '';
+    const sel = get('children', view.childId);
+
+    const overview = S.periods.map((p) => `<tr><th class="pcol">${esc(p.name)}</th>${DAYS.map((d) => {
+      const outs = outsAt(d, p.id);
+      return `<td>${outs.length ? `<div class="outs" style="margin:0">${outs.map(outChip).join('')}</div><div class="stay">教室に残る：${kids.length - outs.length}人</div>` : ''}</td>`;
+    }).join('')}</tr>`).join('');
+
+    const kidRows = kids.map((k) => {
+      const n = list('exchange').filter((x) => x.childId === k.id).length;
+      return `<tr><td><b>${esc(k.name)}</b></td><td>${esc(k.grade)}</td><td>${esc(k.homeroom)}</td><td>${n} 時間／週</td>
+        <td><button class="btn small" data-act="editChild" data-id="${esc(k.id)}">直す</button></td></tr>`;
+    }).join('');
+
+    const editor = sel ? S.periods.map((p) => `<tr><th class="pcol">${esc(p.name)}</th>${DAYS.map((d) => {
+      const x = get('exchange', xId(sel.id, d, p.id));
+      const b = baseLesson(d, p.id);
+      return `<td class="xcell${x ? ' on' : ''}" data-act="editX" data-day="${d}" data-pid="${esc(p.id)}" tabindex="0" role="button">
+        <div class="base">学級：${b && b.subject ? esc(b.subject) : '—'}</div>
+        ${x ? `<div class="xlabel">🚶 ${esc(x.room || sel.homeroom || '交流')}</div><div>${esc(x.subject)}</div>${x.memo ? `<div class="base">${esc(x.memo)}</div>` : ''}` : ''}</td>`;
+    }).join('')}</tr>`).join('') : '';
+
+    return `<div class="stack">
+      <section class="card">
+        <div class="toolbar"><h2 class="sec">🚶 交流の一覧（いつ・だれが・どこへ）</h2></div>
+        ${kids.length ? `<p class="hint" style="margin-bottom:8px">何も書いていない時間は、${kids.length}人全員が教室にいます。</p>` : ''}
+        ${kids.length ? `<div class="table-wrap"><table class="week"><thead><tr><th class="pcol">校時</th>${DAYS.map((d) => `<th>${WD[d]}曜日</th>`).join('')}</tr></thead><tbody>${overview}</tbody></table></div>`
+          : '<div class="empty-note">まず下で、学級の子どもを登録してください。</div>'}
+      </section>
+      <section class="card">
+        <div class="toolbar"><h2 class="sec">🧒 学級の子ども</h2><span class="grow"></span><button class="btn primary" data-act="editChild">＋ 子どもを追加</button></div>
+        <p class="hint" style="margin-bottom:8px">名前は、呼び名やイニシャル（例：Aさん）で登録するのがおすすめです。</p>
+        ${kids.length ? `<div class="table-wrap"><table class="list"><thead><tr><th>呼び名</th><th>学年</th><th>交流学級</th><th>交流</th><th></th></tr></thead><tbody>${kidRows}</tbody></table></div>` : ''}
+      </section>
+      ${sel ? `<section class="card">
+        <div class="toolbar"><h2 class="sec">✏️ 交流の時間を入れる</h2></div>
+        <div class="pills" style="margin-bottom:10px">${kids.map((k) => `<button class="pill${k.id === sel.id ? ' on' : ''}" data-act="pickChild" data-id="${esc(k.id)}">${esc(k.name)}</button>`).join('')}</div>
+        <p class="hint" style="margin-bottom:8px">${esc(sel.name)}さんが交流学級へ行く時間のマスを押してください。もう一度押すと、直したり やめたりできます。</p>
+        <div class="table-wrap"><table class="week"><thead><tr><th class="pcol">校時</th>${DAYS.map((d) => `<th>${WD[d]}曜日</th>`).join('')}</tr></thead><tbody>${editor}</tbody></table></div>
+      </section>` : ''}
+    </div>`;
+  }
+
+  function editChild(id) {
+    const k = id ? get('children', id) : {};
+    if (!k) return;
+    openDialog({
+      title: id ? `${k.name} の情報を直す` : '子どもを追加',
+      body: `<label class="field">呼び名 <input name="name" required maxlength="20" value="${esc(k.name)}" placeholder="例：Aさん"></label>
+        <div class="row2">
+          <label class="field">学年 <select name="grade">${opt('', k.grade || '', '—')}${GRADES.map((g) => opt(g, k.grade)).join('')}</select></label>
+          <label class="field">交流学級 <input name="homeroom" maxlength="20" value="${esc(k.homeroom)}" placeholder="例：3年2組"></label>
+        </div>
+        <label class="field">メモ <textarea name="memo" rows="2" maxlength="500">${esc(k.memo)}</textarea></label>
+        <p class="hint">障害名や診断などの くわしい情報は、ここには書かないでください。</p>`,
+      deleteLabel: id ? 'この子を消す' : '',
+      deleteConfirm: `${k.name} を消します。交流の時間の記録も消えます。よろしいですか？`,
+      onDelete: () => {
+        removeRecs('exchange', list('exchange').filter((x) => x.childId === id).map((x) => x.id), { render: false });
+        removeRecs('children', id);
+      },
+      onSave: (f) => {
+        const order = id ? k.order : Math.max(0, ...list('children').map((c) => Number(c.order) || 0)) + 1;
+        const rec = { id: id || uid('c'), name: f.name.trim(), grade: f.grade, homeroom: f.homeroom.trim(), memo: f.memo.trim(), order };
+        if (!id) view.childId = rec.id;
+        putRecs('children', rec);
+      },
+    });
+  }
+
+  function editX(day, pid) {
+    const k = get('children', view.childId);
+    const p = S.periods.find((x) => x.id === pid);
+    if (!k || !p) return;
+    const id = xId(k.id, day, pid);
+    const x = get('exchange', id);
+    const b = baseLesson(day, pid);
+    openDialog({
+      title: `${k.name}　${WD[day]}曜日 ${p.name}`,
+      body: `<p class="hint">特別支援学級の時間割：${b && b.subject ? chip(b.subject) : 'なし'}</p>
+        <div class="row2">
+          <label class="field">交流学級での教科 <input name="subject" list="subj-list" maxlength="20" value="${esc(x ? x.subject : '')}" placeholder="例：音楽"></label>
+          <label class="field">行き先 <input name="room" maxlength="20" value="${esc(x ? x.room : k.homeroom)}" placeholder="例：3年2組"></label>
+        </div>
+        <datalist id="subj-list">${S.subjects.map((s) => `<option value="${esc(s)}">`).join('')}</datalist>
+        <label class="field">メモ <input name="memo" maxlength="200" value="${esc(x ? x.memo : '')}" placeholder="例：支援員さん つきそい"></label>`,
+      saveLabel: x ? '保存する' : '交流の時間にする',
+      deleteLabel: x ? '交流をやめる' : '',
+      deleteConfirm: '',
+      onDelete: () => removeRecs('exchange', id),
+      onSave: (f) => putRecs('exchange', { id, childId: k.id, day, period: pid, subject: f.subject.trim(), room: f.room.trim(), memo: f.memo.trim() }),
+    });
+  }
+
+  /* ---------- 学習の部屋：単元計画 ---------- */
+  function viewUnits() {
+    const all = list('units').filter((u) => !view.unitSubj || u.subject === view.unitSubj);
+    const sorter = (a, b) => String(a.start || '9999').localeCompare(String(b.start || '9999')) || S.subjects.indexOf(a.subject) - S.subjects.indexOf(b.subject);
+    const groups = [['now', '▶ 進行中'], ['next', '⏳ これから（期間が未設定のものも ここ）'], ['done', '✅ おわった単元']];
+    const used = Array.from(new Set(list('units').map((u) => u.subject).filter(Boolean)));
+    return `<div class="toolbar">
+        <select class="input" style="width:auto" data-chg="unitSubj" aria-label="教科でしぼりこむ">${opt('', view.unitSubj, 'すべての教科')}${S.subjects.filter((s) => used.includes(s)).concat(used.filter((s) => !S.subjects.includes(s))).map((s) => opt(s, view.unitSubj)).join('')}</select>
+        <span class="grow"></span>
+        <button class="btn primary" data-act="editUnit">＋ 単元を追加</button>
+      </div>
+      <p class="hint">週案で単元を選んだ時間が、自動で「実施した時数」として数えられます（きょうまでは実施、あしたからは予定）。</p>
+      ${all.length ? groups.map(([ph, label]) => {
+        const us = all.filter((u) => unitPhase(u) === ph).sort(sorter);
+        if (!us.length) return '';
+        return `<h3 class="group-title">${label}（${us.length}）</h3><div class="cards">${us.map(unitCard).join('')}</div>`;
+      }).join('') : '<div class="empty-note" style="margin-top:12px">単元がまだありません。「＋ 単元を追加」から入れてください。</div>'}`;
+  }
+
+  function unitCard(u) {
+    const st = unitStats(u);
+    const mats = list('materials').filter((m) => m.unitId === u.id).length;
+    return `<article class="card unit-card" data-act="editUnit" data-id="${esc(u.id)}" tabindex="0" role="button">
+      <div class="meta">${chip(u.subject)}<span>📆 ${unitRange(u)}</span>${u.target ? `<span>👥 ${esc(u.target)}</span>` : ''}${mats ? `<span>🧰 教材 ${mats}</span>` : ''}</div>
+      <h3>${esc(u.name)}</h3>
+      ${progress(u, st)}
+      ${u.goal ? `<p class="goal">🎯 ${nl(u.goal)}</p>` : ''}</article>`;
+  }
+
+  function editUnit(id) {
+    const u = id ? get('units', id) : { subject: view.unitSubj || S.subjects[0] || '' };
+    if (!u) return;
+    const st = id ? unitStats(u) : { dates: [] };
+    openDialog({
+      title: id ? '単元を直す' : '単元を追加',
+      body: `<div class="row2">
+          <label class="field">教科 <select name="subject">${subjOptions(u.subject || '')}</select></label>
+          <label class="field">計画時数 <input type="number" name="hours" min="0" max="999" value="${esc(u.hours)}" placeholder="例：10"></label>
+        </div>
+        <label class="field">単元名 <input name="name" required maxlength="100" value="${esc(u.name)}" placeholder="例：「おおきな かぶ」を音読しよう"></label>
+        <div class="row2">
+          <label class="field">はじめ <input type="date" name="start" value="${esc(u.start)}"></label>
+          <label class="field">おわり <input type="date" name="end" value="${esc(u.end)}"></label>
+        </div>
+        <label class="field">対象 <input name="target" maxlength="100" value="${esc(u.target)}" placeholder="例：全員／Aさん・Bさん"></label>
+        <label class="field">ねらい <textarea name="goal" rows="3" maxlength="1000">${esc(u.goal)}</textarea></label>
+        <label class="field">メモ（準備物・評価の観点など） <textarea name="memo" rows="3" maxlength="1000">${esc(u.memo)}</textarea></label>
+        ${st.dates.length ? `<div class="info">週案に入っている日（${st.dates.length}時間）<div class="date-chips">${st.dates.map((d) => `<span class="tag">${md(d)}</span>`).join('')}</div></div>` : ''}`,
+      deleteLabel: id ? 'この単元を消す' : '',
+      deleteConfirm: 'この単元を消します。週案に書いた学習内容は残ります。よろしいですか？',
+      onDelete: () => {
+        const ws = list('weekly').filter((w) => w.unitId === id).map((w) => Object.assign({}, w, { unitId: '' }));
+        if (ws.length) putRecs('weekly', ws, { render: false });
+        const ms = list('materials').filter((m) => m.unitId === id).map((m) => Object.assign({}, m, { unitId: '' }));
+        if (ms.length) putRecs('materials', ms, { render: false });
+        removeRecs('units', id);
+      },
+      onSave: (f) => {
+        if (isDate(f.start) && isDate(f.end) && f.end < f.start) return '「おわり」は「はじめ」より後の日にしてください。';
+        putRecs('units', { id: id || uid('u'), subject: f.subject, name: f.name.trim(), start: f.start, end: f.end, hours: f.hours === '' ? '' : Number(f.hours), target: f.target.trim(), goal: f.goal.trim(), memo: f.memo.trim() });
+      },
+    });
+  }
+
+  /* ---------- 学習の部屋：教材の置き場 ---------- */
+  function viewMaterials() {
+    const used = Array.from(new Set(list('materials').map((m) => m.subject).filter(Boolean)));
+    return `<div class="toolbar">
+        <input class="input" style="max-width:260px" type="search" placeholder="🔍 さがす（名前・メモ）" value="${esc(view.matQ)}" data-inp="matQ" aria-label="教材をさがす">
+        <select class="input" style="width:auto" data-chg="matSubj" aria-label="教科でしぼりこむ">${opt('', view.matSubj, 'すべての教科')}${S.subjects.filter((s) => used.includes(s)).concat(used.filter((s) => !S.subjects.includes(s))).map((s) => opt(s, view.matSubj)).join('')}</select>
+        <select class="input" style="width:auto" data-chg="matKind" aria-label="種類でしぼりこむ">${opt('', view.matKind, 'すべての種類')}${Object.keys(MAT_KINDS).map((k) => opt(k, view.matKind)).join('')}</select>
+        <span class="grow"></span>
+        <button class="btn primary" data-act="editMat">＋ 教材を追加</button>
+      </div>
+      <p class="hint" style="margin-bottom:12px">Google ドライブに置いたプリントやスライドは、共有のリンクを貼っておくと、ここからすぐ開けます。</p>
+      <div id="mat-list">${materialList()}</div>`;
+  }
+
+  function materialList() {
+    const q = view.matQ.trim().toLowerCase();
+    const ms = list('materials')
+      .filter((m) => (!view.matSubj || m.subject === view.matSubj) && (!view.matKind || m.kind === view.matKind))
+      .filter((m) => !q || [m.name, m.memo, m.subject, m.kind].join(' ').toLowerCase().includes(q))
+      .sort((a, b) => S.subjects.indexOf(a.subject) - S.subjects.indexOf(b.subject) || String(a.name).localeCompare(String(b.name), 'ja'));
+    if (!ms.length) return `<div class="empty-note">${list('materials').length ? '条件に合う教材はありません。' : '教材がまだありません。「＋ 教材を追加」から入れてください。'}</div>`;
+    return `<div class="cards">${ms.map((m) => {
+      const url = safeUrl(m.url);
+      const u = get('units', m.unitId);
+      return `<article class="card mat">
+        <div class="mat-icon">${MAT_KINDS[m.kind] || '📎'}</div>
+        <div><h3>${esc(m.name)}</h3><div class="meta">${chip(m.subject)}${m.kind ? `<span>${esc(m.kind)}</span>` : ''}${u ? `<span>📘 ${esc(u.name)}</span>` : ''}</div>${m.memo ? `<p>${nl(m.memo)}</p>` : ''}</div>
+        <div class="mat-act">${url ? `<a class="btn primary small" href="${esc(url)}" target="_blank" rel="noopener noreferrer">開く ↗</a>` : ''}<button class="btn small" data-act="editMat" data-id="${esc(m.id)}">直す</button></div>
+      </article>`;
+    }).join('')}</div>`;
+  }
+
+  function editMat(id) {
+    const m = id ? get('materials', id) : { subject: view.matSubj, kind: view.matKind || 'プリント' };
+    if (!m) return;
+    const units = list('units').sort((a, b) => S.subjects.indexOf(a.subject) - S.subjects.indexOf(b.subject) || String(a.start).localeCompare(String(b.start)));
+    openDialog({
+      title: id ? '教材を直す' : '教材を追加',
+      body: `<label class="field">名前 <input name="name" required maxlength="100" value="${esc(m.name)}" placeholder="例：ひらがな なぞりプリント（あ行）"></label>
+        <div class="row2">
+          <label class="field">教科 <select name="subject">${subjOptions(m.subject || '', '—')}</select></label>
+          <label class="field">種類 <select name="kind">${Object.keys(MAT_KINDS).map((k) => opt(k, m.kind || 'その他', MAT_KINDS[k] + ' ' + k)).join('')}</select></label>
+        </div>
+        <label class="field">リンク（URL） <input type="url" name="url" maxlength="1000" value="${esc(m.url)}" placeholder="https://drive.google.com/…"></label>
+        <label class="field">使う単元 <select name="unitId">${opt('', m.unitId || '', '（えらばない）')}${units.map((u) => opt(u.id, m.unitId, `［${u.subject}］${u.name}`)).join('')}</select></label>
+        <label class="field">メモ <textarea name="memo" rows="3" maxlength="1000" placeholder="例：Aさん用に文字を大きくした版あり">${esc(m.memo)}</textarea></label>`,
+      deleteLabel: id ? 'この教材を消す' : '',
+      onDelete: () => removeRecs('materials', id),
+      onSave: (f) => {
+        const url = f.url.trim();
+        if (url && !safeUrl(url)) return 'リンクは https:// で始まるものを入れてください。';
+        putRecs('materials', { id: id || uid('m'), name: f.name.trim(), subject: f.subject, kind: f.kind, url, unitId: f.unitId, memo: f.memo.trim() });
+      },
+    });
+  }
+
+  /* ---------- 設定 ---------- */
+  function viewSettings() {
+    const ps = view.periodsDraft || S.periods;
+    return `<div class="stack" style="max-width:820px">
+      <section class="card">
+        <h2 class="sec" style="margin-bottom:10px">🏷 学級名</h2>
+        <div class="toolbar" style="margin:0"><input class="input" id="set-class" maxlength="40" value="${esc(S.className)}" placeholder="例：ひまわり学級" style="max-width:360px"><button class="btn primary" data-act="saveClass">保存する</button></div>
+      </section>
+      <section class="card">
+        <h2 class="sec" style="margin-bottom:10px">🕘 校時と時刻</h2>
+        <div class="table-wrap"><table class="list ptable"><thead><tr><th>名前</th><th>はじまり</th><th>おわり</th><th></th></tr></thead><tbody>
+          ${ps.map((p, i) => `<tr data-pid="${esc(p.id)}">
+            <td><input class="input" data-f="name" value="${esc(p.name)}" maxlength="20" aria-label="校時の名前"></td>
+            <td><input class="input" type="time" data-f="start" value="${esc(p.start)}" aria-label="はじまり"></td>
+            <td><input class="input" type="time" data-f="end" value="${esc(p.end)}" aria-label="おわり"></td>
+            <td style="white-space:nowrap"><button class="btn small" data-act="periodMove" data-i="${i}" data-n="-1" ${i === 0 ? 'disabled' : ''} aria-label="上へ">↑</button>
+              <button class="btn small" data-act="periodMove" data-i="${i}" data-n="1" ${i === ps.length - 1 ? 'disabled' : ''} aria-label="下へ">↓</button>
+              <button class="btn small danger" data-act="periodDel" data-i="${i}" aria-label="消す">✕</button></td></tr>`).join('')}
+        </tbody></table></div>
+        <div class="toolbar" style="margin:10px 0 0"><button class="btn" data-act="periodAdd">＋ 校時を足す</button><span class="grow"></span>
+          ${view.periodsDraft ? '<span class="tag red">まだ保存していません</span><button class="btn" data-act="periodCancel">もとにもどす</button>' : ''}
+          <button class="btn primary" data-act="periodSave">保存する</button></div>
+        <p class="hint" style="margin-top:8px">「朝の会」「帰りの会」なども足せます。消した校時に入れていた時間割や週案は、表示されなくなります（もう一度同じ校時を足しても もどりません）。</p>
+      </section>
+      <section class="card">
+        <h2 class="sec" style="margin-bottom:10px">📚 教科・領域</h2>
+        <label class="field">1行に1つずつ書きます。並び順が、色や表示の順番になります。
+          <textarea class="input" id="set-subjects" rows="10">${esc(S.subjects.join('\n'))}</textarea></label>
+        <div class="toolbar" style="margin:10px 0 0"><span class="grow"></span><button class="btn primary" data-act="saveSubjects">保存する</button></div>
+      </section>
+      <section class="card">
+        <h2 class="sec" style="margin-bottom:10px">💾 データの保存場所</h2>
+        ${IN_GAS ? `<p style="margin:0 0 8px">データは、学校のGoogleアカウントの スプレッドシートに保存しています。</p>
+            ${safeUrl(meta.sheetUrl) ? `<a class="btn" href="${esc(meta.sheetUrl)}" target="_blank" rel="noopener noreferrer">スプレッドシートを開く ↗</a>` : ''}
+            <p class="hint" style="margin-top:8px">シートは見るのは自由ですが、書きかえは この画面から行ってください。</p>`
+          : `<p style="margin:0 0 8px">いまは試作モードです。データはこの端末のブラウザにだけ保存されています。</p>
+            <div class="toolbar" style="margin:0"><button class="btn" data-act="demoReset" data-sample="1">サンプルを入れなおす</button><button class="btn danger" data-act="demoReset" data-sample="">試作データをすべて消す</button></div>`}
+      </section>
+    </div>`;
+  }
+
+  function readPeriodRows() {
+    return Array.from(document.querySelectorAll('.ptable tbody tr')).map((tr) => ({
+      id: tr.dataset.pid,
+      name: tr.querySelector('[data-f=name]').value.trim(),
+      start: tr.querySelector('[data-f=start]').value,
+      end: tr.querySelector('[data-f=end]').value,
+    }));
+  }
+
+  /* ---------- 準備中の 部屋 ---------- */
+  function viewSoon(room) {
+    return `<section class="card soon-room">
+      <div class="big">${room.icon}</div>
+      <h2>${esc(room.name)}は じゅんび中です</h2>
+      <p>この部屋に入れるものの案です。どれから作るか、相談しながら決めましょう。</p>
+      <ul>${room.ideas.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>
+      <div><button class="btn" data-act="go" data-room="lobby">🏠 ロビーにもどる</button></div>
+    </section>`;
+  }
+
+  /* =========================================================
+     ダイアログ
+     ========================================================= */
+  let dlg = null;
+  function openDialog(o) {
+    const el = document.getElementById('dlg');
+    dlg = o;
+    el.innerHTML = `<form id="dlgForm" ${o.attrs || ''}>
+      <header><h2>${esc(o.title)}</h2><button type="button" class="x" data-act="dlgClose" aria-label="閉じる">✕</button></header>
+      <div class="dlg-body">${o.body}<p class="hint" id="dlgMsg" role="alert" style="color:var(--danger)"></p></div>
+      <footer>${o.deleteLabel ? `<button type="button" class="btn danger" data-act="dlgDelete">${esc(o.deleteLabel)}</button>` : ''}<span class="grow"></span>
+        <button type="button" class="btn" data-act="dlgClose">やめる</button>
+        <button type="submit" class="btn primary">${esc(o.saveLabel || '保存する')}</button></footer></form>`;
+    el.showModal();
+    const first = el.querySelector('.dlg-body input:not([type=hidden]), .dlg-body select, .dlg-body textarea');
+    if (first) first.focus();
+  }
+  function closeDialog() {
+    const el = document.getElementById('dlg');
+    if (el.open) el.close();
+    dlg = null;
+  }
+
+  document.addEventListener('submit', (e) => {
+    if (e.target.id !== 'dlgForm' || !dlg) return;
+    e.preventDefault();
+    const f = Object.fromEntries(new FormData(e.target));
+    const o = dlg;
+    closeDialog();
+    const msg = o.onSave(f);
+    if (typeof msg === 'string') {
+      // 入力に 足りない ところが あれば もう一度 開く
+      openDialog(o);
+      const form = document.getElementById('dlgForm');
+      Object.keys(f).forEach((k) => { const field = form.elements[k]; if (field) field.value = f[k]; });
+      if (form.elements.subject && form.elements.subject.dataset.chg === 'lessonSubj') { CHANGES.lessonSubj(form.elements.subject); form.elements.unitId.value = f.unitId; }
+      document.getElementById('dlgMsg').textContent = msg;
+    }
+  });
+
+  /* =========================================================
+     ボタンや 入力の 動き
+     ========================================================= */
+  const ACTIONS = {
+    go: (d) => { view.room = d.room; view.periodsDraft = null; render(); window.scrollTo(0, 0); },
+    goTab: (d) => { view.room = d.room; view.tab[d.room] = d.tab; render(); window.scrollTo(0, 0); },
+    tab: (d) => { view.tab[d.room] = d.tab; render(); },
+    reload: () => { if (confirm('スプレッドシートから読み込み直します。保存できなかった変更は消えます。よろしいですか？')) location.reload(); },
+    print: () => window.print(),
+    weekMove: (d) => { view.week = Number(d.n) ? addDays(view.week, Number(d.n)) : mondayOf(today()); render(); },
+    openWeek: (d) => { view.room = 'yotei'; view.tab.yotei = 'week'; view.week = mondayOf(d.date); render(); window.scrollTo(0, 0); },
+    monthMove: (d) => {
+      const n = Number(d.n);
+      if (!n) view.month = today().slice(0, 7);
+      else { const [y, m] = view.month.split('-').map(Number); const x = new Date(y, m - 1 + n, 1); view.month = x.getFullYear() + '-' + pad(x.getMonth() + 1); }
+      render();
+    },
+    newEvent: (d) => editEvent('', d.date),
+    editEvent: (d) => editEvent(d.id),
+    editLesson: (d) => editLesson(d.date, d.pid),
+    editChild: (d) => editChild(d.id || ''),
+    pickChild: (d) => { view.childId = d.id; render(); },
+    editX: (d) => editX(Number(d.day), d.pid),
+    editUnit: (d) => editUnit(d.id || ''),
+    editMat: (d) => editMat(d.id || ''),
+    dlgClose: () => closeDialog(),
+    dlgDelete: () => {
+      if (!dlg) return;
+      const o = dlg;
+      const text = o.deleteConfirm === undefined ? `「${o.title}」を消します。よろしいですか？` : o.deleteConfirm;
+      if (text && !confirm(text)) return;
+      closeDialog();
+      o.onDelete();
+    },
+    saveClass: () => saveSettings({ className: document.getElementById('set-class').value.trim() }),
+    saveSubjects: () => {
+      const subs = Array.from(new Set(document.getElementById('set-subjects').value.split('\n').map((s) => s.trim()).filter((s) => s && s !== NONE)));
+      if (!subs.length) { alert('教科を1つ以上入れてください。'); return; }
+      saveSettings({ subjects: subs });
+    },
+    periodMove: (d) => {
+      const ps = readPeriodRows();
+      const i = Number(d.i), j = i + Number(d.n);
+      if (j < 0 || j >= ps.length) return;
+      [ps[i], ps[j]] = [ps[j], ps[i]];
+      view.periodsDraft = ps; render();
+    },
+    periodDel: (d) => {
+      const ps = readPeriodRows();
+      if (ps.length <= 1) { alert('校時は1つ以上必要です。'); return; }
+      ps.splice(Number(d.i), 1);
+      view.periodsDraft = ps; render();
+    },
+    periodAdd: () => {
+      const ps = readPeriodRows();
+      const used = new Set(ps.map((p) => p.id).concat(S.periods.map((p) => p.id)));
+      let n = 1;
+      while (used.has(String(n))) n++;
+      ps.push({ id: String(n), name: '', start: '', end: '' });
+      view.periodsDraft = ps; render();
+      const inputs = document.querySelectorAll('.ptable [data-f=name]');
+      if (inputs.length) inputs[inputs.length - 1].focus();
+    },
+    periodCancel: () => { view.periodsDraft = null; render(); },
+    periodSave: () => {
+      const ps = readPeriodRows();
+      if (ps.some((p) => !p.name)) { alert('校時の名前を入れてください。'); return; }
+      view.periodsDraft = null;
+      saveSettings({ periods: ps });
+    },
+    demoReset: (d) => {
+      if (!confirm(d.sample ? 'サンプルのデータを入れなおします。いまの試作データは消えます。よろしいですか？' : '試作データをすべて消します。よろしいですか？')) return;
+      api.reset(!!d.sample);
+      boot();
+    },
+  };
+
+  const CHANGES = {
+    tt: changeTimetable,
+    weekJump: (el) => { if (isDate(el.value)) { view.week = mondayOf(el.value); render(); } },
+    unitSubj: (el) => { view.unitSubj = el.value; render(); },
+    matSubj: (el) => { view.matSubj = el.value; render(); },
+    matKind: (el) => { view.matKind = el.value; render(); },
+    lessonSubj: (el) => {
+      const form = el.form;
+      const date = form.dataset.date;
+      const subject = el.value === NONE ? '' : (el.value || form.dataset.base);
+      form.elements.unitId.innerHTML = unitOptions(subject, date, autoUnit(subject, date));
+    },
+  };
+
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-act]');
+    if (!el || el.disabled) return;
+    const fn = ACTIONS[el.dataset.act];
+    if (!fn) return;
+    e.preventDefault();
+    fn(el.dataset, el);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const el = e.target;
+    if (el.matches && el.matches('[role=button][data-act]')) { e.preventDefault(); el.click(); }
+  });
+  document.addEventListener('change', (e) => {
+    const el = e.target.closest('[data-chg]');
+    if (el && CHANGES[el.dataset.chg]) CHANGES[el.dataset.chg](el);
+  });
+  document.addEventListener('input', (e) => {
+    const el = e.target;
+    if (el.dataset && el.dataset.inp === 'matQ') {
+      view.matQ = el.value;
+      const box = document.getElementById('mat-list');
+      if (box) box.innerHTML = materialList();
+    }
+  });
+  window.addEventListener('beforeunload', (e) => { if (pending) { e.preventDefault(); e.returnValue = ''; } });
+
+  /* =========================================================
+     はじまり
+     ========================================================= */
+  async function boot() {
+    try {
+      const data = await api.load();
+      S = mergeSettings(data.settings);
+      KINDS.forEach((k) => { T[k] = new Map(((data.tables || {})[k] || []).filter((r) => r && r.id).map((r) => [String(r.id), r])); });
+      meta.sheetUrl = data.sheetUrl || '';
+      lastError = null;
+      render();
+    } catch (err) {
+      console.error(err);
+      document.getElementById('app').innerHTML = `<div class="fatal">⚠️<div>職員室のデータを読みこめませんでした。</div>
+        <div style="font-size:14px">${esc(err && err.message ? err.message : err)}</div>
+        <button class="btn primary" onclick="location.reload()">もう一度読みこむ</button></div>`;
+    }
+  }
+
+  /* =========================================================
+     試作モードの サンプル（きょうの日付に 合わせて 作る）
+     ========================================================= */
+  function sampleData() {
+    const t = today();
+    const mon = mondayOf(t);
+    const tt = {
+      1: ['日常生活の指導', '国語', '算数', '生活単元学習', '生活単元学習', ''],
+      2: ['日常生活の指導', '算数', '国語', '体育', '図工', '自立活動'],
+      3: ['日常生活の指導', '国語', '算数', '音楽', '学級活動', ''],
+      4: ['日常生活の指導', '算数', '国語', '生活単元学習', '体育', '自立活動'],
+      5: ['日常生活の指導', '国語', '算数', '図工', '図工', ''],
+    };
+    const timetable = [];
+    Object.keys(tt).forEach((d) => tt[d].forEach((s, i) => { if (s) timetable.push({ id: ttId(d, String(i + 1)), day: Number(d), period: String(i + 1), subject: s, memo: s === '体育' ? '体育館' : s === '日常生活の指導' ? '朝の会・着がえ' : '' }); }));
+    const children = [
+      { id: 'cA', name: 'Aさん', grade: '2年', homeroom: '2年1組', order: 1, memo: '' },
+      { id: 'cB', name: 'Bさん', grade: '3年', homeroom: '3年2組', order: 2, memo: '' },
+      { id: 'cC', name: 'Cさん', grade: '4年', homeroom: '4年1組', order: 3, memo: '' },
+    ];
+    const ex = [['cB', 1, '4', '音楽'], ['cC', 2, '4', '体育'], ['cA', 3, '4', '音楽'], ['cC', 3, '5', '学級活動'], ['cB', 4, '5', '体育'], ['cC', 5, '4', '図工'], ['cA', 5, '5', '図工']];
+    const exchange = ex.map(([c, d, p, s]) => ({ id: xId(c, d, p), childId: c, day: d, period: p, subject: s, room: children.find((k) => k.id === c).homeroom, memo: c === 'cA' ? '支援員さん つきそい' : '' }));
+    const units = [
+      { id: 'u1', subject: '国語', name: '「おおきな かぶ」を音読しよう', start: addDays(mon, -14), end: addDays(mon, 18), hours: 16, target: '全員', goal: '役になりきって、はっきりした声で音読する。', memo: '音読はかせ（ステージ5）も使う' },
+      { id: 'u2', subject: '算数', name: 'ながさくらべ', start: addDays(mon, -7), end: addDays(mon, 21), hours: 12, target: 'Aさん・Bさん', goal: '2つのものの長さを、はしをそろえてくらべる。', memo: '' },
+      { id: 'u3', subject: '生活単元学習', name: '秋を みつけよう', start: mon, end: addDays(mon, 25), hours: 12, target: '全員', goal: '校庭で秋の自然を見つけ、絵や写真で友だちに伝える。', memo: '雨の日は図書室で図鑑' },
+      { id: 'u4', subject: '自立活動', name: '気持ちを ことばで 伝えよう', start: addDays(mon, -30), end: addDays(mon, 60), hours: 15, target: '全員', goal: '困ったときに「手伝ってください」と伝える。', memo: '' },
+      { id: 'u5', subject: '図工', name: 'ちぎり絵で つくろう', start: addDays(mon, 28), end: addDays(mon, 45), hours: 6, target: '全員', goal: '', memo: '' },
+    ];
+    const contents = {
+      u1: ['範読を聞いて、登場人物を確かめる', '「うんとこしょ どっこいしょ」を みんなで', '役に分かれて音読する', '音読はかせで 録音して ふりかえる'],
+      u2: ['えんぴつと クレヨンの 長さくらべ', 'はしを そろえて くらべる', 'テープで 長さを うつしとる'],
+      u3: ['秋みつけの めあてを 決める', '校庭で どんぐり・落ち葉を さがす', '見つけたものを 絵に かく'],
+      u4: ['「てつだってください」カードの 練習'],
+    };
+    const weekly = [];
+    const counter = {};
+    for (let d = addDays(mon, -14); d <= addDays(mon, 4); d = addDays(d, 1)) {
+      const w = dayOf(d);
+      if (w === 0 || w === 6 || holiday(d)) continue;
+      (tt[w] || []).forEach((s, i) => {
+        const u = units.find((x) => x.subject === s && x.start <= d && d <= x.end && contents[x.id]);
+        if (!u) return;
+        const n = counter[u.id] = (counter[u.id] || 0) + 1;
+        const list = contents[u.id];
+        weekly.push({ id: wkId(d, String(i + 1)), date: d, period: String(i + 1), subject: '', unitId: u.id, content: list[(n - 1) % list.length], note: '' });
+      });
+    }
+    // 予定は 土日・祝日を さけて 入れる
+    const schoolDay = (n) => { let d = addDays(t, n); while (dayOf(d) === 0 || dayOf(d) === 6 || holiday(d)) d = addDays(d, 1); return d; };
+    let evNo = 0;
+    const ev = (n, title, cat, time, memo) => ({ id: 'e' + (++evNo), date: schoolDay(n), end: '', time: time || '', title, cat, memo: memo || '' });
+    const events = [
+      ev(0, '職員会議', '会議', '15:40', '議題：後期の行事について'),
+      ev(2, '個別の指導計画（後期）の見直し 提出', '締め切り', '', '教頭先生へ'),
+      ev(6, '校外学習（動物園）', '行事', '08:30', '雨天時は翌日'),
+      ev(8, '保護者面談（Aさん）', '保護者', '15:30'),
+      ev(12, '交流学級の担任と打ち合わせ', '交流', '15:45'),
+      ev(15, '特別支援教育コーディネーター研修', '出張', '13:30', '午後から出張。補欠は教務へ'),
+      ev(20, '開校記念日', KYUGYO),
+    ];
+    const materials = [
+      { id: 'm-ondoku', name: 'おんどくはかせの ちょうせんじょう', subject: '国語', kind: 'アプリ', url: ONDOKU_URL, unitId: 'u1', memo: '自作の音読アプリ。全員の記録は「音読はかせ 記録」のスプレッドシートで見られます。' },
+      { id: 'm2', name: 'ひらがな なぞりプリント（あ行〜な行）', subject: '国語', kind: 'プリント', url: '', unitId: '', memo: '文字を大きくした版あり' },
+      { id: 'm3', name: '長さくらべ 絵カード', subject: '算数', kind: '絵カード・写真', url: '', unitId: 'u2', memo: '' },
+      { id: 'm4', name: 'きもちカード（うれしい・こまった・いや）', subject: '自立活動', kind: '絵カード・写真', url: '', unitId: 'u4', memo: '' },
+      { id: 'm5', name: '秋の しぜん 写真スライド', subject: '生活単元学習', kind: 'スライド', url: '', unitId: 'u3', memo: '' },
+    ];
+    return { settings: { className: 'ひまわり学級（サンプル）' }, tables: { events, timetable, weekly, children, exchange, units, materials } };
+  }
+
+  boot();
+  </script>
+</body>
+</html>
