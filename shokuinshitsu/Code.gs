@@ -6,6 +6,9 @@
  *   - 画面から 呼ばれる apiGetAll / apiPut / apiRemove / apiSaveSettings で、
  *     このスプレッドシートの シートに 予定・時間割・週案・単元計画などを 読み書きします。
  *
+ *   - 毎週木曜日の朝（時間主導型トリガー）に weeklyDraftJob() が 来週の 週案の 下書きを 作ります。
+ *     下書きの 計算は、app.html の「共通ここから」〜「共通ここまで」の 部分を 読みこんで 使います。
+ *
  * デプロイは「次のユーザーとして実行：自分」「アクセスできるユーザー：自分のみ」で 行います。
  * 準備のしかたは shokuinshitsu/README.md を 見てください。
  */
@@ -19,6 +22,8 @@ const MAX_LONG = 10000;
 const MAX_RECORDS = 500;
 const BULK = 30; // これより 多く 書きかえる・消す ときは、まとめて 書きなおす
 const HEADER_BG = '#d9ead3';
+const DRAFT_JOB = 'weeklyDraftJob';
+const DRAFT_HOUR = 6; // 木曜日の 6時台に 作る（プロジェクトの タイムゾーンの 時刻）
 
 // 画面の データの 種類と、シートの 列の 対応
 // [画面での 名前, シートの 見出し, 型（省略＝文字 / long＝長い文 / num＝数 / date＝日付 / time＝時刻）]
@@ -106,7 +111,26 @@ function onOpen() {
     .createMenu(APP_TITLE)
     .addItem('職員室を開くURLを表示', 'showUrl')
     .addItem('シートを準備する', 'setupSheets')
+    .addSeparator()
+    .addItem('木曜日の朝の 週案の自動作成を オンにする', 'enableDraftTrigger')
+    .addItem('木曜日の朝の 週案の自動作成を オフにする', 'disableDraftTrigger')
+    .addItem('来週の 週案の下書きを いま作る', 'runDraftNow')
     .addToUi();
+}
+
+function enableDraftTrigger() {
+  apiSetDraftTrigger(true);
+  SpreadsheetApp.getUi().alert('毎週木曜日の朝（' + DRAFT_HOUR + '時台）に、来週の 週案の 下書きを 自動で 作ります。\n仮想職員室を 開かなくても 作られます。');
+}
+
+function disableDraftTrigger() {
+  apiSetDraftTrigger(false);
+  SpreadsheetApp.getUi().alert('木曜日の朝の 自動作成を オフにしました。');
+}
+
+function runDraftNow() {
+  const r = weeklyDraftJob(true);
+  SpreadsheetApp.getUi().alert(r.message);
 }
 
 function showUrl() {
@@ -131,7 +155,8 @@ function apiGetAll() {
   const ss = ss_();
   withLock_(setup_);
   const tz = ss.getSpreadsheetTimeZone();
-  const out = { settings: readSettings_(), tables: {}, sheetUrl: ss.getUrl() };
+  const draftId = PropertiesService.getScriptProperties().getProperty('DRAFT_SSID');
+  const out = { settings: readSettings_(), tables: {}, sheetUrl: ss.getUrl(), draftTrigger: draftTriggerOn_(), draftSheetUrl: draftId ? 'https://docs.google.com/spreadsheets/d/' + draftId + '/edit' : '' };
   Object.keys(TABLES).forEach(function (kind) { out.tables[kind] = readTable_(kind, tz); });
   return JSON.stringify(out);
 }
@@ -163,7 +188,12 @@ function apiSaveSettings(json) {
 function apiWriteDraft(json) {
   const d = JSON.parse(json);
   if (!d || typeof d.cells !== 'object') throw new Error('下書きの形が正しくありません。');
-  return withLock_(function () {
+  return withLock_(function () { return writeDraftSheet_(d.name, d.cells, d.merges); });
+}
+
+function writeDraftSheet_(name, cells, merges) {
+  const d = { name: name, cells: cells, merges: merges };
+  {
     const props = PropertiesService.getScriptProperties();
     let ss = null;
     const id = props.getProperty('DRAFT_SSID');
@@ -192,7 +222,65 @@ function apiWriteDraft(json) {
     rng.setWrap(true).setVerticalAlignment('top');
     sh.setName(String(d.name || '週案').slice(0, 30));
     return ss.getUrl();
+  }
+}
+
+/* ---------- 毎週木曜日の朝：来週の 週案の 下書き ---------- */
+// 時間主導型トリガーから 呼ばれる。force＝true なら 曜日に 関係なく 来週の 分を 作る（メニューから）
+function weeklyDraftJob(force) {
+  return withLock_(function () {
+    const tz = ss_().getSpreadsheetTimeZone();
+    const T = {};
+    Object.keys(TABLES).forEach(function (k) { T[k] = new Map(readTable_(k, tz).map(function (r) { return [String(r.id), r]; })); });
+    const S = {};
+    const lib = shared_(T, S);
+    Object.assign(S, lib.mergeSettings(readSettings_()));
+    const now = lib.today();
+    if (force !== true && !S.autoDraft) return { made: 0, message: '「設定」で 自動で 作らない ように なっています。' };
+    const mon = lib.addDays(lib.mondayOf(now), 7);
+    const wk = T.weeks.get('v' + mon);
+    if (force !== true && wk && lib.isDate(wk.draftAt)) return { made: 0, message: '来週の 下書きは もう できています。' };
+    if (!lib.weekDates(mon).some(function (d) { return !lib.offReason(d); })) return { made: 0, message: '来週は 授業の 日が ありません。' };
+    const r = lib.draftRecs(mon);
+    if (r.recs.length) writeTable_('weekly', r.recs);
+    writeTable_('weeks', [r.mark]);
+    if (r.plan) return { made: 0, message: '来週は 週案簿から 取りこんだ 週案が あるので、下書きは 作りませんでした。' };
+    // 週案簿に 貼る 形の スプレッドシートも 作っておく
+    r.recs.forEach(function (x) { T.weekly.set(x.id, x); });
+    const no = lib.weekNo(mon);
+    const url = writeDraftSheet_(String(no || '週案'), lib.shuanboCells(mon).cells, lib.shuanboMerges());
+    return { made: r.recs.length, url: url, message: '来週（' + mon + '〜）の 週案の 下書きを ' + r.recs.length + 'コマ 作りました。\n週案簿に 貼る 形の ファイル：' + url };
   });
+}
+
+// app.html の「共通ここから」〜「共通ここまで」を 読みこんで、画面と 同じ 計算を 使う
+function shared_(T, S) {
+  const html = HtmlService.createHtmlOutputFromFile('app').getContent();
+  const re = /\/\* 共通ここから \*\/([\s\S]*?)\/\* 共通ここまで \*\//g;
+  const parts = [];
+  let m;
+  while ((m = re.exec(html))) parts.push(m[1]);
+  if (!parts.length) throw new Error('app.html の 共通の 部分が 見つかりません。app.html を 新しいものに 貼りかえてください。');
+  const make = new Function('T', 'S', parts.join('\n') +
+    '\nreturn { mergeSettings: mergeSettings, draftRecs: draftRecs, shuanboCells: shuanboCells, shuanboMerges: shuanboMerges, weekNo: weekNo, weekDates: weekDates, offReason: offReason, today: today, addDays: addDays, mondayOf: mondayOf, isDate: isDate };');
+  return make(T, S);
+}
+
+// 木曜日の朝の トリガーを つける・はずす（同じ ものは 1つだけ）
+function apiSetDraftTrigger(on) {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === DRAFT_JOB) ScriptApp.deleteTrigger(t);
+  });
+  if (on) ScriptApp.newTrigger(DRAFT_JOB).timeBased().onWeekDay(ScriptApp.WeekDay.THURSDAY).atHour(DRAFT_HOUR).create();
+  return draftTriggerOn_();
+}
+
+function draftTriggerOn_() {
+  try {
+    return ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === DRAFT_JOB; });
+  } catch (e) {
+    return false;
+  }
 }
 
 /* ---------- シートの 読み書き ---------- */
