@@ -252,6 +252,35 @@
     .mat-act { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
     .date-chips { display: flex; flex-wrap: wrap; gap: 4px; }
 
+    /* 公務の部屋 */
+    .tasks { list-style: none; margin: 0; padding: 0; }
+    .task { display: flex; gap: 10px; align-items: flex-start; padding: 8px 2px; border-bottom: 1px solid var(--line); }
+    .task:last-child { border-bottom: 0; }
+    .tcheck { width: 22px; height: 22px; margin: 2px 0 0; accent-color: var(--primary); flex: none; cursor: pointer; }
+    .tcheck-ph { width: 22px; text-align: center; flex: none; }
+    .tmain { min-width: 0; flex: 1; }
+    .ttitle { font-weight: 700; cursor: pointer; }
+    .ttitle:hover { text-decoration: underline; text-decoration-color: var(--glow); text-underline-offset: 3px; }
+    .task.done .ttitle { text-decoration: line-through; color: var(--sub); font-weight: 400; }
+    .task-group.late { border-color: var(--danger); }
+    .task-group.late .group-title { color: var(--danger); }
+    .quick { display: flex; gap: 8px; flex-wrap: wrap; }
+    .quick input[name=title] { flex: 1 1 260px; width: auto; }
+    .check { display: flex; gap: 8px; align-items: center; font-weight: 700; font-size: 14px; }
+    .check input { width: 20px; height: 20px; accent-color: var(--primary); }
+    .mrow { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 8px; padding: 6px 4px; border-bottom: 1px dashed var(--line); }
+    .mrow:last-child { border-bottom: 0; }
+    .mrow.now { background: var(--today); border-radius: 8px; }
+    .mrow b { text-align: center; }
+    .mrow ul { margin: 0; padding-left: 1.1em; }
+    .meet .mcontent { font-size: 14px; display: -webkit-box; -webkit-line-clamp: 8; -webkit-box-orient: vertical; overflow: hidden; }
+    .mine { background: var(--soft); border-radius: 10px; padding: 8px 12px; margin-top: 10px; }
+    .mine .task { align-items: center; }
+    .tpl { display: flex; flex-direction: column; gap: 6px; }
+    .tpl pre { white-space: pre-wrap; font-family: inherit; font-size: 13px; color: var(--sub); margin: 0; flex: 1; max-height: 9.6em; overflow: hidden; }
+    #draftText { font-size: 15px; line-height: 1.7; resize: vertical; }
+    .holo .hdead.late { color: #ffb4a8; }
+
     /* 設定 */
     .ptable input { width: 100%; }
     .ptable td { padding: 4px 6px; }
@@ -296,7 +325,7 @@
   /* =========================================================
      決まりごと
      ========================================================= */
-  const KINDS = ['events', 'timetable', 'weekly', 'children', 'exchange', 'units', 'materials'];
+  const KINDS = ['events', 'timetable', 'weekly', 'children', 'exchange', 'units', 'materials', 'tasks', 'duties', 'dutyItems', 'meetings', 'templates'];
   const DAYS = [1, 2, 3, 4, 5]; // 月〜金
   const WD = ['日', '月', '火', '水', '木', '金', '土'];
   const KYUGYO = '休業日';
@@ -322,8 +351,7 @@
     { id: 'lobby', icon: '🏠', name: 'ロビー' },
     { id: 'yotei', icon: '📅', name: '予定の部屋', desc: '週案・月の予定・時間割・交流学級' },
     { id: 'gakushu', icon: '📚', name: '学習の部屋', desc: '単元計画・教材の置き場' },
-    { id: 'koumu', icon: '📝', name: '公務の部屋', soon: true, desc: '締め切り・分掌・会議メモ',
-      ideas: ['提出物の締め切り一覧（あと何日かが分かる）', '校務分掌の仕事の1年の流れ', '会議のメモ', '文書のひな形（学級だより・お知らせなど）'] },
+    { id: 'koumu', icon: '📝', name: '公務の部屋', desc: 'やること・校務分掌・会議メモ・文書のひな形' },
     { id: 'kodomo', icon: '🧒', name: '子どもの部屋', soon: true, desc: '個別の指導計画・日々の記録',
       ideas: ['個別の教育支援計画・個別の指導計画（目標と、見直しの時期）', '日々の様子の短いメモ（積み上げて所見や評価に使う）', '保護者との連絡の記録'] },
     { id: 'renkei', icon: '🤝', name: '連携の部屋', soon: true, desc: '交流学級・支援員・関係機関',
@@ -436,12 +464,14 @@
   const meta = { sheetUrl: '' };
   const view = {
     room: 'lobby',
-    tab: { yotei: 'week', gakushu: 'units' },
+    tab: { yotei: 'week', gakushu: 'units', koumu: 'tasks' },
     week: mondayOf(today()),
     month: today().slice(0, 7),
     childId: '',
     unitSubj: '',
     matSubj: '', matKind: '', matQ: '',
+    taskCat: '', taskDuty: '', showDone: false,
+    meetQ: '', meetKind: '',
     periodsDraft: null,
   };
 
@@ -634,6 +664,7 @@
     switch (room.id) {
       case 'yotei': return subtabs('yotei', [['week', '📝 週案'], ['month', '🗓 月の予定'], ['timetable', '🕘 基本の時間割'], ['koryu', '🚶 交流学級']]) + ({ week: viewWeek, month: viewMonth, timetable: viewTimetable, koryu: viewKoryu })[view.tab.yotei]();
       case 'gakushu': return subtabs('gakushu', [['units', '📘 単元計画'], ['materials', '🧰 教材の置き場']]) + ({ units: viewUnits, materials: viewMaterials })[view.tab.gakushu]();
+      case 'koumu': return subtabs('koumu', [['tasks', '✅ やること'], ['duties', '🗂 校務分掌'], ['meetings', '📝 会議メモ'], ['templates', '📄 文書のひな形']]) + ({ tasks: viewTasks, duties: viewDuties, meetings: viewMeetings, templates: viewTemplates })[view.tab.koumu]();
       case 'settings': return viewSettings();
       default: return viewLobby();
     }
@@ -660,10 +691,12 @@
     return hour < 11 ? 'おはようございます' : hour < 17 ? 'こんにちは' : 'おつかれさまです';
   }
   function short(s, n) { s = String(s || ''); return s.length > n ? s.slice(0, n) + '…' : s; }
+  // いちばん近い 締め切り（公務の部屋の やること と、月の予定の「締め切り」）
   function nextDeadline() {
     const t = today();
-    return list('events').filter((e) => e.cat === '締め切り' && isDate(e.date) && e.date >= t)
-      .sort((a, b) => (a.date + (a.time || '99')).localeCompare(b.date + (b.time || '99')))[0];
+    const evs = list('events').filter((e) => e.cat === '締め切り' && isDate(e.date) && e.date >= t).map((e) => ({ title: e.title, date: e.date, time: e.time || '' }));
+    const tasks = openTasks().filter((x) => isDate(x.due) && x.due >= t).map((x) => ({ title: x.title, date: x.due, time: '' }));
+    return evs.concat(tasks).sort((a, b) => (a.date + (a.time || '99')).localeCompare(b.date + (b.time || '99')))[0];
   }
   function whenText(date) {
     const t = today();
@@ -687,10 +720,12 @@
     }
     const dl = nextDeadline();
     const left = dl ? daysBetween(t, dl.date) : 0;
+    const late = overdueTasks();
     return `<div class="clock">${now.getHours()}:${pad(now.getMinutes())}</div>
       <div class="hdate">${wareki(now.getFullYear())} ${jdate(t)}</div>
       <div class="hline">${esc(line)}</div>
-      ${dl ? `<div class="hline hdead">⏰ ${left ? `締め切りまで あと${left}日` : 'きょうが 締め切り'}</div><div class="hline hsmall">${esc(short(dl.title, 16))}</div>`
+      ${late.length ? `<div class="hline hdead late">⚠ 期限切れの やること ${late.length}件</div><div class="hline hsmall">${esc(short(late[0].title, 16))}</div>`
+        : dl ? `<div class="hline hdead">⏰ ${left ? `締め切りまで あと${left}日` : 'きょうが 締め切り'}</div><div class="hline hsmall">${esc(short(dl.title, 16))}</div>`
         : '<div class="hline hsmall">⏰ 近い締め切りは ありません</div>'}`;
   }
 
@@ -710,10 +745,15 @@
         return x.left > 0 ? `「${short(x.u.name, 14)}」は 計画まで あと${x.left}時間だホー。` : `「${short(x.u.name, 14)}」は 計画時数に 達したホー。`;
       }
       case 'koumu': {
+        const late = overdueTasks();
+        if (late.length) return `期限が すぎた やることが ${late.length}件 あるペン！「${short(late[0].title, 14)}」から 片づけよう。`;
         const d = nextDeadline();
-        if (!d) return '公務の部屋は じゅんび中だペン。何を入れるか 相談してね。';
-        const n = daysBetween(t, d.date);
-        return `締め切り「${short(d.title, 16)}」${n ? `まで あと${n}日` : 'は きょう'}だペン！`;
+        if (d) {
+          const n = daysBetween(t, d.date);
+          return `締め切り「${short(d.title, 16)}」${n ? `まで あと${n}日` : 'は きょう'}だペン！`;
+        }
+        const n = openTasks().length;
+        return n ? `やることは あと${n}件だペン。` : 'やることは ぜんぶ 終わったペン！おつかれさま。';
       }
       case 'kodomo': {
         const kids = children();
@@ -1000,6 +1040,12 @@
         </section>
         <div class="stack">
           <section class="card">
+            <div class="toolbar"><h2 class="sec">✅ やること（${openTasks().length}件）</h2><span class="grow"></span>
+              <button class="btn small" data-act="editTask">＋ 追加</button>
+              <button class="btn small" data-act="goTab" data-room="koumu" data-tab="tasks">公務の部屋</button></div>
+            ${openTasks().length ? `<ul class="tasks">${openTasks().sort(byDue).slice(0, 6).map((x) => taskRow(x, true)).join('')}</ul>${openTasks().length > 6 ? `<p class="hint" style="margin-top:6px">ほか ${openTasks().length - 6}件は 公務の部屋で 見られます。</p>` : ''}` : '<div class="empty-note">のこっている やることは ありません。</div>'}
+          </section>
+          <section class="card">
             <div class="toolbar"><h2 class="sec">📌 これからの予定（2週間）</h2><span class="grow"></span>
               <button class="btn small" data-act="newEvent" data-date="${t}">＋ 追加</button>
               <button class="btn small" data-act="goTab" data-room="yotei" data-tab="month">月の予定</button></div>
@@ -1024,6 +1070,7 @@
     const evs = eventsOn(d);
     const dues = list('events').filter((e) => e.cat === '締め切り' && isDate(e.date) && e.date > t && e.date <= addDays(d, 3) && !evs.includes(e))
       .sort((a, b) => a.date.localeCompare(b.date));
+    const tasks = openTasks().filter((x) => isDate(x.due) && x.due <= addDays(d, 3)).sort(byDue);
     openDialog({
       title: `🌙 あしたの確認　${jdate(d)}`,
       readOnly: true,
@@ -1033,6 +1080,7 @@
         <h3 class="mini">📌 この日の予定</h3>
         ${evs.length ? `<ul class="ev-list">${evs.map((e) => evRow(e, d)).join('')}</ul>` : '<p class="hint">ありません。</p>'}
         ${dues.length ? `<h3 class="mini">⏰ 近い締め切り</h3><ul class="ev-list">${dues.map((e) => evRow(e, t)).join('')}</ul>` : ''}
+        ${tasks.length ? `<h3 class="mini">✅ 早めに 片づけたい やること</h3><ul class="tasks">${tasks.map((x) => taskRow(x, true)).join('')}</ul>` : ''}
         <div><button class="btn" data-act="openWeek" data-date="${d}">週案を開いて直す</button></div>`,
     });
   }
@@ -1064,7 +1112,7 @@
     const head = dates.map((d) => `<th class="${d === t ? 'is-today' : ''}">
         <div class="dh"><b>${md(d)}</b>（${WD[dayOf(d)]}）${d === t ? '<span class="todaymark">きょう</span>' : ''}</div>
         ${holiday(d) ? `<div class="hol-name">${esc(holiday(d))}</div>` : ''}
-        ${eventsOn(d).map(evChip).join('')}
+        ${eventsOn(d).map(evChip).join('')}${tasksDueOn(d).map(taskChip).join('')}
         <button class="add-ev noprint" data-act="newEvent" data-date="${d}">＋予定</button></th>`).join('');
 
     const rows = S.periods.map((p, r) => `<tr><th class="pcol">${esc(p.name)}<span class="ptime">${esc(p.start)}〜${esc(p.end)}</span></th>${dates.map((d, i) => {
@@ -1154,7 +1202,7 @@
       const w = dayOf(d);
       const cls = ['mday', inMonth ? '' : 'other', w === 0 ? 'sun' : w === 6 ? 'sat' : '', hol ? 'hol' : '', d === t ? 'today' : '', evs.some((e) => e.cat === KYUGYO) ? 'kyugyo' : ''].filter(Boolean).join(' ');
       cells += `<div class="${cls}" data-act="newEvent" data-date="${d}" title="${jdate(d)} に予定を追加">
-        <div class="num">${parse(d).getDate()}</div>${hol ? `<div class="hol-name">${esc(hol)}</div>` : ''}${evs.map(evChip).join('')}</div>`;
+        <div class="num">${parse(d).getDate()}</div>${hol ? `<div class="hol-name">${esc(hol)}</div>` : ''}${evs.map(evChip).join('')}${tasksDueOn(d).map(taskChip).join('')}</div>`;
       d = addDays(d, 1);
     }
     const monthEvents = list('events')
@@ -1193,7 +1241,7 @@
           <label class="field">種類 <select name="cat">${Object.keys(CATS).map((c) => opt(c, e.cat || 'その他')).join('')}</select></label>
         </div>
         <label class="field">メモ <textarea name="memo" rows="3" maxlength="1000">${esc(e.memo)}</textarea></label>
-        <p class="hint">「締め切り」はロビーに「あと○日」と出ます。「${KYUGYO}」の日は週案でお休みになります。</p>`,
+        <p class="hint">「締め切り」はロビーと地球儀に「あと○日」と出ます。提出物は、公務の部屋の「やること」に入れると、終わったらチェックできます。「${KYUGYO}」の日は週案でお休みになります。</p>`,
       deleteLabel: id ? 'この予定を消す' : '',
       onDelete: () => removeRecs('events', id),
       onSave: (f) => {
@@ -1499,6 +1547,322 @@
     }));
   }
 
+  /* =========================================================
+     公務の部屋
+     ========================================================= */
+  const TASK_CATS = ['提出物', '文書作成', '準備', '連絡', '分掌', 'その他'];
+  const MEETING_KINDS = ['職員会議', '学年会', '部会', '校内委員会', 'ケース会議', '研修', 'その他'];
+  const TEMPLATE_KINDS = ['学級だより', 'お知らせ', '依頼・お礼', '申し送り', '報告', 'その他'];
+  const MONTHS = [4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3]; // 年度の 順
+  const TIMINGS = ['上旬', '中旬', '下旬', '月末まで'];
+
+  function nendoOf(s) { const d = parse(s); return d.getMonth() < 3 ? d.getFullYear() - 1 : d.getFullYear(); }
+  function openTasks() { return list('tasks').filter((x) => !x.done); }
+  function overdueTasks() { const t = today(); return openTasks().filter((x) => isDate(x.due) && x.due < t).sort((a, b) => a.due.localeCompare(b.due)); }
+  function tasksDueOn(date) { return openTasks().filter((x) => x.due === date); }
+  function byDue(a, b) { return String(isDate(a.due) ? a.due : '9999').localeCompare(String(isDate(b.due) ? b.due : '9999')) || String(a.title).localeCompare(String(b.title), 'ja'); }
+  function dueBadge(due) {
+    if (!isDate(due)) return '';
+    const n = daysBetween(today(), due);
+    if (n < 0) return `<span class="tag red">${-n}日 すぎ</span>`;
+    return `<span class="tag${n <= 3 ? ' red' : ''}">${n ? `あと${n}日` : 'きょうまで'}</span>`;
+  }
+  function taskChip(x) {
+    return `<button class="ev" style="--h:0" data-act="editTask" data-id="${esc(x.id)}" title="やること：${esc(x.title)}">✅ ${esc(x.title)}</button>`;
+  }
+  function taskRow(x, compact) {
+    const duty = get('duties', x.dutyId);
+    return `<li class="task${x.done ? ' done' : ''}">
+      <input type="checkbox" class="tcheck" data-chg="taskDone" data-id="${esc(x.id)}" ${x.done ? 'checked' : ''} aria-label="${esc(x.title)} を完了にする">
+      <div class="tmain"><span class="ttitle" data-act="editTask" data-id="${esc(x.id)}" role="button" tabindex="0">${esc(x.title)}</span>
+        <div class="meta">${isDate(x.due) ? `<span>📅 ${jdate(x.due)}</span>${x.done ? '' : dueBadge(x.due)}` : ''}${x.to ? `<span>📮 ${esc(x.to)}</span>` : ''}${!compact && x.cat ? `<span class="tag">${esc(x.cat)}</span>` : ''}${!compact && duty ? `<span>🗂 ${esc(duty.name)}</span>` : ''}${x.done ? `<span>✅ ${md(x.done)} 完了</span>` : ''}</div></div></li>`;
+  }
+  // 月の予定に 入れた「締め切り」も いっしょに 並べる（チェックは なし）
+  function evDeadlineRow(e) {
+    return `<li class="task"><span class="tcheck-ph" title="月の予定の締め切り">🗓</span>
+      <div class="tmain"><span class="ttitle" data-act="editEvent" data-id="${esc(e.id)}" role="button" tabindex="0">${esc(e.title)}</span>
+        <div class="meta"><span>📅 ${jdate(e.date)}</span>${dueBadge(e.date)}<span class="tag">月の予定</span></div></div></li>`;
+  }
+
+  /* ---------- やること ---------- */
+  function viewTasks() {
+    const t = today();
+    const tomorrow = addDays(t, 1), week = addDays(t, 7);
+    const filtered = (x) => (!view.taskCat || x.cat === view.taskCat) && (!view.taskDuty || x.dutyId === view.taskDuty);
+    const items = openTasks().filter(filtered).map((x) => ({ due: x.due, html: taskRow(x) }));
+    if (!view.taskCat && !view.taskDuty) {
+      list('events').filter((e) => e.cat === '締め切り' && isDate(e.date) && e.date >= t).forEach((e) => items.push({ due: e.date, html: evDeadlineRow(e) }));
+    }
+    items.sort((a, b) => byDue(a, b));
+    const groups = [
+      ['⚠ 期限が すぎています', (d) => isDate(d) && d < t, 'late'],
+      ['📍 きょう・あした', (d) => isDate(d) && d >= t && d <= tomorrow, ''],
+      ['📅 1週間以内', (d) => isDate(d) && d > tomorrow && d <= week, ''],
+      ['🗓 それより先', (d) => isDate(d) && d > week, ''],
+      ['📥 締め切りなし', (d) => !isDate(d), ''],
+    ];
+    const done = list('tasks').filter((x) => x.done && filtered(x)).sort((a, b) => String(b.done).localeCompare(String(a.done)));
+    const duties = list('duties').sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+    return `<section class="card" style="margin-bottom:12px">
+        <form class="quick" data-form="quickTask">
+          <input class="input" name="title" required maxlength="200" placeholder="やることを入れて Enter（例：通知表の所見 下書き）" aria-label="やること">
+          <input class="input" type="date" name="due" style="width:auto" aria-label="締め切り">
+          <button type="submit" class="btn primary">＋ 追加</button>
+          <button type="button" class="btn" data-act="editTask">くわしく入れる</button>
+        </form>
+      </section>
+      <div class="toolbar">
+        <select class="input" style="width:auto" data-chg="taskCat" aria-label="分類でしぼりこむ">${opt('', view.taskCat, 'すべての分類')}${TASK_CATS.map((c) => opt(c, view.taskCat)).join('')}</select>
+        ${duties.length ? `<select class="input" style="width:auto" data-chg="taskDuty" aria-label="分掌でしぼりこむ">${opt('', view.taskDuty, 'すべての分掌')}${duties.map((d) => opt(d.id, view.taskDuty, d.name)).join('')}</select>` : ''}
+        <span class="grow"></span><span class="muted">のこり ${openTasks().length}件</span>
+      </div>
+      ${items.length ? groups.map(([label, test, cls]) => {
+        const g = items.filter((it) => test(it.due));
+        return g.length ? `<section class="card task-group ${cls}" style="margin-bottom:12px"><h3 class="group-title" style="margin:0 0 4px">${label}（${g.length}）</h3><ul class="tasks">${g.map((it) => it.html).join('')}</ul></section>` : '';
+      }).join('') : '<div class="empty-note">のこっている やることは ありません。おつかれさまでした。</div>'}
+      ${done.length ? `<div style="margin-top:12px"><button class="btn small" data-act="toggleDone">${view.showDone ? '▼' : '▶'} 完了した やること（${done.length}件）</button>
+        ${view.showDone ? `<section class="card" style="margin-top:8px"><ul class="tasks">${done.slice(0, 100).map((x) => taskRow(x)).join('')}</ul></section>` : ''}</div>` : ''}`;
+  }
+
+  function editTask(id, preset) {
+    const x = id ? get('tasks', id) : Object.assign({ cat: view.taskCat || '', dutyId: view.taskDuty || '' }, preset || {});
+    if (!x) return;
+    const duties = list('duties').sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+    openDialog({
+      title: id ? 'やることを直す' : 'やることを追加',
+      body: `<label class="field">やること <input name="title" required maxlength="200" value="${esc(x.title)}" placeholder="例：個別の指導計画の見直し 提出"></label>
+        <div class="row2">
+          <label class="field">締め切り <input type="date" name="due" value="${esc(x.due)}"></label>
+          <label class="field">提出先・相手 <input name="to" maxlength="50" value="${esc(x.to)}" placeholder="例：教頭先生／教務主任"></label>
+        </div>
+        <div class="row2">
+          <label class="field">分類 <select name="cat">${opt('', x.cat || '', '—')}${TASK_CATS.map((c) => opt(c, x.cat)).join('')}</select></label>
+          <label class="field">校務分掌 <select name="dutyId">${opt('', x.dutyId || '', '—')}${duties.map((d) => opt(d.id, x.dutyId, d.name)).join('')}</select></label>
+        </div>
+        <label class="field">メモ <textarea name="memo" rows="3" maxlength="1000">${esc(x.memo)}</textarea></label>
+        ${id ? `<label class="check"><input type="checkbox" name="done" ${x.done ? 'checked' : ''}> 完了した</label>` : ''}`,
+      deleteLabel: id ? 'このやることを消す' : '',
+      onDelete: () => removeRecs('tasks', id),
+      onSave: (f) => {
+        putRecs('tasks', { id: id || uid('k'), title: f.title.trim(), due: isDate(f.due) ? f.due : '', to: f.to.trim(), cat: f.cat, dutyId: f.dutyId, memo: f.memo.trim(), done: f.done ? (x.done || today()) : '', fromId: x.fromId || '' });
+      },
+    });
+  }
+
+  /* ---------- 校務分掌 ---------- */
+  function monthIndex(m) { return MONTHS.indexOf(Number(m)); }
+  // 年度の 中で その月の 日付を 作る（時期から だいたいの 日に する）
+  function dueFromItem(item) {
+    const m = Number(item.month);
+    if (!m) return '';
+    const y = nendoOf(today()) + (m < 4 ? 1 : 0);
+    const last = new Date(y, m, 0).getDate();
+    const day = item.timing === '上旬' ? 10 : item.timing === '中旬' ? 20 : (item.timing === '下旬' || item.timing === '月末まで') ? last : 0;
+    return day ? `${y}-${pad(m)}-${pad(day)}` : '';
+  }
+  function itemAdded(item) {
+    const n = nendoOf(today());
+    return list('tasks').some((x) => x.fromId === item.id && (isDate(x.due) ? nendoOf(x.due) === n : !x.done));
+  }
+  function addItemButton(item) {
+    return itemAdded(item) ? '<span class="tag">✓ やることに入れました</span>'
+      : `<button class="btn small" data-act="itemToTask" data-id="${esc(item.id)}">＋ やることに入れる</button>`;
+  }
+
+  function viewDuties() {
+    const t = today();
+    const m = parse(t).getMonth() + 1;
+    const nm = m === 12 ? 1 : m + 1;
+    const duties = list('duties').sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0) || String(a.name).localeCompare(String(b.name), 'ja'));
+    const items = list('dutyItems').filter((i) => get('duties', i.dutyId));
+    const soon = items.filter((i) => Number(i.month) === m || Number(i.month) === nm)
+      .sort((a, b) => monthIndex(a.month) - monthIndex(b.month) || TIMINGS.indexOf(a.timing) - TIMINGS.indexOf(b.timing));
+    const dutyCard = (d) => {
+      const its = items.filter((i) => i.dutyId === d.id);
+      const rows = MONTHS.filter((mm) => its.some((i) => Number(i.month) === mm)).map((mm) => `<div class="mrow${mm === m ? ' now' : ''}"><b>${mm}月</b><ul>${its.filter((i) => Number(i.month) === mm)
+        .sort((a, b) => TIMINGS.indexOf(a.timing) - TIMINGS.indexOf(b.timing))
+        .map((i) => `<li><span class="ttitle" data-act="editItem" data-id="${esc(i.id)}" role="button" tabindex="0">${esc(i.title)}</span>${i.timing ? ` <span class="muted" style="font-size:13px">（${esc(i.timing)}）</span>` : ''}</li>`).join('')}</ul></div>`).join('');
+      return `<section class="card">
+        <div class="toolbar"><h3 style="margin:0;font-size:17px">🗂 ${esc(d.name)}</h3>${d.role ? `<span class="tag">${esc(d.role)}</span>` : ''}<span class="grow"></span>
+          <button class="btn small" data-act="editItem" data-duty="${esc(d.id)}">＋ 仕事を足す</button><button class="btn small" data-act="editDuty" data-id="${esc(d.id)}">直す</button></div>
+        ${d.memo ? `<p class="hint" style="margin-bottom:6px">${nl(d.memo)}</p>` : ''}
+        ${rows || '<div class="empty-note">1年の 仕事の流れを「＋ 仕事を足す」から 入れてください。</div>'}</section>`;
+    };
+    return `<div class="toolbar"><p class="hint grow">毎年くり返す分掌の仕事を、月ごとに入れておきます。来年も同じ流れが使えます。</p><button class="btn primary" data-act="editDuty">＋ 分掌を追加</button></div>
+      ${duties.length ? `<section class="card" style="margin-bottom:12px">
+        <h2 class="sec" style="margin-bottom:8px">🔔 今月（${m}月）と来月（${nm}月）の 分掌の仕事</h2>
+        ${soon.length ? `<ul class="tasks">${soon.map((i) => `<li class="task"><span class="chip gray" style="flex:none">${Number(i.month)}月</span>
+          <div class="tmain"><span class="ttitle" data-act="editItem" data-id="${esc(i.id)}" role="button" tabindex="0">${esc(i.title)}</span>
+            <div class="meta"><span>🗂 ${esc(get('duties', i.dutyId).name)}</span>${i.timing ? `<span>${esc(i.timing)}</span>` : ''}</div></div>${addItemButton(i)}</li>`).join('')}</ul>`
+          : '<p class="hint">今月と来月の 分掌の仕事は ありません。</p>'}
+      </section>
+      <div class="stack">${duties.map(dutyCard).join('')}</div>` : '<div class="empty-note">担当している校務分掌を「＋ 分掌を追加」から入れてください。<br>例：特別支援教育コーディネーター、図書部、教務部（時間割係）</div>'}`;
+  }
+
+  function editDuty(id) {
+    const d = id ? get('duties', id) : {};
+    if (!d) return;
+    openDialog({
+      title: id ? '分掌を直す' : '分掌を追加',
+      body: `<label class="field">分掌の名前 <input name="name" required maxlength="50" value="${esc(d.name)}" placeholder="例：特別支援教育コーディネーター"></label>
+        <label class="field">役割 <input name="role" list="role-list" maxlength="20" value="${esc(d.role)}" placeholder="例：担当／係／主任"></label>
+        <datalist id="role-list"><option value="担当"><option value="主任"><option value="係"><option value="副担当"></datalist>
+        <label class="field">メモ（いっしょに担当する先生、引きつぎのことなど） <textarea name="memo" rows="3" maxlength="1000">${esc(d.memo)}</textarea></label>`,
+      deleteLabel: id ? 'この分掌を消す' : '',
+      deleteConfirm: 'この分掌と、1年の仕事の流れを消します。「やること」は残ります。よろしいですか？',
+      onDelete: () => {
+        removeRecs('dutyItems', list('dutyItems').filter((i) => i.dutyId === id).map((i) => i.id), { render: false });
+        const ts = list('tasks').filter((x) => x.dutyId === id).map((x) => Object.assign({}, x, { dutyId: '' }));
+        if (ts.length) putRecs('tasks', ts, { render: false });
+        removeRecs('duties', id);
+      },
+      onSave: (f) => {
+        const order = id ? d.order : Math.max(0, ...list('duties').map((x) => Number(x.order) || 0)) + 1;
+        putRecs('duties', { id: id || uid('d'), name: f.name.trim(), role: f.role.trim(), memo: f.memo.trim(), order });
+      },
+    });
+  }
+
+  function editItem(id, dutyId) {
+    const it = id ? get('dutyItems', id) : { dutyId, month: parse(today()).getMonth() + 1 };
+    if (!it) return;
+    const duties = list('duties').sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0));
+    openDialog({
+      title: id ? '分掌の仕事を直す' : '分掌の仕事を足す',
+      body: `<label class="field">分掌 <select name="dutyId" required>${duties.map((d) => opt(d.id, it.dutyId, d.name)).join('')}</select></label>
+        <label class="field">仕事 <input name="title" required maxlength="100" value="${esc(it.title)}" placeholder="例：第2回 校内委員会の資料づくり"></label>
+        <div class="row2">
+          <label class="field">月 <select name="month">${MONTHS.map((mm) => opt(String(mm), String(it.month), mm + '月')).join('')}</select></label>
+          <label class="field">時期 <select name="timing">${opt('', it.timing || '', '—')}${TIMINGS.map((x) => opt(x, it.timing)).join('')}</select></label>
+        </div>
+        <label class="field">メモ <textarea name="memo" rows="2" maxlength="1000">${esc(it.memo)}</textarea></label>
+        ${id ? `<div>${addItemButton(it)}</div>` : ''}`,
+      deleteLabel: id ? 'この仕事を消す' : '',
+      onDelete: () => removeRecs('dutyItems', id),
+      onSave: (f) => putRecs('dutyItems', { id: id || uid('i'), dutyId: f.dutyId, title: f.title.trim(), month: Number(f.month), timing: f.timing, memo: f.memo.trim() }),
+    });
+  }
+
+  /* ---------- 会議メモ ---------- */
+  function mineLines(m) { return String(m.mine || '').split('\n').map((s) => s.replace(/^[・\-\s]+/, '').trim()).filter(Boolean); }
+  function viewMeetings() {
+    return `<div class="toolbar">
+        <input class="input" style="max-width:260px" type="search" placeholder="🔍 さがす（会議名・内容）" value="${esc(view.meetQ)}" data-inp="meetQ" aria-label="会議メモをさがす">
+        <select class="input" style="width:auto" data-chg="meetKind" aria-label="種類でしぼりこむ">${opt('', view.meetKind, 'すべての会議')}${MEETING_KINDS.map((k) => opt(k, view.meetKind)).join('')}</select>
+        <span class="grow"></span>
+        <button class="btn primary" data-act="editMeeting">＋ 会議メモ</button>
+      </div>
+      <p class="hint" style="margin-bottom:12px">「自分がやること」に書いたことは、ボタン1つで「やること」に入れられます。子どもの個人情報は、必要なことだけを短く書きましょう。</p>
+      <div id="meet-list">${meetingList()}</div>`;
+  }
+  function meetingList() {
+    const q = view.meetQ.trim().toLowerCase();
+    const ms = list('meetings')
+      .filter((m) => (!view.meetKind || m.kind === view.meetKind) && (!q || [m.title, m.content, m.mine, m.kind].join(' ').toLowerCase().includes(q)))
+      .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    if (!ms.length) return `<div class="empty-note">${list('meetings').length ? '条件に合う会議メモはありません。' : '会議メモはまだありません。「＋ 会議メモ」から入れてください。'}</div>`;
+    return `<div class="stack">${ms.map((m) => {
+      const lines = mineLines(m);
+      return `<article class="card meet">
+        <div class="meta">${isDate(m.date) ? `<b style="color:var(--ink)">${jdate(m.date)}</b>` : ''}${m.kind ? `<span class="tag">${esc(m.kind)}</span>` : ''}<span class="grow"></span><button class="btn small" data-act="editMeeting" data-id="${esc(m.id)}">直す</button></div>
+        <h3 style="margin:4px 0 6px;font-size:17px">${esc(m.title)}</h3>
+        ${m.content ? `<div class="mcontent">${nl(m.content)}</div>` : ''}
+        ${lines.length ? `<div class="mine"><b>🙋 自分がやること</b><ul class="tasks">${lines.map((ln) => {
+          const added = list('tasks').some((x) => x.fromId === `${m.id}:${ln}`);
+          return `<li class="task"><div class="tmain">${esc(ln)}</div>${added ? '<span class="tag">✓ やることに入れました</span>' : `<button class="btn small" data-act="meetToTask" data-id="${esc(m.id)}" data-line="${esc(ln)}">＋ やることへ</button>`}</li>`;
+        }).join('')}</ul></div>` : ''}
+      </article>`;
+    }).join('')}</div>`;
+  }
+  function editMeeting(id) {
+    const m = id ? get('meetings', id) : { date: today(), kind: '職員会議' };
+    if (!m) return;
+    openDialog({
+      title: id ? '会議メモを直す' : '会議メモ',
+      body: `<div class="row2">
+          <label class="field">日付 <input type="date" name="date" required value="${esc(m.date)}"></label>
+          <label class="field">種類 <select name="kind">${MEETING_KINDS.map((k) => opt(k, m.kind || 'その他')).join('')}</select></label>
+        </div>
+        <label class="field">会議名 <input name="title" required maxlength="100" value="${esc(m.title)}" placeholder="例：10月 職員会議"></label>
+        <label class="field">内容（決まったこと・連絡） <textarea name="content" rows="8" maxlength="8000" placeholder="・後期の行事予定&#10;・校外学習は 10/8（雨天 10/9）">${esc(m.content)}</textarea></label>
+        <label class="field">自分がやること（1行に1つ） <textarea name="mine" rows="3" maxlength="2000" placeholder="例：校外学習のしおり 印刷">${esc(m.mine)}</textarea></label>
+        <p class="hint">子どもの個人情報は、必要なことだけを短く書きましょう。</p>`,
+      deleteLabel: id ? 'この会議メモを消す' : '',
+      onDelete: () => removeRecs('meetings', id),
+      onSave: (f) => {
+        if (!isDate(f.date)) return '日付を入れてください。';
+        putRecs('meetings', { id: id || uid('g'), date: f.date, kind: f.kind, title: f.title.trim(), content: f.content.trim(), mine: f.mine.trim() });
+      },
+    });
+  }
+
+  /* ---------- 文書のひな形 ---------- */
+  const PLACEHOLDERS = ['学級名', '日付', '年度', '曜日'];
+  function fillTemplate(body) {
+    const t = today();
+    const d = parse(t);
+    const map = {
+      '学級名': S.className || '',
+      '日付': `${wareki(d.getFullYear())}${d.getMonth() + 1}月${d.getDate()}日`,
+      '年度': wareki(nendoOf(t)).replace(/年$/, ''),
+      '曜日': WD[d.getDay()],
+    };
+    return String(body || '').replace(/\{(学級名|日付|年度|曜日)\}/g, (_, k) => map[k]);
+  }
+  function viewTemplates() {
+    const ts = list('templates').sort((a, b) => TEMPLATE_KINDS.indexOf(a.kind) - TEMPLATE_KINDS.indexOf(b.kind) || String(a.title).localeCompare(String(b.title), 'ja'));
+    return `<div class="toolbar"><p class="hint grow">よく書く文書のひな形です。「下書きを作る」を押すと、学級名や日付が入った文ができます。コピーして、Googleドキュメントや学校の書式に貼り付けてください。</p>
+        <button class="btn primary" data-act="editTemplate">＋ ひな形を追加</button></div>
+      ${ts.length ? `<div class="cards">${ts.map((x) => `<article class="card tpl">
+        <div class="meta">${x.kind ? `<span class="tag">${esc(x.kind)}</span>` : ''}</div>
+        <h3 style="margin:4px 0 0;font-size:17px">📄 ${esc(x.title)}</h3>
+        <pre>${esc(String(x.body || '').split('\n').slice(0, 6).join('\n'))}</pre>
+        <div class="mat-act"><button class="btn primary small" data-act="useTemplate" data-id="${esc(x.id)}">📝 下書きを作る</button><button class="btn small" data-act="editTemplate" data-id="${esc(x.id)}">直す</button></div>
+      </article>`).join('')}</div>` : '<div class="empty-note">ひな形はまだありません。「＋ ひな形を追加」から入れてください。</div>'}`;
+  }
+  function editTemplate(id) {
+    const x = id ? get('templates', id) : { kind: 'お知らせ' };
+    if (!x) return;
+    openDialog({
+      title: id ? 'ひな形を直す' : 'ひな形を追加',
+      body: `<div class="row2">
+          <label class="field">題名 <input name="title" required maxlength="100" value="${esc(x.title)}" placeholder="例：校外学習のお知らせ"></label>
+          <label class="field">種類 <select name="kind">${TEMPLATE_KINDS.map((k) => opt(k, x.kind || 'その他')).join('')}</select></label>
+        </div>
+        <label class="field">本文 <textarea name="body" rows="14" maxlength="10000">${esc(x.body)}</textarea></label>
+        <p class="hint">${PLACEHOLDERS.map((p) => `{${p}}`).join('　')} と書いたところには、下書きを作るときに 自動で 入ります。</p>`,
+      deleteLabel: id ? 'このひな形を消す' : '',
+      onDelete: () => removeRecs('templates', id),
+      onSave: (f) => putRecs('templates', { id: id || uid('p'), title: f.title.trim(), kind: f.kind, body: f.body.replace(/\s+$/, '') }),
+    });
+  }
+  function useTemplate(id) {
+    const x = get('templates', id);
+    if (!x) return;
+    openDialog({
+      title: `📝 ${x.title}（下書き）`,
+      readOnly: true,
+      body: `<textarea class="input" id="draftText" rows="16" aria-label="下書き">${esc(fillTemplate(x.body))}</textarea>
+        <div class="toolbar" style="margin:0"><button class="btn primary" data-act="copyDraft">📋 コピーする</button><span class="hint" id="copyMsg" role="status"></span></div>
+        <p class="hint">ここで書きたしてからコピーできます（この下書きは保存されません）。</p>`,
+    });
+  }
+  function copyDraft() {
+    const ta = document.getElementById('draftText');
+    const msg = document.getElementById('copyMsg');
+    if (!ta) return;
+    const done = () => { if (msg) msg.textContent = '✓ コピーしました。貼り付けて使ってください。'; };
+    const fallback = () => {
+      ta.focus();
+      ta.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      if (ok) done(); else if (msg) msg.textContent = '文を選んだので、Ctrl＋C でコピーしてください。';
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(done, fallback);
+    else fallback();
+  }
+
   /* ---------- 準備中の 部屋 ---------- */
   function viewSoon(room) {
     return `<section class="card soon-room">
@@ -1536,6 +1900,15 @@
   }
 
   document.addEventListener('submit', (e) => {
+    if (e.target.dataset.form === 'quickTask') {
+      e.preventDefault();
+      const f = Object.fromEntries(new FormData(e.target));
+      if (!f.title.trim()) return;
+      putRecs('tasks', { id: uid('k'), title: f.title.trim(), due: isDate(f.due) ? f.due : '', to: '', cat: view.taskCat, dutyId: view.taskDuty, memo: '', done: '', fromId: '' });
+      const input = document.querySelector('[data-form=quickTask] [name=title]');
+      if (input) input.focus();
+      return;
+    }
     if (e.target.id !== 'dlgForm' || !dlg || dlg.readOnly) { e.preventDefault(); return; }
     e.preventDefault();
     const f = Object.fromEntries(new FormData(e.target));
@@ -1546,7 +1919,8 @@
       // 入力に 足りない ところが あれば もう一度 開く
       openDialog(o);
       const form = document.getElementById('dlgForm');
-      Object.keys(f).forEach((k) => { const field = form.elements[k]; if (field) field.value = f[k]; });
+      Array.from(form.elements).forEach((el) => { if (el.type === 'checkbox' && el.name) el.checked = Object.prototype.hasOwnProperty.call(f, el.name); });
+      Object.keys(f).forEach((k) => { const field = form.elements[k]; if (field && field.type !== 'checkbox') field.value = f[k]; });
       if (form.elements.subject && form.elements.subject.dataset.chg === 'lessonSubj') { CHANGES.lessonSubj(form.elements.subject); form.elements.unitId.value = f.unitId; }
       document.getElementById('dlgMsg').textContent = msg;
     }
@@ -1578,6 +1952,25 @@
     editX: (d) => editX(Number(d.day), d.pid),
     editUnit: (d) => editUnit(d.id || ''),
     editMat: (d) => editMat(d.id || ''),
+    editTask: (d) => editTask(d.id || ''),
+    toggleDone: () => { view.showDone = !view.showDone; render(); },
+    editDuty: (d) => editDuty(d.id || ''),
+    editItem: (d) => editItem(d.id || '', d.duty || ''),
+    itemToTask: (d) => {
+      const it = get('dutyItems', d.id);
+      if (!it) return;
+      closeDialog();
+      editTask('', { title: it.title, dutyId: it.dutyId, cat: '分掌', due: dueFromItem(it), memo: it.memo || '', fromId: it.id });
+    },
+    editMeeting: (d) => editMeeting(d.id || ''),
+    meetToTask: (d) => {
+      const m = get('meetings', d.id);
+      if (!m) return;
+      editTask('', { title: d.line, memo: `${isDate(m.date) ? jdate(m.date) + ' ' : ''}${m.title} より`, fromId: `${m.id}:${d.line}` });
+    },
+    editTemplate: (d) => editTemplate(d.id || ''),
+    useTemplate: (d) => useTemplate(d.id),
+    copyDraft: () => copyDraft(),
     dlgClose: () => closeDialog(),
     dlgDelete: () => {
       if (!dlg) return;
@@ -1636,6 +2029,10 @@
     unitSubj: (el) => { view.unitSubj = el.value; render(); },
     matSubj: (el) => { view.matSubj = el.value; render(); },
     matKind: (el) => { view.matKind = el.value; render(); },
+    taskDone: (el) => { const x = get('tasks', el.dataset.id); if (x) putRecs('tasks', Object.assign({}, x, { done: el.checked ? today() : '' })); },
+    taskCat: (el) => { view.taskCat = el.value; render(); },
+    taskDuty: (el) => { view.taskDuty = el.value; render(); },
+    meetKind: (el) => { view.meetKind = el.value; render(); },
     lessonSubj: (el) => {
       const form = el.form;
       const date = form.dataset.date;
@@ -1667,6 +2064,11 @@
       view.matQ = el.value;
       const box = document.getElementById('mat-list');
       if (box) box.innerHTML = materialList();
+    }
+    if (el.dataset && el.dataset.inp === 'meetQ') {
+      view.meetQ = el.value;
+      const box = document.getElementById('meet-list');
+      if (box) box.innerHTML = meetingList();
     }
   });
   window.addEventListener('beforeunload', (e) => { if (pending) { e.preventDefault(); e.returnValue = ''; } });
@@ -1744,7 +2146,6 @@
     const ev = (n, title, cat, time, memo) => ({ id: 'e' + (++evNo), date: schoolDay(n), end: '', time: time || '', title, cat, memo: memo || '' });
     const events = [
       ev(0, '職員会議', '会議', '15:40', '議題：後期の行事について'),
-      ev(2, '個別の指導計画（後期）の見直し 提出', '締め切り', '', '教頭先生へ'),
       ev(6, '校外学習（動物園）', '行事', '08:30', '雨天時は翌日'),
       ev(8, '保護者面談（Aさん）', '保護者', '15:30'),
       ev(12, '交流学級の担任と打ち合わせ', '交流', '15:45'),
@@ -1758,7 +2159,42 @@
       { id: 'm4', name: 'きもちカード（うれしい・こまった・いや）', subject: '自立活動', kind: '絵カード・写真', url: '', unitId: 'u4', memo: '' },
       { id: 'm5', name: '秋の しぜん 写真スライド', subject: '生活単元学習', kind: 'スライド', url: '', unitId: 'u3', memo: '' },
     ];
-    return { settings: { className: 'ひまわり学級（サンプル）' }, tables: { events, timetable, weekly, children, exchange, units, materials } };
+    const duties = [
+      { id: 'd1', name: '特別支援教育コーディネーター', role: '担当', order: 1, memo: '校内委員会の運営、就学相談の窓口' },
+      { id: 'd2', name: '図書部', role: '係', order: 2, memo: '' },
+    ];
+    const dItem = (id, dutyId, month, title, timing) => ({ id, dutyId, month, title, timing: timing || '', memo: '' });
+    const dutyItems = [
+      dItem('i1', 'd1', 4, '校内委員会の年間計画をつくる', '上旬'), dItem('i2', 'd1', 5, '第1回 校内委員会', '中旬'),
+      dItem('i3', 'd1', 6, '就学相談の案内を配る', '上旬'), dItem('i4', 'd1', 7, '個別の指導計画（前期）の評価をまとめる', '下旬'),
+      dItem('i5', 'd1', 9, '第2回 校内委員会', '中旬'), dItem('i6', 'd1', 10, '就学相談の見学の受け入れ', '中旬'),
+      dItem('i7', 'd1', 11, '個別の指導計画（後期）の見直しを集める', '上旬'), dItem('i8', 'd1', 12, '第3回 校内委員会', '中旬'),
+      dItem('i9', 'd1', 2, '次年度への引きつぎ資料をつくる', '下旬'), dItem('i10', 'd1', 3, '引きつぎ会', '中旬'),
+      dItem('i11', 'd2', 4, '図書室の利用計画', '上旬'), dItem('i12', 'd2', 10, '読書週間の準備', '下旬'), dItem('i13', 'd2', 2, '蔵書点検', '中旬'),
+    ];
+    const task = (id, title, due, to, cat, extra) => Object.assign({ id, title, due, to: to || '', cat, dutyId: '', memo: '', done: '', fromId: '' }, extra || {});
+    const tasks = [
+      task('k1', '個別の指導計画（後期）の見直し 提出', schoolDay(2), '教頭先生', '提出物', { memo: '全員分。保護者面談の前に' }),
+      task('k2', '校外学習のしおり 印刷', schoolDay(4), '', '準備', { fromId: 'g1:校外学習のしおり 印刷', memo: '10月 職員会議 より' }),
+      task('k3', '教材費の集金 報告', addDays(t, -1), '事務室', '提出物'),
+      task('k4', '就学相談の見学の受け入れ', schoolDay(9), '', '分掌', { dutyId: 'd1', fromId: 'i6' }),
+      task('k5', '通知表の所見 下書き', addDays(t, 40), '', '文書作成'),
+      task('k6', '学級だより 11月号', '', '', '文書作成'),
+      task('k7', '運動会の反省 提出', addDays(t, -3), '体育主任', '提出物', { done: addDays(t, -4) }),
+    ];
+    const meetings = [
+      { id: 'g1', date: addDays(mon, -4), kind: '職員会議', title: '10月 職員会議',
+        content: '・後期の行事予定の確認\n・校外学習は 予定どおり（雨天は翌日）\n・個別の指導計画（後期）の見直しは 教頭先生へ提出\n・インフルエンザの流行に注意。手洗い・換気をしっかり',
+        mine: '校外学習のしおり 印刷\n保護者面談の日程を 学級だよりで知らせる' },
+      { id: 'g2', date: addDays(mon, -10), kind: '校内委員会', title: '第2回 校内委員会',
+        content: '・就学相談の見学の受け入れについて\n・次回は12月中旬', mine: '' },
+    ];
+    const templates = [
+      { id: 'tp-dayori', title: '学級だより', kind: '学級だより', body: '{学級名} だより　{年度}年度　第　号\n{日付}\n\n保護者のみなさまへ\n\n（今月の ようす）\n\n\n（来月の 予定）\n・\n\n（お知らせ・お願い）\n・\n\n担任　' },
+      { id: 'tp-oshirase', title: '保護者へのお知らせ（行事）', kind: 'お知らせ', body: '{日付}\n保護者のみなさま\n{学級名} 担任\n\n　　　　の お知らせ\n\n　日ごろより、本学級の教育活動に ご理解と ご協力を いただき、ありがとうございます。\n　さて、下記のとおり　　　　を 行います。ご確認くださいますよう、お願いいたします。\n\n記\n１　日時　　月　日（　）\n２　場所　\n３　持ち物　\n４　その他　\n\n以上' },
+      { id: 'tp-moushiokuri', title: '交流学級の先生への申し送り', kind: '申し送り', body: '{日付}　交流学級担任の先生へ\n\n（呼び名）さんについて\n\n・きょうの ようす：\n・気をつけてほしいこと：\n・連絡：\n\n{学級名} 担任' },
+    ];
+    return { settings: { className: 'ひまわり学級（サンプル）' }, tables: { events, timetable, weekly, children, exchange, units, materials, tasks, duties, dutyItems, meetings, templates } };
   }
 
   boot();

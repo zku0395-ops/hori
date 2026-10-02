@@ -15,11 +15,12 @@ const SHEET_SETTINGS = '設定';
 const COL_ID = 'ID';
 const COL_UPDATED = '更新日時';
 const MAX_TEXT = 2000;
+const MAX_LONG = 10000;
 const MAX_RECORDS = 500;
 const HEADER_BG = '#d9ead3';
 
 // 画面の データの 種類と、シートの 列の 対応
-// [画面での 名前, シートの 見出し, 型（省略＝文字 / num＝数 / date＝日付 / time＝時刻）]
+// [画面での 名前, シートの 見出し, 型（省略＝文字 / long＝長い文 / num＝数 / date＝日付 / time＝時刻）]
 const TABLES = {
   events: {
     sheet: '行事予定',
@@ -50,6 +51,32 @@ const TABLES = {
     cols: [['id', COL_ID], ['name', '名前'], ['subject', '教科'], ['kind', '種類'], ['url', 'URL'], ['unitId', '単元ID'], ['memo', 'メモ']],
     // シートを 作った ときに 最初から 入れておく 行
     seed: [{ id: 'm-ondoku', name: 'おんどくはかせの ちょうせんじょう', subject: '国語', kind: 'アプリ', url: 'https://zku0395-ops.github.io/hori/', memo: '自作の音読アプリ。全員の記録は「音読はかせ 記録」のスプレッドシートで見られます。' }],
+  },
+  // ここから 公務の部屋
+  tasks: {
+    sheet: 'やること',
+    cols: [['id', COL_ID], ['title', 'やること'], ['due', '締め切り', 'date'], ['to', '提出先'], ['cat', '分類'], ['dutyId', '分掌ID'], ['memo', 'メモ'], ['done', '完了した日', 'date'], ['fromId', 'もとの記録']],
+  },
+  duties: {
+    sheet: '校務分掌',
+    cols: [['id', COL_ID], ['name', '分掌'], ['role', '役割'], ['order', '並び順', 'num'], ['memo', 'メモ']],
+  },
+  dutyItems: {
+    sheet: '分掌の仕事',
+    cols: [['id', COL_ID], ['dutyId', '分掌ID'], ['month', '月', 'num'], ['title', '仕事'], ['timing', '時期'], ['memo', 'メモ']],
+  },
+  meetings: {
+    sheet: '会議メモ',
+    cols: [['id', COL_ID], ['date', '日付', 'date'], ['kind', '種類'], ['title', '会議名'], ['content', '内容', 'long'], ['mine', '自分がやること', 'long']],
+  },
+  templates: {
+    sheet: '文書のひな形',
+    cols: [['id', COL_ID], ['title', '題名'], ['kind', '種類'], ['body', '本文', 'long']],
+    seed: [
+      { id: 'tp-dayori', title: '学級だより', kind: '学級だより', body: '{学級名} だより　{年度}年度　第　号\n{日付}\n\n保護者のみなさまへ\n\n（今月の ようす）\n\n\n（来月の 予定）\n・\n\n（お知らせ・お願い）\n・\n\n担任　' },
+      { id: 'tp-oshirase', title: '保護者へのお知らせ（行事）', kind: 'お知らせ', body: '{日付}\n保護者のみなさま\n{学級名} 担任\n\n　　　　の お知らせ\n\n　日ごろより、本学級の教育活動に ご理解と ご協力を いただき、ありがとうございます。\n　さて、下記のとおり　　　　を 行います。ご確認くださいますよう、お願いいたします。\n\n記\n１　日時　　月　日（　）\n２　場所　\n３　持ち物　\n４　その他　\n\n以上' },
+      { id: 'tp-moushiokuri', title: '交流学級の先生への申し送り', kind: '申し送り', body: '{日付}　交流学級担任の先生へ\n\n（呼び名）さんについて\n\n・きょうの ようす：\n・気をつけてほしいこと：\n・連絡：\n\n{学級名} 担任' },
+    ],
   },
 };
 
@@ -318,7 +345,7 @@ function toCell_(v, type) {
     const n = Number(v);
     return v === '' || !isFinite(n) ? '' : n;
   }
-  const s = String(v).slice(0, MAX_TEXT);
+  const s = String(v).slice(0, type === 'long' ? MAX_LONG : MAX_TEXT);
   // 日付は シートでも 日付として 並べかえ できるように そのまま 入れる
   if (type === 'date') return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : '';
   return text_(s);
@@ -332,7 +359,7 @@ function text_(s) {
 
 // すでに ある 行を 書きもどす ときに、文字が 式などに 変わらないように する
 function keepCell_(v) {
-  return typeof v === 'string' ? text_(v) : v;
+  return typeof v === 'string' ? text_(v.slice(0, MAX_LONG)) : v;
 }
 
 // シートの 値 → 画面の 値（Date は 画面に 渡せないので 文字に する）
