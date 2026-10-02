@@ -44,7 +44,7 @@ const TABLES = {
   // 週ごとの 情報（今週の重点）
   weeks: {
     sheet: '週ごと',
-    cols: [['id', COL_ID], ['monday', '週のはじめ', 'date'], ['focus', '今週の重点', 'long']],
+    cols: [['id', COL_ID], ['monday', '週のはじめ', 'date'], ['focus', '今週の重点', 'long'], ['draftAt', '下書きを作った日', 'date']],
   },
   children: {
     sheet: '子ども',
@@ -156,6 +156,43 @@ function apiSaveSettings(json) {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw new Error('設定の形が正しくありません。');
   withLock_(function () { writeSettings_(obj); });
   return true;
+}
+
+// 週案の 下書きを、週案簿と 同じ 形の 別の スプレッドシートに 書き出す（Excelで 開いて 貼り付けるため）
+// data = { name: シート名, cells: { 'B12': '国語', ... }, merges: ['B7:C7', ...] }
+function apiWriteDraft(json) {
+  const d = JSON.parse(json);
+  if (!d || typeof d.cells !== 'object') throw new Error('下書きの形が正しくありません。');
+  return withLock_(function () {
+    const props = PropertiesService.getScriptProperties();
+    let ss = null;
+    const id = props.getProperty('DRAFT_SSID');
+    if (id) { try { ss = SpreadsheetApp.openById(id); } catch (e) { ss = null; } }
+    if (!ss) {
+      ss = SpreadsheetApp.create(APP_TITLE + ' 週案の下書き');
+      props.setProperty('DRAFT_SSID', ss.getId());
+    }
+    const sh = ss.getSheets()[0];
+    const rows = 73, cols = 13; // A1:M73（週案簿の 週の シートと 同じ 行・列）
+    const rng = sh.getRange(1, 1, rows, cols);
+    rng.breakApart();
+    sh.clear();
+    const values = [];
+    for (let r = 0; r < rows; r++) { const row = []; for (let c = 0; c < cols; c++) row.push(''); values.push(row); }
+    Object.keys(d.cells).forEach(function (addr) {
+      const m = String(addr).match(/^([A-M])(\d{1,2})$/);
+      if (!m || Number(m[2]) < 1 || Number(m[2]) > rows) return;
+      const v = d.cells[addr];
+      values[Number(m[2]) - 1][m[1].charCodeAt(0) - 65] = typeof v === 'number' && isFinite(v) ? v : text_(String(v).slice(0, MAX_LONG));
+    });
+    rng.setValues(values);
+    (Array.isArray(d.merges) ? d.merges : []).forEach(function (a1) {
+      if (/^[A-M]\d{1,2}:[A-M]\d{1,2}$/.test(a1)) sh.getRange(a1).merge();
+    });
+    rng.setWrap(true).setVerticalAlignment('top');
+    sh.setName(String(d.name || '週案').slice(0, 30));
+    return ss.getUrl();
+  });
 }
 
 /* ---------- シートの 読み書き ---------- */

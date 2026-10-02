@@ -272,6 +272,9 @@
     .jisu-table tr.grand th, .jisu-table tr.grand td { background: var(--today); font-weight: 700; border-top: 2px solid var(--glow); }
     @media print { .jisu-table th, .jisu-table td { font-size: 10px; padding: 2px 3px; } }
 
+    .draft-card { margin-bottom: 16px; border-left: 4px solid var(--glow); }
+    .steps { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 6px; }
+
     /* 公務の部屋 */
     .tasks { list-style: none; margin: 0; padding: 0; }
     .task { display: flex; gap: 10px; align-items: flex-start; padding: 8px 2px; border-bottom: 1px solid var(--line); }
@@ -375,6 +378,9 @@
     standards: {},      // 教科ごとの 標準時数（年間）
     standardTotal: 0,   // 年間の 標準時数の 合計
     jisuMonths: [],     // 授業時数を 取りこんだ 月（'2026-04' など）。時数の ない 日は 授業なし
+    shuanboStart: '',   // 週案簿の 第1週の 月曜日（シートの 番号を 出すのに 使う）
+    autoDraft: true,    // 毎週木曜日から、来週の 週案の 下書きを 自動で 作る
+    draftCarry: true,   // 下書きの 学習内容に、前の 同じ 教科の 内容を 写す
   };
   // 時数の 集計で 別に 数える もの（週案簿の「学校行事」「児童会等」）
   const SPECIAL_SUBJECTS = ['行事', 'クラブ', '委員会'];
@@ -587,6 +593,9 @@
       Object.keys(s.standards).forEach((k) => { const n = Number(s.standards[k]); if (n > 0) out.standards[String(k)] = n; });
     }
     if (Number(s.standardTotal) > 0) out.standardTotal = Number(s.standardTotal);
+    if (isDate(s.shuanboStart)) out.shuanboStart = s.shuanboStart;
+    if (typeof s.autoDraft === 'boolean') out.autoDraft = s.autoDraft;
+    if (typeof s.draftCarry === 'boolean') out.draftCarry = s.draftCarry;
     out.jisuMonths = Array.isArray(s.jisuMonths) ? s.jisuMonths.map(String).filter((m) => /^\d{4}-\d{2}$/.test(m)) : [];
     return out;
   }
@@ -841,6 +850,7 @@
     const t = today();
     switch (room) {
       case 'yotei': {
+        if (upcomingDraft()) return '来週の 週案の 下書きを 作ったよ。直したら 週案簿に 貼ってね。';
         const e = eventsBetween(t, addDays(t, 14))[0];
         return e ? `つぎの予定は ${whenText(e.date < t ? t : e.date)}${e.time ? ' ' + e.time : ''}の「${short(e.title, 18)}」だよ。` : '2週間の予定は まだ ないよ。月の予定に 入れてね。';
       }
@@ -1137,7 +1147,14 @@
     const evHtml = eventsBetween(t, addDays(t, 14)).map((e) => evRow(e, t)).join('');
     const nowUnits = list('units').filter((u) => unitPhase(u) === 'now').sort((a, b) => S.subjects.indexOf(a.subject) - S.subjects.indexOf(b.subject));
 
+    const up = upcomingDraft();
     return `${sceneHtml()}
+      ${up ? `<section class="card draft-card">
+        <div class="toolbar" style="margin:0 0 4px"><h2 class="sec">📝 来週の 週案の 下書きが できています</h2><span class="grow"></span>
+          <button class="btn small" data-act="openWeek" data-date="${up.mon}">週案を見て直す</button>
+          <button class="btn small primary" data-act="exportShuanbo" data-mon="${up.mon}">📤 週案簿に貼る</button></div>
+        <p class="hint">${weekNo(up.mon) ? `第${weekNo(up.mon)}週 ` : ''}${jdate(up.mon)}〜 の週案を、時間割・行事予定・前の時間の内容から 作りました（${md(up.at)}）。直してから、週案簿に 貼り付けてください。</p>
+      </section>` : ''}
       <div class="grid2">
         <section class="card">
           <div class="toolbar"><h2 class="sec">🕘 ${off ? `次の登校日 ${jdate(day)} の時間割` : 'きょうの時間割'}</h2><span class="grow"></span>
@@ -1273,9 +1290,11 @@
         <button class="btn" data-act="weekMove" data-n="7">次の週 ▶</button>
         <input class="input" type="date" style="width:auto" value="${mon}" data-chg="weekJump" aria-label="日付を選んで その週を開く">
         <span class="grow"></span>
+        <button class="btn" data-act="makeDraft" data-mon="${mon}" title="書きこみのない時間に、時間割と前の時間の内容から下書きを入れます">📝 下書きを作る</button>
+        <button class="btn primary" data-act="exportShuanbo" data-mon="${mon}">📤 週案簿に貼る</button>
         <button class="btn" data-act="print">🖨 印刷</button>
       </div>
-      <h2 class="wk-title" style="margin:0 0 6px">${title}<span class="print-only">${esc(S.className)} 週案</span></h2>
+      <h2 class="wk-title" style="margin:0 0 6px">${weekNo(mon) ? `<span class="tag" style="font-size:13px">第${weekNo(mon)}週</span> ` : ''}${title}${wk && isDate(wk.draftAt) ? ` <span class="tag" title="下書きを作った日">📝 ${md(wk.draftAt)} 下書き</span>` : ''}<span class="print-only">${esc(S.className)} 週案</span></h2>
       <div class="focus" data-act="editFocus" data-mon="${mon}" tabindex="0" role="button"><b>🎯 今週の重点</b>　${wk && wk.focus ? nl(wk.focus) : '<span class="muted noprint">（押して書きこめます）</span>'}</div>
       <div class="table-wrap"><table class="week"><thead><tr><th class="pcol">校時</th>${head}</tr></thead><tbody>${rows}</tbody>
         <tfoot>${hasYasumi ? dayRow('yasumi', '休み時間') : ''}${dayRow('biko', '備考')}${dayRow('kiroku', '記録欄')}</tfoot></table></div>
@@ -1761,6 +1780,14 @@
         <div class="std-grid">${S.subjects.map((sub) => `<label class="std">${chip(sub)}<input class="input" type="number" min="0" max="2000" data-std="${esc(sub)}" value="${S.standards[sub] || ''}" aria-label="${esc(sub)}の標準時数"></label>`).join('')}
           <label class="std"><b>合計</b><input class="input" type="number" min="0" max="3000" id="std-total" value="${S.standardTotal || ''}" aria-label="標準時数の合計"></label></div>
         <div class="toolbar" style="margin:10px 0 0"><span class="grow"></span><button class="btn primary" data-act="saveStandards">保存する</button></div>
+      </section>
+      <section class="card">
+        <h2 class="sec" style="margin-bottom:6px">📝 週案の 下書き</h2>
+        <label class="check"><input type="checkbox" id="set-autodraft" ${S.autoDraft ? 'checked' : ''}> 毎週木曜日から、来週の 週案の 下書きを 自動で 作る</label>
+        <label class="check" style="margin-top:6px"><input type="checkbox" id="set-carry" ${S.draftCarry ? 'checked' : ''}> 下書きの 学習内容に、前の 同じ教科の 内容を 写す（先週の 同じ曜日・校時を 先に 見ます）</label>
+        <label class="field" style="margin-top:10px;max-width:320px">週案簿の 第1週の 月曜日（シートの 番号に 使います）<input class="input" type="date" id="set-sbstart" value="${esc(S.shuanboStart)}"></label>
+        <p class="hint" style="margin-top:6px">木曜日〜日曜日に 仮想職員室を 開くと、来週の 下書きが まだなら 作ります。週案簿から 取りこんだ 週や、自分で 書きこんだ 時間は そのままです。</p>
+        <div class="toolbar" style="margin:10px 0 0"><span class="grow"></span><button class="btn primary" data-act="saveDraftSettings">保存する</button></div>
       </section>
       <section class="card">
         <h2 class="sec" style="margin-bottom:6px">📥 学校の ファイルを 取りこむ</h2>
@@ -2396,7 +2423,9 @@
       });
       if (week.days.some((d) => d.recs.length) || week.focus) weeks.push(week);
     });
-    return { className, grade, subjects, standards, standardTotal, timetable, weeks, usesP7 };
+    const st = ini ? (cellN(ini, 'G5') || cellN(ini, 'G2')) : null;
+    const start = st > 30000 ? serialYmd(st) : (weeks[0] ? weeks[0].monday : '');
+    return { className, grade, subjects, standards, standardTotal, timetable, weeks, usesP7, start };
   }
   function showShuanboImport(b) {
     const filled = b.weeks.filter((w) => w.days.some((d) => d.fixed));
@@ -2436,6 +2465,7 @@
       if (!ps.some((p) => p.id === 'm')) ps.unshift({ id: 'm', name: 'モジュール', start: '08:30', end: '08:45', weight: 1 / 3 });
       if (b.usesP7 && !ps.some((p) => p.id === '7')) ps.push({ id: '7', name: '7校時', start: '', end: '', weight: 1 });
       if (ps.length !== S.periods.length) patch.periods = ps;
+      if (isDate(b.start)) patch.shuanboStart = mondayOf(b.start);
     }
     if (Object.keys(patch).length) {
       Object.assign(S, patch);
@@ -2479,6 +2509,203 @@
         <div class="toolbar" style="margin:0"><button class="btn" data-act="goTab" data-room="yotei" data-tab="week">週案を見る</button><button class="btn" data-act="goTab" data-room="yotei" data-tab="hours">時数の集計を見る</button></div>`,
     }), 0);
   }
+
+  /* =========================================================
+     週案の 下書き（毎週木曜日から、来週の分を 自動で 作る）と、
+     週案簿（Excel）に 貼り付けられる ファイルの 書き出し
+     ========================================================= */
+  const SB_CONTENT_ROWS = [13, 21, 31, 39, 49, 57, 65]; // 1〜7校時の 学習内容の セル（祝日名の 縦書きにも 使う）
+  const DRAFT_DAYS = [4, 5, 6, 0]; // 木・金・土・日 は 来週の 下書きを 作る
+  function weekNo(mon) {
+    if (!isDate(S.shuanboStart)) return 0;
+    const n = Math.floor(daysBetween(S.shuanboStart, mon) / 7) + 1;
+    return n >= 1 && n <= 53 ? n : 0;
+  }
+  function draftTarget() { const t = today(); return DRAFT_DAYS.includes(dayOf(t)) ? addDays(mondayOf(t), 7) : ''; }
+  // これから 来る 週で、下書きが できている 週
+  function upcomingDraft() {
+    const mon = addDays(mondayOf(today()), 7);
+    const wk = get('weeks', 'v' + mon);
+    return wk && isDate(wk.draftAt) ? { mon, at: wk.draftAt } : null;
+  }
+  function weekHasPlan(mon) { return weekDates(mon).some((d) => Number((dayInfo(d) || {}).fixed)); }
+  function periodIndex(pid) { return S.periods.findIndex((p) => p.id === pid); }
+  // 下書きの 学習内容：先週の 同じ 曜日・校時が 同じ 教科なら その内容、なければ いちばん近い 前の 同じ 教科の 内容
+  // 書きこみの 教科（空なら 基本の時間割の 教科）
+  function entrySubject(w) {
+    if (w.subject === NONE) return '';
+    return w.subject || ((baseLesson(dayOf(w.date), w.period) || {}).subject || '');
+  }
+  function prevContent(date, pid, subject) {
+    const w1 = get('weekly', wkId(addDays(date, -7), pid));
+    if (w1 && w1.content && entrySubject(w1) === subject) return w1.content;
+    let best = null;
+    list('weekly').forEach((w) => {
+      if (!w.content || !isDate(w.date) || w.date >= date || entrySubject(w) !== subject) return;
+      if (!best || w.date > best.date || (w.date === best.date && periodIndex(w.period) > periodIndex(best.period))) best = w;
+    });
+    return best ? best.content : '';
+  }
+  // 下書きを 作る：書きこみの ない 時間に、時間割・授業時数・単元・前の 時間の 内容から 入れる
+  function makeDraft(mon) {
+    const recs = [];
+    const mark = { id: 'v' + mon, monday: mon, draftAt: today() };
+    if (weekHasPlan(mon)) { putRecs('weeks', mark, { render: false }); return { n: 0, plan: true }; }
+    weekDates(mon).filter((d) => !offReason(d)).forEach((d) => {
+      const di = dayInfo(d);
+      const jisu = di && Number(di.jisu) > 0 ? Number(di.jisu) : 0;
+      S.periods.forEach((p) => {
+        if (get('weekly', wkId(d, p.id))) return;
+        const L = lesson(d, p.id);
+        const base = { id: wkId(d, p.id), date: d, period: p.id, hours: '', subject2: '', hours2: '', note: '', unitId: '' };
+        if (!L.subject) {
+          // 授業時数より 後の 最初の 時間に、下校などの 予定を 書いておく（週案簿と 同じ）
+          if (jisu && periodNo(p.id) === jisu + 1) {
+            const ev = eventsOn(d).find((e) => /下校|時程|時間授業/.test(e.title));
+            if (ev) recs.push(Object.assign(base, { subject: NONE, content: ev.title }));
+          }
+          return;
+        }
+        const unitId = autoUnit(L.subject, d);
+        const carry = S.draftCarry ? prevContent(d, p.id, L.subject) : '';
+        recs.push(Object.assign(base, { subject: L.subject, unitId, content: carry || (unitId ? get('units', unitId).name : '') }));
+      });
+    });
+    putRecs('weekly', recs, { render: false });
+    putRecs('weeks', mark, { render: false });
+    return { n: recs.length };
+  }
+  // 木曜日〜日曜日に 開いたとき、来週の 下書きが まだなら 作る
+  function autoDraftCheck() {
+    if (!S || !S.autoDraft) return;
+    const mon = draftTarget();
+    if (!mon) return;
+    const wk = get('weeks', 'v' + mon);
+    if (wk && isDate(wk.draftAt)) return;
+    if (!weekDates(mon).some((d) => !offReason(d))) return; // 休みの 週
+    makeDraft(mon);
+    render();
+  }
+
+  /* ---------- 週案簿に 貼り付ける 形 ---------- */
+  function gyojiOrder(a, b) {
+    // 取りこんだ 行事予定は 列の 順（D→E→F）、自分で 入れた 予定は あと
+    const ia = /^s\d{8}/.test(a.id), ib = /^s\d{8}/.test(b.id);
+    if (ia !== ib) return ia ? -1 : 1;
+    return ia ? a.id.localeCompare(b.id) : (a.time || '99').localeCompare(b.time || '99');
+  }
+  function shuanboMerges() {
+    const out = [];
+    SB_DAY_COLS.forEach((c) => {
+      const hc = nextCol(c);
+      [[7, 7], [8, 8], [10, 11], [13, 19], [21, 27], [28, 29], [31, 37], [39, 45], [46, 47], [49, 55], [57, 63], [65, 71], [72, 72]]
+        .forEach(([a, b]) => out.push(`${c}${a}:${hc}${b}`));
+    });
+    return out;
+  }
+  function shuanboCells(mon) {
+    const cells = {};
+    const splits = [];
+    const days = DAYS.map((_, i) => addDays(mon, i)).concat([addDays(mon, 5)]); // 月〜土
+    const satSchool = !offReason(days[5]);
+    const module = S.periods.find((p) => p.weight < 1);
+    days.forEach((d, i) => {
+      if (i === 5 && !satSchool) return;
+      const c = SB_DAY_COLS[i], hc = nextCol(c);
+      // 行事（1行目に 1つめ、2行目に のこり）
+      const gy = eventsOn(d).filter((e) => e.cat === '行事' || e.cat === KYUGYO).sort(gyojiOrder).map((e) => e.title);
+      if (gy[0]) cells[c + '7'] = gy[0];
+      if (gy.length > 1) cells[c + '8'] = gy.slice(1).join('　');
+      const off = offReason(d);
+      if (off) {
+        // 週案簿と 同じく、祝日などは 名前を 1字ずつ 縦に、長い休みは 空白
+        const name = off === '授業なし' ? '' : off;
+        if (!name) cells[c + '13'] = ' ';
+        else Array.from(name).slice(0, SB_CONTENT_ROWS.length).forEach((ch, k) => { cells[c + SB_CONTENT_ROWS[k]] = ch; });
+        return;
+      }
+      if (module) {
+        const L = lesson(d, module.id);
+        if (L.subject) { cells[c + '9'] = L.subject; if (Math.abs(L.hours - module.weight) > 0.01) cells[hc + '9'] = L.hours; }
+        if (L.content) cells[c + '10'] = L.content;
+      }
+      S.periods.filter((p) => p.weight >= 1).forEach((p) => {
+        const r = SB_PERIOD_ROWS[periodNo(p.id)];
+        if (!r) return;
+        const L = lesson(d, p.id);
+        if (L.subject) { cells[c + r] = L.subject; if (Math.abs(L.hours - 1) > 0.01) cells[hc + r] = L.hours; }
+        let content = L.content || '';
+        if (L.subject2) {
+          content = `（＋${L.subject2} ${fmtH(L.hours2)}）` + (content ? '\n' + content : '');
+          splits.push(`${jdate(d)} ${p.name}`);
+        }
+        if (content) cells[c + (r + 1)] = content;
+      });
+      const di = dayInfo(d) || {};
+      String(di.yasumi || '').split('\n').map((x) => x.trim()).filter(Boolean).forEach((line) => {
+        const m = line.match(/^(中休み|昼休み)：\s*(.*)$/);
+        const row = m && m[1] === '昼休み' ? '46' : '28';
+        const text = m ? m[2] : line;
+        cells[c + row] = cells[c + row] ? cells[c + row] + '　' + text : text;
+      });
+      if (di.biko) cells[c + '72'] = di.biko;
+      if (di.kiroku) cells[c + '73'] = di.kiroku;
+    });
+    return { cells, splits, lastCol: satSchool ? 'M' : 'K' };
+  }
+  async function downloadShuanbo(mon) {
+    const X = await loadXlsx();
+    const { cells, lastCol } = shuanboCells(mon);
+    const no = weekNo(mon);
+    const ws = {};
+    const put = (addr, v) => { ws[addr] = typeof v === 'number' ? { t: 'n', v } : { t: 's', v: String(v) }; };
+    put('A1', `${S.className} 週案の下書き　${no ? `第${no}週　` : ''}${jdate(mon)}〜`);
+    put('A2', `コピーする範囲：B7:${lastCol}73　→　週案簿の「${no || 'その週の'}」シートの B7 を選んで［形式を選択して貼り付け］→［値］`);
+    DAYS.map((_, i) => addDays(mon, i)).concat([addDays(mon, 5)]).forEach((d, i) => put(SB_DAY_COLS[i] + '5', `${md(d)}（${WD[dayOf(d)]}）`));
+    [['A7', '行事'], ['A9', 'モジュール'], ['A28', '中休み'], ['A46', '昼休み'], ['A72', '備考'], ['A73', '記録欄']].forEach(([a, v]) => put(a, v));
+    Object.keys(SB_PERIOD_ROWS).forEach((n) => put('A' + SB_PERIOD_ROWS[n], Number(n)));
+    Object.keys(cells).forEach((a) => put(a, cells[a]));
+    ws['!ref'] = 'A1:M73';
+    ws['!merges'] = shuanboMerges().map((r) => X.utils.decode_range(r));
+    ws['!cols'] = [{ wch: 8 }].concat(SB_DAY_COLS.flatMap(() => [{ wch: 18 }, { wch: 5 }]));
+    const wb = X.utils.book_new();
+    X.utils.book_append_sheet(wb, ws, String(no || '週案'));
+    // ファイル名が 確実に つくように、自分で ダウンロードさせる
+    const blob = new Blob([X.write(wb, { type: 'array', bookType: 'xlsx' })], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `週案の下書き_${no ? '第' + no + '週_' : ''}${mon}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+  function exportShuanbo(mon) {
+    const { splits, lastCol } = shuanboCells(mon);
+    const no = weekNo(mon);
+    const wk = get('weeks', 'v' + mon) || {};
+    openDialog({
+      title: `📤 週案簿に貼る　${no ? `第${no}週` : ''}（${jdate(mon)}〜）`,
+      readOnly: true,
+      body: `<p style="margin:0">この週の週案を、週案簿（Excel）の 週の シートと 同じ形の ファイルに 書き出します。</p>
+        <ol class="steps">
+          <li>「Excelファイルを作る」を押して、ファイルを ダウンロードします。</li>
+          <li>そのファイルを Excel で開き、左上の 名前ボックスに <b>B7:${lastCol}73</b> と入れて Enter →［コピー］（Ctrl＋C）</li>
+          <li>週案簿の「<b>${no || 'その週の'}</b>」シートで <b>B7</b> を選び、右クリック →［形式を選択して貼り付け］→［値］→［OK］（Ctrl＋Alt＋V でも 開けます）</li>
+        </ol>
+        ${splits.length ? `<p class="warn-box" style="margin:0">⚠ 1時間を 2つの教科に 分けた時間（${splits.map(esc).join('、')}）は、1つめの教科だけが 入ります。週案簿で 分けてから、2つめの教科を 入れてください。</p>` : ''}
+        ${wk.focus ? `<label class="field">今週の重点（週案簿の G3 に 貼ってください）<textarea class="input" id="focusCopy" rows="2" readonly>${esc(wk.focus)}</textarea></label>` : ''}
+        <div class="toolbar" style="margin:0">
+          <button class="btn primary" data-act="dlShuanbo" data-mon="${mon}">📥 Excelファイルを作る</button>
+          ${IN_GAS ? `<button class="btn" data-act="sheetShuanbo" data-mon="${mon}">Googleスプレッドシートに 書き出す</button>` : ''}
+          ${wk.focus ? '<button class="btn" data-act="copyFocus">📋 今週の重点を コピー</button>' : ''}
+        </div>
+        <p class="hint" id="exportMsg" role="status"></p>
+        <p class="hint">貼り付けると、週案簿の その週の 行事・教科・時数・学習内容・休み時間・備考・記録欄が 入れかわります。右側の 時数の集計は、週案簿が 自動で 計算します。${IN_GAS ? 'ダウンロードが できないときは「Googleスプレッドシートに 書き出す」で 開き、［ファイル］→［ダウンロード］→［Microsoft Excel］で 保存してください。' : ''}</p>`,
+    });
+  }
+  function exportMsg(text) { const el = document.getElementById('exportMsg'); if (el) el.textContent = text; }
 
   /* ---------- 準備中の 部屋 ---------- */
   function viewSoon(room) {
@@ -2565,6 +2792,38 @@
     editEvent: (d) => editEvent(d.id),
     editLesson: (d) => editLesson(d.date, d.pid),
     editDay: (d) => editDay(d.date),
+    makeDraft: (d) => {
+      if (weekHasPlan(d.mon)) { alert('この週は、週案簿から 取りこんだ 週案が あります。下書きは 作りません。'); return; }
+      if (!confirm('書きこみのない時間に、時間割・行事予定・前の時間の内容から 下書きを入れます。よろしいですか？')) return;
+      const r = makeDraft(d.mon);
+      render();
+      alert(`${r.n}コマに 下書きを入れました。マスを押して 直せます。`);
+    },
+    exportShuanbo: (d) => exportShuanbo(d.mon),
+    dlShuanbo: async (d) => {
+      exportMsg('ファイルを作っています…');
+      try { await downloadShuanbo(d.mon); exportMsg('✓ ダウンロードしました。ダウンロードフォルダを 見てください。'); } catch (err) { console.error(err); exportMsg('⚠ ' + (err && err.message ? err.message : err)); }
+    },
+    sheetShuanbo: async (d) => {
+      exportMsg('スプレッドシートに 書き出しています…');
+      try {
+        const { cells } = shuanboCells(d.mon);
+        const url = await gasCall('apiWriteDraft', JSON.stringify({ name: String(weekNo(d.mon) || '週案'), cells, merges: shuanboMerges() }));
+        const el = document.getElementById('exportMsg');
+        if (el) el.innerHTML = safeUrl(url) ? `✓ 書き出しました：<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">週案の下書きを開く ↗</a>（［ファイル］→［ダウンロード］→［Microsoft Excel］）` : '✓ 書き出しました。';
+      } catch (err) { console.error(err); exportMsg('⚠ ' + (err && err.message ? err.message : err)); }
+    },
+    copyFocus: () => {
+      const ta = document.getElementById('focusCopy');
+      if (!ta) return;
+      const done = () => exportMsg('✓ 今週の重点を コピーしました。');
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(done, () => { ta.select(); document.execCommand('copy'); done(); });
+      else { ta.select(); document.execCommand('copy'); done(); }
+    },
+    saveDraftSettings: () => {
+      const start = document.getElementById('set-sbstart').value;
+      saveSettings({ autoDraft: document.getElementById('set-autodraft').checked, draftCarry: document.getElementById('set-carry').checked, shuanboStart: isDate(start) ? mondayOf(start) : '' });
+    },
     editFocus: (d) => editFocus(d.mon),
     editChild: (d) => editChild(d.id || ''),
     pickChild: (d) => { view.childId = d.id; render(); },
@@ -2711,6 +2970,7 @@
       lastError = null;
       dataVersion++;
       render();
+      autoDraftCheck();
     } catch (err) {
       console.error(err);
       document.getElementById('app').innerHTML = `<div class="fatal">⚠️<div>職員室のデータを読みこめませんでした。</div>
@@ -2827,6 +3087,7 @@
   boot();
   setInterval(() => { const el = document.getElementById('holo'); if (el && S) el.innerHTML = holoHtml(); }, 30000);
   setInterval(nextTalk, 6000);
+  setInterval(() => { if (S && !document.getElementById('dlg').open) autoDraftCheck(); }, 60000);
   </script>
 </body>
 </html>
