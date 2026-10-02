@@ -6,7 +6,7 @@
  *   - 画面から 呼ばれる apiGetAll / apiPut / apiRemove / apiSaveSettings で、
  *     このスプレッドシートの シートに 予定・時間割・週案・単元計画などを 読み書きします。
  *
- *   - 毎週木曜日の朝（時間主導型トリガー）に weeklyDraftJob() が 来週の 週案の 下書きを 作ります。
+ *   - 毎週火曜日の朝（時間主導型トリガー）に weeklyDraftJob() が 次の週の 週案の 下書きを 作ります。
  *     下書きの 計算は、app.html の「共通ここから」〜「共通ここまで」の 部分を 読みこんで 使います。
  *
  * デプロイは「次のユーザーとして実行：自分」「アクセスできるユーザー：自分のみ」で 行います。
@@ -23,7 +23,9 @@ const MAX_RECORDS = 500;
 const BULK = 30; // これより 多く 書きかえる・消す ときは、まとめて 書きなおす
 const HEADER_BG = '#d9ead3';
 const DRAFT_JOB = 'weeklyDraftJob';
-const DRAFT_HOUR = 6; // 木曜日の 6時台に 作る（プロジェクトの タイムゾーンの 時刻）
+const DRAFT_WEEKDAY = 'TUESDAY'; // 下書きを 作る 曜日（ScriptApp.WeekDay の 名前）
+const DRAFT_DAY_LABEL = '火曜日';
+const DRAFT_HOUR = 6; // 6時台に 作る（プロジェクトの タイムゾーンの 時刻）
 
 // 画面の データの 種類と、シートの 列の 対応
 // [画面での 名前, シートの 見出し, 型（省略＝文字 / long＝長い文 / num＝数 / date＝日付 / time＝時刻）]
@@ -112,20 +114,20 @@ function onOpen() {
     .addItem('職員室を開くURLを表示', 'showUrl')
     .addItem('シートを準備する', 'setupSheets')
     .addSeparator()
-    .addItem('木曜日の朝の 週案の自動作成を オンにする', 'enableDraftTrigger')
-    .addItem('木曜日の朝の 週案の自動作成を オフにする', 'disableDraftTrigger')
-    .addItem('来週の 週案の下書きを いま作る', 'runDraftNow')
+    .addItem(DRAFT_DAY_LABEL + 'の朝の 週案の自動作成を オンにする', 'enableDraftTrigger')
+    .addItem(DRAFT_DAY_LABEL + 'の朝の 週案の自動作成を オフにする', 'disableDraftTrigger')
+    .addItem('次の週の 週案の下書きを いま作る', 'runDraftNow')
     .addToUi();
 }
 
 function enableDraftTrigger() {
   apiSetDraftTrigger(true);
-  SpreadsheetApp.getUi().alert('毎週木曜日の朝（' + DRAFT_HOUR + '時台）に、来週の 週案の 下書きを 自動で 作ります。\n仮想職員室を 開かなくても 作られます。');
+  SpreadsheetApp.getUi().alert('毎週' + DRAFT_DAY_LABEL + 'の朝（' + DRAFT_HOUR + '時台）に、次の週の 週案の 下書きを 自動で 作ります。\n仮想職員室を 開かなくても 作られます。');
 }
 
 function disableDraftTrigger() {
   apiSetDraftTrigger(false);
-  SpreadsheetApp.getUi().alert('木曜日の朝の 自動作成を オフにしました。');
+  SpreadsheetApp.getUi().alert(DRAFT_DAY_LABEL + 'の朝の 自動作成を オフにしました。');
 }
 
 function runDraftNow() {
@@ -225,9 +227,10 @@ function writeDraftSheet_(name, cells, merges) {
   }
 }
 
-/* ---------- 毎週木曜日の朝：来週の 週案の 下書き ---------- */
-// 時間主導型トリガーから 呼ばれる。force＝true なら 曜日に 関係なく 来週の 分を 作る（メニューから）
+/* ---------- 毎週火曜日の朝：次の週の 週案の 下書き ---------- */
+// 時間主導型トリガーから 呼ばれる。force＝true なら 曜日に 関係なく 次の週の 分を 作る（メニューから）
 function weeklyDraftJob(force) {
+  healDraftTrigger_();
   return withLock_(function () {
     const tz = ss_().getSpreadsheetTimeZone();
     const T = {};
@@ -239,17 +242,17 @@ function weeklyDraftJob(force) {
     if (force !== true && !S.autoDraft) return { made: 0, message: '「設定」で 自動で 作らない ように なっています。' };
     const mon = lib.addDays(lib.mondayOf(now), 7);
     const wk = T.weeks.get('v' + mon);
-    if (force !== true && wk && lib.isDate(wk.draftAt)) return { made: 0, message: '来週の 下書きは もう できています。' };
-    if (!lib.weekDates(mon).some(function (d) { return !lib.offReason(d); })) return { made: 0, message: '来週は 授業の 日が ありません。' };
+    if (force !== true && wk && lib.isDate(wk.draftAt)) return { made: 0, message: '次の週の 下書きは もう できています。' };
+    if (!lib.weekDates(mon).some(function (d) { return !lib.offReason(d); })) return { made: 0, message: '次の週は 授業の 日が ありません。' };
     const r = lib.draftRecs(mon);
     if (r.recs.length) writeTable_('weekly', r.recs);
     writeTable_('weeks', [r.mark]);
-    if (r.plan) return { made: 0, message: '来週は 週案簿から 取りこんだ 週案が あるので、下書きは 作りませんでした。' };
+    if (r.plan) return { made: 0, message: '次の週は 週案簿から 取りこんだ 週案が あるので、下書きは 作りませんでした。' };
     // 週案簿に 貼る 形の スプレッドシートも 作っておく
     r.recs.forEach(function (x) { T.weekly.set(x.id, x); });
     const no = lib.weekNo(mon);
     const url = writeDraftSheet_(String(no || '週案'), lib.shuanboCells(mon).cells, lib.shuanboMerges());
-    return { made: r.recs.length, url: url, message: '来週（' + mon + '〜）の 週案の 下書きを ' + r.recs.length + 'コマ 作りました。\n週案簿に 貼る 形の ファイル：' + url };
+    return { made: r.recs.length, url: url, message: '次の週（' + mon + '〜）の 週案の 下書きを ' + r.recs.length + 'コマ 作りました。\n週案簿に 貼る 形の ファイル：' + url };
   });
 }
 
@@ -266,21 +269,39 @@ function shared_(T, S) {
   return make(T, S);
 }
 
-// 木曜日の朝の トリガーを つける・はずす（同じ ものは 1つだけ）
+// 朝の トリガーを つける・はずす（同じ ものは 1つだけ）。曜日と 時刻は スクリプトの プロパティに 覚えておく
 function apiSetDraftTrigger(on) {
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (t.getHandlerFunction() === DRAFT_JOB) ScriptApp.deleteTrigger(t);
   });
-  if (on) ScriptApp.newTrigger(DRAFT_JOB).timeBased().onWeekDay(ScriptApp.WeekDay.THURSDAY).atHour(DRAFT_HOUR).create();
+  const props = PropertiesService.getScriptProperties();
+  if (on) {
+    ScriptApp.newTrigger(DRAFT_JOB).timeBased().onWeekDay(ScriptApp.WeekDay[DRAFT_WEEKDAY]).atHour(DRAFT_HOUR).create();
+    props.setProperty('DRAFT_SCHEDULE', draftSchedule_());
+  }
   return draftTriggerOn_();
 }
 
-function draftTriggerOn_() {
+function draftSchedule_() { return DRAFT_WEEKDAY + '@' + DRAFT_HOUR; }
+
+function hasDraftTrigger_() {
   try {
     return ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === DRAFT_JOB; });
   } catch (e) {
     return false;
   }
+}
+
+// トリガーが あり、いまの 曜日・時刻で つけた ものなら オン（前の 曜日の ままなら オフと みなす）
+function draftTriggerOn_() {
+  return hasDraftTrigger_() && PropertiesService.getScriptProperties().getProperty('DRAFT_SCHEDULE') === draftSchedule_();
+}
+
+// 前の 版の 曜日で つけた トリガーが 残っていたら、いまの 曜日に つけなおす
+function healDraftTrigger_() {
+  try {
+    if (hasDraftTrigger_() && !draftTriggerOn_()) apiSetDraftTrigger(true);
+  } catch (e) { /* トリガーの 管理が 許可されていない ときは そのまま */ }
 }
 
 /* ---------- シートの 読み書き ---------- */

@@ -353,7 +353,7 @@
 
   /* =========================================================
      「共通ここから」〜「共通ここまで」の 部分は、計算だけを する 部分です。
-     Apps Script（Code.gs）が 木曜日の朝に 週案の 下書きを 作るときにも、
+     Apps Script（Code.gs）が 火曜日の朝に 週案の 下書きを 作るときにも、
      この 部分を そのまま 読みこんで 使います（画面の 部品は 使わないこと）。
      ========================================================= */
   /* =========================================================
@@ -385,9 +385,9 @@
     standardTotal: 0,   // 年間の 標準時数の 合計
     jisuMonths: [],     // 授業時数を 取りこんだ 月（'2026-04' など）。時数の ない 日は 授業なし
     shuanboStart: '',   // 週案簿の 第1週の 月曜日（シートの 番号を 出すのに 使う）
-    autoDraft: true,    // 毎週木曜日から、来週の 週案の 下書きを 自動で 作る
+    autoDraft: true,    // 毎週火曜日から、次の週の 週案の 下書きを 自動で 作る
     draftCarry: true,   // 下書きの 学習内容に、前の 同じ 教科の 内容を 写す
-    draftTriggerOff: false, // 木曜日の朝の 自動作成（Apps Script の トリガー）を 自分で オフに したか
+    draftTriggerOff: false, // 火曜日の朝の 自動作成（Apps Script の トリガー）を 自分で オフに したか
   };
   // 時数の 集計で 別に 数える もの（週案簿の「学校行事」「児童会等」）
   const SPECIAL_SUBJECTS = ['行事', 'クラブ', '委員会'];
@@ -865,7 +865,7 @@
     const t = today();
     switch (room) {
       case 'yotei': {
-        if (upcomingDraft()) return '来週の 週案の 下書きを 作ったよ。直したら 週案簿に 貼ってね。';
+        if (upcomingDraft()) return '次の週の 週案の 下書きを 作ったよ。直したら 週案簿に 貼ってね。';
         const e = eventsBetween(t, addDays(t, 14))[0];
         return e ? `つぎの予定は ${whenText(e.date < t ? t : e.date)}${e.time ? ' ' + e.time : ''}の「${short(e.title, 18)}」だよ。` : '2週間の予定は まだ ないよ。月の予定に 入れてね。';
       }
@@ -1165,7 +1165,7 @@
     const up = upcomingDraft();
     return `${sceneHtml()}
       ${up ? `<section class="card draft-card">
-        <div class="toolbar" style="margin:0 0 4px"><h2 class="sec">📝 来週の 週案の 下書きが できています</h2><span class="grow"></span>
+        <div class="toolbar" style="margin:0 0 4px"><h2 class="sec">📝 次の週の 週案の 下書きが できています</h2><span class="grow"></span>
           <button class="btn small" data-act="openWeek" data-date="${up.mon}">週案を見て直す</button>
           <button class="btn small primary" data-act="exportShuanbo" data-mon="${up.mon}">📤 週案簿に貼る</button></div>
         <p class="hint">${weekNo(up.mon) ? `第${weekNo(up.mon)}週 ` : ''}${jdate(up.mon)}〜 の週案を、時間割・行事予定・前の時間の内容から 作りました（${md(up.at)}）。直してから、週案簿に 貼り付けてください。${IN_GAS && safeUrl(meta.draftSheetUrl) ? `　<a href="${esc(meta.draftSheetUrl)}" target="_blank" rel="noopener noreferrer">週案簿に 貼る 形の スプレッドシート ↗</a>` : ''}</p>
@@ -1800,16 +1800,16 @@
       </section>
       <section class="card">
         <h2 class="sec" style="margin-bottom:6px">📝 週案の 下書き</h2>
-        <label class="check"><input type="checkbox" id="set-autodraft" ${S.autoDraft ? 'checked' : ''}> 毎週木曜日から、来週の 週案の 下書きを 自動で 作る</label>
+        <label class="check"><input type="checkbox" id="set-autodraft" ${S.autoDraft ? 'checked' : ''}> 毎週火曜日から、次の週の 週案の 下書きを 自動で 作る</label>
         <label class="check" style="margin-top:6px"><input type="checkbox" id="set-carry" ${S.draftCarry ? 'checked' : ''}> 下書きの 学習内容に、前の 同じ教科の 内容を 写す（先週の 同じ曜日・校時を 先に 見ます）</label>
         <label class="field" style="margin-top:10px;max-width:320px">週案簿の 第1週の 月曜日（シートの 番号に 使います）<input class="input" type="date" id="set-sbstart" value="${esc(S.shuanboStart)}"></label>
         <div class="info" style="margin-top:10px">${IN_GAS
-          ? `<b>⏰ 木曜日の朝（6時台）の 自動作成：${meta.draftTrigger ? '<span style="color:var(--primary)">オン</span>' : 'オフ'}</b>
-            <div class="hint" style="margin:4px 0 6px">オンの ときは、仮想職員室を 開かなくても、毎週木曜日の朝に 来週の 下書きと、週案簿に 貼る 形の スプレッドシートを 作ります。</div>
-            ${meta.triggerError ? `<p class="hint" style="color:var(--danger);margin:0 0 6px">⚠ 切りかえられませんでした：${esc(meta.triggerError)}<br>スプレッドシートの メニュー「仮想職員室」→「木曜日の朝の 週案の自動作成を オンにする」から、許可して オンに してください。</p>` : ''}
+          ? `<b>⏰ 火曜日の朝（6時台）の 自動作成：${meta.draftTrigger ? '<span style="color:var(--primary)">オン</span>' : 'オフ'}</b>
+            <div class="hint" style="margin:4px 0 6px">オンの ときは、仮想職員室を 開かなくても、毎週火曜日の朝に 次の週の 下書きと、週案簿に 貼る 形の スプレッドシートを 作ります。</div>
+            ${meta.triggerError ? `<p class="hint" style="color:var(--danger);margin:0 0 6px">⚠ 切りかえられませんでした：${esc(meta.triggerError)}<br>スプレッドシートの メニュー「仮想職員室」→「火曜日の朝の 週案の自動作成を オンにする」から、許可して オンに してください。</p>` : ''}
             ${meta.draftTrigger ? '<button class="btn small" data-act="draftTrigger" data-on="">オフにする</button>' : '<button class="btn small primary" data-act="draftTrigger" data-on="1">オンにする</button>'}`
-          : '<span class="hint">⏰ Apps Script で 使うと、仮想職員室を 開かなくても、毎週木曜日の朝に 自動で 作るように なります（試作モードでは、木曜日〜日曜日に 開いたときに 作ります）。</span>'}</div>
-        <p class="hint" style="margin-top:6px">朝の 自動作成が 動かなかった週も、木曜日〜日曜日に 仮想職員室を 開けば 作ります。週案簿から 取りこんだ 週や、自分で 書きこんだ 時間は そのままです。</p>
+          : '<span class="hint">⏰ Apps Script で 使うと、仮想職員室を 開かなくても、毎週火曜日の朝に 自動で 作るように なります（試作モードでは、火曜日〜日曜日に 開いたときに 作ります）。</span>'}</div>
+        <p class="hint" style="margin-top:6px">朝の 自動作成が 動かなかった週も、火曜日〜日曜日に 仮想職員室を 開けば 作ります。週案簿から 取りこんだ 週や、自分で 書きこんだ 時間は そのままです。</p>
         <div class="toolbar" style="margin:10px 0 0"><span class="grow"></span><button class="btn primary" data-act="saveDraftSettings">保存する</button></div>
       </section>
       <section class="card">
@@ -2536,12 +2536,12 @@
   }
 
   /* =========================================================
-     週案の 下書き（毎週木曜日から、来週の分を 自動で 作る）と、
+     週案の 下書き（毎週火曜日から、次の週の分を 自動で 作る）と、
      週案簿（Excel）に 貼り付けられる ファイルの 書き出し
      ========================================================= */
   /* 共通ここから */
   const SB_CONTENT_ROWS = [13, 21, 31, 39, 49, 57, 65]; // 1〜7校時の 学習内容の セル（祝日名の 縦書きにも 使う）
-  const DRAFT_DAYS = [4, 5, 6, 0]; // 木・金・土・日 は 来週の 下書きを 作る
+  const DRAFT_DAYS = [2, 3, 4, 5, 6, 0]; // 火〜日 は 次の週の 下書きを 作る（月曜日は 作らない）
   function weekNo(mon) {
     if (!isDate(S.shuanboStart)) return 0;
     const n = Math.floor(daysBetween(S.shuanboStart, mon) / 7) + 1;
@@ -2607,7 +2607,7 @@
     putRecs('weeks', r.mark, { render: false });
     return { n: r.recs.length, plan: r.plan };
   }
-  // Apps Script の 中では、木曜日の朝の 自動作成（トリガー）を つけておく（自分で オフに した ときを のぞく）
+  // Apps Script の 中では、火曜日の朝の 自動作成（トリガー）を つけておく（自分で オフに した ときを のぞく）
   function ensureDraftTrigger() {
     if (!IN_GAS || !S.autoDraft || meta.draftTrigger || S.draftTriggerOff) return;
     setDraftTrigger(true, true);
@@ -2622,7 +2622,7 @@
       if (!quiet || view.room === 'settings') render();
     });
   }
-  // 木曜日〜日曜日に 開いたとき、来週の 下書きが まだなら 作る（Apps Script の 自動作成が 動かなかったときの 予備）
+  // 火曜日〜日曜日に 開いたとき、次の週の 下書きが まだなら 作る（Apps Script の 自動作成が 動かなかったときの 予備）
   function autoDraftCheck() {
     if (!S || !S.autoDraft) return;
     const mon = draftTarget();
