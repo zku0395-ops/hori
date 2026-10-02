@@ -17,6 +17,7 @@ const COL_UPDATED = '更新日時';
 const MAX_TEXT = 2000;
 const MAX_LONG = 10000;
 const MAX_RECORDS = 500;
+const BULK = 30; // これより 多く 書きかえる・消す ときは、まとめて 書きなおす
 const HEADER_BG = '#d9ead3';
 
 // 画面の データの 種類と、シートの 列の 対応
@@ -32,7 +33,18 @@ const TABLES = {
   },
   weekly: {
     sheet: '週案',
-    cols: [['id', COL_ID], ['date', '日付', 'date'], ['period', '校時ID'], ['subject', '教科'], ['unitId', '単元ID'], ['content', '学習内容'], ['note', 'メモ・ふりかえり']],
+    cols: [['id', COL_ID], ['date', '日付', 'date'], ['period', '校時ID'], ['subject', '教科'], ['unitId', '単元ID'], ['content', '学習内容', 'long'], ['note', 'メモ・ふりかえり'],
+      ['hours', '時数', 'num'], ['subject2', '教科2'], ['hours2', '時数2', 'num']],
+  },
+  // 日ごとの 情報（授業時数・週案簿の 備考など）
+  days: {
+    sheet: '日ごと',
+    cols: [['id', COL_ID], ['date', '日付', 'date'], ['jisu', '授業時数', 'num'], ['fixed', '週案あり', 'num'], ['yasumi', '休み時間', 'long'], ['biko', '備考', 'long'], ['kiroku', '記録欄', 'long']],
+  },
+  // 週ごとの 情報（今週の重点）
+  weeks: {
+    sheet: '週ごと',
+    cols: [['id', COL_ID], ['monday', '週のはじめ', 'date'], ['focus', '今週の重点', 'long']],
   },
   children: {
     sheet: '子ども',
@@ -188,6 +200,7 @@ function writeTable_(kind, recs) {
 
   const now = new Date();
   const appended = [];
+  const changed = {};
   order.forEach(function (id) {
     const rec = byId[id];
     const i = rowOf[id];
@@ -200,9 +213,16 @@ function writeTable_(kind, recs) {
       else if (Object.prototype.hasOwnProperty.call(rec, c[0])) row[j] = toCell_(rec[c[0]], c[2]);
     });
     if (updCol >= 0) row[updCol] = now;
-    if (i !== undefined) sh.getRange(i + 1, 1, 1, width).setValues([row]);
-    else appended.push(row);
+    if (i !== undefined) { values[i] = row; changed[i] = true; } else appended.push(row);
   });
+  const rows = Object.keys(changed).map(Number);
+  if (rows.length > BULK) {
+    // たくさん 書きかえる ときは、表を まとめて 書きなおす（1行ずつより ずっと 速い）
+    const body = values.slice(1).map(function (r, k) { return changed[k + 1] ? r : r.map(keepCell_); });
+    sh.getRange(2, 1, body.length, width).setValues(body);
+  } else {
+    rows.forEach(function (i) { sh.getRange(i + 1, 1, 1, width).setValues([values[i]]); });
+  }
   if (appended.length) sh.getRange(values.length + 1, 1, appended.length, width).setValues(appended);
 }
 
@@ -216,6 +236,17 @@ function deleteRows_(kind, ids) {
   const col = sh.getRange(2, idCol, last - 1, 1).getValues();
   const want = {};
   ids.forEach(function (id) { want[id] = true; });
+  const hit = col.filter(function (r) { return want[String(r[0])]; }).length;
+  if (!hit) return;
+  if (hit > BULK) {
+    // たくさん 消す ときは、残す 行だけを 書きなおす
+    const width = sh.getLastColumn();
+    const body = sh.getRange(2, 1, last - 1, width).getValues();
+    const keep = body.filter(function (r) { return !want[String(r[idCol - 1])]; }).map(function (r) { return r.map(keepCell_); });
+    sh.getRange(2, 1, last - 1, width).clearContent();
+    if (keep.length) sh.getRange(2, 1, keep.length, width).setValues(keep);
+    return;
+  }
   // 下の 行から 消すと 行番号が ずれない
   for (let i = col.length - 1; i >= 0; i--) {
     if (want[String(col[i][0])]) sh.deleteRow(i + 2);

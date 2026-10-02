@@ -252,6 +252,26 @@
     .mat-act { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
     .date-chips { display: flex; flex-wrap: wrap; gap: 4px; }
 
+    /* 週案：週案簿に 合わせた 部分 */
+    .focus { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--glow); border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; cursor: pointer; }
+    .focus:hover { border-color: var(--glow); }
+    .week .hrs { font-size: 11px; color: var(--sub); margin-left: 2px; font-weight: 700; }
+    .week .plus { font-size: 11px; color: var(--sub); margin: 0 2px; }
+    .week td.nocls { background: repeating-linear-gradient(135deg, transparent 0 6px, var(--soft) 6px 7px); }
+    .week .dash { color: var(--sub); }
+    .week tr.module-row td.cell { height: 54px; }
+    .week tfoot th, .week tfoot td { background: var(--soft); }
+    .week tfoot td.daynote { height: auto; min-height: 40px; font-size: 13px; background: var(--card); }
+    .hours-table th, .hours-table td { text-align: center; white-space: nowrap; padding: 4px 6px; font-size: 13px; }
+    .hours-table tbody th { text-align: left; }
+
+    .jisu-table th, .jisu-table td { text-align: center; white-space: nowrap; padding: 4px 6px; font-size: 13px; border-left: 1px solid var(--line); }
+    .jisu-table tbody th { text-align: left; }
+    .jisu-table .term, .jisu-table .total { background: var(--soft); font-weight: 700; }
+    .jisu-table tr.sub th, .jisu-table tr.sub td { background: var(--today); font-weight: 700; }
+    .jisu-table tr.grand th, .jisu-table tr.grand td { background: var(--today); font-weight: 700; border-top: 2px solid var(--glow); }
+    @media print { .jisu-table th, .jisu-table td { font-size: 10px; padding: 2px 3px; } }
+
     /* 公務の部屋 */
     .tasks { list-style: none; margin: 0; padding: 0; }
     .task { display: flex; gap: 10px; align-items: flex-start; padding: 8px 2px; border-bottom: 1px solid var(--line); }
@@ -267,7 +287,10 @@
     .quick { display: flex; gap: 8px; flex-wrap: wrap; }
     .quick input[name=title] { flex: 1 1 260px; width: auto; }
     .check { display: flex; gap: 8px; align-items: center; font-weight: 700; font-size: 14px; }
-    .check input { width: 20px; height: 20px; accent-color: var(--primary); }
+    .check input { width: 20px; height: 20px; accent-color: var(--primary); flex: none; }
+    .info .check { margin-top: 6px; font-weight: 400; }
+    .warn-box { background: #fff4e5; border: 1px solid #f5c37a; border-radius: 10px; padding: 8px 12px; color: #7a4b00; }
+    @media (prefers-color-scheme: dark) { .warn-box { background: #3a2a10; border-color: #6b4a14; color: #f6d98a; } }
     .mrow { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 8px; padding: 6px 4px; border-bottom: 1px dashed var(--line); }
     .mrow:last-child { border-bottom: 0; }
     .mrow.now { background: var(--today); border-radius: 8px; }
@@ -282,6 +305,9 @@
     .holo .hdead.late { color: #ffb4a8; }
 
     /* 設定 */
+    .std-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+    .std { display: flex; align-items: center; gap: 6px; justify-content: space-between; }
+    .std input { width: 84px; }
     .ptable input { width: 100%; }
     .ptable td { padding: 4px 6px; }
 
@@ -325,7 +351,7 @@
   /* =========================================================
      決まりごと
      ========================================================= */
-  const KINDS = ['events', 'timetable', 'weekly', 'children', 'exchange', 'units', 'materials', 'tasks', 'duties', 'dutyItems', 'meetings', 'templates'];
+  const KINDS = ['events', 'timetable', 'weekly', 'children', 'exchange', 'units', 'materials', 'tasks', 'duties', 'dutyItems', 'meetings', 'templates', 'days', 'weeks'];
   const DAYS = [1, 2, 3, 4, 5]; // 月〜金
   const WD = ['日', '月', '火', '水', '木', '金', '土'];
   const KYUGYO = '休業日';
@@ -346,7 +372,13 @@
       { id: '6', name: '6校時', start: '14:25', end: '15:10' },
     ],
     subjects: ['国語', '算数', '生活', '社会', '理科', '音楽', '図工', '体育', '外国語活動', '道徳', '学級活動', '総合', '自立活動', '日常生活の指導', '生活単元学習', '遊びの指導'],
+    standards: {},      // 教科ごとの 標準時数（年間）
+    standardTotal: 0,   // 年間の 標準時数の 合計
+    jisuMonths: [],     // 授業時数を 取りこんだ 月（'2026-04' など）。時数の ない 日は 授業なし
   };
+  // 時数の 集計で 別に 数える もの（週案簿の「学校行事」「児童会等」）
+  const SPECIAL_SUBJECTS = ['行事', 'クラブ', '委員会'];
+  const KOKUGO_PARTS = ['図書', '書写']; // 国語計に ふくめる
   const ROOMS = [
     { id: 'lobby', icon: '🏠', name: 'ロビー' },
     { id: 'yotei', icon: '📅', name: '予定の部屋', desc: '週案・月の予定・時間割・交流学級' },
@@ -471,6 +503,7 @@
     unitSubj: '',
     matSubj: '', matKind: '', matQ: '',
     taskCat: '', taskDuty: '', showDone: false,
+    hoursAll: false,
     meetQ: '', meetKind: '',
     periodsDraft: null,
   };
@@ -495,21 +528,35 @@
       (err) => { pending--; lastError = err; setStatus(); console.error(err); }
     );
   }
+  // 一度に 送る 件数（スプレッドシート側の 上限より 少なく）
+  const CHUNK = 400;
+  async function inChunks(arr, fn) { for (let i = 0; i < arr.length; i += CHUNK) await fn(arr.slice(i, i + CHUNK)); }
+  // データが 変わるたびに 増やす（集計の 作りなおしに 使う）
+  let dataVersion = 0;
+  const memo = {};
+  function cached(key, fn) {
+    if (!memo[key] || memo[key].v !== dataVersion) memo[key] = { v: dataVersion, value: fn() };
+    return memo[key].value;
+  }
   function putRecs(kind, recs, opt) {
     const full = [].concat(recs).map((r) => Object.assign({}, get(kind, r.id) || {}, r));
+    if (!full.length) return;
     full.forEach((r) => T[kind].set(r.id, r));
+    dataVersion++;
     if (!opt || opt.render !== false) render();
-    persist(() => api.put(kind, full));
+    persist(() => inChunks(full, (part) => api.put(kind, part)));
   }
   function removeRecs(kind, ids, opt) {
     ids = [].concat(ids).filter((id) => T[kind].has(id));
     if (!ids.length) return;
     ids.forEach((id) => T[kind].delete(id));
+    dataVersion++;
     if (!opt || opt.render !== false) render();
-    persist(() => api.remove(kind, ids));
+    persist(() => inChunks(ids, (part) => api.remove(kind, part)));
   }
   function saveSettings(patch) {
     Object.assign(S, patch);
+    dataVersion++;
     render();
     persist(() => api.saveSettings(patch));
   }
@@ -532,9 +579,15 @@
     const out = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
     if (typeof s.className === 'string') out.className = s.className;
     if (Array.isArray(s.periods) && s.periods.length) {
-      out.periods = s.periods.filter((p) => p && p.id).map((p) => ({ id: String(p.id), name: String(p.name || ''), start: String(p.start || ''), end: String(p.end || '') }));
+      out.periods = s.periods.filter((p) => p && p.id).map((p) => ({ id: String(p.id), name: String(p.name || ''), start: String(p.start || ''), end: String(p.end || ''), weight: Number(p.weight) > 0 && Number(p.weight) <= 1 ? Number(p.weight) : 1 }));
     }
+    out.periods.forEach((p) => { if (!(p.weight > 0)) p.weight = 1; });
     if (Array.isArray(s.subjects) && s.subjects.length) out.subjects = s.subjects.map(String).filter(Boolean);
+    if (s.standards && typeof s.standards === 'object') {
+      Object.keys(s.standards).forEach((k) => { const n = Number(s.standards[k]); if (n > 0) out.standards[String(k)] = n; });
+    }
+    if (Number(s.standardTotal) > 0) out.standardTotal = Number(s.standardTotal);
+    out.jisuMonths = Array.isArray(s.jisuMonths) ? s.jisuMonths.map(String).filter((m) => /^\d{4}-\d{2}$/.test(m)) : [];
     return out;
   }
 
@@ -558,13 +611,61 @@
     return (firstLabel !== undefined ? opt('', selected || '', firstLabel) : '') + subs.map((s) => opt(s, selected)).join('');
   }
   function baseLesson(day, pid) { return get('timetable', ttId(day, pid)); }
+  // 校時の 時数（ふつうは 1、モジュールは ⅓）
+  function periodWeight(pid) { const p = S.periods.find((x) => x.id === pid); return p && p.weight > 0 ? p.weight : 1; }
+  // 何時間目か（モジュールなど 1より 小さい 校時は 数えない）
+  function periodNo(pid) {
+    let n = 0;
+    for (const p of S.periods) {
+      if (p.weight >= 1) n++;
+      if (p.id === pid) return p.weight >= 1 ? n : 0;
+    }
+    return 0;
+  }
+  function dayInfo(date) { return get('days', 'y' + date); }
   function lesson(date, pid) {
     const w = get('weekly', wkId(date, pid));
     const base = baseLesson(dayOf(date), pid);
-    let subject = w && w.subject ? w.subject : (base ? base.subject : '');
+    const di = dayInfo(date);
+    const fixed = !!(di && Number(di.fixed));
+    const beyond = !!(di && Number(di.jisu) > 0 && periodNo(pid) > Number(di.jisu));
+    let subject;
+    if (w && w.subject) subject = w.subject;
+    else if (fixed || beyond) subject = ''; // 週案簿から 取りこんだ 日・その日の 授業時数より 後の 時間は 授業なし
+    else subject = base ? base.subject : '';
     if (subject === NONE) subject = '';
+    const hours = subject ? (w && w.hours !== '' && w.hours !== undefined && Number(w.hours) > 0 ? Number(w.hours) : periodWeight(pid)) : 0;
+    const subject2 = w && w.subject2 && w.subject2 !== NONE ? w.subject2 : '';
+    const hours2 = subject2 && Number(w.hours2) > 0 ? Number(w.hours2) : 0;
     const unit = w && w.unitId ? get('units', w.unitId) : null;
-    return { w, base, subject, unit, content: w ? w.content : '', note: w ? w.note : '' };
+    const noClass = !subject && !subject2 && (fixed || beyond || (w && w.subject === NONE));
+    return { w, base, subject, hours, subject2, hours2, unit, noClass, content: w ? w.content : '', note: w ? w.note : '' };
+  }
+  // 時数の 表示（⅓・⅔ を 分数で）
+  function fmtH(x) {
+    const n = Number(x) || 0;
+    const t = Math.round(n * 3);
+    if (Math.abs(n * 3 - t) < 0.02) {
+      const whole = Math.floor(t / 3), f = t % 3;
+      return (whole || !f ? String(whole) : '') + (f === 1 ? '⅓' : f === 2 ? '⅔' : '');
+    }
+    return String(Math.round(n * 10) / 10);
+  }
+  // ある日の 教科ごとの 時数
+  function dayHours(date, out) {
+    out = out || {};
+    if (offReason(date)) return out;
+    S.periods.forEach((p) => {
+      const L = lesson(date, p.id);
+      if (L.subject) out[L.subject] = (out[L.subject] || 0) + L.hours;
+      if (L.subject2) out[L.subject2] = (out[L.subject2] || 0) + L.hours2;
+    });
+    return out;
+  }
+  function sumHours(from, to) {
+    const out = {};
+    for (let d = from; d <= to; d = addDays(d, 1)) dayHours(d, out);
+    return out;
   }
   function children() {
     return list('children').sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0) || String(a.name).localeCompare(String(b.name), 'ja'));
@@ -586,13 +687,19 @@
       .sort((a, b) => (a.time || '99').localeCompare(b.time || '99'));
   }
   function offReason(date) {
+    const di = dayInfo(date);
+    // 土曜授業など、授業時数や 週案が ある日は 授業の日
+    const school = !!(di && (Number(di.jisu) > 0 || Number(di.fixed) > 0));
     const d = dayOf(date);
-    if (d === 0) return '日曜日';
-    if (d === 6) return '土曜日';
+    if (!school && d === 0) return '日曜日';
+    if (!school && d === 6) return '土曜日';
     const h = holiday(date);
-    if (h) return h;
+    if (h && !school) return h;
     const k = eventsOn(date).find((e) => e.cat === KYUGYO);
-    return k ? (k.title || KYUGYO) : '';
+    if (k) return k.title || KYUGYO;
+    // 行事予定から 授業時数を 取りこんだ 月は、時数の ない 日を お休み（長期休業など）とする
+    if (!school && cached('jisuMonths', () => new Set(S.jisuMonths)).has(date.slice(0, 7))) return '授業なし';
+    return '';
   }
   function nextSchoolDay(date) {
     let d = date;
@@ -662,7 +769,7 @@
     const room = ROOMS.find((r) => r.id === view.room) || ROOMS[0];
     if (room.soon) return viewSoon(room);
     switch (room.id) {
-      case 'yotei': return subtabs('yotei', [['week', '📝 週案'], ['month', '🗓 月の予定'], ['timetable', '🕘 基本の時間割'], ['koryu', '🚶 交流学級']]) + ({ week: viewWeek, month: viewMonth, timetable: viewTimetable, koryu: viewKoryu })[view.tab.yotei]();
+      case 'yotei': return subtabs('yotei', [['week', '📝 週案'], ['hours', '⏱ 時数'], ['month', '🗓 月の予定'], ['timetable', '🕘 基本の時間割'], ['koryu', '🚶 交流学級']]) + ({ week: viewWeek, hours: viewHours, month: viewMonth, timetable: viewTimetable, koryu: viewKoryu })[view.tab.yotei]();
       case 'gakushu': return subtabs('gakushu', [['units', '📘 単元計画'], ['materials', '🧰 教材の置き場']]) + ({ units: viewUnits, materials: viewMaterials })[view.tab.gakushu]();
       case 'koumu': return subtabs('koumu', [['tasks', '✅ やること'], ['duties', '🗂 校務分掌'], ['meetings', '📝 会議メモ'], ['templates', '📄 文書のひな形']]) + ({ tasks: viewTasks, duties: viewDuties, meetings: viewMeetings, templates: viewTemplates })[view.tab.koumu]();
       case 'settings': return viewSettings();
@@ -996,9 +1103,9 @@
     return S.periods.map((p) => {
       const L = lesson(day, p.id);
       const outs = outsAt(dayOf(day), p.id);
-      if (!L.subject && !L.content && !L.note && !outs.length) return '';
+      if (!L.subject && !L.subject2 && !L.content && !L.note && (!outs.length || L.noClass)) return '';
       return `<li><div class="pname">${esc(p.name)}<span class="ptime">${esc(p.start)}〜${esc(p.end)}</span></div>
-        <div class="what">${L.subject ? chip(L.subject) : '<span class="muted">（なし）</span>'}
+        <div class="what">${L.subject ? chip(L.subject) : '<span class="muted">（なし）</span>'}${L.subject2 ? ' ＋ ' + chip(L.subject2) : ''}
           ${L.unit ? `<span class="muted" style="font-size:13px">📘 ${esc(L.unit.name)}</span>` : ''}
           ${L.content ? `<div class="content">${nl(L.content)}</div>` : ''}
           ${L.note ? `<div class="content">📝 ${nl(L.note)}</div>` : ''}
@@ -1101,32 +1208,64 @@
   }
 
   /* ---------- 予定の部屋：週案 ---------- */
+  // 時数の 選択肢（値は 数、表示は 分数）
+  const HOUR_CHOICES = [1, 2 / 3, 0.5, 1 / 3];
+  function hourOptions(selected, firstLabel) {
+    const sel = selected === '' || selected === undefined || selected === null ? '' : fmtH(selected);
+    return (firstLabel ? opt('', sel, firstLabel) : '') + HOUR_CHOICES.map((h) => `<option value="${h}"${sel === fmtH(h) ? ' selected' : ''}>${fmtH(h)}</option>`).join('');
+  }
+  function weekDates(mon) {
+    const dates = DAYS.map((_, i) => addDays(mon, i));
+    const sat = addDays(mon, 5);
+    if (!offReason(sat)) dates.push(sat); // 土曜授業の 週
+    return dates;
+  }
+  function subjectOrder(a, b) {
+    const ia = S.subjects.indexOf(a), ib = S.subjects.indexOf(b);
+    return (ia < 0) - (ib < 0) || ia - ib || String(a).localeCompare(String(b), 'ja');
+  }
+
   function viewWeek() {
     const t = today();
     const mon = view.week;
-    const dates = DAYS.map((_, i) => addDays(mon, i));
+    const dates = weekDates(mon);
     const offs = dates.map(offReason);
-    const fri = dates[4];
-    const title = `${wareki(parse(mon).getFullYear())} ${jdate(mon)} 〜 ${jdate(fri)}`;
+    const title = `${wareki(parse(mon).getFullYear())} ${jdate(mon)} 〜 ${jdate(dates[dates.length - 1])}`;
+    const wk = get('weeks', 'v' + mon);
 
-    const head = dates.map((d) => `<th class="${d === t ? 'is-today' : ''}">
-        <div class="dh"><b>${md(d)}</b>（${WD[dayOf(d)]}）${d === t ? '<span class="todaymark">きょう</span>' : ''}</div>
+    const head = dates.map((d) => {
+      const di = dayInfo(d);
+      return `<th class="${d === t ? 'is-today' : ''}">
+        <div class="dh"><b>${md(d)}</b>（${WD[dayOf(d)]}）${d === t ? '<span class="todaymark">きょう</span>' : ''}${di && Number(di.jisu) > 0 ? ` <span class="tag" title="この日の授業時数">${Number(di.jisu)}時間</span>` : ''}</div>
         ${holiday(d) ? `<div class="hol-name">${esc(holiday(d))}</div>` : ''}
         ${eventsOn(d).map(evChip).join('')}${tasksDueOn(d).map(taskChip).join('')}
-        <button class="add-ev noprint" data-act="newEvent" data-date="${d}">＋予定</button></th>`).join('');
+        <button class="add-ev noprint" data-act="newEvent" data-date="${d}">＋予定</button></th>`;
+    }).join('');
 
-    const rows = S.periods.map((p, r) => `<tr><th class="pcol">${esc(p.name)}<span class="ptime">${esc(p.start)}〜${esc(p.end)}</span></th>${dates.map((d, i) => {
+    const rows = S.periods.map((p, r) => `<tr class="${p.weight < 1 ? 'module-row' : ''}"><th class="pcol">${esc(p.name)}<span class="ptime">${esc(p.start)}${p.end ? '〜' + esc(p.end) : ''}${p.weight < 1 ? `<br>（${fmtH(p.weight)}時間）` : ''}</span></th>${dates.map((d, i) => {
       if (offs[i]) return r === 0 ? `<td class="offday" rowspan="${S.periods.length}">${esc(offs[i])}<br><small>お休み</small></td>` : '';
       return lessonCell(d, p.id, d === t);
     }).join('')}</tr>`).join('');
 
-    // この週の 教科ごとの 時数
-    const count = {};
-    dates.forEach((d, i) => {
-      if (offs[i]) return;
-      S.periods.forEach((p) => { const s = lesson(d, p.id).subject; if (s) count[s] = (count[s] || 0) + 1; });
-    });
-    const subjects = Object.keys(count).sort((a, b) => (hueOf(a) < 0) - (hueOf(b) < 0) || S.subjects.indexOf(a) - S.subjects.indexOf(b));
+    // 日ごとの 休み時間・備考・記録欄
+    const dayRow = (key, label) => `<tr class="day-notes"><th class="pcol">${label}</th>${dates.map((d) => {
+      const di = dayInfo(d) || {};
+      return `<td class="cell daynote" data-act="editDay" data-date="${d}" tabindex="0" role="button">${di[key] ? nl(di[key]) : '<span class="empty noprint">＋</span>'}</td>`;
+    }).join('')}</tr>`;
+    const hasYasumi = dates.some((d) => (dayInfo(d) || {}).yasumi);
+
+    // 時数：この週・年度の 累計（この週の 終わりまで）・標準・達成率
+    const week = {};
+    dates.forEach((d) => dayHours(d, week));
+    const n0 = nendoOf(mon);
+    const total = cached('cum:' + mon, () => sumHours(`${n0}-04-01`, addDays(mon, 6)));
+    const subjects = Array.from(new Set(Object.keys(week).concat(Object.keys(total)).concat(Object.keys(S.standards)))).sort(subjectOrder);
+    const hoursTable = subjects.length ? `<div class="table-wrap"><table class="list hours-table"><thead><tr><th>教科</th>${subjects.map((s) => `<th>${chip(s)}</th>`).join('')}</tr></thead><tbody>
+        <tr><th>この週</th>${subjects.map((s) => `<td>${week[s] ? fmtH(week[s]) : ''}</td>`).join('')}</tr>
+        <tr><th>累計</th>${subjects.map((s) => `<td>${total[s] ? fmtH(total[s]) : ''}</td>`).join('')}</tr>
+        <tr><th>標準</th>${subjects.map((s) => `<td>${S.standards[s] || ''}</td>`).join('')}</tr>
+        <tr><th>達成率</th>${subjects.map((s) => `<td>${S.standards[s] ? Math.round((total[s] || 0) / S.standards[s] * 1000) / 10 + '%' : ''}</td>`).join('')}</tr>
+      </tbody></table></div>` : '<span class="muted">まだありません</span>';
 
     return `<div class="toolbar noprint">
         <button class="btn" data-act="weekMove" data-n="-7">◀ 前の週</button>
@@ -1136,21 +1275,25 @@
         <span class="grow"></span>
         <button class="btn" data-act="print">🖨 印刷</button>
       </div>
-      <h2 class="wk-title" style="margin:0 0 10px">${title}<span class="print-only">${esc(S.className)} 週案</span></h2>
-      <div class="table-wrap"><table class="week"><thead><tr><th class="pcol">校時</th>${head}</tr></thead><tbody>${rows}</tbody></table></div>
-      <div class="card" style="margin-top:12px"><div class="hours"><b>この週の時数</b>${subjects.length ? subjects.map((s) => `${chip(s)}<span>${count[s]}</span>`).join(' ') : '<span class="muted">まだありません</span>'}</div></div>
-      <p class="hint noprint" style="margin-top:8px">マスを押すと、その時間の学習内容や単元を書きこめます。何も書かない時間は「基本の時間割」のとおりに表示します。左に青い線があるマスは、この週だけ書きこんだ時間です。</p>`;
+      <h2 class="wk-title" style="margin:0 0 6px">${title}<span class="print-only">${esc(S.className)} 週案</span></h2>
+      <div class="focus" data-act="editFocus" data-mon="${mon}" tabindex="0" role="button"><b>🎯 今週の重点</b>　${wk && wk.focus ? nl(wk.focus) : '<span class="muted noprint">（押して書きこめます）</span>'}</div>
+      <div class="table-wrap"><table class="week"><thead><tr><th class="pcol">校時</th>${head}</tr></thead><tbody>${rows}</tbody>
+        <tfoot>${hasYasumi ? dayRow('yasumi', '休み時間') : ''}${dayRow('biko', '備考')}${dayRow('kiroku', '記録欄')}</tfoot></table></div>
+      <section class="card" style="margin-top:12px"><h3 class="mini" style="margin:0 0 8px">⏱ 時数（累計は ${n0}年4月から この週の 終わりまで）</h3>${hoursTable}</section>
+      <p class="hint noprint" style="margin-top:8px">マスを押すと、その時間の学習内容や単元を書きこめます。何も書かない時間は「基本の時間割」のとおりに表示します。左に青い線があるマスは、この週だけ書きこんだ時間です。「—」は授業のない時間です。</p>`;
   }
 
   function lessonCell(date, pid, isToday) {
     const L = lesson(date, pid);
     const outs = outsAt(dayOf(date), pid);
-    return `<td class="cell${isToday ? ' is-today' : ''}${L.w ? ' edited' : ''}" data-act="editLesson" data-date="${date}" data-pid="${esc(pid)}" tabindex="0" role="button">
-      ${L.subject ? chip(L.subject) : '<span class="empty noprint">＋</span>'}
+    const hrs = (h) => (h && Math.abs(h - 1) > 0.01 ? `<small class="hrs">${fmtH(h)}</small>` : '');
+    return `<td class="cell${isToday ? ' is-today' : ''}${L.w ? ' edited' : ''}${L.noClass ? ' nocls' : ''}" data-act="editLesson" data-date="${date}" data-pid="${esc(pid)}" tabindex="0" role="button">
+      ${L.subject ? chip(L.subject) + hrs(L.hours) : ''}${L.subject2 ? `<span class="plus">＋</span>${chip(L.subject2)}${hrs(L.hours2)}` : ''}
+      ${!L.subject && !L.subject2 ? (L.noClass ? '<span class="dash">—</span>' : '<span class="empty noprint">＋</span>') : ''}
       ${L.unit ? `<div class="unit">📘 ${esc(L.unit.name)}</div>` : ''}
       ${L.content ? `<div class="content">${nl(L.content)}</div>` : ''}
       ${L.note ? `<div class="note">📝 ${nl(L.note)}</div>` : ''}
-      ${outs.length ? `<div class="outs">${outs.map(outChip).join('')}</div>` : ''}</td>`;
+      ${outs.length && !L.noClass ? `<div class="outs">${outs.map(outChip).join('')}</div>` : ''}</td>`;
   }
 
   function editLesson(date, pid) {
@@ -1164,26 +1307,109 @@
     const effective = chosen === NONE ? '' : (chosen || baseSubj);
     const unitId = w.unitId || (w.id ? '' : autoUnit(effective, date));
     const outs = outsAt(dayOf(date), pid);
+    const di = dayInfo(date);
+    const followLabel = di && Number(di.fixed) ? 'なし（週案簿で 空いていた時間）' : '基本の時間割のとおり' + (baseSubj ? `（${baseSubj}）` : '');
     openDialog({
       title: `${jdate(date)} ${p.name}`,
       attrs: `data-date="${date}" data-base="${esc(baseSubj)}"`,
-      body: `<p class="hint">${esc(p.start)}〜${esc(p.end)}　／　基本の時間割：${baseSubj ? chip(baseSubj) : 'なし'}</p>
+      body: `<p class="hint">${esc(p.start)}${p.end ? '〜' + esc(p.end) : ''}　／　基本の時間割：${baseSubj ? chip(baseSubj) : 'なし'}</p>
         <div class="row2">
           <label class="field">教科
-            <select name="subject" data-chg="lessonSubj">${opt('', chosen, '基本の時間割のとおり' + (baseSubj ? `（${baseSubj}）` : ''))}${S.subjects.concat(chosen && chosen !== NONE && !S.subjects.includes(chosen) ? [chosen] : []).map((s) => opt(s, chosen)).join('')}${opt(NONE, chosen, 'なし（授業なし）')}</select></label>
-          <label class="field">単元 <select name="unitId">${unitOptions(effective, date, unitId)}</select></label>
+            <select name="subject" data-chg="lessonSubj">${opt('', chosen, followLabel)}${S.subjects.concat(chosen && chosen !== NONE && !S.subjects.includes(chosen) ? [chosen] : []).map((s) => opt(s, chosen)).join('')}${opt(NONE, chosen, 'なし（授業なし）')}</select></label>
+          <label class="field">時数 <select name="hours">${hourOptions(w.hours, `ふつう（${fmtH(p.weight)}）`)}</select></label>
         </div>
-        <label class="field">学習内容 <textarea name="content" rows="3" maxlength="1000" placeholder="例：「おおきな かぶ」を 役に分かれて 音読する">${esc(w.content)}</textarea></label>
+        <div class="row2">
+          <label class="field">2つ目の教科（1時間を 分けるとき） <select name="subject2">${opt('', w.subject2 || '', '—')}${S.subjects.concat(w.subject2 && !S.subjects.includes(w.subject2) ? [w.subject2] : []).map((s) => opt(s, w.subject2)).join('')}</select></label>
+          <label class="field">2つ目の時数 <select name="hours2">${hourOptions(w.hours2 || 2 / 3)}</select></label>
+        </div>
+        <label class="field">単元 <select name="unitId">${unitOptions(effective, date, unitId)}</select></label>
+        <label class="field">学習内容 <textarea name="content" rows="4" maxlength="4000" placeholder="例：「おおきな かぶ」を 役に分かれて 音読する">${esc(w.content)}</textarea></label>
         <label class="field">メモ・ふりかえり <textarea name="note" rows="2" maxlength="1000" placeholder="例：準備物、子どもの様子、次の時間への引きつぎ">${esc(w.note)}</textarea></label>
         ${outs.length ? `<div class="info">この時間の交流：<div class="outs">${outs.map(outChip).join('')}</div></div>` : ''}`,
       deleteLabel: w.id ? 'この時間の書きこみを消す' : '',
       onDelete: () => removeRecs('weekly', id),
       onSave: (f) => {
-        const rec = { id, date, period: pid, subject: f.subject, unitId: f.unitId, content: f.content.trim(), note: f.note.trim() };
-        if (!rec.subject && !rec.unitId && !rec.content && !rec.note) { if (w.id) removeRecs('weekly', id); else render(); return; }
+        const rec = { id, date, period: pid, subject: f.subject, unitId: f.unitId, content: f.content.trim(), note: f.note.trim(),
+          hours: f.hours === '' ? '' : Number(f.hours), subject2: f.subject2, hours2: f.subject2 ? Number(f.hours2) : '' };
+        if (!rec.subject && !rec.unitId && !rec.content && !rec.note && !rec.subject2 && rec.hours === '') { if (w.id) removeRecs('weekly', id); else render(); return; }
         putRecs('weekly', rec);
       },
     });
+  }
+
+  // 日ごとの 授業時数・休み時間・備考・記録欄
+  function editDay(date) {
+    const di = dayInfo(date) || {};
+    openDialog({
+      title: `${jdate(date)} の メモ`,
+      body: `<label class="field">この日の 授業時数（モジュールを のぞく） <input type="number" name="jisu" min="0" max="8" value="${esc(di.jisu)}" placeholder="例：5（空けておくと 基本の時間割のとおり）"></label>
+        <label class="field">休み時間（中休み・昼休み） <textarea name="yasumi" rows="2" maxlength="1000">${esc(di.yasumi)}</textarea></label>
+        <label class="field">備考 <textarea name="biko" rows="3" maxlength="2000" placeholder="例：〇〇T 出張、見学の受け入れ">${esc(di.biko)}</textarea></label>
+        <label class="field">記録欄 <textarea name="kiroku" rows="3" maxlength="2000">${esc(di.kiroku)}</textarea></label>
+        <p class="hint">子どもや保護者の名前など、個人情報は 必要なことだけを 短く 書きましょう。</p>`,
+      onSave: (f) => {
+        const jisu = f.jisu === '' ? '' : Math.max(0, Math.min(8, Math.round(Number(f.jisu)) || 0));
+        putRecs('days', { id: 'y' + date, date, jisu, fixed: di.fixed || '', yasumi: f.yasumi.trim(), biko: f.biko.trim(), kiroku: f.kiroku.trim() });
+      },
+    });
+  }
+
+  function editFocus(mon) {
+    const wk = get('weeks', 'v' + mon) || {};
+    openDialog({
+      title: `今週の重点（${jdate(mon)}の週）`,
+      body: `<label class="field">今週の重点 <textarea name="focus" rows="3" maxlength="1000" placeholder="例：運動会に向けて、友だちと声をかけ合って練習する">${esc(wk.focus)}</textarea></label>`,
+      onSave: (f) => putRecs('weeks', { id: 'v' + mon, monday: mon, focus: f.focus.trim() }),
+    });
+  }
+
+  /* ---------- 予定の部屋：時数の 集計（週案簿の 時数集計表と 同じ 形） ---------- */
+  const TERMS = [{ name: '1学期', months: [4, 5, 6, 7] }, { name: '2学期', months: [8, 9, 10, 11, 12] }, { name: '3学期', months: [1, 2, 3] }];
+  function viewHours() {
+    const t = today();
+    const n0 = nendoOf(t);
+    const until = view.hoursAll ? `${n0 + 1}-03-31` : addDays(mondayOf(t), 6);
+    const byMonth = cached(`hm:${n0}:${until}`, () => {
+      const out = {};
+      for (let d = `${n0}-04-01`; d <= until; d = addDays(d, 1)) {
+        const m = parse(d).getMonth() + 1;
+        const h = dayHours(d);
+        Object.keys(h).forEach((s) => { (out[s] = out[s] || {})[m] = (out[s][m] || 0) + h[s]; });
+      }
+      return out;
+    });
+    const sum = (row, months) => months.reduce((a, m) => a + ((row || {})[m] || 0), 0);
+    const all = Array.from(new Set(Object.keys(byMonth).concat(Object.keys(S.standards)))).sort(subjectOrder);
+    const normal = all.filter((x) => !SPECIAL_SUBJECTS.includes(x));
+    const special = all.filter((x) => SPECIAL_SUBJECTS.includes(x));
+    const addRows = (names) => names.reduce((acc, s) => { MONTHS.forEach((m) => { acc[m] = (acc[m] || 0) + ((byMonth[s] || {})[m] || 0); }); return acc; }, {});
+    const cell = (v) => `<td>${v ? fmtH(v) : ''}</td>`;
+    const row = (label, data, std, cls) => {
+      const total = sum(data, MONTHS);
+      const months = TERMS.map((tm) => tm.months.map((m) => cell((data || {})[m])).join('') + `<td class="term">${fmtH(sum(data, tm.months))}</td>`).join('');
+      return `<tr class="${cls || ''}"><th>${label}</th><td>${std || ''}</td>${months}<td class="total">${fmtH(total)}</td><td>${std ? fmtH(Math.max(0, std - total)) : ''}</td><td>${std ? Math.round(total / std * 1000) / 10 + '%' : ''}</td></tr>`;
+    };
+    // 国語計（図書・書写を ふくむ）
+    const kokugo = normal.includes('国語') && KOKUGO_PARTS.some((x) => normal.includes(x)) ? ['国語'].concat(KOKUGO_PARTS.filter((x) => normal.includes(x))) : [];
+    let body = '';
+    normal.forEach((s) => {
+      body += row(chip(s), byMonth[s], S.standards[s]);
+      if (kokugo.length && s === kokugo[kokugo.length - 1]) body += row('国語計', addRows(kokugo), kokugo.reduce((a, x) => a + (S.standards[x] || 0), 0), 'sub');
+    });
+    const stdSum = (names) => names.reduce((a, x) => a + (S.standards[x] || 0), 0);
+    body += row('小計（各教科等）', addRows(normal), stdSum(normal), 'sub');
+    special.forEach((s) => { body += row(chip(s), byMonth[s], S.standards[s]); });
+    if (special.length) body += row('小計（行事・児童会等）', addRows(special), stdSum(special), 'sub');
+    body += row('合計', addRows(all), S.standardTotal || stdSum(all), 'grand');
+    const head = `<tr><th>教科</th><th>標準</th>${TERMS.map((tm) => tm.months.map((m) => `<th>${m}月</th>`).join('') + `<th class="term">${tm.name}</th>`).join('')}<th class="total">累計</th><th>残り</th><th>達成率</th></tr>`;
+    return `<div class="toolbar">
+        <h2 class="wk-title" style="margin:0">⏱ ${wareki(n0).replace(/年$/, '')}年度 時数の集計<span class="print-only">　${esc(S.className)}</span></h2>
+        <span class="grow"></span>
+        <label class="check noprint"><input type="checkbox" data-chg="hoursAll" ${view.hoursAll ? 'checked' : ''}> 年度末までの 予定（基本の時間割）も ふくめる</label>
+        <button class="btn noprint" data-act="print">🖨 印刷</button>
+      </div>
+      <p class="hint" style="margin-bottom:8px">${view.hoursAll ? '年度末まで、週案と 基本の時間割から 数えた 見こみです。' : `${n0}年4月1日から 今週の 終わり（${jdate(until)}）までの 週案から 数えています。`}授業のない日（休業日・祝日など）は 数えません。${Object.keys(S.standards).length ? '' : '標準時数は「設定」で 入れられます。'}</p>
+      <div class="table-wrap"><table class="list jisu-table"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
   }
 
   /* ---------- 予定の部屋：月の予定 ---------- */
@@ -1215,6 +1441,7 @@
         <button class="btn" data-act="monthMove" data-n="1">次の月 ▶</button>
         <h2 class="wk-title">${wareki(y)}（${y}年）${m}月</h2>
         <span class="grow"></span>
+        <label class="btn" title="学校の月行事予定（Excel）を取りこむ">📥 行事予定を取りこむ<input type="file" accept=".xlsx,.xlsm" data-chg="importFile" hidden></label>
         <button class="btn primary" data-act="newEvent" data-date="${view.month === t.slice(0, 7) ? t : first}">＋ 予定を追加</button>
       </div>
       <div class="month">${WD.map((n, i) => `<div class="wd${i === 0 ? ' sun' : i === 6 ? ' sat' : ''}">${n}</div>`).join('')}${cells}</div>
@@ -1507,11 +1734,12 @@
       </section>
       <section class="card">
         <h2 class="sec" style="margin-bottom:10px">🕘 校時と時刻</h2>
-        <div class="table-wrap"><table class="list ptable"><thead><tr><th>名前</th><th>はじまり</th><th>おわり</th><th></th></tr></thead><tbody>
+        <div class="table-wrap"><table class="list ptable"><thead><tr><th>名前</th><th>はじまり</th><th>おわり</th><th>時数</th><th></th></tr></thead><tbody>
           ${ps.map((p, i) => `<tr data-pid="${esc(p.id)}">
             <td><input class="input" data-f="name" value="${esc(p.name)}" maxlength="20" aria-label="校時の名前"></td>
             <td><input class="input" type="time" data-f="start" value="${esc(p.start)}" aria-label="はじまり"></td>
             <td><input class="input" type="time" data-f="end" value="${esc(p.end)}" aria-label="おわり"></td>
+            <td><select class="input" data-f="weight" aria-label="時数" style="width:auto">${[1, 1 / 3].map((w) => `<option value="${w}"${fmtH(w) === fmtH(p.weight || 1) ? ' selected' : ''}>${fmtH(w)}</option>`).join('')}</select></td>
             <td style="white-space:nowrap"><button class="btn small" data-act="periodMove" data-i="${i}" data-n="-1" ${i === 0 ? 'disabled' : ''} aria-label="上へ">↑</button>
               <button class="btn small" data-act="periodMove" data-i="${i}" data-n="1" ${i === ps.length - 1 ? 'disabled' : ''} aria-label="下へ">↓</button>
               <button class="btn small danger" data-act="periodDel" data-i="${i}" aria-label="消す">✕</button></td></tr>`).join('')}
@@ -1519,13 +1747,25 @@
         <div class="toolbar" style="margin:10px 0 0"><button class="btn" data-act="periodAdd">＋ 校時を足す</button><span class="grow"></span>
           ${view.periodsDraft ? '<span class="tag red">まだ保存していません</span><button class="btn" data-act="periodCancel">もとにもどす</button>' : ''}
           <button class="btn primary" data-act="periodSave">保存する</button></div>
-        <p class="hint" style="margin-top:8px">「朝の会」「帰りの会」なども足せます。消した校時に入れていた時間割や週案は、表示されなくなります（もう一度同じ校時を足しても もどりません）。</p>
+        <p class="hint" style="margin-top:8px">「モジュール（朝）」のように 1時間に 数えない 校時は、時数を ⅓ にします。「朝の会」「帰りの会」なども足せます。消した校時に入れていた時間割や週案は、表示されなくなります（もう一度同じ校時を足しても もどりません）。</p>
       </section>
       <section class="card">
         <h2 class="sec" style="margin-bottom:10px">📚 教科・領域</h2>
         <label class="field">1行に1つずつ書きます。並び順が、色や表示の順番になります。
           <textarea class="input" id="set-subjects" rows="10">${esc(S.subjects.join('\n'))}</textarea></label>
         <div class="toolbar" style="margin:10px 0 0"><span class="grow"></span><button class="btn primary" data-act="saveSubjects">保存する</button></div>
+      </section>
+      <section class="card">
+        <h2 class="sec" style="margin-bottom:6px">⏱ 年間の 標準時数</h2>
+        <p class="hint" style="margin-bottom:8px">週案と「時数」の表で、累計・残り・達成率を 出すのに 使います。週案簿から 取りこむと 自動で 入ります。</p>
+        <div class="std-grid">${S.subjects.map((sub) => `<label class="std">${chip(sub)}<input class="input" type="number" min="0" max="2000" data-std="${esc(sub)}" value="${S.standards[sub] || ''}" aria-label="${esc(sub)}の標準時数"></label>`).join('')}
+          <label class="std"><b>合計</b><input class="input" type="number" min="0" max="3000" id="std-total" value="${S.standardTotal || ''}" aria-label="標準時数の合計"></label></div>
+        <div class="toolbar" style="margin:10px 0 0"><span class="grow"></span><button class="btn primary" data-act="saveStandards">保存する</button></div>
+      </section>
+      <section class="card">
+        <h2 class="sec" style="margin-bottom:6px">📥 学校の ファイルを 取りこむ</h2>
+        <p class="hint" style="margin-bottom:10px">学校の「月行事予定」（.xlsx）と「週案簿」（.xlsm）を 読みとって、月の予定・授業時数・時間割・週案・標準時数に 入れます。ファイルは この画面の中で 読みとるだけで、ファイルそのものは どこにも 送りません。週案簿の「児童名簿」は 読みこみません。</p>
+        <label class="btn primary">📂 ファイルを選ぶ<input type="file" accept=".xlsx,.xlsm" data-chg="importFile" hidden></label>
       </section>
       <section class="card">
         <h2 class="sec" style="margin-bottom:10px">💾 データの保存場所</h2>
@@ -1544,6 +1784,7 @@
       name: tr.querySelector('[data-f=name]').value.trim(),
       start: tr.querySelector('[data-f=start]').value,
       end: tr.querySelector('[data-f=end]').value,
+      weight: Number(tr.querySelector('[data-f=weight]').value) || 1,
     }));
   }
 
@@ -1863,6 +2104,382 @@
     else fallback();
   }
 
+  /* =========================================================
+     学校の ファイルの 取りこみ（月行事予定・週案簿）
+     ファイルは この画面の 中で 読みとり、取りこんだ 内容だけを 保存する
+     ========================================================= */
+  const XLSX_URL = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  let xlsxLoading = null;
+  function loadXlsx() {
+    if (window.XLSX) return Promise.resolve(window.XLSX);
+    if (!xlsxLoading) {
+      xlsxLoading = new Promise((resolve, reject) => {
+        const sc = document.createElement('script');
+        sc.src = XLSX_URL;
+        sc.onload = () => resolve(window.XLSX);
+        sc.onerror = () => { xlsxLoading = null; reject(new Error('Excelを読みとる道具（SheetJS）を読みこめませんでした。インターネットの接続を確かめてください。')); };
+        document.head.appendChild(sc);
+      });
+    }
+    return xlsxLoading;
+  }
+  const zen2han = (s) => String(s).replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+  function cellV(ws, addr) { const c = ws[addr]; return c ? c.v : undefined; }
+  function cellT(ws, addr) {
+    const v = cellV(ws, addr);
+    return v === undefined || v === null ? '' : String(v).replace(/\r/g, '').replace(/[ \t　]+\n/g, '\n').trim();
+  }
+  function cellN(ws, addr) {
+    const v = cellV(ws, addr);
+    if (v === undefined || v === null || String(v).trim() === '') return null;
+    const n = typeof v === 'number' ? v : Number(zen2han(String(v).trim()));
+    return isFinite(n) ? n : null;
+  }
+  function serialYmd(n) {
+    const d = new Date(Date.UTC(1899, 11, 30) + Math.round(n) * 86400000);
+    return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate());
+  }
+  function validYmd(y, m, d) {
+    const x = new Date(y, m - 1, d);
+    return x.getFullYear() === y && x.getMonth() === m - 1 && x.getDate() === d ? ymd(x) : '';
+  }
+  const oneLine = (s) => String(s).replace(/\s*\n\s*/g, ' ').replace(/[ 　]{2,}/g, ' ').trim();
+
+  async function importFile(input) {
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+    openDialog({ title: '📥 ファイルを読みとっています…', readOnly: true, body: `<p>「${esc(file.name)}」を読みとっています。しばらくお待ちください。</p>` });
+    try {
+      const X = await loadXlsx();
+      const buf = await file.arrayBuffer();
+      const names = X.read(buf, { type: 'array', bookSheets: true }).SheetNames;
+      if (names.includes('ini') && names.includes('教科一覧')) {
+        // 週案簿：必要な シートだけを 読む（児童名簿は 読まない）
+        const want = names.filter((n) => ['ini', '教科一覧', '時間割Ａ'].includes(n) || /^\d{1,2}$/.test(n));
+        const wb = X.read(buf, { type: 'array', sheets: want });
+        showShuanboImport(parseShuanbo(wb));
+      } else {
+        const want = names.filter((n) => /^新\s*[0-9０-９]{1,2}\s*月/.test(n));
+        if (!want.length) throw new Error('このファイルには、取りこめるシートが見つかりませんでした。月行事予定（「新4月」などのシートがあるもの）か、週案簿のファイルを選んでください。');
+        const wb = X.read(buf, { type: 'array', sheets: want });
+        showGyojiImport(parseGyoji(wb, want));
+      }
+    } catch (err) {
+      console.error(err);
+      openDialog({ title: '📥 取りこめませんでした', readOnly: true, body: `<p>${esc(err && err.message ? err.message : err)}</p>` });
+    }
+  }
+
+  /* ---------- 月行事予定 ---------- */
+  const GYOJI_KINDS = {
+    gyoji: { label: '児童に関する行事等', cat: '行事', on: true },
+    kaigi: { label: '会議・研修（〜15:30）', cat: '会議', on: true },
+    yukai: { label: '16:15〜16:45 の会', cat: '会議', on: true, time: '16:15' },
+    shutcho: { label: '出張等', cat: '出張', on: true },
+    yasumi20: { label: '20分休み', cat: 'その他', on: true, prefix: '20分休み：' },
+    asa: { label: '朝の活動', cat: 'その他', on: false, prefix: '朝：' },
+    lunch: { label: 'ランチ給食', cat: 'その他', on: false, prefix: 'ランチ給食：' },
+  };
+  function gyojiKind(head) {
+    const h = oneLine(head);
+    if (h === '朝') return 'asa';
+    if (/児童に関する行事/.test(h)) return 'gyoji';
+    if (/20分/.test(h)) return 'yasumi20';
+    if (/ランチ/.test(h)) return 'lunch';
+    if (/会議・研修/.test(h)) return 'kaigi';
+    if (/16[:：]15/.test(h)) return 'yukai';
+    if (/出張/.test(h)) return 'shutcho';
+    if (/当日時間割/.test(h)) return 'grades';
+    return '';
+  }
+  function parseGyoji(wb, sheetNames) {
+    const XU = window.XLSX.utils;
+    const items = [];
+    const grades = {}; // 学年名 → { 日付: 時数 }
+    const months = [];
+    let nendo = 0;
+    sheetNames.forEach((name) => {
+      const ws = wb.Sheets[name];
+      if (!ws || !ws['!ref']) return;
+      const month = Number(zen2han(name).match(/(\d{1,2})\s*月/)[1]);
+      if (!(month >= 1 && month <= 12)) return;
+      const range = XU.decode_range(ws['!ref']);
+      // 年度（「令和８年度」）
+      for (let r = 0; r <= Math.min(4, range.e.r) && !nendo; r++) {
+        for (let c = 0; c <= Math.min(6, range.e.c) && !nendo; c++) {
+          const m = zen2han(cellT(ws, XU.encode_cell({ r, c }))).match(/令和\s*(\d{1,2})\s*年度/);
+          if (m) nendo = 2018 + Number(m[1]);
+        }
+      }
+      // 見出しの 行（「日」「曜」）
+      let hr = -1;
+      for (let r = 0; r <= Math.min(10, range.e.r); r++) {
+        if (cellT(ws, XU.encode_cell({ r, c: 0 })) === '日' && cellT(ws, XU.encode_cell({ r, c: 1 })) === '曜') { hr = r; break; }
+      }
+      if (hr < 0) return;
+      const head = {};
+      for (let c = 2; c <= range.e.c; c++) head[c] = cellT(ws, XU.encode_cell({ r: hr, c }));
+      (ws['!merges'] || []).forEach((m) => {
+        if (m.s.r <= hr && m.e.r >= hr) for (let c = m.s.c; c <= m.e.c; c++) head[c] = cellT(ws, XU.encode_cell({ r: m.s.r, c: m.s.c }));
+      });
+      const cols = [];
+      const seen = {};
+      for (let c = 2; c <= range.e.c; c++) {
+        if (head[c] === '日') break; // 右側の 2つめの 表（日・曜の くり返し）より 前まで
+        const k = gyojiKind(head[c] || '');
+        if (k === 'grades') { const g = oneLine(cellT(ws, XU.encode_cell({ r: hr + 1, c }))); if (g) cols.push({ c, k, g }); continue; }
+        if (k) cols.push({ c, k, n: (seen[k] = (seen[k] || 0) + 1) });
+      }
+      // 当日時間割は 右側の 表に あることが 多い
+      for (let c = 2; c <= range.e.c; c++) {
+        if (gyojiKind(head[c] || '') !== 'grades' || cols.some((x) => x.c === c)) continue;
+        const g = oneLine(cellT(ws, XU.encode_cell({ r: hr + 1, c })));
+        if (g) cols.push({ c, k: 'grades', g });
+      }
+      months.push(month);
+      for (let r = hr + 1; r <= range.e.r; r++) {
+        const day = cellN(ws, XU.encode_cell({ r, c: 0 }));
+        if (!(day >= 1 && day <= 31)) continue;
+        const year = (nendo || nendoOf(today())) + (month < 4 ? 1 : 0);
+        const date = validYmd(year, month, Math.round(day));
+        if (!date) continue;
+        cols.forEach((x) => {
+          const addr = XU.encode_cell({ r, c: x.c });
+          if (x.k === 'grades') {
+            const n = cellN(ws, addr);
+            if (n !== null) (grades[x.g] = grades[x.g] || {})[date] = n;
+            return;
+          }
+          const text = oneLine(cellT(ws, addr));
+          if (text) items.push({ date, kind: x.k, col: XU.encode_col(x.c), text });
+        });
+      }
+    });
+    return { nendo: nendo || nendoOf(today()), months: Array.from(new Set(months)), items, grades };
+  }
+  function gyojiToEvent(it) {
+    const info = GYOJI_KINDS[it.kind];
+    if (!info) return null;
+    let cat = info.cat;
+    if (it.kind === 'gyoji') {
+      if (holiday(it.date) && it.text === holiday(it.date)) return null; // 祝日の 名前は カレンダーに 出ている
+      if (/休業/.test(it.text) && !/休業日[始終]/.test(it.text)) cat = KYUGYO;
+    }
+    let time = info.time || '';
+    const m = !time && zen2han(it.text).match(/(\d{1,2})\s*[:：]\s*(\d{2})/);
+    if (m && Number(m[1]) >= 7 && Number(m[1]) <= 20) time = pad(Number(m[1])) + ':' + m[2];
+    return { id: `s${it.date.replace(/-/g, '')}${it.col}`, date: it.date, end: '', time, title: (info.prefix || '') + it.text, cat, memo: '学校の月行事予定より' };
+  }
+  function monthKeys(nendo, months) { return months.map((m) => `${nendo + (m < 4 ? 1 : 0)}-${pad(m)}`); }
+  function showGyojiImport(g) {
+    if (!g.items.length) throw new Error('行事が 見つかりませんでした。');
+    const counts = {};
+    g.items.forEach((it) => { counts[it.kind] = (counts[it.kind] || 0) + 1; });
+    const gradeNames = Object.keys(g.grades);
+    const m = zen2han(S.className).match(/([1-6])年/);
+    const defGrade = m && gradeNames.includes(m[1] + '年') ? m[1] + '年' : '';
+    const sorted = g.months.slice().sort((a, b) => MONTHS.indexOf(a) - MONTHS.indexOf(b));
+    openDialog({
+      title: '📥 月行事予定の取りこみ',
+      saveLabel: '取りこむ',
+      body: `<p style="margin:0">${wareki(g.nendo).replace(/年$/, '')}年度の 月行事予定（${sorted.map((x) => x + '月').join('・')}）を 見つけました。</p>
+        <div class="info"><b>取りこむ 列</b>${Object.keys(GYOJI_KINDS).filter((k) => counts[k]).map((k) => `<label class="check"><input type="checkbox" name="k_${k}" ${GYOJI_KINDS[k].on ? 'checked' : ''}> ${esc(GYOJI_KINDS[k].label)}（${counts[k]}件）→「${esc(GYOJI_KINDS[k].cat)}」</label>`).join('')}</div>
+        ${gradeNames.length ? `<label class="field">学級の 授業時数に 使う 列（「当日時間割」）
+          <select name="grade">${opt('', defGrade, '使わない')}${gradeNames.map((n) => opt(n, defGrade, `${n}（${Object.keys(g.grades[n]).length}日分）`)).join('')}</select></label>
+          <p class="hint">選ぶと、授業のない日（長期休業など）や 4時間授業の日が 週案に 反映され、時数の 集計も 正しくなります。</p>` : ''}
+        <p class="hint">前に 取りこんだ 行事予定のうち、同じ月の分は 入れかえます。自分で入れた予定は そのままです。</p>`,
+      onSave: (f) => {
+        const kinds = Object.keys(GYOJI_KINDS).filter((k) => f['k_' + k]);
+        const events = g.items.filter((it) => kinds.includes(it.kind)).map(gyojiToEvent).filter(Boolean);
+        const keep = new Set(events.map((e) => e.id));
+        const keys = monthKeys(g.nendo, g.months);
+        const stale = list('events').filter((e) => /^s\d{8}/.test(e.id) && keys.includes(String(e.date).slice(0, 7)) && !keep.has(e.id)).map((e) => e.id);
+        let dayRecs = [];
+        if (f.grade && g.grades[f.grade]) {
+          const jisu = g.grades[f.grade];
+          dayRecs = Object.keys(jisu).filter((d) => jisu[d] > 0).map((d) => ({ id: 'y' + d, date: d, jisu: jisu[d] }));
+          // 前の 取りこみで 時数が あったのに 今回 なくなった 日
+          list('days').filter((x) => keys.includes(String(x.date).slice(0, 7)) && Number(x.jisu) > 0 && !(jisu[x.date] > 0))
+            .forEach((x) => dayRecs.push({ id: x.id, jisu: '' }));
+        }
+        removeRecs('events', stale, { render: false });
+        putRecs('events', events, { render: false });
+        if (dayRecs.length) putRecs('days', dayRecs, { render: false });
+        if (f.grade) {
+          const patch = { jisuMonths: Array.from(new Set(S.jisuMonths.concat(keys))).sort() };
+          Object.assign(S, patch);
+          persist(() => api.saveSettings(patch));
+        }
+        dataVersion++;
+        render();
+        const by = {};
+        events.forEach((e) => { by[e.cat] = (by[e.cat] || 0) + 1; });
+        setTimeout(() => openDialog({
+          title: '✅ 取りこみました',
+          readOnly: true,
+          body: `<p style="margin:0">予定を ${events.length}件 取りこみました（${Object.keys(by).map((c) => `${c} ${by[c]}`).join('・')}）。${dayRecs.length ? `<br>授業時数（${esc(f.grade)}）を ${dayRecs.filter((x) => x.jisu).length}日分 入れました。` : ''}</p>
+            <p class="hint">スプレッドシートへの 保存には 少し 時間が かかります。上の「保存しています…」が「✓ 保存ずみ」に なるまで、画面を 閉じないでください。</p>
+            <div><button class="btn" data-act="goTab" data-room="yotei" data-tab="month">月の予定を見る</button></div>`,
+        }), 0);
+      },
+    });
+  }
+
+  /* ---------- 週案簿 ---------- */
+  const SB_DAY_COLS = ['B', 'D', 'F', 'H', 'J', 'L']; // 月〜土（となりの 列が 時数）
+  const SB_PERIOD_ROWS = { 1: 12, 2: 20, 3: 30, 4: 38, 5: 48, 6: 56, 7: 64 };
+  const nextCol = (c) => String.fromCharCode(c.charCodeAt(0) + 1);
+  function parseShuanbo(wb) {
+    const ini = wb.Sheets['ini'];
+    const kyoka = wb.Sheets['教科一覧'];
+    const grade = ini ? cellN(ini, 'M2') : null;
+    const kumi = ini ? cellT(ini, 'M3') : '';
+    const className = grade && kumi ? `${grade}年${kumi}${/組$/.test(kumi) ? '' : '組'}` : '';
+    // 教科と 標準時数（学校の 標準時数の 列）
+    const subjects = [];
+    const standards = {};
+    let standardTotal = 0;
+    const stdCol = grade >= 1 && grade <= 6 ? 'EFGHIJ'[grade - 1] : '';
+    if (kyoka) {
+      for (let r = 4; r <= 40; r++) {
+        const name = cellT(kyoka, 'C' + r);
+        if (!name || name === '欠時' || subjects.includes(name)) continue;
+        subjects.push(name);
+        const n = stdCol ? cellN(kyoka, stdCol + r) : null;
+        if (n > 0) { if (name === '行事') standardTotal = n; else standards[name] = n; }
+      }
+    }
+    // 時間割Ａ
+    const timetable = [];
+    const ta = wb.Sheets['時間割Ａ'];
+    if (ta) {
+      for (let p = 1; p <= 7; p++) {
+        ['C', 'D', 'E', 'F', 'G'].forEach((c, i) => {
+          const sub = cellT(ta, c + (2 + p * 2));
+          if (sub) timetable.push({ day: i + 1, pid: String(p), subject: sub });
+        });
+      }
+    }
+    // 週ごとの シート
+    const isSubject = (x) => subjects.includes(x);
+    const weeks = [];
+    let usesP7 = false;
+    Object.keys(wb.Sheets).filter((n) => /^\d{1,2}$/.test(n)).sort((a, b) => a - b).forEach((n) => {
+      const ws = wb.Sheets[n];
+      const mon = cellN(ws, 'B5');
+      if (!(mon > 30000)) return;
+      const week = { monday: serialYmd(mon), focus: cellT(ws, 'G3'), days: [] };
+      SB_DAY_COLS.forEach((c) => {
+        const serial = cellN(ws, c + '5');
+        if (!(serial > 30000)) return;
+        const date = serialYmd(serial);
+        const hc = nextCol(c);
+        const recs = [];
+        // モジュール（朝）
+        const ms = cellT(ws, c + '9'), mc = cellT(ws, c + '10');
+        if (ms || mc.length > 1) recs.push({ id: wkId(date, 'm'), date, period: 'm', subject: ms || NONE, hours: ms && cellN(ws, hc + '9') !== null ? cellN(ws, hc + '9') : '', subject2: '', hours2: '', content: mc });
+        Object.keys(SB_PERIOD_ROWS).forEach((p) => {
+          const r = SB_PERIOD_ROWS[p];
+          const s1 = cellT(ws, c + r), h1 = cellN(ws, hc + r);
+          const s2 = cellT(ws, c + (r + 1)), h2 = cellN(ws, hc + (r + 1));
+          const split = !!(s2 && h2 !== null && isSubject(s2));
+          const content = cellT(ws, c + (split ? r + 2 : r + 1));
+          if (!s1 && content.length <= 1) return; // 祝日名の 縦書きなどの 飾り
+          if (p === '7') usesP7 = true;
+          recs.push({ id: wkId(date, p), date, period: p, subject: s1 || NONE, hours: h1 !== null ? h1 : '', subject2: split ? s2 : '', hours2: split ? h2 : '', content });
+        });
+        const yasumi = [['28', '中休み'], ['46', '昼休み']].map(([r, l]) => (cellT(ws, c + r) ? `${l}：${oneLine(cellT(ws, c + r))}` : '')).filter(Boolean).join('\n');
+        const fixed = recs.some((x) => x.subject !== NONE);
+        if (!recs.length && !yasumi && !cellT(ws, c + '72') && !cellT(ws, c + '73')) return;
+        week.days.push({ date, fixed, recs, yasumi, biko: cellT(ws, c + '72'), kiroku: cellT(ws, c + '73') });
+      });
+      if (week.days.some((d) => d.recs.length) || week.focus) weeks.push(week);
+    });
+    return { className, grade, subjects, standards, standardTotal, timetable, weeks, usesP7 };
+  }
+  function showShuanboImport(b) {
+    const filled = b.weeks.filter((w) => w.days.some((d) => d.fixed));
+    const nRecs = filled.reduce((a, w) => a + w.days.reduce((x, d) => x + d.recs.length, 0), 0);
+    const hasNotes = b.weeks.some((w) => w.days.some((d) => d.biko || d.kiroku));
+    openDialog({
+      title: '📥 週案簿の取りこみ',
+      saveLabel: '取りこむ',
+      body: `<p style="margin:0">${b.className ? `「${esc(b.className)}」の ` : ''}週案簿を 見つけました。<span class="hint">（「児童名簿」の シートは 読みこんでいません）</span></p>
+        <div class="info">
+          ${b.className ? `<label class="check"><input type="checkbox" name="cls" checked> 学級名を「${esc(b.className)}」にする</label>` : ''}
+          ${b.subjects.length ? `<label class="check"><input type="checkbox" name="subj" checked> 教科・領域（${b.subjects.length}）と 年間の 標準時数を 設定に入れる</label>` : ''}
+          ${b.timetable.length ? `<label class="check"><input type="checkbox" name="tt" checked> 時間割Ａ（${b.timetable.length}コマ）を「基本の時間割」にする</label>` : ''}
+          ${filled.length ? `<label class="check"><input type="checkbox" name="wk" checked> 週案 ${filled.length}週分（${md(filled[0].monday)}〜${md(addDays(filled[filled.length - 1].monday, 4))}、${nRecs}コマ）を取りこむ</label>
+            <span class="hint" style="margin-left:28px">教科・時数・学習内容・今週の重点・休み時間のメモ</span>` : ''}
+        </div>
+        ${hasNotes ? `<label class="check warn-box"><input type="checkbox" name="notes"> 備考・記録欄も 取りこむ</label>
+          <p class="hint">⚠ 備考・記録欄には、子どもや保護者の名前、ほかの先生の予定などが 書かれていることがあります。学校の情報セキュリティの決まりを 確かめてから 選んでください。</p>` : ''}
+        <p class="hint">取りこむ週の 週案は、週案簿の 内容に 入れかえます（単元とのつながりは 残ります）。</p>`,
+      onSave: (f) => applyShuanbo(b, f),
+    });
+  }
+  function applyShuanbo(b, f) {
+    const patch = {};
+    if (f.cls && b.className) patch.className = b.className;
+    if (f.subj && b.subjects.length) {
+      // 週案簿の 教科を 先に、いま 使っている ほかの 教科を あとに
+      const used = new Set();
+      ['timetable', 'weekly', 'units', 'materials'].forEach((k) => list(k).forEach((r) => { if (r.subject) used.add(r.subject); }));
+      patch.subjects = b.subjects.concat(S.subjects.filter((x) => used.has(x) && !b.subjects.includes(x)));
+      patch.standards = b.standards;
+      patch.standardTotal = b.standardTotal;
+    }
+    if (f.wk) {
+      // モジュールと（使っていれば）7校時を 校時に 足す
+      const ps = S.periods.slice();
+      if (!ps.some((p) => p.id === 'm')) ps.unshift({ id: 'm', name: 'モジュール', start: '08:30', end: '08:45', weight: 1 / 3 });
+      if (b.usesP7 && !ps.some((p) => p.id === '7')) ps.push({ id: '7', name: '7校時', start: '', end: '', weight: 1 });
+      if (ps.length !== S.periods.length) patch.periods = ps;
+    }
+    if (Object.keys(patch).length) {
+      Object.assign(S, patch);
+      persist(() => api.saveSettings(patch));
+    }
+    if (f.tt && b.timetable.length) {
+      const recs = b.timetable.map((x) => ({ id: ttId(x.day, x.pid), day: x.day, period: x.pid, subject: x.subject, memo: (get('timetable', ttId(x.day, x.pid)) || {}).memo || '' }));
+      const keep = new Set(recs.map((r) => r.id));
+      removeRecs('timetable', list('timetable').filter((r) => !keep.has(r.id)).map((r) => r.id), { render: false });
+      putRecs('timetable', recs, { render: false });
+    }
+    let nWeeks = 0, nRecs = 0;
+    if (f.wk) {
+      const recs = [], dayRecs = [], weekRecs = [];
+      const dates = new Set();
+      b.weeks.forEach((w) => {
+        if (w.focus) weekRecs.push({ id: 'v' + w.monday, monday: w.monday, focus: w.focus });
+        if (w.days.some((d) => d.fixed)) nWeeks++;
+        w.days.forEach((d) => {
+          dates.add(d.date);
+          d.recs.forEach((r) => recs.push(r));
+          const dr = { id: 'y' + d.date, date: d.date, fixed: d.fixed ? 1 : '', yasumi: d.yasumi };
+          if (f.notes) Object.assign(dr, { biko: d.biko, kiroku: d.kiroku });
+          dayRecs.push(dr);
+        });
+      });
+      nRecs = recs.length;
+      const keep = new Set(recs.map((r) => r.id));
+      removeRecs('weekly', list('weekly').filter((r) => dates.has(r.date) && !keep.has(r.id)).map((r) => r.id), { render: false });
+      putRecs('weekly', recs, { render: false });
+      putRecs('days', dayRecs, { render: false });
+      putRecs('weeks', weekRecs, { render: false });
+    }
+    dataVersion++;
+    render();
+    setTimeout(() => openDialog({
+      title: '✅ 取りこみました',
+      readOnly: true,
+      body: `<ul style="margin:0;padding-left:1.2em">${patch.className ? `<li>学級名：${esc(patch.className)}</li>` : ''}${patch.subjects ? `<li>教科・領域：${patch.subjects.length}／標準時数の 合計：${patch.standardTotal || '—'}</li>` : ''}${f.tt ? `<li>基本の時間割：${b.timetable.length}コマ</li>` : ''}${f.wk ? `<li>週案：${nWeeks}週分（${nRecs}コマ）${f.notes ? '・備考と記録欄' : ''}</li>` : ''}</ul>
+        <p class="hint">スプレッドシートへの 保存には 少し 時間が かかります。上の「保存しています…」が「✓ 保存ずみ」に なるまで、画面を 閉じないでください。</p>
+        <div class="toolbar" style="margin:0"><button class="btn" data-act="goTab" data-room="yotei" data-tab="week">週案を見る</button><button class="btn" data-act="goTab" data-room="yotei" data-tab="hours">時数の集計を見る</button></div>`,
+    }), 0);
+  }
+
   /* ---------- 準備中の 部屋 ---------- */
   function viewSoon(room) {
     return `<section class="card soon-room">
@@ -1931,7 +2548,7 @@
      ========================================================= */
   const ACTIONS = {
     go: (d) => { view.room = d.room; view.periodsDraft = null; render(); window.scrollTo(0, 0); },
-    goTab: (d) => { view.room = d.room; view.tab[d.room] = d.tab; render(); window.scrollTo(0, 0); },
+    goTab: (d) => { closeDialog(); view.room = d.room; view.tab[d.room] = d.tab; render(); window.scrollTo(0, 0); },
     tab: (d) => { view.tab[d.room] = d.tab; render(); },
     reload: () => { if (confirm('スプレッドシートから読み込み直します。保存できなかった変更は消えます。よろしいですか？')) location.reload(); },
     print: () => window.print(),
@@ -1947,6 +2564,8 @@
     newEvent: (d) => editEvent('', d.date),
     editEvent: (d) => editEvent(d.id),
     editLesson: (d) => editLesson(d.date, d.pid),
+    editDay: (d) => editDay(d.date),
+    editFocus: (d) => editFocus(d.mon),
     editChild: (d) => editChild(d.id || ''),
     pickChild: (d) => { view.childId = d.id; render(); },
     editX: (d) => editX(Number(d.day), d.pid),
@@ -1986,6 +2605,11 @@
       if (!subs.length) { alert('教科を1つ以上入れてください。'); return; }
       saveSettings({ subjects: subs });
     },
+    saveStandards: () => {
+      const st = {};
+      document.querySelectorAll('[data-std]').forEach((el) => { const n = Number(el.value); if (n > 0) st[el.dataset.std] = n; });
+      saveSettings({ standards: st, standardTotal: Number(document.getElementById('std-total').value) || 0 });
+    },
     periodMove: (d) => {
       const ps = readPeriodRows();
       const i = Number(d.i), j = i + Number(d.n);
@@ -2004,7 +2628,7 @@
       const used = new Set(ps.map((p) => p.id).concat(S.periods.map((p) => p.id)));
       let n = 1;
       while (used.has(String(n))) n++;
-      ps.push({ id: String(n), name: '', start: '', end: '' });
+      ps.push({ id: String(n), name: '', start: '', end: '', weight: 1 });
       view.periodsDraft = ps; render();
       const inputs = document.querySelectorAll('.ptable [data-f=name]');
       if (inputs.length) inputs[inputs.length - 1].focus();
@@ -2029,6 +2653,8 @@
     unitSubj: (el) => { view.unitSubj = el.value; render(); },
     matSubj: (el) => { view.matSubj = el.value; render(); },
     matKind: (el) => { view.matKind = el.value; render(); },
+    importFile: (el) => importFile(el),
+    hoursAll: (el) => { view.hoursAll = el.checked; render(); },
     taskDone: (el) => { const x = get('tasks', el.dataset.id); if (x) putRecs('tasks', Object.assign({}, x, { done: el.checked ? today() : '' })); },
     taskCat: (el) => { view.taskCat = el.value; render(); },
     taskDuty: (el) => { view.taskDuty = el.value; render(); },
@@ -2083,6 +2709,7 @@
       KINDS.forEach((k) => { T[k] = new Map(((data.tables || {})[k] || []).filter((r) => r && r.id).map((r) => [String(r.id), r])); });
       meta.sheetUrl = data.sheetUrl || '';
       lastError = null;
+      dataVersion++;
       render();
     } catch (err) {
       console.error(err);
@@ -2194,7 +2821,7 @@
       { id: 'tp-oshirase', title: '保護者へのお知らせ（行事）', kind: 'お知らせ', body: '{日付}\n保護者のみなさま\n{学級名} 担任\n\n　　　　の お知らせ\n\n　日ごろより、本学級の教育活動に ご理解と ご協力を いただき、ありがとうございます。\n　さて、下記のとおり　　　　を 行います。ご確認くださいますよう、お願いいたします。\n\n記\n１　日時　　月　日（　）\n２　場所　\n３　持ち物　\n４　その他　\n\n以上' },
       { id: 'tp-moushiokuri', title: '交流学級の先生への申し送り', kind: '申し送り', body: '{日付}　交流学級担任の先生へ\n\n（呼び名）さんについて\n\n・きょうの ようす：\n・気をつけてほしいこと：\n・連絡：\n\n{学級名} 担任' },
     ];
-    return { settings: { className: 'ひまわり学級（サンプル）' }, tables: { events, timetable, weekly, children, exchange, units, materials, tasks, duties, dutyItems, meetings, templates } };
+    return { settings: { className: 'ひまわり学級（サンプル）', standards: { '国語': 175, '算数': 175, '音楽': 70, '図工': 70, '体育': 105, '学級活動': 35, '自立活動': 70, '日常生活の指導': 175, '生活単元学習': 140 }, standardTotal: 1015 }, tables: { events, timetable, weekly, children, exchange, units, materials, tasks, duties, dutyItems, meetings, templates } };
   }
 
   boot();
