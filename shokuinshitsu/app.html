@@ -275,6 +275,26 @@
     .draft-card { margin-bottom: 16px; border-left: 4px solid var(--glow); }
     .steps { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 6px; }
 
+    /* 子どもの部屋 */
+    .privacy { background: var(--soft); border-left: 4px solid var(--glow); border-radius: 8px; padding: 6px 12px; font-size: 13px; color: var(--sub); margin: 0 0 12px; }
+    .notes { list-style: none; margin: 0; padding: 0; }
+    .note-row { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; padding: 6px 0; border-bottom: 1px solid var(--line); }
+    .note-row:last-child { border-bottom: 0; }
+    .note-row .nd { font-size: 13px; color: var(--sub); min-width: 3.2em; }
+    .note-row .nt { flex: 1 1 200px; cursor: pointer; }
+    .note-row .nt:hover { text-decoration: underline; text-decoration-color: var(--glow); }
+    .goal-card { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; cursor: pointer; background: var(--card); }
+    .goal-card:hover { border-color: var(--glow); }
+    .goal-card .g-goal { font-weight: 700; margin-top: 4px; }
+    .goal-card .g-sub { font-size: 14px; color: var(--sub); margin-top: 2px; }
+    .lv { color: var(--primary); }
+    .plan-dl { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; font-size: 14px; }
+    .plan-dl dt { font-weight: 700; color: var(--sub); }
+    .plan-dl dd { margin: 0; }
+    .plan-goals { margin: 0; padding-left: 1.1em; }
+    .plan-goals li { cursor: pointer; }
+    .contact .ct-body { margin-top: 4px; }
+
     /* 公務の部屋 */
     .tasks { list-style: none; margin: 0; padding: 0; }
     .task { display: flex; gap: 10px; align-items: flex-start; padding: 8px 2px; border-bottom: 1px solid var(--line); }
@@ -289,6 +309,7 @@
     .task-group.late .group-title { color: var(--danger); }
     .quick { display: flex; gap: 8px; flex-wrap: wrap; }
     .quick input[name=title] { flex: 1 1 260px; width: auto; }
+    .quick input[name=text] { flex: 1 1 200px; width: auto; }
     .check { display: flex; gap: 8px; align-items: center; font-weight: 700; font-size: 14px; }
     .check input { width: 20px; height: 20px; accent-color: var(--primary); flex: none; }
     .info .check { margin-top: 6px; font-weight: 400; }
@@ -360,7 +381,7 @@
      決まりごと
      ========================================================= */
   /* 共通ここから */
-  const KINDS = ['events', 'timetable', 'weekly', 'children', 'exchange', 'units', 'materials', 'tasks', 'duties', 'dutyItems', 'meetings', 'templates', 'days', 'weeks'];
+  const KINDS = ['events', 'timetable', 'weekly', 'children', 'exchange', 'units', 'materials', 'tasks', 'duties', 'dutyItems', 'meetings', 'templates', 'days', 'weeks', 'notes', 'plans', 'goals', 'contacts'];
   const DAYS = [1, 2, 3, 4, 5]; // 月〜金
   const WD = ['日', '月', '火', '水', '木', '金', '土'];
   const KYUGYO = '休業日';
@@ -397,8 +418,7 @@
     { id: 'yotei', icon: '📅', name: '予定の部屋', desc: '週案・月の予定・時間割・交流学級' },
     { id: 'gakushu', icon: '📚', name: '学習の部屋', desc: '単元計画・教材の置き場' },
     { id: 'koumu', icon: '📝', name: '公務の部屋', desc: 'やること・校務分掌・会議メモ・文書のひな形' },
-    { id: 'kodomo', icon: '🧒', name: '子どもの部屋', soon: true, desc: '個別の指導計画・日々の記録',
-      ideas: ['個別の教育支援計画・個別の指導計画（目標と、見直しの時期）', '日々の様子の短いメモ（積み上げて所見や評価に使う）', '保護者との連絡の記録'] },
+    { id: 'kodomo', icon: '🧒', name: '子どもの部屋', desc: '一人ひとり・日々の記録・指導計画・保護者連絡' },
     { id: 'renkei', icon: '🤝', name: '連携の部屋', soon: true, desc: '交流学級・支援員・関係機関',
       ideas: ['交流学級の担任への申し送り', '支援員さんと共有する1日の動き', '関係機関（放課後等デイサービス・医療など）の連絡先と連絡の記録'] },
     { id: 'settings', icon: '⚙️', name: '設定' },
@@ -510,7 +530,7 @@
   const meta = { sheetUrl: '', draftTrigger: false, draftSheetUrl: '', triggerError: '' };
   const view = {
     room: 'lobby',
-    tab: { yotei: 'week', gakushu: 'units', koumu: 'tasks' },
+    tab: { yotei: 'week', gakushu: 'units', koumu: 'tasks', kodomo: 'child' },
     week: mondayOf(today()),
     month: today().slice(0, 7),
     childId: '',
@@ -518,6 +538,7 @@
     matSubj: '', matKind: '', matQ: '',
     taskCat: '', taskDuty: '', showDone: false,
     hoursAll: false,
+    planTerm: '', noteKid: '', noteTag: '', noteTerm: 'term', noteQ: '', lastTag: '', contactKid: '',
     meetQ: '', meetKind: '',
     periodsDraft: null,
   };
@@ -795,6 +816,7 @@
     switch (room.id) {
       case 'yotei': return subtabs('yotei', [['week', '📝 週案'], ['hours', '⏱ 時数'], ['month', '🗓 月の予定'], ['timetable', '🕘 基本の時間割'], ['koryu', '🚶 交流学級']]) + ({ week: viewWeek, hours: viewHours, month: viewMonth, timetable: viewTimetable, koryu: viewKoryu })[view.tab.yotei]();
       case 'gakushu': return subtabs('gakushu', [['units', '📘 単元計画'], ['materials', '🧰 教材の置き場']]) + ({ units: viewUnits, materials: viewMaterials })[view.tab.gakushu]();
+      case 'kodomo': return viewKodomo();
       case 'koumu': return subtabs('koumu', [['tasks', '✅ やること'], ['duties', '🗂 校務分掌'], ['meetings', '📝 会議メモ'], ['templates', '📄 文書のひな形']]) + ({ tasks: viewTasks, duties: viewDuties, meetings: viewMeetings, templates: viewTemplates })[view.tab.koumu]();
       case 'settings': return viewSettings();
       default: return viewLobby();
@@ -889,8 +911,11 @@
       }
       case 'kodomo': {
         const kids = children();
-        if (!kids.length) return '「交流学級」のページで 子どもを 登録できるよ。';
+        if (!kids.length) return '「子どもの部屋」で 子どもを 登録してね。';
         if (offReason(t)) return 'きょうは お休み。先生も ゆっくり 休んでね。';
+        // 1週間 記録が ない 子を 知らせる
+        const quiet = kids.filter((k) => !list('notes').some((n) => n.childId === k.id && n.date > addDays(t, -7) && n.date <= t));
+        if (quiet.length && quiet.length < kids.length) return `${quiet.map((k) => k.name).join('・')}の 記録が 1週間 ないよ。気づいたことを ひとこと 書いてね。`;
         const n = new Set(list('exchange').filter((x) => Number(x.day) === dayOf(t) && get('children', x.childId)).map((x) => x.childId)).size;
         return n ? `きょうは ${n}人が 交流学級へ 行くよ。` : 'きょうは 交流学級へ 行く子は いないよ。';
       }
@@ -1599,17 +1624,19 @@
           <label class="field">学年 <select name="grade">${opt('', k.grade || '', '—')}${GRADES.map((g) => opt(g, k.grade)).join('')}</select></label>
           <label class="field">交流学級 <input name="homeroom" maxlength="20" value="${esc(k.homeroom)}" placeholder="例：3年2組"></label>
         </div>
+        <label class="field">好きなこと・得意なこと <textarea name="likes" rows="2" maxlength="1000" placeholder="例：電車、パズル。数字を 数えるのが 得意">${esc(k.likes)}</textarea></label>
+        <label class="field">配慮・支援のポイント <textarea name="care" rows="3" maxlength="1000" placeholder="例：大きな 音が 苦手（イヤーマフ）。予定の 変更は 絵カードで 前もって 伝える">${esc(k.care)}</textarea></label>
         <label class="field">メモ <textarea name="memo" rows="2" maxlength="500">${esc(k.memo)}</textarea></label>
         <p class="hint">障害名や診断などの くわしい情報は、ここには書かないでください。</p>`,
       deleteLabel: id ? 'この子を消す' : '',
-      deleteConfirm: `${k.name} を消します。交流の時間の記録も消えます。よろしいですか？`,
+      deleteConfirm: `${k.name} を消します。交流の時間・日々の記録・指導計画・保護者との連絡の 記録も すべて 消えます。よろしいですか？`,
       onDelete: () => {
-        removeRecs('exchange', list('exchange').filter((x) => x.childId === id).map((x) => x.id), { render: false });
+        ['exchange', 'notes', 'goals', 'plans', 'contacts'].forEach((kind) => removeRecs(kind, list(kind).filter((x) => x.childId === id).map((x) => x.id), { render: false }));
         removeRecs('children', id);
       },
       onSave: (f) => {
         const order = id ? k.order : Math.max(0, ...list('children').map((c) => Number(c.order) || 0)) + 1;
-        const rec = { id: id || uid('c'), name: f.name.trim(), grade: f.grade, homeroom: f.homeroom.trim(), memo: f.memo.trim(), order };
+        const rec = { id: id || uid('c'), name: f.name.trim(), grade: f.grade, homeroom: f.homeroom.trim(), memo: f.memo.trim(), likes: f.likes.trim(), care: f.care.trim(), order };
         if (!id) view.childId = rec.id;
         putRecs('children', rec);
       },
@@ -2756,6 +2783,340 @@
   }
   function exportMsg(text) { const el = document.getElementById('exportMsg'); if (el) el.textContent = text; }
 
+  /* =========================================================
+     子どもの部屋
+     ========================================================= */
+  const NOTE_TAGS = ['よかったこと', '学習', '生活', 'コミュニケーション', '行動', '体・健康', 'その他'];
+  const NOTE_TAG_HUE = { 'よかったこと': 40, '学習': 210, '生活': 140, 'コミュニケーション': 280, '行動': 0, '体・健康': 170 };
+  const PLAN_TERMS = ['年間', '1学期', '2学期', '3学期'];
+  const PLAN_AREAS = ['国語', '算数', '生活単元', '日常生活', '自立活動', 'コミュニケーション', '行動・社会性', '交流学級'];
+  const LEVELS = { '◎': 'よくできた', '○': 'おおむねできた', '△': 'もう少し' };
+  const CONTACT_METHODS = ['連絡帳', '電話', '面談', '送り迎えのとき', 'メール・アプリ', 'その他'];
+  const PRIVACY_NOTE = '🔒 この部屋には 子どもの 大切な 情報が 入ります。呼び名で、必要な ことだけを 短く 書きましょう。診断名や 検査の 結果などは 書かないでください。';
+
+  // いまの 学期（3学期制）
+  function termNow(date) {
+    const d = date || today();
+    const m = parse(d).getMonth() + 1;
+    const i = TERMS.findIndex((t) => t.months.includes(m));
+    return { nendo: nendoOf(d), term: TERMS[i].name };
+  }
+  // 学期の はじめと おわり（「年間」は 年度の はじめと おわり）
+  function termRange(nendo, term) {
+    const t = TERMS.find((x) => x.name === term);
+    if (!t) return [`${nendo}-04-01`, `${nendo + 1}-03-31`];
+    const first = t.months[0], last = t.months[t.months.length - 1];
+    const y = (m) => nendo + (m < 4 ? 1 : 0);
+    return [`${y(first)}-${pad(first)}-01`, ymd(new Date(y(last), last, 0))];
+  }
+  function kidHue(id) { const i = children().findIndex((c) => c.id === id); return i < 0 ? -1 : Math.round((i * 71 + 200) % 360); }
+  function kidChip(id) {
+    const k = get('children', id);
+    if (!k) return '<span class="chip gray">（消した子）</span>';
+    return `<span class="chip kid" style="--h:${Math.max(kidHue(id), 0)}">🧒 ${esc(k.name)}</span>`;
+  }
+  function tagChip(tag) {
+    if (!tag) return '';
+    const h = NOTE_TAG_HUE[tag];
+    return `<span class="chip${h === undefined ? ' gray' : ''}" style="--h:${h || 0};font-size:12px">${esc(tag)}</span>`;
+  }
+  const byDateDesc = (a, b) => String(b.date).localeCompare(String(a.date)) || String(b.id).localeCompare(String(a.id));
+  function notesOf(cid) { return list('notes').filter((n) => !cid || n.childId === cid).sort(byDateDesc); }
+  function contactsOf(cid) { return list('contacts').filter((c) => !cid || c.childId === cid).sort(byDateDesc); }
+  function planOf(cid, nendo) { return get('plans', `p${cid}-${nendo}`); }
+  function goalsOf(cid, nendo, term) {
+    return list('goals').filter((g) => g.childId === cid && Number(g.nendo) === nendo && (!term || g.term === term))
+      .sort((a, b) => PLAN_TERMS.indexOf(a.term) - PLAN_TERMS.indexOf(b.term) || (Number(a.order) || 0) - (Number(b.order) || 0));
+  }
+  function kidOptions(selected, firstLabel) {
+    return (firstLabel ? opt('', selected || '', firstLabel) : '') + children().map((k) => opt(k.id, selected, k.name)).join('');
+  }
+  function noteRow(n, showKid) {
+    return `<li class="note-row"><span class="nd">${md(n.date)}</span>${showKid ? kidChip(n.childId) : ''}${tagChip(n.tag)}
+      <span class="nt" data-act="editNote" data-id="${esc(n.id)}" role="button" tabindex="0">${nl(n.text)}</span></li>`;
+  }
+  function contactCard(c, showKid) {
+    const done = c.followup && list('tasks').some((x) => x.fromId === `${c.id}:f`);
+    return `<article class="contact">
+      <div class="meta"><b style="color:var(--ink)">${isDate(c.date) ? jdate(c.date) : ''}</b>${showKid ? kidChip(c.childId) : ''}${c.method ? `<span class="tag">${esc(c.method)}</span>` : ''}<span class="grow"></span>
+        <button class="btn small" data-act="editContact" data-id="${esc(c.id)}">直す</button></div>
+      ${c.content ? `<div class="ct-body">${nl(c.content)}</div>` : ''}
+      ${c.followup ? `<div class="mine"><b>👉 次にすること</b><div class="task" style="border:0;padding:4px 0 0"><div class="tmain">${nl(c.followup)}</div>${done ? '<span class="tag">✓ やることに入れました</span>' : `<button class="btn small" data-act="contactToTask" data-id="${esc(c.id)}">＋ やることへ</button>`}</div></div>` : ''}
+    </article>`;
+  }
+  function goalCard(g) {
+    return `<div class="goal-card" data-act="editGoal" data-id="${esc(g.id)}" role="button" tabindex="0">
+      <div class="meta">${g.area ? `<span class="tag">${esc(g.area)}</span>` : ''}${g.term === '年間' ? '<span class="tag">年間</span>' : ''}${g.level ? `<b class="lv" title="${esc(LEVELS[g.level] || '')}">${esc(g.level)} ${esc(LEVELS[g.level] || '')}</b>` : '<span class="tag">評価 まだ</span>'}</div>
+      <div class="g-goal">🎯 ${nl(g.goal)}</div>
+      ${g.support ? `<div class="g-sub">🛠 ${nl(g.support)}</div>` : ''}
+      ${g.evaluation ? `<div class="g-sub">📝 ${nl(g.evaluation)}</div>` : ''}
+    </div>`;
+  }
+
+  function viewKodomo() {
+    const kids = children();
+    const note = `<p class="privacy">${PRIVACY_NOTE}</p>`;
+    if (!kids.length) {
+      return note + `<div class="empty-note" style="margin-top:12px">まず、学級の子どもを 登録してください。<br><button class="btn primary" style="margin-top:8px" data-act="editChild">＋ 子どもを追加</button></div>`;
+    }
+    if (!kids.some((k) => k.id === view.childId)) view.childId = kids[0].id;
+    const tab = view.tab.kodomo;
+    return subtabs('kodomo', [['child', '🧒 一人ひとり'], ['notes', '📝 日々の記録'], ['plans', '📋 指導計画'], ['contacts', '📞 保護者連絡']]) + note +
+      ({ child: viewKid, notes: viewNotes, plans: viewPlans, contacts: viewContacts })[tab]();
+  }
+
+  /* ---------- 一人ひとり ---------- */
+  function viewKid() {
+    const kids = children();
+    const k = get('children', view.childId);
+    const tn = termNow();
+    const term = view.planTerm || tn.term;
+    const plan = planOf(k.id, tn.nendo) || {};
+    const goals = goalsOf(k.id, tn.nendo, term);
+    const notes = notesOf(k.id);
+    const cts = contactsOf(k.id).slice(0, 4);
+    const xs = list('exchange').filter((x) => x.childId === k.id)
+      .sort((a, b) => Number(a.day) - Number(b.day) || periodIndex(String(a.period)) - periodIndex(String(b.period)));
+    const pName = (pid) => (S.periods.find((p) => p.id === String(pid)) || { name: pid + '校時' }).name;
+    return `<div class="pills" style="margin:4px 0 12px">${kids.map((x) => `<button class="pill${x.id === k.id ? ' on' : ''}" data-act="pickKid" data-id="${esc(x.id)}">${esc(x.name)}</button>`).join('')}
+        <button class="pill" data-act="editChild">＋ 子どもを追加</button></div>
+      <section class="card" style="margin-bottom:16px">
+        <div class="toolbar"><h2 class="sec">${kidChip(k.id)} <span class="muted" style="font-size:15px;font-weight:400">${esc(k.grade)}　交流学級：${esc(k.homeroom || '—')}</span></h2><span class="grow"></span>
+          <button class="btn small primary" data-act="shoken" data-id="${esc(k.id)}">🌱 所見のたね</button>
+          <button class="btn small" data-act="editChild" data-id="${esc(k.id)}">直す</button></div>
+        <div class="row2">
+          <div class="info"><b>⭐ 好きなこと・得意なこと</b><div>${k.likes ? nl(k.likes) : '<span class="muted">（「直す」から 書けます）</span>'}</div></div>
+          <div class="info"><b>🤝 配慮・支援のポイント</b><div>${k.care ? nl(k.care) : '<span class="muted">（「直す」から 書けます）</span>'}</div></div>
+        </div>
+      </section>
+      <div class="grid2">
+        <div class="stack">
+          <section class="card">
+            <div class="toolbar"><h2 class="sec">📋 個別の指導計画（${wareki(tn.nendo).replace(/年$/, '')}年度）</h2><span class="grow"></span>
+              <button class="btn small" data-act="editPlan" data-id="${esc(k.id)}">願い・長期目標</button></div>
+            ${plan.wishSelf || plan.wishParent || plan.longGoal ? `<dl class="plan-dl">
+              ${plan.wishSelf ? `<dt>本人の願い</dt><dd>${nl(plan.wishSelf)}</dd>` : ''}${plan.wishParent ? `<dt>保護者の願い</dt><dd>${nl(plan.wishParent)}</dd>` : ''}${plan.longGoal ? `<dt>長期目標</dt><dd>${nl(plan.longGoal)}</dd>` : ''}</dl>` : ''}
+            <div class="pills" style="margin:8px 0">${PLAN_TERMS.map((x) => `<button class="pill${x === term ? ' on' : ''}" data-act="planTerm" data-term="${x}">${x}${x === tn.term ? '（いま）' : ''}</button>`).join('')}</div>
+            ${goals.length ? `<div class="stack" style="gap:8px">${goals.map(goalCard).join('')}</div>` : `<div class="empty-note">${esc(term)}の 目標は まだ ありません。</div>`}
+            <div class="toolbar" style="margin:10px 0 0"><span class="grow"></span><button class="btn small" data-act="editGoal" data-kid="${esc(k.id)}" data-term="${esc(term)}">＋ 目標を足す</button></div>
+          </section>
+          <section class="card">
+            <div class="toolbar"><h2 class="sec">🚶 交流の時間</h2><span class="grow"></span><button class="btn small" data-act="goTab" data-room="yotei" data-tab="koryu">交流学級の表</button></div>
+            ${xs.length ? `<ul class="day-list">${xs.map((x) => `<li><div class="pname">${WD[Number(x.day)]}曜日<span class="ptime">${esc(pName(x.period))}</span></div><div class="what">${chip(x.subject) || '—'} <span class="muted">${esc(x.room || k.homeroom || '')}</span>${x.memo ? `<div class="content">${esc(x.memo)}</div>` : ''}</div></li>`).join('')}</ul>` : '<p class="hint">交流の時間は ありません。</p>'}
+          </section>
+        </div>
+        <div class="stack">
+          <section class="card">
+            <div class="toolbar"><h2 class="sec">📝 日々の記録（${notes.length}件）</h2><span class="grow"></span>
+              <button class="btn small" data-act="kidNotes" data-id="${esc(k.id)}">すべて見る</button></div>
+            ${quickNoteForm(k.id)}
+            ${notes.length ? `<ul class="notes">${notes.slice(0, 12).map((n) => noteRow(n, false)).join('')}</ul>` : '<p class="hint" style="margin-top:8px">気づいたことを、ひとことずつ 残していきましょう。</p>'}
+          </section>
+          <section class="card">
+            <div class="toolbar"><h2 class="sec">📞 保護者との連絡</h2><span class="grow"></span>
+              <button class="btn small" data-act="editContact" data-kid="${esc(k.id)}">＋ 記録</button></div>
+            ${cts.length ? `<div class="stack" style="gap:8px">${cts.map((c) => contactCard(c, false)).join('')}</div>` : '<p class="hint">連絡の記録は まだ ありません。</p>'}
+          </section>
+        </div>
+      </div>`;
+  }
+  function quickNoteForm(kid) {
+    return `<form class="quick" data-form="quickNote" style="margin-bottom:8px">
+      ${kid ? `<input type="hidden" name="childId" value="${esc(kid)}">` : `<select class="input" name="childId" required style="width:auto" aria-label="子ども">${kidOptions(view.noteKid || '', '子どもを選ぶ')}</select>`}
+      <select class="input" name="tag" style="width:auto" aria-label="分類">${NOTE_TAGS.map((t) => opt(t, view.lastTag || 'よかったこと')).join('')}</select>
+      <input class="input" name="text" required maxlength="1000" placeholder="気づいたことを ひとこと（Enter で 記録）" aria-label="記録">
+      <button type="submit" class="btn primary">記録</button>
+    </form>`;
+  }
+
+  /* ---------- 日々の記録 ---------- */
+  function viewNotes() {
+    const tn = termNow();
+    const [from, to] = view.noteTerm === 'all' ? ['0000-00-00', '9999-99-99'] : view.noteTerm === 'year' ? termRange(tn.nendo, '年間') : termRange(tn.nendo, tn.term);
+    const inRange = (n) => n.date >= from && n.date <= to;
+    const counts = children().map((k) => `${esc(k.name)} ${notesOf(k.id).filter(inRange).length}`).join('・');
+    return `<section class="card" style="margin-bottom:12px">${quickNoteForm('')}
+        <p class="hint">${view.noteTerm === 'all' ? 'これまでの' : view.noteTerm === 'year' ? '今年度の' : `${tn.term}の`} 記録の数：${counts}　<span class="muted">（少ない子にも 目を向けましょう）</span></p></section>
+      <div class="toolbar">
+        <select class="input" style="width:auto" data-chg="noteKid" aria-label="子どもで しぼりこむ">${kidOptions(view.noteKid, 'すべての子')}</select>
+        <select class="input" style="width:auto" data-chg="noteTag" aria-label="分類で しぼりこむ">${opt('', view.noteTag, 'すべての分類')}${NOTE_TAGS.map((t) => opt(t, view.noteTag)).join('')}</select>
+        <select class="input" style="width:auto" data-chg="noteTerm" aria-label="期間">${opt('term', view.noteTerm, `${tn.term}`)}${opt('year', view.noteTerm, '今年度')}${opt('all', view.noteTerm, 'すべて')}</select>
+        <input class="input" style="max-width:240px" type="search" placeholder="🔍 さがす" value="${esc(view.noteQ)}" data-inp="noteQ" aria-label="記録を さがす">
+      </div>
+      <div id="note-list">${noteList(from, to)}</div>`;
+  }
+  function noteList(from, to) {
+    if (!from) {
+      const tn = termNow();
+      [from, to] = view.noteTerm === 'all' ? ['0000-00-00', '9999-99-99'] : view.noteTerm === 'year' ? termRange(tn.nendo, '年間') : termRange(tn.nendo, tn.term);
+    }
+    const q = view.noteQ.trim().toLowerCase();
+    const ns = notesOf(view.noteKid).filter((n) => n.date >= from && n.date <= to && (!view.noteTag || n.tag === view.noteTag) && (!q || String(n.text).toLowerCase().includes(q)));
+    if (!ns.length) return '<div class="empty-note">記録は ありません。</div>';
+    const dates = Array.from(new Set(ns.map((n) => n.date)));
+    return dates.map((d) => `<h3 class="group-title">${isDate(d) ? jdate(d) : '日付なし'}</h3><section class="card" style="padding:8px 14px"><ul class="notes">${ns.filter((n) => n.date === d).map((n) => noteRow(n, true)).join('')}</ul></section>`).join('');
+  }
+  function editNote(id, preset) {
+    const n = id ? get('notes', id) : Object.assign({ date: today(), tag: 'よかったこと' }, preset || {});
+    if (!n) return;
+    openDialog({
+      title: id ? '記録を直す' : '記録を書く',
+      body: `<div class="row2">
+          <label class="field">子ども <select name="childId" required>${kidOptions(n.childId, '—')}</select></label>
+          <label class="field">日付 <input type="date" name="date" required value="${esc(n.date)}"></label>
+        </div>
+        <label class="field">分類 <select name="tag">${NOTE_TAGS.map((t) => opt(t, n.tag)).join('')}</select></label>
+        <label class="field">記録 <textarea name="text" rows="4" required maxlength="1000">${esc(n.text)}</textarea></label>
+        <p class="hint">事実（したこと・言ったこと）と、そのときの 支援を 短く 書いておくと、所見や 評価に 使いやすく なります。</p>`,
+      deleteLabel: id ? 'この記録を消す' : '',
+      onDelete: () => removeRecs('notes', id),
+      onSave: (f) => {
+        if (!f.childId) return '子どもを 選んでください。';
+        putRecs('notes', { id: id || uid('nt'), childId: f.childId, date: f.date, tag: f.tag, text: f.text.trim() });
+      },
+    });
+  }
+
+  /* ---------- 指導計画 ---------- */
+  function viewPlans() {
+    const tn = termNow();
+    const term = view.planTerm || tn.term;
+    const rows = children().map((k) => {
+      const gs = goalsOf(k.id, tn.nendo, term);
+      const done = gs.filter((g) => g.level || g.evaluation).length;
+      return `<tr><td><button class="btn link" data-act="pickKid" data-id="${esc(k.id)}">${kidChip(k.id)}</button></td>
+        <td>${gs.length ? `<ul class="plan-goals">${gs.map((g) => `<li data-act="editGoal" data-id="${esc(g.id)}" role="button" tabindex="0">${g.area ? `<b>${esc(g.area)}</b>：` : ''}${esc(short(g.goal, 40))}${g.level ? ` <b class="lv">${esc(g.level)}</b>` : ''}</li>`).join('')}</ul>` : '<span class="muted">目標が ありません</span>'}</td>
+        <td style="white-space:nowrap">${gs.length ? `${done} / ${gs.length}${done === gs.length ? ' ✅' : ''}` : '—'}</td>
+        <td><button class="btn small" data-act="editGoal" data-kid="${esc(k.id)}" data-term="${esc(term)}">＋ 目標</button></td></tr>`;
+    }).join('');
+    return `<div class="pills" style="margin:4px 0 12px">${PLAN_TERMS.map((x) => `<button class="pill${x === term ? ' on' : ''}" data-act="planTerm" data-term="${x}">${x}${x === tn.term ? '（いま）' : ''}</button>`).join('')}</div>
+      <p class="hint" style="margin-bottom:8px">${wareki(tn.nendo).replace(/年$/, '')}年度 ${esc(term)}の 個別の指導計画です。目標を 押すと、手立てや 評価を 書けます。評価の 時期の 前に、評価ずみの 数を 確かめましょう。</p>
+      <div class="table-wrap"><table class="list"><thead><tr><th>子ども</th><th>目標</th><th>評価ずみ</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+  function editPlan(kid) {
+    const k = get('children', kid);
+    if (!k) return;
+    const nendo = termNow().nendo;
+    const id = `p${kid}-${nendo}`;
+    const p = get('plans', id) || {};
+    openDialog({
+      title: `${k.name}　${wareki(nendo).replace(/年$/, '')}年度の 願い・長期目標`,
+      body: `<label class="field">本人の願い <textarea name="wishSelf" rows="2" maxlength="1000">${esc(p.wishSelf)}</textarea></label>
+        <label class="field">保護者の願い <textarea name="wishParent" rows="2" maxlength="1000">${esc(p.wishParent)}</textarea></label>
+        <label class="field">長期目標（1年間） <textarea name="longGoal" rows="3" maxlength="2000">${esc(p.longGoal)}</textarea></label>
+        <label class="field">メモ <textarea name="memo" rows="2" maxlength="2000">${esc(p.memo)}</textarea></label>`,
+      onSave: (f) => putRecs('plans', { id, childId: kid, nendo, wishSelf: f.wishSelf.trim(), wishParent: f.wishParent.trim(), longGoal: f.longGoal.trim(), memo: f.memo.trim() }),
+    });
+  }
+  function editGoal(id, kid, term) {
+    const nendo = termNow().nendo;
+    const g = id ? get('goals', id) : { childId: kid, nendo, term: term || termNow().term };
+    if (!g) return;
+    const k = get('children', g.childId);
+    openDialog({
+      title: `${k ? k.name + '　' : ''}${id ? '目標を直す' : '目標を足す'}`,
+      body: `<div class="row2">
+          <label class="field">学期 <select name="term">${PLAN_TERMS.map((x) => opt(x, g.term)).join('')}</select></label>
+          <label class="field">領域・教科 <input name="area" list="area-list" maxlength="30" value="${esc(g.area)}" placeholder="例：国語"></label>
+        </div>
+        <datalist id="area-list">${PLAN_AREAS.map((a) => `<option value="${esc(a)}">`).join('')}</datalist>
+        <label class="field">目標 <textarea name="goal" rows="2" required maxlength="1000" placeholder="例：絵本の 短い 文を、指で なぞりながら 読む">${esc(g.goal)}</textarea></label>
+        <label class="field">手立て（支援） <textarea name="support" rows="2" maxlength="1000" placeholder="例：リーディングスリットを 使う。音読はかせで 練習する">${esc(g.support)}</textarea></label>
+        <div class="row2">
+          <label class="field">達成 <select name="level">${opt('', g.level || '', '—（まだ）')}${Object.keys(LEVELS).map((l) => opt(l, g.level, `${l} ${LEVELS[l]}`)).join('')}</select></label>
+          <span></span>
+        </div>
+        <label class="field">評価 <textarea name="evaluation" rows="3" maxlength="2000">${esc(g.evaluation)}</textarea></label>
+        ${id ? `<div><button type="button" class="btn small" data-act="goalNotes" data-id="${esc(id)}">🌱 この学期の 記録を 見る</button></div>` : ''}`,
+      deleteLabel: id ? 'この目標を消す' : '',
+      onDelete: () => removeRecs('goals', id),
+      onSave: (f) => {
+        const order = id ? g.order : Math.max(0, ...list('goals').filter((x) => x.childId === g.childId).map((x) => Number(x.order) || 0)) + 1;
+        putRecs('goals', { id: id || uid('gl'), childId: g.childId, nendo: Number(g.nendo) || nendo, term: f.term, area: f.area.trim(), goal: f.goal.trim(), support: f.support.trim(), level: f.level, evaluation: f.evaluation.trim(), order });
+      },
+    });
+  }
+
+  /* ---------- 保護者連絡 ---------- */
+  function viewContacts() {
+    const cs = contactsOf(view.contactKid);
+    return `<div class="toolbar">
+        <select class="input" style="width:auto" data-chg="contactKid" aria-label="子どもで しぼりこむ">${kidOptions(view.contactKid, 'すべての子')}</select>
+        <span class="grow"></span>
+        <button class="btn primary" data-act="editContact" data-kid="${esc(view.contactKid)}">＋ 連絡を記録</button>
+      </div>
+      <p class="hint" style="margin-bottom:12px">連絡帳・電話・面談などで 伝えたこと、聞いたことを 残します。「次にすること」は ボタン1つで「やること」に 入れられます。</p>
+      ${cs.length ? `<div class="stack" style="gap:10px">${cs.map((c) => `<section class="card" style="padding:12px 14px">${contactCard(c, true)}</section>`).join('')}</div>` : '<div class="empty-note">連絡の記録は まだ ありません。</div>'}`;
+  }
+  function editContact(id, kid) {
+    const c = id ? get('contacts', id) : { childId: kid || view.childId, date: today(), method: '連絡帳' };
+    if (!c) return;
+    openDialog({
+      title: id ? '連絡の記録を直す' : '保護者との連絡を記録',
+      body: `<div class="row2">
+          <label class="field">子ども <select name="childId" required>${kidOptions(c.childId, '—')}</select></label>
+          <label class="field">日付 <input type="date" name="date" required value="${esc(c.date)}"></label>
+        </div>
+        <label class="field">方法 <select name="method">${CONTACT_METHODS.map((m) => opt(m, c.method || 'その他')).join('')}</select></label>
+        <label class="field">内容（伝えたこと・聞いたこと） <textarea name="content" rows="4" maxlength="2000">${esc(c.content)}</textarea></label>
+        <label class="field">次にすること <textarea name="followup" rows="2" maxlength="500" placeholder="例：来週の 連絡帳で 様子を 伝える">${esc(c.followup)}</textarea></label>`,
+      deleteLabel: id ? 'この記録を消す' : '',
+      onDelete: () => removeRecs('contacts', id),
+      onSave: (f) => {
+        if (!f.childId) return '子どもを 選んでください。';
+        putRecs('contacts', { id: id || uid('ct'), childId: f.childId, date: f.date, method: f.method, content: f.content.trim(), followup: f.followup.trim() });
+      },
+    });
+  }
+
+  /* ---------- 所見のたね（学期の 記録と 指導計画を 1つの 文に まとめる） ---------- */
+  function shokenText(kid, nendo, term) {
+    const k = get('children', kid);
+    const [from, to] = termRange(nendo, term);
+    const lines = [`【${k.name}　${wareki(nendo).replace(/年$/, '')}年度 ${term}の 記録】`];
+    const goals = goalsOf(kid, nendo).filter((g) => g.term === term || g.term === '年間');
+    if (goals.length) {
+      lines.push('', '■ 個別の指導計画');
+      goals.forEach((g) => {
+        lines.push(`・${g.area ? g.area + '：' : ''}${g.goal}${g.term === '年間' ? '（年間）' : ''}`);
+        if (g.support) lines.push(`　手立て：${g.support.replace(/\n/g, ' ')}`);
+        if (g.level || g.evaluation) lines.push(`　評価${g.level ? `（${g.level}）` : ''}：${(g.evaluation || '').replace(/\n/g, ' ')}`);
+      });
+    }
+    const ns = notesOf(kid).filter((n) => n.date >= from && n.date <= to).reverse();
+    if (ns.length) {
+      lines.push('', `■ 日々の記録（${ns.length}件）`);
+      NOTE_TAGS.forEach((t) => {
+        const part = ns.filter((n) => (n.tag || 'その他') === t);
+        if (!part.length) return;
+        lines.push(`〈${t}〉`);
+        part.forEach((n) => lines.push(`・${md(n.date)} ${String(n.text).replace(/\n/g, ' ')}`));
+      });
+    }
+    const cs = contactsOf(kid).filter((c) => c.date >= from && c.date <= to).reverse();
+    if (cs.length) {
+      lines.push('', '■ 保護者との連絡');
+      cs.forEach((c) => lines.push(`・${md(c.date)} ${c.method ? c.method + '：' : ''}${String(c.content || '').replace(/\n/g, ' ')}`));
+    }
+    if (lines.length === 1) lines.push('', 'この 学期の 記録は まだ ありません。');
+    return lines.join('\n');
+  }
+  function showShoken(kid, term) {
+    const k = get('children', kid);
+    if (!k) return;
+    const tn = termNow();
+    const t = term || (view.planTerm && view.planTerm !== '年間' ? view.planTerm : tn.term);
+    openDialog({
+      title: `🌱 所見のたね　${k.name}`,
+      readOnly: true,
+      attrs: `data-kid="${esc(kid)}"`,
+      body: `<div class="pills">${TERMS.map((x) => `<button type="button" class="pill${x.name === t ? ' on' : ''}" data-act="shokenTerm" data-kid="${esc(kid)}" data-term="${x.name}">${x.name}</button>`).join('')}</div>
+        <textarea class="input" id="draftText" rows="16" aria-label="所見のたね">${esc(shokenText(kid, tn.nendo, t))}</textarea>
+        <div class="toolbar" style="margin:0"><button class="btn primary" data-act="copyDraft">📋 コピーする</button><span class="hint" id="copyMsg" role="status"></span></div>
+        <p class="hint">学期の 指導計画・日々の記録・保護者との連絡を 集めました。通知表の 所見や、指導計画の 評価を 書くときの 材料に してください（ここで 書きかえても 保存は されません）。</p>`,
+    });
+  }
+
   /* ---------- 準備中の 部屋 ---------- */
   function viewSoon(room) {
     return `<section class="card soon-room">
@@ -2793,6 +3154,17 @@
   }
 
   document.addEventListener('submit', (e) => {
+    if (e.target.dataset.form === 'quickNote') {
+      e.preventDefault();
+      const f = Object.fromEntries(new FormData(e.target));
+      if (!f.childId || !f.text.trim()) return;
+      view.lastTag = f.tag;
+      if (!e.target.querySelector('[type=hidden]')) view.noteKid = view.noteKid || '';
+      putRecs('notes', { id: uid('nt'), childId: f.childId, date: today(), tag: f.tag, text: f.text.trim() });
+      const input = document.querySelector('[data-form=quickNote] [name=text]');
+      if (input) input.focus();
+      return;
+    }
     if (e.target.dataset.form === 'quickTask') {
       e.preventDefault();
       const f = Object.fromEntries(new FormData(e.target));
@@ -2885,6 +3257,22 @@
     editUnit: (d) => editUnit(d.id || ''),
     editMat: (d) => editMat(d.id || ''),
     editTask: (d) => editTask(d.id || ''),
+    pickKid: (d) => { view.childId = d.id; view.tab.kodomo = 'child'; view.room = 'kodomo'; render(); window.scrollTo(0, 0); },
+    kidNotes: (d) => { view.noteKid = d.id; view.tab.kodomo = 'notes'; render(); window.scrollTo(0, 0); },
+    planTerm: (d) => { view.planTerm = d.term; render(); },
+    editNote: (d) => editNote(d.id || ''),
+    editPlan: (d) => editPlan(d.id),
+    editGoal: (d) => editGoal(d.id || '', d.kid || '', d.term || ''),
+    goalNotes: (d) => { const g = get('goals', d.id); if (!g) return; closeDialog(); showShoken(g.childId, g.term === '年間' ? '' : g.term); },
+    editContact: (d) => editContact(d.id || '', d.kid || ''),
+    contactToTask: (d) => {
+      const c = get('contacts', d.id);
+      const k = c && get('children', c.childId);
+      if (!c) return;
+      editTask('', { title: `${k ? k.name + '：' : ''}${short(c.followup.replace(/\n/g, ' '), 60)}`, cat: '連絡', memo: `${isDate(c.date) ? jdate(c.date) + ' ' : ''}${c.method || ''}の 記録より`, fromId: `${c.id}:f` });
+    },
+    shoken: (d) => showShoken(d.id),
+    shokenTerm: (d) => { closeDialog(); showShoken(d.kid, d.term); },
     toggleDone: () => { view.showDone = !view.showDone; render(); },
     editDuty: (d) => editDuty(d.id || ''),
     editItem: (d) => editItem(d.id || '', d.duty || ''),
@@ -2970,6 +3358,10 @@
     hoursAll: (el) => { view.hoursAll = el.checked; render(); },
     taskDone: (el) => { const x = get('tasks', el.dataset.id); if (x) putRecs('tasks', Object.assign({}, x, { done: el.checked ? today() : '' })); },
     taskCat: (el) => { view.taskCat = el.value; render(); },
+    noteKid: (el) => { view.noteKid = el.value; render(); },
+    noteTag: (el) => { view.noteTag = el.value; render(); },
+    noteTerm: (el) => { view.noteTerm = el.value; render(); },
+    contactKid: (el) => { view.contactKid = el.value; render(); },
     taskDuty: (el) => { view.taskDuty = el.value; render(); },
     meetKind: (el) => { view.meetKind = el.value; render(); },
     lessonSubj: (el) => {
@@ -3003,6 +3395,11 @@
       view.matQ = el.value;
       const box = document.getElementById('mat-list');
       if (box) box.innerHTML = materialList();
+    }
+    if (el.dataset && el.dataset.inp === 'noteQ') {
+      view.noteQ = el.value;
+      const box = document.getElementById('note-list');
+      if (box) box.innerHTML = noteList();
     }
     if (el.dataset && el.dataset.inp === 'meetQ') {
       view.meetQ = el.value;
@@ -3052,9 +3449,9 @@
     const timetable = [];
     Object.keys(tt).forEach((d) => tt[d].forEach((s, i) => { if (s) timetable.push({ id: ttId(d, String(i + 1)), day: Number(d), period: String(i + 1), subject: s, memo: s === '体育' ? '体育館' : s === '日常生活の指導' ? '朝の会・着がえ' : '' }); }));
     const children = [
-      { id: 'cA', name: 'Aさん', grade: '2年', homeroom: '2年1組', order: 1, memo: '' },
-      { id: 'cB', name: 'Bさん', grade: '3年', homeroom: '3年2組', order: 2, memo: '' },
-      { id: 'cC', name: 'Cさん', grade: '4年', homeroom: '4年1組', order: 3, memo: '' },
+      { id: 'cA', name: 'Aさん', grade: '2年', homeroom: '2年1組', order: 1, memo: '', likes: '電車の 絵本。数を 数えること', care: '大きな 音が 苦手（イヤーマフ）。予定の 変更は 絵カードで 前もって 伝える' },
+      { id: 'cB', name: 'Bさん', grade: '3年', homeroom: '3年2組', order: 2, memo: '', likes: '体を 動かすこと。係の 仕事', care: '話を 聞く ときは 前の 席で。指示は 1つずつ' },
+      { id: 'cC', name: 'Cさん', grade: '4年', homeroom: '4年1組', order: 3, memo: '', likes: '絵を かくこと。工作', care: '困った ときに 自分から 言えるよう、「てつだってカード」を 机に 置く' },
     ];
     const ex = [['cB', 1, '4', '音楽'], ['cC', 2, '4', '体育'], ['cA', 3, '4', '音楽'], ['cC', 3, '5', '学級活動'], ['cB', 4, '5', '体育'], ['cC', 5, '4', '図工'], ['cA', 5, '5', '図工']];
     const exchange = ex.map(([c, d, p, s]) => ({ id: xId(c, d, p), childId: c, day: d, period: p, subject: s, room: children.find((k) => k.id === c).homeroom, memo: c === 'cA' ? '支援員さん つきそい' : '' }));
@@ -3138,7 +3535,39 @@
       { id: 'tp-oshirase', title: '保護者へのお知らせ（行事）', kind: 'お知らせ', body: '{日付}\n保護者のみなさま\n{学級名} 担任\n\n　　　　の お知らせ\n\n　日ごろより、本学級の教育活動に ご理解と ご協力を いただき、ありがとうございます。\n　さて、下記のとおり　　　　を 行います。ご確認くださいますよう、お願いいたします。\n\n記\n１　日時　　月　日（　）\n２　場所　\n３　持ち物　\n４　その他　\n\n以上' },
       { id: 'tp-moushiokuri', title: '交流学級の先生への申し送り', kind: '申し送り', body: '{日付}　交流学級担任の先生へ\n\n（呼び名）さんについて\n\n・きょうの ようす：\n・気をつけてほしいこと：\n・連絡：\n\n{学級名} 担任' },
     ];
-    return { settings: { className: 'ひまわり学級（サンプル）', standards: { '国語': 175, '算数': 175, '音楽': 70, '図工': 70, '体育': 105, '学級活動': 35, '自立活動': 70, '日常生活の指導': 175, '生活単元学習': 140 }, standardTotal: 1015 }, tables: { events, timetable, weekly, children, exchange, units, materials, tasks, duties, dutyItems, meetings, templates } };
+    // 子どもの部屋
+    const n0 = nendoOf(t);
+    const termName = TERMS.find((x) => x.months.includes(parse(t).getMonth() + 1)).name;
+    // 記録の 日は 授業の ある 日に（土日・祝日なら 前の 平日）
+    const pastDay = (n) => { let d = addDays(t, -n); while (dayOf(d) === 0 || dayOf(d) === 6 || holiday(d)) d = addDays(d, -1); return d; };
+    const note = (k, ago, tag, text) => ({ id: `nt${k}${ago}${tag.length}`, childId: k, date: pastDay(ago), tag, text });
+    const notes = [
+      note('cA', 0, 'よかったこと', '音読で「うんとこしょ」を 大きな 声で 言えた。友だちと 声を そろえる 姿も'),
+      note('cA', 2, '学習', '長さくらべ：はしを そろえる ことを 声かけ なしで できた'),
+      note('cA', 5, '生活', '給食の 準備で、自分から 配膳台を ふいていた'),
+      note('cA', 9, 'コミュニケーション', '交流学級の 音楽で、となりの 子に「いっしょに やろう」と 言えた'),
+      note('cB', 1, '行動', '体育の 待ち時間に 列から はなれた。タイマーで 見通しを もたせると もどれた'),
+      note('cB', 4, 'よかったこと', '係の 黒板消しを 毎日 わすれずに 続けている'),
+      note('cB', 12, '学習', 'かけ算 6の段：カードを 使うと 自分で 答えを たしかめられた'),
+      note('cC', 3, 'よかったこと', '困った ときに「てつだってください」カードを 自分で 出せた'),
+      note('cC', 11, '体・健康', '朝 ねむそう。保護者に 連絡帳で 様子を 伝えた'),
+    ];
+    const plans = [
+      { id: `pcA-${n0}`, childId: 'cA', nendo: n0, wishSelf: '友だちと いっしょに 遊びたい', wishParent: '自分の 気持ちを ことばで 伝えられるように なってほしい', longGoal: '友だちや 先生に、自分の 気持ちや したいことを ことばで 伝える', memo: '' },
+    ];
+    const goal = (id, k, term, area, g, sup, lv, ev, order) => ({ id, childId: k, nendo: n0, term, area, goal: g, support: sup, level: lv, evaluation: ev, order });
+    const goals = [
+      goal('glA1', 'cA', termName, '国語', '短い お話を、指で なぞりながら 声に 出して 読む', 'リーディングスリット。音読はかせで 家でも 練習', '○', '「おおきな かぶ」を 役に 分かれて 読めた。長い 文は 支援が 必要', 1),
+      goal('glA2', 'cA', termName, '算数', '2つの ものの 長さを、はしを そろえて くらべる', '具体物（えんぴつ・テープ）で 操作してから 絵カードへ', '', '', 2),
+      goal('glA3', 'cA', termName, 'コミュニケーション', '困った ときに「てつだってください」と 伝える', '気持ちカードを 机に 置く。言えたら すぐに ほめる', '', '', 3),
+      goal('glB1', 'cB', termName, '行動・社会性', '体育の 待ち時間に、列に いて 順番を 待つ', 'タイマーで 待つ 時間を 見せる', '△', '', 1),
+      goal('glB2', 'cB', termName, '算数', 'かけ算 2・5・6の段を 唱える', '九九カード。毎朝 1分', '', '', 2),
+    ];
+    const contacts = [
+      { id: 'ctA1', childId: 'cA', date: pastDay(3), method: '連絡帳', content: '音読の 練習を 家でも がんばっていると 書いて くださった。学校での 様子（大きな 声で 読めた）を 返信した', followup: '' },
+      { id: 'ctC1', childId: 'cC', date: pastDay(11), method: '電話', content: '朝 ねむそうな 日が 続いている ことを 伝えた。家でも 夜ふかしが 増えているとの こと', followup: '1週間 様子を 見て、連絡帳で 伝える' },
+    ];
+    return { settings: { className: 'ひまわり学級（サンプル）', standards: { '国語': 175, '算数': 175, '音楽': 70, '図工': 70, '体育': 105, '学級活動': 35, '自立活動': 70, '日常生活の指導': 175, '生活単元学習': 140 }, standardTotal: 1015 }, tables: { events, timetable, weekly, children, exchange, units, materials, tasks, duties, dutyItems, meetings, templates, notes, plans, goals, contacts } };
   }
 
   boot();

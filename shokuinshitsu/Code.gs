@@ -55,7 +55,8 @@ const TABLES = {
   },
   children: {
     sheet: '子ども',
-    cols: [['id', COL_ID], ['name', '呼び名'], ['grade', '学年'], ['homeroom', '交流学級'], ['order', '並び順', 'num'], ['memo', 'メモ']],
+    cols: [['id', COL_ID], ['name', '呼び名'], ['grade', '学年'], ['homeroom', '交流学級'], ['order', '並び順', 'num'], ['memo', 'メモ'],
+      ['likes', '好きなこと・得意なこと', 'long'], ['care', '配慮・支援のポイント', 'long']],
   },
   exchange: {
     sheet: '交流',
@@ -70,6 +71,23 @@ const TABLES = {
     cols: [['id', COL_ID], ['name', '名前'], ['subject', '教科'], ['kind', '種類'], ['url', 'URL'], ['unitId', '単元ID'], ['memo', 'メモ']],
     // シートを 作った ときに 最初から 入れておく 行
     seed: [{ id: 'm-ondoku', name: 'おんどくはかせの ちょうせんじょう', subject: '国語', kind: 'アプリ', url: 'https://zku0395-ops.github.io/hori/', memo: '自作の音読アプリ。全員の記録は「音読はかせ 記録」のスプレッドシートで見られます。' }],
+  },
+  // ここから 子どもの部屋
+  notes: {
+    sheet: '子どもの記録',
+    cols: [['id', COL_ID], ['childId', '子どもID'], ['date', '日付', 'date'], ['tag', '分類'], ['text', '記録', 'long']],
+  },
+  plans: {
+    sheet: '指導計画',
+    cols: [['id', COL_ID], ['childId', '子どもID'], ['nendo', '年度', 'num'], ['wishSelf', '本人の願い', 'long'], ['wishParent', '保護者の願い', 'long'], ['longGoal', '長期目標', 'long'], ['memo', 'メモ', 'long']],
+  },
+  goals: {
+    sheet: '指導計画の目標',
+    cols: [['id', COL_ID], ['childId', '子どもID'], ['nendo', '年度', 'num'], ['term', '学期'], ['area', '領域'], ['goal', '目標', 'long'], ['support', '手立て', 'long'], ['level', '達成'], ['evaluation', '評価', 'long'], ['order', '並び順', 'num']],
+  },
+  contacts: {
+    sheet: '保護者連絡',
+    cols: [['id', COL_ID], ['childId', '子どもID'], ['date', '日付', 'date'], ['method', '方法'], ['content', '内容', 'long'], ['followup', '次にすること', 'long']],
   },
   // ここから 公務の部屋
   tasks: {
