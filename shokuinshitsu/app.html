@@ -9,21 +9,35 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
   <style>
+    /* 色：銀の 壁と 青い 光（近未来の 職員室） */
     :root {
-      --bg: #f5f2ea; --card: #ffffff; --ink: #1f2933; --sub: #5f6b7a; --line: #e2dccd; --soft: #efeadf;
-      --board: #23513d; --board-2: #2c634b; --board-ink: #f4f8f3;
-      --primary: #23513d; --primary-ink: #ffffff; --danger: #b42318; --warn: #b45309;
-      --sun: #c0392b; --sat: #1d4ed8; --today: #fff4d6; --today-line: #e0a21b; --off: #ebe6da;
-      --shadow: 0 1px 2px rgba(40, 30, 10, .06), 0 4px 14px rgba(40, 30, 10, .05);
+      --bg: #eef2f6; --card: #ffffff; --ink: #1b2533; --sub: #5a6878; --line: #d8e0e9; --soft: #e9eff5;
+      --board: #1a2532; --board-2: #223246; --board-ink: #e8f3ff;
+      --primary: #1d6fb8; --primary-ink: #ffffff; --danger: #b42318; --warn: #b45309;
+      --glow: #3fb4ff; --glow-soft: rgba(63, 180, 255, .18);
+      --sun: #c0392b; --sat: #1d4ed8; --today: #e3f2ff; --today-line: #2f9be3; --off: #e2e8ee;
+      --shadow: 0 1px 2px rgba(20, 40, 70, .06), 0 6px 18px rgba(20, 40, 70, .06);
       --chip-l: 90%; --chip-s: 62%; --chip-tl: 27%; --chip-ts: 55%; --bar-l: 45%;
+      /* ロビーの 絵 */
+      --wall: #e7edf3; --wall-back: #f4f7fa; --ridge: rgba(110, 132, 158, .30); --ceil: #f6f8fb;
+      --floor: #d2dae3; --floor-2: #bcc7d3; --tier-top: #ccd5df; --tier-top2: #e1e7ee; --tier-side: #7b8796;
+      --chair: #2b3139; --chair-2: #434a54; --table: #ffffff; --table-2: #dfe6ee;
+      --fixture: #d3dae3; --fixture-2: #a7b2bf; --beam: rgba(255, 255, 255, .75); --door: #ffffff; --person: #283240;
+      --globe-core: rgba(18, 74, 150, .92); --globe-edge: rgba(63, 180, 255, .30); --scene-ink: #1b2533;
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #16191d; --card: #1f2328; --ink: #e7e9ec; --sub: #a3abb6; --line: #343a42; --soft: #272c33;
-        --board: #1b3a2d; --board-2: #234a39; --board-ink: #e9f2ec;
-        --primary: #3d8b67; --primary-ink: #ffffff; --danger: #f87171; --warn: #fbbf24;
-        --sun: #f87171; --sat: #93c5fd; --today: #362f1c; --today-line: #d6a531; --off: #22262b;
+        --bg: #0d131a; --card: #141c26; --ink: #e3ecf5; --sub: #96a6b8; --line: #263241; --soft: #1a2430;
+        --board: #080d13; --board-2: #101924; --board-ink: #e3f1ff;
+        --primary: #2373b8; --primary-ink: #ffffff; --danger: #f87171; --warn: #fbbf24;
+        --glow: #5fd0ff; --glow-soft: rgba(95, 208, 255, .16);
+        --sun: #f87171; --sat: #93c5fd; --today: #0f2637; --today-line: #3fb0f0; --off: #121a23;
         --shadow: none; --chip-l: 25%; --chip-s: 32%; --chip-tl: 86%; --chip-ts: 70%; --bar-l: 55%;
+        --wall: #17202b; --wall-back: #1c2734; --ridge: rgba(120, 175, 225, .14); --ceil: #141c25;
+        --floor: #111922; --floor-2: #0b1118; --tier-top: #233040; --tier-top2: #2b3a4b; --tier-side: #0b1016;
+        --chair: #07090c; --chair-2: #1b222b; --table: #dce7f2; --table-2: #9fb0c2;
+        --fixture: #2a3644; --fixture-2: #1b2531; --beam: rgba(110, 200, 255, .30); --door: #e6f6ff; --person: #070b10;
+        --globe-core: rgba(14, 60, 125, .92); --globe-edge: rgba(95, 208, 255, .30); --scene-ink: #e3ecf5;
       }
     }
     * { box-sizing: border-box; }
@@ -34,18 +48,18 @@
     a { color: inherit; }
     .loading, .fatal { min-height: 70vh; display: flex; flex-direction: column; gap: 12px; align-items: center; justify-content: center; color: var(--sub); font-size: 20px; text-align: center; padding: 16px; }
 
-    /* 上の 黒板 */
-    .top { background: var(--board); color: var(--board-ink); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; }
+    /* 上の 帯 */
+    .top { background: linear-gradient(90deg, var(--board), var(--board-2)); color: var(--board-ink); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; }
     .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
     .logo { font-size: 28px; line-height: 1; }
     .title { font-weight: 700; font-size: 20px; letter-spacing: .06em; }
     .cls { font-size: 13px; opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .status { font-size: 13px; padding: 3px 12px; border-radius: 999px; background: rgba(255, 255, 255, .12); white-space: nowrap; }
     .status.error { background: #fde2e1; color: #8a1c13; cursor: pointer; }
-    .rooms { display: flex; gap: 4px; overflow-x: auto; background: var(--board-2); padding: 6px 12px 0; scrollbar-width: thin; }
+    .rooms { display: flex; gap: 4px; overflow-x: auto; background: var(--board-2); padding: 6px 12px 0; scrollbar-width: thin; box-shadow: inset 0 1px 0 rgba(95, 208, 255, .25); }
     .room-tab { border: 0; background: transparent; color: var(--board-ink); padding: 8px 14px; border-radius: 10px 10px 0 0; cursor: pointer; white-space: nowrap; font-weight: 700; opacity: .85; }
     .room-tab:hover { background: rgba(255, 255, 255, .1); opacity: 1; }
-    .room-tab.on { background: var(--bg); color: var(--ink); opacity: 1; }
+    .room-tab.on { background: var(--bg); color: var(--ink); opacity: 1; box-shadow: inset 0 3px 0 var(--glow); }
     .room-tab small { font-size: 11px; margin-left: 4px; padding: 0 6px; border-radius: 999px; background: rgba(255, 255, 255, .18); font-weight: 400; }
     .room-tab.on small { background: var(--soft); }
     .demo-banner { background: #fff7e0; color: #7a4b00; border-bottom: 1px solid #f0d58c; padding: 8px 16px; font-size: 14px; }
@@ -60,7 +74,7 @@
     h1, h2, h3 { line-height: 1.35; }
     h2.sec { font-size: 18px; margin: 0; display: flex; align-items: center; gap: 8px; }
     .btn { border: 1px solid var(--line); background: var(--card); padding: 6px 14px; border-radius: 10px; cursor: pointer; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
-    .btn:hover { background: var(--soft); }
+    .btn:hover { background: var(--soft); border-color: var(--glow); }
     .btn.primary { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
     .btn.primary:hover { filter: brightness(1.08); }
     .btn.danger { color: var(--danger); border-color: currentColor; }
@@ -93,10 +107,41 @@
     table.list th { background: var(--soft); font-size: 14px; white-space: nowrap; }
     table.list tr:last-child td { border-bottom: 0; }
 
-    /* ロビー */
-    .hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
-    .hero h1 { margin: 0; font-size: 26px; }
-    .hero .date { font-size: 18px; color: var(--sub); }
+    /* ロビー：円卓の間 */
+    .scene { position: relative; aspect-ratio: 2 / 1; border-radius: 18px; overflow: hidden; border: 1px solid var(--line); box-shadow: var(--shadow); margin-bottom: 16px; container-type: inline-size; background: var(--wall); }
+    .scene svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .scene .chair-hit { cursor: pointer; }
+    .greet { position: absolute; left: 2.5%; top: 5%; color: var(--scene-ink); line-height: 1.4; }
+    .greet b { display: block; font-size: clamp(15px, 2.1cqw, 26px); letter-spacing: .04em; }
+    .greet span { font-size: clamp(11px, 1.25cqw, 15px); color: var(--sub); }
+    .holo { position: absolute; transform: translate(-50%, -50%); width: 28cqw; text-align: center; color: #fff; pointer-events: none; text-shadow: 0 0 10px var(--glow), 0 0 2px rgba(0, 30, 70, .9); line-height: 1.25; }
+    .holo .clock { font-size: clamp(16px, 4.2cqw, 52px); font-weight: 700; letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+    .holo .hdate { font-size: clamp(9px, 1.45cqw, 18px); white-space: nowrap; }
+    .holo .hline { font-size: clamp(9px, 1.2cqw, 15px); margin-top: .3em; }
+    .seat-label { position: absolute; border: 1px solid rgba(63, 180, 255, .65); background: rgba(255, 255, 255, .82); color: #10243a; border-radius: 999px; padding: .28em .9em; font-weight: 700; font-size: clamp(11px, 1.3cqw, 16px); white-space: nowrap; cursor: pointer; box-shadow: 0 0 0 3px var(--glow-soft), 0 4px 14px rgba(20, 60, 110, .18); backdrop-filter: blur(6px); transition: transform .15s, box-shadow .15s; }
+    .seat-label.up { transform: translate(-50%, -100%); }
+    .seat-label.down { transform: translate(-50%, 0); }
+    .seat-label:hover, .seat-label:focus-visible { box-shadow: 0 0 0 4px rgba(63, 180, 255, .45), 0 0 22px rgba(63, 180, 255, .6); }
+    .seat-label.up:hover { transform: translate(-50%, -100%) scale(1.06); }
+    .seat-label.down:hover { transform: translate(-50%, 0) scale(1.06); }
+    .seat-label.soon { border-style: dashed; color: #4b5b6d; background: rgba(255, 255, 255, .62); }
+    .seat-label small { font-weight: 400; font-size: .78em; margin-left: .3em; }
+    .seat-label.door-label { background: rgba(16, 36, 58, .82); color: #e8f6ff; border-color: rgba(255, 255, 255, .7); }
+    @media (prefers-color-scheme: dark) {
+      .seat-label { background: rgba(14, 26, 40, .78); color: #e3f2ff; }
+      .seat-label.soon { background: rgba(14, 26, 40, .55); color: #9fb3c8; }
+    }
+    @container (max-width: 640px) { .seat-label, .greet span, .holo .hline { display: none; } }
+    .globe-mer ellipse { transform-box: fill-box; transform-origin: center; animation: mer 9s linear infinite; }
+    @keyframes mer { 0% { transform: scaleX(1); } 25% { transform: scaleX(.03); } 50% { transform: scaleX(1); } 75% { transform: scaleX(.03); } 100% { transform: scaleX(1); } }
+    .pulse { animation: pulse 4s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity: .55; } }
+    .scene.enter svg { animation: sceneIn 1s ease both; }
+    .scene.enter .seat-label, .scene.enter .holo, .scene.enter .greet { animation: labelIn .9s .5s ease both; }
+    @keyframes sceneIn { from { opacity: 0; transform: scale(1.04); } }
+    @keyframes labelIn { from { opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) { .globe-mer ellipse, .pulse, .scene.enter svg, .scene.enter .seat-label, .scene.enter .holo, .scene.enter .greet { animation: none; } }
+    .mini { font-size: 15px; margin: 4px 0 0; }
     .day-list { list-style: none; margin: 0; padding: 0; }
     .day-list li { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
     .day-list li:last-child { border-bottom: 0; }
@@ -111,7 +156,7 @@
     .ev-list .ev-title { cursor: pointer; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
     .doors { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
     .door { text-align: left; border: 1px solid var(--line); background: var(--card); border-radius: 14px; padding: 14px; cursor: pointer; box-shadow: var(--shadow); }
-    .door:hover { border-color: var(--primary); }
+    .door:hover { border-color: var(--glow); box-shadow: 0 0 0 3px var(--glow-soft); }
     .door .icon { font-size: 30px; }
     .door b { display: block; font-size: 17px; margin-top: 4px; }
     .door span { font-size: 13px; color: var(--sub); }
@@ -174,7 +219,7 @@
     /* 学習の 部屋 */
     .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
     .unit-card { cursor: pointer; display: flex; flex-direction: column; gap: 6px; }
-    .unit-card:hover, .mat:hover { border-color: var(--primary); }
+    .unit-card:hover, .mat:hover { border-color: var(--glow); box-shadow: 0 0 0 3px var(--glow-soft); }
     .unit-card h3, .mat h3 { margin: 0; font-size: 17px; }
     .meta { font-size: 13px; color: var(--sub); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .bar { height: 10px; background: var(--soft); border-radius: 999px; overflow: hidden; display: flex; }
@@ -580,55 +625,204 @@
     return `<div class="subtabs" role="tablist">${tabs.map(([id, label]) => `<button class="subtab${view.tab[room] === id ? ' on' : ''}" role="tab" aria-selected="${view.tab[room] === id}" data-act="tab" data-room="${room}" data-tab="${id}">${label}</button>`).join('')}</div>`;
   }
 
-  /* ---------- ロビー ---------- */
-  function viewLobby() {
-    const t = today();
-    const hour = new Date().getHours();
-    const greet = hour < 11 ? 'おはようございます' : hour < 17 ? 'こんにちは' : 'おつかれさまです';
-    const off = offReason(t);
-    const day = off ? nextSchoolDay(t) : t;
+  /* ---------- ロビー（円卓の間） ---------- */
+  // 円卓の まわりの 席（角度は 時計の 3時が 0度、下回り）。後ろの 席は 名札を 上に、手前の 席は 下に 出す
+  const SEATS = [
+    { room: 'yotei', a: 220 }, { room: 'gakushu', a: 270 }, { room: 'koumu', a: 320 },
+    { room: 'kodomo', a: 40 }, { room: 'renkei', a: 90 }, { room: 'settings', a: 140 },
+  ];
+  const SCENE_W = 1200, SCENE_H = 600;
+  let sceneEntered = false;
 
-    const lessons = S.periods.map((p) => {
+  function greeting() {
+    const hour = new Date().getHours();
+    return hour < 11 ? 'おはようございます' : hour < 17 ? 'こんにちは' : 'おつかれさまです';
+  }
+
+  // まん中の 地球儀に 出す：時計・日付・いまの 時間
+  function holoHtml() {
+    const now = new Date();
+    const t = ymd(now);
+    const hm = pad(now.getHours()) + ':' + pad(now.getMinutes());
+    let line;
+    const off = offReason(t);
+    if (off) line = `きょうは ${off}`;
+    else {
+      const ps = S.periods.filter((p) => /^\d{2}:\d{2}$/.test(p.start) && /^\d{2}:\d{2}$/.test(p.end)).sort((a, b) => a.start.localeCompare(b.start));
+      const name = (p) => { const s = lesson(t, p.id).subject; return p.name + (s ? ' ' + s : ''); };
+      const cur = ps.find((p) => p.start <= hm && hm < p.end);
+      const next = ps.find((p) => p.start > hm);
+      line = cur ? `いま：${name(cur)}（〜${cur.end}）` : next ? `つぎ：${name(next)}（${next.start}〜）` : 'きょうの授業は おわりました';
+    }
+    return `<div class="clock">${now.getHours()}:${pad(now.getMinutes())}</div>
+      <div class="hdate">${wareki(now.getFullYear())} ${jdate(t)}</div>
+      <div class="hline">${esc(line)}</div>`;
+  }
+
+  function chairSvg(x, y, s, front) {
+    const legs = [-1, -0.4, 0.4, 1].map((k) => `<line x1="${x}" y1="${y - 3 * s}" x2="${x + k * 20 * s}" y2="${y + (Math.abs(k) < 1 ? 4 : 1) * s}"/>`).join('');
+    const back = `<rect x="${x - 17 * s}" y="${y - (front ? 66 : 76) * s}" width="${34 * s}" height="${(front ? 44 : 42) * s}" rx="${9 * s}" style="fill:var(--chair)"/>`;
+    const seat = `<ellipse cx="${x}" cy="${y - 30 * s}" rx="${24 * s}" ry="${7 * s}" style="fill:var(--chair-2)"/>`;
+    return `<ellipse cx="${x}" cy="${y + 2 * s}" rx="${28 * s}" ry="${6 * s}" style="fill:rgba(0,0,0,.16)"/>
+      <g style="stroke:var(--chair);stroke-width:${2.6 * s};stroke-linecap:round">${legs}</g>
+      <rect x="${x - 2 * s}" y="${y - 30 * s}" width="${4 * s}" height="${27 * s}" style="fill:var(--chair-2)"/>
+      ${front ? seat + back : back + seat}`;
+  }
+
+  // 円卓の 台（上の 面と 横の 面）
+  function tierSvg(cx, cy, rx, ry, h, top) {
+    return `<path d="M${cx - rx} ${cy} L${cx - rx} ${cy + h} A${rx} ${ry} 0 0 0 ${cx + rx} ${cy + h} L${cx + rx} ${cy} A${rx} ${ry} 0 0 1 ${cx - rx} ${cy} Z" style="fill:var(--tier-side)"/>
+      <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" style="fill:url(#${top})"/>`;
+  }
+
+  function sceneHtml() {
+    const pct = (x, y) => `left:${(x / SCENE_W * 100).toFixed(2)}%;top:${(y / SCENE_H * 100).toFixed(2)}%`;
+    // 左右の 壁の たてのみぞ（奥ほど 間が せまい）
+    let ridges = '';
+    for (let i = 0; i <= 28; i++) {
+      const f = 1 - Math.pow(1 - i / 28, 1.6);
+      const x = 220 * f, yt = 40 * f, yb = 470 - 70 * f;
+      ridges += `<line x1="${x.toFixed(1)}" y1="${yt.toFixed(1)}" x2="${x.toFixed(1)}" y2="${yb.toFixed(1)}"/><line x1="${(SCENE_W - x).toFixed(1)}" y1="${yt.toFixed(1)}" x2="${(SCENE_W - x).toFixed(1)}" y2="${yb.toFixed(1)}"/>`;
+    }
+    for (let x = 234; x < 980; x += 14) if (x < 405 || x > 795) ridges += `<line x1="${x}" y1="40" x2="${x}" y2="400"/>`;
+    let rings = '';
+    for (let rx = 480; rx <= 1180; rx += 42) rings += `<ellipse cx="600" cy="482" rx="${rx}" ry="${(rx * 0.24).toFixed(1)}"/>`;
+    const lat = [-62, -31, 0, 31, 62].map((dy) => `<ellipse cx="600" cy="${205 + dy}" rx="${Math.sqrt(92 * 92 - dy * dy).toFixed(1)}" ry="${(9 - Math.abs(dy) / 12).toFixed(1)}"/>`).join('');
+    const mer = [0, 1, 2, 3].map((i) => `<ellipse cx="600" cy="205" rx="92" ry="92" style="animation-delay:${-i * 2.25}s"/>`).join('');
+
+    // 席：後ろの 席 → 机 → 手前の 席 の 順に 描く
+    const seats = SEATS.map((st) => {
+      const rad = st.a * Math.PI / 180;
+      const x = 600 + 245 * Math.cos(rad), y = 428 + 58 * Math.sin(rad);
+      const front = Math.sin(rad) > 0;
+      return Object.assign({ x, y, front, s: front ? 1 : 0.82, r: ROOMS.find((r) => r.id === st.room) }, st);
+    });
+    const chairs = (front) => seats.filter((c) => c.front === front).map((c) => `<g class="chair-hit" data-act="go" data-room="${c.room}">${chairSvg(c.x, c.y, c.s, front)}</g>`).join('');
+    const labels = seats.map((c) => {
+      const ly = c.front ? c.y + 12 : c.y - 82 * c.s;
+      return `<button class="seat-label ${c.front ? 'down' : 'up'}${c.r.soon ? ' soon' : ''}" style="${pct(c.x, ly)}" data-act="go" data-room="${c.room}">${c.r.icon} ${esc(c.r.name)}${c.r.soon ? '<small>準備中</small>' : ''}</button>`;
+    }).join('');
+
+    const svg = `<svg viewBox="0 0 ${SCENE_W} ${SCENE_H}" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="gBack" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--wall-back)"/><stop offset="1" style="stop-color:var(--wall)"/></linearGradient>
+        <linearGradient id="gFloor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--floor)"/><stop offset="1" style="stop-color:var(--floor-2)"/></linearGradient>
+        <linearGradient id="gTier" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--tier-top2)"/><stop offset="1" style="stop-color:var(--tier-top)"/></linearGradient>
+        <linearGradient id="gTable" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--table)"/><stop offset="1" style="stop-color:var(--table-2)"/></linearGradient>
+        <linearGradient id="gFix" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--fixture)"/><stop offset="1" style="stop-color:var(--fixture-2)"/></linearGradient>
+        <linearGradient id="gBeam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--beam)"/><stop offset="1" style="stop-color:var(--beam);stop-opacity:0"/></linearGradient>
+        <linearGradient id="gDoor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--door)"/><stop offset="1" style="stop-color:var(--glow);stop-opacity:.55"/></linearGradient>
+        <radialGradient id="gPanel"><stop offset="0" style="stop-color:var(--door);stop-opacity:.9"/><stop offset="1" style="stop-color:var(--wall-back);stop-opacity:0"/></radialGradient>
+        <radialGradient id="gCore" cx=".42" cy=".38" r=".75"><stop offset="0" style="stop-color:var(--glow);stop-opacity:.75"/><stop offset=".55" style="stop-color:var(--globe-core)"/><stop offset="1" style="stop-color:var(--globe-edge)"/></radialGradient>
+        <radialGradient id="gHalo"><stop offset=".55" style="stop-color:var(--glow);stop-opacity:.45"/><stop offset="1" style="stop-color:var(--glow);stop-opacity:0"/></radialGradient>
+        <filter id="fBlur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5"/></filter>
+        <clipPath id="cFloor"><polygon points="0,470 220,400 980,400 1200,470 1200,600 0,600"/></clipPath>
+      </defs>
+      <!-- 部屋 -->
+      <polygon points="0,0 1200,0 980,40 220,40" style="fill:var(--ceil)"/>
+      <rect x="220" y="40" width="760" height="360" fill="url(#gBack)"/>
+      <polygon points="0,0 220,40 220,400 0,470" style="fill:var(--wall)"/>
+      <polygon points="1200,0 980,40 980,400 1200,470" style="fill:var(--wall)"/>
+      <g style="stroke:var(--ridge);stroke-width:1.6">${ridges}</g>
+      <rect x="400" y="60" width="400" height="320" fill="url(#gPanel)"/>
+      <polygon points="0,470 220,400 980,400 1200,470 1200,600 0,600" fill="url(#gFloor)"/>
+      <g clip-path="url(#cFloor)" style="fill:none;stroke:var(--ridge);stroke-width:1.4">${rings}</g>
+      <!-- 三角の 入口 -->
+      <polygon class="pulse" points="890,196 812,402 968,402" style="fill:var(--glow);opacity:.45" filter="url(#fBlur)"/>
+      <polygon points="890,210 826,398 954,398" fill="url(#gDoor)" style="stroke:var(--fixture-2);stroke-width:3"/>
+      <circle cx="890" cy="341" r="6.5" style="fill:var(--person)"/>
+      <path d="M883 351 Q890 346 897 351 L900 373 L897 373 L896 397 L892 397 L890 377 L888 397 L884 397 L883 373 L880 373 Z" style="fill:var(--person)"/>
+      <!-- 天井の 照明と 光 -->
+      <polygon points="430,74 770,74 715,330 485,330" fill="url(#gBeam)"/>
+      <path d="M350 14 L350 44 A250 30 0 0 0 850 44 L850 14 Z" fill="url(#gFix)"/>
+      <ellipse cx="600" cy="44" rx="250" ry="30" style="fill:var(--door)"/>
+      <ellipse cx="600" cy="44" rx="250" ry="30" style="fill:none;stroke:var(--glow);stroke-width:3;opacity:.7" filter="url(#fBlur)"/>
+      <path d="M400 52 L400 66 A200 22 0 0 0 800 66 L800 52 Z" fill="url(#gFix)"/>
+      <ellipse class="pulse" cx="600" cy="66" rx="200" ry="22" style="fill:var(--door)"/>
+      <!-- 地球儀（ホログラム） -->
+      <circle class="pulse" cx="600" cy="205" r="130" fill="url(#gHalo)"/>
+      <circle cx="600" cy="205" r="92" fill="url(#gCore)" style="stroke:var(--glow);stroke-width:2"/>
+      <g style="fill:none;stroke:var(--glow);stroke-width:1.1;opacity:.55">${lat}</g>
+      <g class="globe-mer" style="fill:none;stroke:var(--glow);stroke-width:1.1;opacity:.5">${mer}</g>
+      <ellipse cx="600" cy="216" rx="152" ry="22" style="fill:none;stroke:var(--glow);stroke-width:2.2;opacity:.8"/>
+      <ellipse cx="600" cy="216" rx="152" ry="22" style="fill:none;stroke:var(--glow);stroke-width:6;opacity:.35" filter="url(#fBlur)"/>
+      <!-- 円卓の 台 -->
+      ${tierSvg(600, 475, 430, 100, 18, 'gTier')}
+      <ellipse cx="600" cy="493" rx="430" ry="100" style="fill:none;stroke:var(--glow);stroke-width:3;opacity:.6" filter="url(#fBlur)"/>
+      ${tierSvg(600, 446, 360, 86, 14, 'gTier')}
+      <ellipse cx="600" cy="446" rx="285" ry="66" style="fill:none;stroke:var(--door);stroke-width:3;opacity:.95"/>
+      <ellipse cx="600" cy="446" rx="285" ry="66" style="fill:none;stroke:var(--glow);stroke-width:7;opacity:.5" filter="url(#fBlur)"/>
+      <!-- 席と 円卓 -->
+      ${chairs(false)}
+      <ellipse cx="600" cy="452" rx="44" ry="9" style="fill:rgba(0,0,0,.16)"/>
+      <rect x="591" y="424" width="18" height="28" style="fill:var(--fixture-2)"/>
+      <path d="M435 418 L435 425 A165 34 0 0 0 765 425 L765 418 Z" style="fill:var(--table-2)"/>
+      <ellipse cx="600" cy="418" rx="165" ry="34" fill="url(#gTable)"/>
+      ${chairs(true)}
+    </svg>`;
+
+    const enter = sceneEntered ? '' : ' enter';
+    sceneEntered = true;
+    return `<section class="scene${enter}" aria-label="仮想職員室 円卓の間">
+      ${svg}
+      <div class="greet"><b>${greeting()}。</b><span>${esc(S.className || '仮想職員室へ ようこそ')}</span></div>
+      <div class="holo" id="holo" style="${pct(600, 205)}" aria-live="off">${holoHtml()}</div>
+      ${labels}
+      <button class="seat-label up door-label" style="${pct(890, 190)}" data-act="tomorrow">🌙 あしたの確認</button>
+    </section>`;
+  }
+
+  // ある日の 時間割の 一覧（ロビーと「あしたの確認」で 使う）
+  function dayLessonsHtml(day) {
+    return S.periods.map((p) => {
       const L = lesson(day, p.id);
       const outs = outsAt(dayOf(day), p.id);
-      if (!L.subject && !L.content && !outs.length) return '';
+      if (!L.subject && !L.content && !L.note && !outs.length) return '';
       return `<li><div class="pname">${esc(p.name)}<span class="ptime">${esc(p.start)}〜${esc(p.end)}</span></div>
         <div class="what">${L.subject ? chip(L.subject) : '<span class="muted">（なし）</span>'}
           ${L.unit ? `<span class="muted" style="font-size:13px">📘 ${esc(L.unit.name)}</span>` : ''}
           ${L.content ? `<div class="content">${nl(L.content)}</div>` : ''}
+          ${L.note ? `<div class="content">📝 ${nl(L.note)}</div>` : ''}
           ${outs.length ? `<div class="outs">${outs.map(outChip).join('')}</div>` : ''}</div></li>`;
     }).join('');
+  }
 
-    const until = addDays(t, 14);
-    const upcoming = list('events')
-      .filter((e) => isDate(e.date) && (isDate(e.end) && e.end > e.date ? e.end : e.date) >= t && e.date <= until)
+  function evRow(e, base) {
+    const start = e.date < base ? base : e.date;
+    const left = daysBetween(today(), e.date);
+    const when = start === today() ? 'きょう' : start === addDays(today(), 1) ? 'あした' : jdate(start);
+    const h = catHue(e.cat);
+    return `<li><span class="when">${when}${e.time ? ' ' + esc(e.time) : ''}</span>
+      <span class="chip${h < 0 ? ' gray' : ''}" style="--h:${Math.max(h, 0)};font-size:12px">${esc(e.cat || 'その他')}</span>
+      <span class="ev-title" data-act="editEvent" data-id="${esc(e.id)}" role="button" tabindex="0">${esc(e.title)}</span>
+      ${e.cat === '締め切り' && left >= 0 ? `<span class="tag red">${left ? `あと${left}日` : 'きょうまで'}</span>` : ''}</li>`;
+  }
+  function eventsBetween(from, to) {
+    return list('events')
+      .filter((e) => isDate(e.date) && (isDate(e.end) && e.end > e.date ? e.end : e.date) >= from && e.date <= to)
       .sort((a, b) => (a.date + (a.time || '99')).localeCompare(b.date + (b.time || '99')));
-    const evHtml = upcoming.map((e) => {
-      const start = e.date < t ? t : e.date;
-      const left = daysBetween(t, e.date);
-      const when = start === t ? 'きょう' : start === addDays(t, 1) ? 'あした' : jdate(start);
-      const h = catHue(e.cat);
-      return `<li><span class="when">${when}${e.time ? ' ' + esc(e.time) : ''}</span>
-        <span class="chip${h < 0 ? ' gray' : ''}" style="--h:${Math.max(h, 0)};font-size:12px">${esc(e.cat || 'その他')}</span>
-        <span class="ev-title" data-act="editEvent" data-id="${esc(e.id)}" role="button" tabindex="0">${esc(e.title)}</span>
-        ${e.cat === '締め切り' && left >= 0 ? `<span class="tag red">${left ? `あと${left}日` : 'きょうまで'}</span>` : ''}</li>`;
-    }).join('');
+  }
 
+  function viewLobby() {
+    const t = today();
+    const off = offReason(t);
+    const day = off ? nextSchoolDay(t) : t;
+    const lessons = dayLessonsHtml(day);
+    const evHtml = eventsBetween(t, addDays(t, 14)).map((e) => evRow(e, t)).join('');
     const nowUnits = list('units').filter((u) => unitPhase(u) === 'now').sort((a, b) => S.subjects.indexOf(a.subject) - S.subjects.indexOf(b.subject));
 
-    return `<div class="hero">
-        <div><h1>${greet}。</h1><div class="date">${wareki(parse(t).getFullYear())} ${jdate(t)}${off ? `　きょうは ${esc(off)} です` : ''}</div></div>
-        <button class="btn primary" data-act="newEvent" data-date="${t}">＋ 予定を追加</button>
-      </div>
+    return `${sceneHtml()}
       <div class="grid2">
         <section class="card">
           <div class="toolbar"><h2 class="sec">🕘 ${off ? `次の登校日 ${jdate(day)} の時間割` : 'きょうの時間割'}</h2><span class="grow"></span>
             <button class="btn small" data-act="openWeek" data-date="${day}">週案を開く</button></div>
+          ${off ? `<p class="hint" style="margin-bottom:6px">きょう（${jdate(t)}）は ${esc(off)} です。</p>` : ''}
           ${lessons ? `<ul class="day-list">${lessons}</ul>` : `<div class="empty-note">時間割がまだ入っていません。<br><button class="btn link" data-act="goTab" data-room="yotei" data-tab="timetable">「基本の時間割」を入れる</button></div>`}
         </section>
         <div class="stack">
           <section class="card">
             <div class="toolbar"><h2 class="sec">📌 これからの予定（2週間）</h2><span class="grow"></span>
+              <button class="btn small" data-act="newEvent" data-date="${t}">＋ 追加</button>
               <button class="btn small" data-act="goTab" data-room="yotei" data-tab="month">月の予定</button></div>
             ${evHtml ? `<ul class="ev-list">${evHtml}</ul>` : '<div class="empty-note">2週間以内の予定はありません。</div>'}
           </section>
@@ -641,6 +835,27 @@
       </div>
       <h2 class="sec" style="margin:24px 0 12px">🚪 部屋</h2>
       <div class="doors">${ROOMS.filter((r) => r.id !== 'lobby').map((r) => `<button class="door${r.soon ? ' soon' : ''}" data-act="go" data-room="${r.id}"><div class="icon">${r.icon}</div><b>${esc(r.name)}${r.soon ? ' <span class="tag">準備中</span>' : ''}</b><span>${esc(r.desc || '学級名・校時・教科')}</span></button>`).join('')}</div>`;
+  }
+
+  // 三角の 入口：帰る前に 次の 登校日を 確かめる
+  function showTomorrow() {
+    const t = today();
+    const d = nextSchoolDay(t);
+    const lessons = dayLessonsHtml(d);
+    const evs = eventsOn(d);
+    const dues = list('events').filter((e) => e.cat === '締め切り' && isDate(e.date) && e.date > t && e.date <= addDays(d, 3) && !evs.includes(e))
+      .sort((a, b) => a.date.localeCompare(b.date));
+    openDialog({
+      title: `🌙 あしたの確認　${jdate(d)}`,
+      readOnly: true,
+      body: `${d !== addDays(t, 1) ? `<p class="hint">次の登校日は ${jdate(d)} です。</p>` : ''}
+        <h3 class="mini">🕘 時間割と準備</h3>
+        ${lessons ? `<ul class="day-list">${lessons}</ul>` : '<div class="empty-note">時間割が入っていません。</div>'}
+        <h3 class="mini">📌 この日の予定</h3>
+        ${evs.length ? `<ul class="ev-list">${evs.map((e) => evRow(e, d)).join('')}</ul>` : '<p class="hint">ありません。</p>'}
+        ${dues.length ? `<h3 class="mini">⏰ 近い締め切り</h3><ul class="ev-list">${dues.map((e) => evRow(e, t)).join('')}</ul>` : ''}
+        <div><button class="btn" data-act="openWeek" data-date="${d}">週案を開いて直す</button></div>`,
+    });
   }
 
   function unitMini(u) {
@@ -697,7 +912,7 @@
       <h2 class="wk-title" style="margin:0 0 10px">${title}<span class="print-only">${esc(S.className)} 週案</span></h2>
       <div class="table-wrap"><table class="week"><thead><tr><th class="pcol">校時</th>${head}</tr></thead><tbody>${rows}</tbody></table></div>
       <div class="card" style="margin-top:12px"><div class="hours"><b>この週の時数</b>${subjects.length ? subjects.map((s) => `${chip(s)}<span>${count[s]}</span>`).join(' ') : '<span class="muted">まだありません</span>'}</div></div>
-      <p class="hint noprint" style="margin-top:8px">マスを押すと、その時間の学習内容や単元を書きこめます。何も書かない時間は「基本の時間割」のとおりに表示します。左に緑の線があるマスは、この週だけ書きこんだ時間です。</p>`;
+      <p class="hint noprint" style="margin-top:8px">マスを押すと、その時間の学習内容や単元を書きこめます。何も書かない時間は「基本の時間割」のとおりに表示します。左に青い線があるマスは、この週だけ書きこんだ時間です。</p>`;
   }
 
   function lessonCell(date, pid, isToday) {
@@ -1126,12 +1341,14 @@
     el.innerHTML = `<form id="dlgForm" ${o.attrs || ''}>
       <header><h2>${esc(o.title)}</h2><button type="button" class="x" data-act="dlgClose" aria-label="閉じる">✕</button></header>
       <div class="dlg-body">${o.body}<p class="hint" id="dlgMsg" role="alert" style="color:var(--danger)"></p></div>
-      <footer>${o.deleteLabel ? `<button type="button" class="btn danger" data-act="dlgDelete">${esc(o.deleteLabel)}</button>` : ''}<span class="grow"></span>
+      <footer>${o.readOnly ? `<span class="grow"></span><button type="button" class="btn primary" data-act="dlgClose">閉じる</button>`
+        : `${o.deleteLabel ? `<button type="button" class="btn danger" data-act="dlgDelete">${esc(o.deleteLabel)}</button>` : ''}<span class="grow"></span>
         <button type="button" class="btn" data-act="dlgClose">やめる</button>
-        <button type="submit" class="btn primary">${esc(o.saveLabel || '保存する')}</button></footer></form>`;
+        <button type="submit" class="btn primary">${esc(o.saveLabel || '保存する')}</button>`}</footer></form>`;
     el.showModal();
     const first = el.querySelector('.dlg-body input:not([type=hidden]), .dlg-body select, .dlg-body textarea');
     if (first) first.focus();
+    else el.querySelector('footer .btn').focus();
   }
   function closeDialog() {
     const el = document.getElementById('dlg');
@@ -1140,7 +1357,7 @@
   }
 
   document.addEventListener('submit', (e) => {
-    if (e.target.id !== 'dlgForm' || !dlg) return;
+    if (e.target.id !== 'dlgForm' || !dlg || dlg.readOnly) { e.preventDefault(); return; }
     e.preventDefault();
     const f = Object.fromEntries(new FormData(e.target));
     const o = dlg;
@@ -1166,7 +1383,8 @@
     reload: () => { if (confirm('スプレッドシートから読み込み直します。保存できなかった変更は消えます。よろしいですか？')) location.reload(); },
     print: () => window.print(),
     weekMove: (d) => { view.week = Number(d.n) ? addDays(view.week, Number(d.n)) : mondayOf(today()); render(); },
-    openWeek: (d) => { view.room = 'yotei'; view.tab.yotei = 'week'; view.week = mondayOf(d.date); render(); window.scrollTo(0, 0); },
+    tomorrow: () => showTomorrow(),
+    openWeek: (d) => { closeDialog(); view.room = 'yotei'; view.tab.yotei = 'week'; view.week = mondayOf(d.date); render(); window.scrollTo(0, 0); },
     monthMove: (d) => {
       const n = Number(d.n);
       if (!n) view.month = today().slice(0, 7);
@@ -1365,6 +1583,7 @@
   }
 
   boot();
+  setInterval(() => { const el = document.getElementById('holo'); if (el && S) el.innerHTML = holoHtml(); }, 30000);
   </script>
 </body>
 </html>
