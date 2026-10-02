@@ -129,7 +129,7 @@
     .seat-label.soon { border-style: dashed; color: #4b5b6d; background: rgba(255, 255, 255, .62); }
     .seat-label small { font-weight: 400; font-size: .78em; margin-left: .3em; }
     .seat-label.talk, .seat-label:hover, .seat-label:focus-visible { z-index: 3; }
-    .bubble { position: absolute; top: 50%; width: max-content; max-width: min(24cqw, 300px); padding: .5em .85em; border-radius: 14px; background: #ffffff; color: #1b2533; font-weight: 400; font-size: clamp(11px, 1.15cqw, 14px); line-height: 1.55; white-space: normal; text-align: left; box-shadow: 0 6px 20px rgba(20, 60, 110, .22), 0 0 0 2px rgba(63, 180, 255, .55); opacity: 0; pointer-events: none; transition: opacity .3s, transform .3s; }
+    .bubble { position: absolute; top: 50%; width: max-content; max-width: min(21.5cqw, 270px); padding: .5em .85em; border-radius: 14px; background: #ffffff; color: #1b2533; font-weight: 400; font-size: clamp(11px, 1.15cqw, 14px); line-height: 1.55; white-space: normal; text-align: left; box-shadow: 0 6px 20px rgba(20, 60, 110, .22), 0 0 0 2px rgba(63, 180, 255, .55); opacity: 0; pointer-events: none; transition: opacity .3s, transform .3s; }
     .bubble b { display: block; color: #1d6fb8; font-size: .92em; }
     .bubble::after { content: ''; position: absolute; top: 50%; margin-top: -7px; border: 7px solid transparent; }
     .seat-label.bl .bubble { right: calc(100% + 12px); transform: translate(8px, -50%); }
@@ -237,6 +237,20 @@
     /* 学習の 部屋 */
     .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
     .cards.wide { grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); }
+    /* 研究・研修の部屋 */
+    .ken-h { font-size: 15px; margin: 14px 0 8px; color: var(--sub); }
+    .ken-top { align-items: start; }
+    .theme { font-size: 18px; font-weight: 700; }
+    .ken-title { display: flex; gap: 8px; align-items: flex-start; margin: 4px 0; }
+    .ken-title h3 { flex: 1; min-width: 0; margin: 0; font-size: 17px; }
+    .theme-sub { color: var(--sub); }
+    .st-steps { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+    .st-step { position: relative; display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px 2px 3px; font-size: 13px; cursor: pointer; background: var(--bg); }
+    .st-step input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+    .st-step span { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--soft); font-size: 12px; font-weight: 700; }
+    .st-step.on { background: var(--primary); color: var(--primary-ink); border-color: var(--primary); }
+    .st-step.on span { background: rgba(255, 255, 255, .25); }
+    .st-step:has(input:focus-visible) { outline: 3px solid var(--today-line); outline-offset: 2px; }
     /* 連携の部屋 */
     .xlist { list-style: none; padding: 0; margin: 4px 0 0; font-size: 14px; }
     .xlist li { padding: 3px 0; border-bottom: 1px dashed var(--line); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
@@ -394,7 +408,7 @@
      決まりごと
      ========================================================= */
   /* 共通ここから */
-  const KINDS = ['events', 'timetable', 'weekly', 'children', 'exchange', 'units', 'materials', 'tasks', 'duties', 'dutyItems', 'meetings', 'templates', 'days', 'weeks', 'notes', 'plans', 'goals', 'contacts', 'classes', 'handovers', 'staff', 'staffPlans', 'orgs', 'orgLogs'];
+  const KINDS = ['events', 'timetable', 'weekly', 'children', 'exchange', 'units', 'materials', 'tasks', 'duties', 'dutyItems', 'meetings', 'templates', 'days', 'weeks', 'notes', 'plans', 'goals', 'contacts', 'classes', 'handovers', 'staff', 'staffPlans', 'orgs', 'orgLogs', 'trainings', 'research', 'studies'];
   const DAYS = [1, 2, 3, 4, 5]; // 月〜金
   const WD = ['日', '月', '火', '水', '木', '金', '土'];
   const KYUGYO = '休業日';
@@ -433,6 +447,7 @@
     { id: 'koumu', icon: '📝', name: '公務の部屋', desc: 'やること・校務分掌・会議メモ・文書のひな形' },
     { id: 'kodomo', icon: '🧒', name: '子どもの部屋', desc: '一人ひとり・日々の記録・指導計画・保護者連絡' },
     { id: 'renkei', icon: '🤝', name: '連携の部屋', desc: '交流学級・支援員さん・関係機関' },
+    { id: 'kenkyu', icon: '🎓', name: '研究・研修の部屋', desc: '研修の記録・校内研究・研究授業・指導案の下書き' },
     { id: 'settings', icon: '⚙️', name: '設定' },
   ];
 
@@ -542,7 +557,7 @@
   const meta = { sheetUrl: '', draftTrigger: false, draftSheetUrl: '', triggerError: '' };
   const view = {
     room: 'lobby',
-    tab: { yotei: 'week', gakushu: 'units', koumu: 'tasks', kodomo: 'child', renkei: 'classes' },
+    tab: { yotei: 'week', gakushu: 'units', koumu: 'tasks', kodomo: 'child', renkei: 'classes', kenkyu: 'trainings' },
     week: mondayOf(today()),
     month: today().slice(0, 7),
     childId: '',
@@ -553,6 +568,7 @@
     planTerm: '', noteKid: '', noteTag: '', noteTerm: 'term', noteQ: '', lastTag: '', contactKid: '',
     meetQ: '', meetKind: '',
     renkeiWeek: mondayOf(today()), hoRoom: '', staffDate: '', staffId: '', orgId: '',
+    kenNendo: 0, trainKind: '', shidoanAnon: false,
     periodsDraft: null,
   };
 
@@ -831,6 +847,7 @@
       case 'gakushu': return subtabs('gakushu', [['units', '📘 単元計画'], ['materials', '🧰 教材の置き場']]) + ({ units: viewUnits, materials: viewMaterials })[view.tab.gakushu]();
       case 'kodomo': return viewKodomo();
       case 'renkei': return viewRenkei();
+      case 'kenkyu': return viewKenkyu();
       case 'koumu': return subtabs('koumu', [['tasks', '✅ やること'], ['duties', '🗂 校務分掌'], ['meetings', '📝 会議メモ'], ['templates', '📄 文書のひな形']]) + ({ tasks: viewTasks, duties: viewDuties, meetings: viewMeetings, templates: viewTemplates })[view.tab.koumu]();
       case 'settings': return viewSettings();
       default: return viewLobby();
@@ -842,10 +859,10 @@
   }
 
   /* ---------- ロビー（円卓の間） ---------- */
-  // 円卓の まわりの 席（角度は 時計の 3時が 0度、下回り）。奥の 4席は 名札を 上に、手前の 2席は 下に 出す
+  // 円卓の まわりの 席（角度は 時計の 3時が 0度、下回り。dist は 円卓の 中心からの 遠さ）。奥の 4席は 名札を 上に、手前の 3席は 下に 出す
   const SEATS = [
-    { room: 'yotei', a: 200 }, { room: 'gakushu', a: 245 }, { room: 'koumu', a: 295 },
-    { room: 'kodomo', a: 340 }, { room: 'settings', a: 60 }, { room: 'renkei', a: 120 },
+    { room: 'yotei', a: 200, dist: 262 }, { room: 'gakushu', a: 245 }, { room: 'koumu', a: 295 },
+    { room: 'kodomo', a: 340, dist: 262 }, { room: 'settings', a: 40, dist: 235 }, { room: 'renkei', a: 140, dist: 235 }, { room: 'kenkyu', a: 90 },
   ];
   const SCENE_W = 1200, SCENE_H = 600;
   const GLOBE = { x: 600, y: 165, r: 85 };
@@ -858,12 +875,13 @@
     return hour < 11 ? 'おはようございます' : hour < 17 ? 'こんにちは' : 'おつかれさまです';
   }
   function short(s, n) { s = String(s || ''); return s.length > n ? s.slice(0, n) + '…' : s; }
-  // いちばん近い 締め切り（公務の部屋の やること と、月の予定の「締め切り」）
+  // いちばん近い 締め切り（公務の部屋の やること、月の予定の「締め切り」、研修の 報告書）
   function nextDeadline() {
     const t = today();
     const evs = list('events').filter((e) => e.cat === '締め切り' && isDate(e.date) && e.date >= t).map((e) => ({ title: e.title, date: e.date, time: e.time || '' }));
     const tasks = openTasks().filter((x) => isDate(x.due) && x.due >= t).map((x) => ({ title: x.title, date: x.due, time: '' }));
-    return evs.concat(tasks).sort((a, b) => (a.date + (a.time || '99')).localeCompare(b.date + (b.time || '99')))[0];
+    const reps = reportsDue().filter((x) => isDate(x.reportDue) && x.reportDue >= t && !list('tasks').some((v) => v.fromId === `${x.id}:r`)).map((x) => ({ title: '報告書：' + x.title, date: x.reportDue, time: '' }));
+    return evs.concat(tasks, reps).sort((a, b) => (a.date + (a.time || '99')).localeCompare(b.date + (b.time || '99')))[0];
   }
   function whenText(date) {
     const t = today();
@@ -940,6 +958,20 @@
         if (e) return `「${short(e.title, 16)}」が ${whenText(e.date < t ? t : e.date)}に あるクマ。`;
         return list('classes').length || list('handovers').length ? '交流学級への 申し送りは ここで 書けるクマ。' : '交流学級の 担任の 先生を 入れておくと べんりだクマ。';
       }
+      case 'kenkyu': {
+        const my = list('studies').filter((x) => x.kind !== VISIT && isDate(x.date) && x.date >= t).sort((a, b) => a.date.localeCompare(b.date))[0];
+        if (my && daysBetween(t, my.date) <= 30) {
+          const left = daysBetween(t, my.date);
+          const nx = nextStep(my);
+          return `${left ? `研究授業まで あと${left}日` : 'きょうは 研究授業'}。${nx && nx !== '授業' && left ? `つぎは「${nx}」だよ。` : 'がんばってね！'}`;
+        }
+        const rp = reportsDue().find((x) => isDate(x.reportDue) && x.reportDue >= t);
+        if (rp && daysBetween(t, rp.reportDue) <= 14) return `「${short(rp.title, 14)}」の 報告書は ${whenText(rp.reportDue)}までだよ。`;
+        const tr = list('trainings').filter((x) => isDate(x.date) && x.date >= t && x.date <= addDays(t, 14)).sort((a, b) => a.date.localeCompare(b.date))[0];
+        if (tr) return `${whenText(tr.date)}は「${short(tr.title, 14)}」の 研修だよ。`;
+        const xs = trainingsOf(nendoOf(t)).filter((x) => x.date <= t);
+        return xs.length ? `今年度の 研修は ${xs.length}件・${fmtHours(xs.reduce((a, x) => a + (Number(x.hours) || 0), 0))}時間。学んだことを 生かそうね。` : '研修で 学んだことを 書きとめておくと、ふりかえりに 役立つよ。';
+      }
       default:
         return S.className ? '校時や 教科は ここで 変えられるよ。' : '学級名・校時・教科は ここで 決めてね。';
     }
@@ -1013,6 +1045,25 @@
       <path d="M50 94 A50 50 0 0 1 150 94" stroke="#334155" stroke-width="8" fill="none"/>
       <rect x="40" y="84" width="16" height="28" rx="6" fill="#334155"/><rect x="144" y="84" width="16" height="28" rx="6" fill="#334155"/>
       <path d="M48 110 q6 24 34 24" stroke="#334155" stroke-width="5" fill="none"/><circle cx="84" cy="134" r="6" fill="#38bdf8"/>` },
+    // 研究・研修の部屋：ノートを 持った リス
+    kenkyu: { name: 'クルミ', svg: `
+      <path d="M128 186 C176 186 194 146 182 108 C172 76 140 62 130 84 C122 102 150 104 156 124 C162 146 146 166 124 172 Z" fill="#b45309"/>
+      <path d="M150 92 C166 98 176 116 172 134" stroke="#f59e0b" stroke-width="7" fill="none" stroke-linecap="round" opacity=".7"/>
+      <ellipse cx="80" cy="198" rx="16" ry="8" fill="#92400e"/><ellipse cx="120" cy="198" rx="16" ry="8" fill="#92400e"/>
+      <ellipse cx="100" cy="162" rx="40" ry="36" fill="#d97706"/><ellipse cx="100" cy="168" rx="25" ry="24" fill="#fde7c4"/>
+      <g transform="rotate(-6 100 158)"><rect x="72" y="138" width="56" height="40" rx="4" fill="#0ea5e9"/><rect x="77" y="142" width="46" height="32" rx="2" fill="#f0f9ff"/>
+        <path d="M82 150 h34 M82 157 h34 M82 164 h24" stroke="#7dd3fc" stroke-width="2.5"/><line x1="100" y1="142" x2="100" y2="174" stroke="#0284c7" stroke-width="2"/></g>
+      <g transform="rotate(-35 138 150)"><rect x="135" y="128" width="7" height="34" rx="2" fill="#facc15"/><polygon points="135,162 142,162 138.5,171" fill="#fde68a"/><rect x="135" y="126" width="7" height="5" fill="#f472b6"/></g>
+      <ellipse cx="72" cy="160" rx="10" ry="13" fill="#b45309"/><ellipse cx="130" cy="156" rx="10" ry="13" fill="#b45309"/>
+      <path d="M62 64 L56 30 L84 52 Z" fill="#d97706"/><path d="M138 64 L144 30 L116 52 Z" fill="#d97706"/>
+      <path d="M66 58 L62 40 L78 52 Z" fill="#fda4af"/><path d="M134 58 L138 40 L122 52 Z" fill="#fda4af"/>
+      <circle cx="100" cy="96" r="44" fill="#d97706"/><ellipse cx="100" cy="114" rx="23" ry="17" fill="#fde7c4"/>
+      <ellipse cx="100" cy="106" rx="6" ry="4.5" fill="#3b2a1a"/>
+      <path d="M100 110 v4 M100 114 q-6 5 -10 0 M100 114 q6 5 10 0" stroke="#3b2a1a" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+      <rect x="95" y="118" width="10" height="7" rx="1.5" fill="#fff"/>
+      <g class="blink"><circle cx="82" cy="91" r="6" fill="#2b1b10"/><circle cx="118" cy="91" r="6" fill="#2b1b10"/><circle cx="84" cy="89" r="2" fill="#fff"/><circle cx="120" cy="89" r="2" fill="#fff"/></g>
+      <g fill="#fda4af" opacity=".6"><ellipse cx="70" cy="108" rx="8" ry="5"/><ellipse cx="130" cy="108" rx="8" ry="5"/></g>
+      <g transform="rotate(-18 76 58)"><ellipse cx="76" cy="58" rx="8" ry="9" fill="#a16207"/><path d="M68 54 q8 -8 16 0" fill="#78350f"/><line x1="76" y1="47" x2="76" y2="42" stroke="#78350f" stroke-width="2.5"/></g>` },
     // 設定：歯車の ロボ
     settings: { name: 'ネジまる', svg: `
       <g fill="#f59e0b">${[0, 1, 2, 3, 4, 5, 6, 7].map((i) => `<rect x="95" y="14" width="10" height="12" rx="2" transform="rotate(${i * 45} 100 34)"/>`).join('')}<circle cx="100" cy="34" r="16"/></g>
@@ -1071,7 +1122,7 @@
     // 席：奥の 席 → 机 → 手前の 席 の 順に 描く
     const seats = SEATS.map((st, i) => {
       const rad = st.a * Math.PI / 180;
-      const x = 600 + 245 * Math.cos(rad), y = 428 + 58 * Math.sin(rad);
+      const x = 600 + (st.dist || 245) * Math.cos(rad), y = 428 + 58 * Math.sin(rad);
       const front = Math.sin(rad) > 0;
       const s = front ? 1 : 0.82;
       return Object.assign({ i, x, y, s, front, seatY: y - 30 * s, r: ROOMS.find((r) => r.id === st.room) }, st);
@@ -1186,10 +1237,10 @@
     const start = e.date < base ? base : e.date;
     const left = daysBetween(today(), e.date);
     const when = start === today() ? 'きょう' : start === addDays(today(), 1) ? 'あした' : jdate(start);
-    const h = catHue(e.cat);
+    const h = e.hue !== undefined ? e.hue : catHue(e.cat);
     return `<li><span class="when">${when}${e.time ? ' ' + esc(e.time) : ''}</span>
       <span class="chip${h < 0 ? ' gray' : ''}" style="--h:${Math.max(h, 0)};font-size:12px">${esc(e.cat || 'その他')}</span>
-      <span class="ev-title" data-act="editEvent" data-id="${esc(e.id)}" role="button" tabindex="0">${esc(e.title)}</span>
+      <span class="ev-title" data-act="${e.act || 'editEvent'}" data-id="${esc(e.id)}" role="button" tabindex="0">${esc(e.title)}</span>
       ${e.cat === '締め切り' && left >= 0 ? `<span class="tag red">${left ? `あと${left}日` : 'きょうまで'}</span>` : ''}</li>`;
   }
   function eventsBetween(from, to) {
@@ -1203,7 +1254,9 @@
     const off = offReason(t);
     const day = off ? nextSchoolDay(t) : t;
     const lessons = dayLessonsHtml(day);
-    const evHtml = eventsBetween(t, addDays(t, 14)).map((e) => evRow(e, t)).join('');
+    const evHtml = eventsBetween(t, addDays(t, 14)).concat(kenkyuEvents(t, addDays(t, 14)))
+      .sort((a, b) => ((a.date < t ? t : a.date) + (a.time || '99')).localeCompare((b.date < t ? t : b.date) + (b.time || '99')))
+      .map((e) => evRow(e, t)).join('');
     const nowUnits = list('units').filter((u) => unitPhase(u) === 'now').sort((a, b) => S.subjects.indexOf(a.subject) - S.subjects.indexOf(b.subject));
 
     const up = upcomingDraft();
@@ -3477,6 +3530,319 @@
     });
   }
 
+  /* =========================================================
+     研究・研修の部屋
+     ========================================================= */
+  const TRAIN_KINDS = ['法定研修', '特別支援教育', '教科・授業', '校内研修', 'ICT', '生徒指導・人権', '自主研修・読書', 'その他'];
+  const REPORTS = [['', 'なし'], ['あり', 'あり（まだ）'], ['提出ずみ', '提出ずみ']];
+  const STUDY_STEPS = ['指導案 第一稿', '部会で 検討', '指導案 提出', '授業', '協議会', 'まとめ・報告'];
+  const MINE = '自分の授業', VISIT = '参観';
+  const fmtHours = (h) => String(Math.round(h * 10) / 10);
+
+  function trainingsOf(nendo) { return list('trainings').filter((x) => isDate(x.date) && nendoOf(x.date) === nendo); }
+  function researchOf(nendo) { return list('research').find((r) => Number(r.nendo) === nendo); }
+  function stepsDone(s) { return String(s.steps || '').split(',').filter((x) => STUDY_STEPS.includes(x)); }
+  function nextStep(s) { const d = stepsDone(s); return STUDY_STEPS.find((x) => !d.includes(x)) || ''; }
+  // 報告書が まだの 研修（締め切りの 近い 順）
+  function reportsDue() {
+    return list('trainings').filter((x) => x.report === 'あり').sort((a, b) => (isDate(a.reportDue) ? a.reportDue : '9999').localeCompare(isDate(b.reportDue) ? b.reportDue : '9999'));
+  }
+  // ロビーの「これからの予定」に 出す 研修と 研究授業
+  function kenkyuEvents(from, to) {
+    const out = [];
+    list('trainings').forEach((x) => { if (isDate(x.date) && x.date >= from && x.date <= to) out.push({ id: x.id, date: x.date, time: x.time || '', cat: '研修', hue: 300, title: x.title, act: 'editTraining' }); });
+    list('studies').forEach((s) => { if (isDate(s.date) && s.date >= from && s.date <= to) out.push({ id: s.id, date: s.date, time: s.time || '', cat: s.kind === VISIT ? '参観' : '研究授業', hue: 300, title: s.kind === VISIT ? `${s.teacher || ''} ${s.room || ''} ${s.subject || ''}`.trim() || '授業参観' : s.title || s.subject || '研究授業', act: 'editStudy' }); });
+    return out;
+  }
+
+  function viewKenkyu() {
+    if (!view.kenNendo) view.kenNendo = nendoOf(today());
+    return subtabs('kenkyu', [['trainings', '🎓 研修の記録'], ['research', '🔬 校内研究・研究授業']]) +
+      `<div class="toolbar">
+        <button class="btn" data-act="kenNendo" data-n="-1">◀</button>
+        <h2 class="wk-title">${wareki(view.kenNendo).replace('年', '年度')}</h2>
+        <button class="btn" data-act="kenNendo" data-n="1">▶</button>
+        ${view.kenNendo !== nendoOf(today()) ? '<button class="btn small" data-act="kenNendo" data-n="0">今年度</button>' : ''}
+      </div>` +
+      ({ trainings: viewTrainings, research: viewResearch })[view.tab.kenkyu]();
+  }
+
+  /* ---------- 研修の記録 ---------- */
+  function trainingCard(x) {
+    const t = today();
+    const future = x.date > t;
+    const left = isDate(x.reportDue) ? daysBetween(t, x.reportDue) : null;
+    const added = (k) => list('tasks').some((v) => v.fromId === `${x.id}:${k}`);
+    const rep = x.report === '提出ずみ' ? '<span class="tag">✓ 報告書 提出ずみ</span>'
+      : x.report === 'あり' ? `<span class="tag${left !== null && left <= 7 ? ' red' : ''}">📝 報告書${left === null ? '' : left < 0 ? `：${-left}日 すぎ` : left ? `：あと${left}日` : '：きょうまで'}</span>` : '';
+    return `<article class="card train">
+      <div class="meta"><b style="color:var(--ink)">${jdate(x.date)}${x.time ? ' ' + esc(x.time) : ''}</b>${x.kind ? `<span class="tag">${esc(x.kind)}</span>` : ''}${future ? '<span class="tag">これから</span>' : ''}${rep}</div>
+      <div class="ken-title"><h3>${esc(x.title)}</h3><button class="btn small" data-act="editTraining" data-id="${esc(x.id)}">直す</button></div>
+      <div class="meta">${x.org ? `<span>🏢 ${esc(x.org)}</span>` : ''}${x.place ? `<span>📍 ${esc(x.place)}</span>` : ''}${Number(x.hours) ? `<span>⏱ ${fmtHours(Number(x.hours))}時間</span>` : ''}${safeUrl(x.url) ? `<a href="${esc(safeUrl(x.url))}" target="_blank" rel="noopener noreferrer">📎 資料 ↗</a>` : ''}</div>
+      ${x.learned ? `<div class="mine"><b>💡 学んだこと</b><div>${nl(x.learned)}</div></div>` : ''}
+      ${x.apply ? `<div class="mine"><b>🧩 学級で 生かすこと</b><div>${nl(x.apply)}</div>
+        <div style="text-align:right;margin-top:4px">${added('a') ? '<span class="tag">✓ やることに入れました</span>' : `<button class="btn small" data-act="trainToTask" data-id="${esc(x.id)}" data-k="a">＋ やることへ</button>`}</div></div>` : ''}
+      ${x.report === 'あり' ? `<div style="text-align:right;margin-top:8px">${added('r') ? '<span class="tag">✓ 報告書を やることに入れました</span>' : `<button class="btn small" data-act="trainToTask" data-id="${esc(x.id)}" data-k="r">＋ 報告書を やることへ</button>`}
+        <button class="btn small" data-act="reportDone" data-id="${esc(x.id)}">✓ 提出した</button></div>` : ''}
+    </article>`;
+  }
+  function viewTrainings() {
+    const t = today();
+    const all = trainingsOf(view.kenNendo).filter((x) => !view.trainKind || x.kind === view.trainKind);
+    const coming = all.filter((x) => x.date > t).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
+    const done = all.filter((x) => x.date <= t).sort(byDateDesc);
+    const sum = {};
+    trainingsOf(view.kenNendo).filter((x) => x.date <= t).forEach((x) => {
+      const k = x.kind || 'その他';
+      sum[k] = sum[k] || { n: 0, h: 0 };
+      sum[k].n++; sum[k].h += Number(x.hours) || 0;
+    });
+    const kinds = TRAIN_KINDS.filter((k) => sum[k]).concat(Object.keys(sum).filter((k) => !TRAIN_KINDS.includes(k)));
+    const total = kinds.reduce((a, k) => ({ n: a.n + sum[k].n, h: a.h + sum[k].h }), { n: 0, h: 0 });
+    const due = reportsDue();
+    return `<div class="grid2 ken-top">
+        <section class="card">
+          <div class="toolbar"><h2 class="sec">📊 受講した 研修（${total.n}件・${fmtHours(total.h)}時間）</h2><span class="grow"></span>
+            <button class="btn small" data-act="trainText">📋 一覧の文</button></div>
+          ${kinds.length ? `<table class="list"><tbody>${kinds.map((k) => `<tr><td>${esc(k)}</td><td style="text-align:right">${sum[k].n}件</td><td style="text-align:right">${fmtHours(sum[k].h)}時間</td></tr>`).join('')}</tbody></table>`
+            : '<div class="empty-note">この年度に 受講した 研修は まだ ありません。</div>'}
+          <p class="hint" style="margin-top:6px">管理職との 面談や、研修履歴の 確認に 使えます。正式な 受講履歴は、教育委員会の 決まった 方法で 記録してください。</p>
+        </section>
+        <section class="card">
+          <div class="toolbar"><h2 class="sec">📝 まだの 報告書（${due.length}件）</h2></div>
+          ${due.length ? `<ul class="ev-list">${due.map((x) => { const l = isDate(x.reportDue) ? daysBetween(t, x.reportDue) : null; return `<li><span class="when">${isDate(x.reportDue) ? md(x.reportDue) + 'まで' : '締め切り 未設定'}</span><span class="ev-title" data-act="editTraining" data-id="${esc(x.id)}" role="button" tabindex="0">${esc(x.title)}</span>${l !== null ? `<span class="tag${l <= 7 ? ' red' : ''}">${l < 0 ? `${-l}日 すぎ` : l ? `あと${l}日` : 'きょうまで'}</span>` : ''}</li>`; }).join('')}</ul>`
+            : '<div class="empty-note">まだの 報告書は ありません。</div>'}
+        </section>
+      </div>
+      <div class="toolbar" style="margin-top:16px"><h2 class="sec">🎓 研修</h2><span class="grow"></span>
+        <select class="input" style="width:auto" data-chg="trainKind" aria-label="種類で しぼりこむ">${opt('', view.trainKind, 'すべての種類')}${TRAIN_KINDS.map((k) => opt(k, view.trainKind)).join('')}</select>
+        <button class="btn primary" data-act="editTraining">＋ 研修を追加</button></div>
+      ${coming.length ? `<h3 class="ken-h">これからの 研修</h3><div class="cards wide">${coming.map(trainingCard).join('')}</div>` : ''}
+      <h3 class="ken-h">受講した 研修</h3>
+      ${done.length ? `<div class="cards wide" id="train-list">${done.map(trainingCard).join('')}</div>` : '<div class="empty-note">まだ ありません。研修に 行ったら「＋ 研修を追加」から、学んだことを 書きとめておきましょう。</div>'}`;
+  }
+  function editTraining(id) {
+    const x = id ? get('trainings', id) : { date: today(), kind: '特別支援教育', report: '' };
+    if (!x) return;
+    openDialog({
+      title: id ? '研修を 直す' : '研修を 追加',
+      body: `<label class="field">研修名 <input name="title" required maxlength="100" value="${esc(x.title)}" placeholder="例：特別支援教育研修会「自立活動の 指導」"></label>
+        <div class="row2">
+          <label class="field">日付 <input type="date" name="date" required value="${esc(x.date)}"></label>
+          <label class="field">時刻 <input name="time" maxlength="20" value="${esc(x.time)}" placeholder="例：13:30"></label>
+        </div>
+        <div class="row2">
+          <label class="field">種類 <select name="kind">${TRAIN_KINDS.map((k) => opt(k, x.kind || 'その他')).join('')}</select></label>
+          <label class="field">時間 <input type="number" name="hours" min="0" max="100" step="0.5" value="${esc(x.hours)}" placeholder="例：3"></label>
+        </div>
+        <div class="row2">
+          <label class="field">主催 <input name="org" maxlength="60" value="${esc(x.org)}" placeholder="例：市教育委員会"></label>
+          <label class="field">場所・方法 <input name="place" maxlength="60" value="${esc(x.place)}" placeholder="例：教育センター／オンライン"></label>
+        </div>
+        <label class="field">学んだこと <textarea name="learned" rows="4" maxlength="3000">${esc(x.learned)}</textarea></label>
+        <label class="field">学級で 生かすこと <textarea name="apply" rows="2" maxlength="1000" placeholder="例：朝の会に 体を 動かす 活動を 入れる">${esc(x.apply)}</textarea></label>
+        <div class="row2">
+          <label class="field">報告書 <select name="report">${REPORTS.map(([v, l]) => opt(v, x.report || '', l)).join('')}</select></label>
+          <label class="field">報告書の 締め切り <input type="date" name="reportDue" value="${esc(x.reportDue)}"></label>
+        </div>
+        <label class="field">資料の リンク <input name="url" type="url" maxlength="500" value="${esc(x.url)}" placeholder="https://drive.google.com/..."></label>`,
+      deleteLabel: id ? 'この研修を消す' : '',
+      onDelete: () => removeRecs('trainings', id),
+      onSave: (f) => {
+        if (f.url.trim() && !safeUrl(f.url)) return 'リンクは https:// から 始まる アドレスを 入れてください。';
+        const h = Number(f.hours);
+        putRecs('trainings', { id: id || uid('tr'), date: f.date, time: f.time.trim(), title: f.title.trim(), kind: f.kind, org: f.org.trim(), place: f.place.trim(), hours: h > 0 ? h : '', learned: f.learned.trim(), apply: f.apply.trim(), report: f.report, reportDue: f.report && isDate(f.reportDue) ? f.reportDue : '', url: f.url.trim() });
+      },
+    });
+  }
+  function trainText() {
+    const n = view.kenNendo;
+    const xs = trainingsOf(n).filter((x) => x.date <= today()).sort((a, b) => a.date.localeCompare(b.date));
+    const total = xs.reduce((a, x) => a + (Number(x.hours) || 0), 0);
+    const lines = [`${wareki(n).replace('年', '年度')} 研修の記録${S.className ? '（' + S.className + ' 担任）' : ''}`, ''];
+    xs.forEach((x) => {
+      const info = [x.kind, x.org, Number(x.hours) ? fmtHours(Number(x.hours)) + '時間' : ''].filter(Boolean).join('・');
+      lines.push(`・${md(x.date)}（${WD[dayOf(x.date)]}）${x.title}${info ? `［${info}］` : ''}`);
+      if (x.apply) lines.push(`　→ 生かすこと：${x.apply.replace(/\n/g, ' ')}`);
+    });
+    if (!xs.length) lines.push('・（まだ ありません）');
+    lines.push('', `合計 ${xs.length}件・${fmtHours(total)}時間`);
+    openDialog({
+      title: '📋 研修の記録（一覧の文）',
+      readOnly: true,
+      body: `<textarea class="input" id="draftText" rows="14" aria-label="研修の記録">${esc(lines.join('\n'))}</textarea>
+        <div class="toolbar" style="margin:0"><button class="btn primary" data-act="copyDraft">📋 コピーする</button><span class="hint" id="copyMsg" role="status"></span></div>`,
+    });
+  }
+
+  /* ---------- 校内研究・研究授業 ---------- */
+  function viewResearch() {
+    const n = view.kenNendo;
+    const r = researchOf(n);
+    const t = today();
+    const ss = list('studies').filter((s) => isDate(s.date) && nendoOf(s.date) === n);
+    const mine = ss.filter((s) => s.kind !== VISIT).sort((a, b) => a.date.localeCompare(b.date));
+    const visits = ss.filter((s) => s.kind === VISIT).sort(byDateDesc);
+    const studyCard = (s) => {
+      const u = get('units', s.unitId);
+      const done = stepsDone(s);
+      const left = daysBetween(t, s.date);
+      return `<article class="card study">
+        <div class="meta"><b style="color:var(--ink)">${jdate(s.date)}${s.time ? ' ' + esc(s.time) : ''}</b>${left > 0 ? `<span class="tag${left <= 7 ? ' red' : ''}">あと${left}日</span>` : left === 0 ? '<span class="tag red">きょう</span>' : ''}${chip(s.subject)}</div>
+        <div class="ken-title"><h3>${esc(s.title || '（本時の 題は まだ）')}</h3><button class="btn small" data-act="editStudy" data-id="${esc(s.id)}">直す</button></div>
+        ${u ? `<div class="meta"><span>📘 ${esc(u.name)}</span></div>` : ''}
+        <div class="st-steps" role="group" aria-label="進み具合">${STUDY_STEPS.map((x, i) => `<label class="st-step${done.includes(x) ? ' on' : ''}"><input type="checkbox" data-chg="studyStep" data-id="${esc(s.id)}" data-step="${esc(x)}" ${done.includes(x) ? 'checked' : ''}><span>${i + 1}</span>${esc(x)}</label>`).join('')}</div>
+        <p class="hint" style="margin-top:4px">${nextStep(s) ? `つぎは「${esc(nextStep(s))}」です。` : '🎉 すべて おわりました。おつかれさまでした。'}</p>
+        ${s.feedback ? `<div class="mine"><b>🗣 協議会での 意見</b><div>${nl(s.feedback)}</div></div>` : ''}
+        ${s.reflect ? `<div class="mine"><b>🪞 ふりかえり</b><div>${nl(s.reflect)}</div></div>` : ''}
+        <div class="mat-act" style="margin-top:8px"><button class="btn small primary" data-act="shidoan" data-id="${esc(s.id)}">📄 指導案の 下書き</button></div>
+      </article>`;
+    };
+    return `<section class="card">
+        <div class="toolbar"><h2 class="sec">🔬 校内研究</h2><span class="grow"></span><button class="btn small" data-act="editResearch">${r ? '直す' : '＋ 研究主題を 入れる'}</button></div>
+        ${r ? `<div class="theme">${esc(r.theme || '（研究主題）')}</div>${r.sub ? `<div class="theme-sub">${nl(r.sub)}</div>` : ''}
+          <div class="meta" style="margin-top:6px">${r.group ? `<span>👥 部会：${esc(r.group)}</span>` : ''}${r.role ? `<span>🙋 自分の 役割：${esc(r.role)}</span>` : ''}</div>
+          ${r.memo ? `<p class="hint" style="margin-top:6px">${nl(r.memo)}</p>` : ''}`
+          : '<div class="empty-note">この年度の 研究主題・部会・自分の 役割を 入れておくと、指導案の 下書きにも 入ります。</div>'}
+      </section>
+      <div class="toolbar" style="margin-top:16px"><h2 class="sec">🧑‍🏫 自分の 研究授業</h2><span class="grow"></span><button class="btn primary" data-act="editStudy" data-kind="${MINE}">＋ 研究授業を追加</button></div>
+      ${mine.length ? `<div class="cards wide">${mine.map(studyCard).join('')}</div>` : '<div class="empty-note">研究授業の 日が 決まったら 入れてください。指導案づくりの 進み具合が 分かり、下書きも 作れます。</div>'}
+      <div class="toolbar" style="margin-top:16px"><h2 class="sec">👀 参観した 授業</h2><span class="grow"></span><button class="btn primary" data-act="editStudy" data-kind="${VISIT}">＋ 参観の記録</button></div>
+      ${visits.length ? `<div class="stack" style="gap:8px" id="visit-list">${visits.map((s) => `<section class="card" style="padding:10px 14px">
+        <div class="meta"><b style="color:var(--ink)">${jdate(s.date)}</b>${s.room ? `<span class="tag">${esc(s.room)}</span>` : ''}${s.teacher ? `<span>${esc(s.teacher)}</span>` : ''}${chip(s.subject)}${s.title ? `<span>${esc(s.title)}</span>` : ''}<span class="grow"></span><button class="btn small" data-act="editStudy" data-id="${esc(s.id)}">直す</button></div>
+        ${s.reflect ? `<div class="ct-body">${nl(s.reflect)}</div>` : ''}
+      </section>`).join('')}</div>` : '<div class="empty-note">ほかの 先生の 授業を 見たら、学んだことを 書きとめておきましょう。</div>'}`;
+  }
+  function editResearch() {
+    const n = view.kenNendo;
+    const r = researchOf(n) || {};
+    openDialog({
+      title: `${wareki(n).replace('年', '年度')}の 校内研究`,
+      body: `<label class="field">研究主題 <input name="theme" maxlength="200" value="${esc(r.theme)}" placeholder="例：一人ひとりが「わかった」「できた」を 実感できる 授業づくり"></label>
+        <label class="field">副題・研究の 重点 <textarea name="sub" rows="2" maxlength="1000">${esc(r.sub)}</textarea></label>
+        <div class="row2">
+          <label class="field">部会 <input name="group" maxlength="40" value="${esc(r.group)}" placeholder="例：特別支援部会"></label>
+          <label class="field">自分の 役割 <input name="role" maxlength="60" value="${esc(r.role)}" placeholder="例：授業者（11月）"></label>
+        </div>
+        <label class="field">メモ（研究の 計画、日程など） <textarea name="memo" rows="3" maxlength="2000">${esc(r.memo)}</textarea></label>`,
+      onSave: (f) => putRecs('research', { id: r.id || `rs${n}`, nendo: n, theme: f.theme.trim(), sub: f.sub.trim(), group: f.group.trim(), role: f.role.trim(), memo: f.memo.trim() }),
+    });
+  }
+  function editStudy(id, kind) {
+    const s = id ? get('studies', id) : { kind: kind || MINE, date: today() };
+    if (!s) return;
+    const visit = s.kind === VISIT;
+    const units = list('units').sort((a, b) => String(b.start || '').localeCompare(String(a.start || '')));
+    openDialog({
+      title: visit ? (id ? '参観の 記録を 直す' : '参観した 授業を 記録') : (id ? '研究授業を 直す' : '研究授業を 追加'),
+      body: `<div class="row2">
+          <label class="field">日付 <input type="date" name="date" required value="${esc(s.date)}"></label>
+          <label class="field">${visit ? '時刻・校時' : '校時・時刻'} <input name="time" maxlength="20" value="${esc(s.time)}" placeholder="例：3校時"></label>
+        </div>
+        ${visit ? `<div class="row2">
+          <label class="field">授業者 <input name="teacher" maxlength="40" value="${esc(s.teacher)}" placeholder="例：〇〇先生"></label>
+          <label class="field">学級 <input name="room" maxlength="20" value="${esc(s.room)}" placeholder="例：3年2組"></label>
+        </div>` : ''}
+        <div class="row2">
+          <label class="field">教科 <select name="subject">${opt('', s.subject || '', '—')}${S.subjects.concat(s.subject && !S.subjects.includes(s.subject) ? [s.subject] : []).map((x) => opt(x, s.subject)).join('')}</select></label>
+          ${visit ? `<label class="field">本時の 題 <input name="title" maxlength="100" value="${esc(s.title)}"></label>`
+            : `<label class="field">単元 <select name="unitId">${opt('', s.unitId || '', '—')}${units.map((u) => opt(u.id, s.unitId, `${u.subject}：${u.name}`)).join('')}</select></label>`}
+        </div>
+        ${visit ? `<label class="field">学んだこと・まねしたいこと <textarea name="reflect" rows="5" maxlength="3000">${esc(s.reflect)}</textarea></label>`
+          : `<label class="field">本時の 題 <input name="title" maxlength="100" value="${esc(s.title)}" placeholder="例：見つけた 秋を 友だちに 伝えよう"></label>
+        <label class="field">本時の 目標 <textarea name="aim" rows="2" maxlength="1000">${esc(s.aim)}</textarea></label>
+        <label class="field">本時の 展開（1行に 1つ。「学習活動｜留意点・手立て」の ように「｜」で 区切ると 表に なります） <textarea name="flow" rows="6" maxlength="4000" placeholder="例：はじめの あいさつ・めあての 確認｜絵カードで 見通しを 示す">${esc(s.flow)}</textarea></label>
+        <label class="field">協議会での 意見 <textarea name="feedback" rows="3" maxlength="3000">${esc(s.feedback)}</textarea></label>
+        <label class="field">ふりかえり <textarea name="reflect" rows="3" maxlength="3000">${esc(s.reflect)}</textarea></label>`}`,
+      deleteLabel: id ? 'この記録を消す' : '',
+      onDelete: () => removeRecs('studies', id),
+      onSave: (f) => {
+        const u = get('units', f.unitId);
+        const rec = { id: id || uid('sd'), kind: s.kind, date: f.date, time: f.time.trim(), subject: f.subject || (u ? u.subject : ''), title: f.title.trim(), reflect: f.reflect.trim() };
+        if (visit) Object.assign(rec, { teacher: f.teacher.trim(), room: f.room.trim() });
+        else Object.assign(rec, { unitId: f.unitId, aim: f.aim.trim(), flow: f.flow.trim(), feedback: f.feedback.trim(), steps: s.steps || '' });
+        putRecs('studies', rec);
+      },
+    });
+  }
+  function changeStudyStep(el) {
+    const s = get('studies', el.dataset.id);
+    if (!s) return;
+    const done = new Set(stepsDone(s));
+    if (el.checked) done.add(el.dataset.step); else done.delete(el.dataset.step);
+    putRecs('studies', { id: s.id, steps: STUDY_STEPS.filter((x) => done.has(x)).join(',') });
+  }
+
+  // 指導案の 下書き（単元計画・週案・個別の指導計画の 目標から つくる）
+  function shidoanText(s, anon) {
+    const u = get('units', s.unitId);
+    const r = researchOf(nendoOf(s.date));
+    const subj = s.subject || (u ? u.subject : '');
+    const kids = children();
+    const letter = (k) => String.fromCharCode(0x41 + kids.findIndex((c) => c.id === k.id)) + '児';
+    const callName = (k) => (anon ? letter(k) : k.name);
+    // 単元の 対象の 子（「全員」や 空なら 全員）
+    const target = u && u.target && !/全員/.test(u.target) ? kids.filter((k) => String(u.target).includes(k.name)) : kids;
+    const { term } = termNow(s.date);
+    const n = nendoOf(s.date);
+    const L = [];
+    L.push(`${S.className || '　　学級'}　${subj || '　　'} 学習指導案`, '');
+    L.push(`日時：${wareki(parse(s.date).getFullYear())}${jdate(s.date)}${s.time ? ' ' + s.time : ''}`);
+    L.push(`児童：${target.length}名`, '授業者：', '');
+    L.push(`1　単元名　${u ? `「${u.name}」` : '「　　」'}`, '');
+    L.push('2　単元の目標', `　${u && u.goal ? u.goal : ''}`, '');
+    L.push('3　単元について', '（1）児童の実態', '　', '（2）教材について', '　', '（3）指導について', '　', '');
+    L.push('4　一人ひとりの 目標と 手立て');
+    target.forEach((k) => {
+      const g = list('goals').find((x) => x.childId === k.id && Number(x.nendo) === n && (x.term === term || x.term === '年間') && (x.area === subj || String(x.area || '').includes(subj)));
+      L.push(`・${callName(k)}${k.grade ? '（' + k.grade + '）' : ''}`);
+      L.push(`　目標：${g ? g.goal : ''}`, `　手立て：${g ? g.support : ''}`);
+    });
+    if (!target.length) L.push('・（子どもが 登録されていません）');
+    L.push('');
+    // 指導計画（週案で この単元に した 時間から）
+    const ws = u ? list('weekly').filter((w) => w.unitId === u.id && isDate(w.date)).sort((a, b) => a.date.localeCompare(b.date) || S.periods.findIndex((p) => p.id === String(a.period)) - S.periods.findIndex((p) => p.id === String(b.period))) : [];
+    const total = u && Number(u.hours) ? Number(u.hours) : ws.length;
+    L.push(`5　指導計画（全${total || '　'}時間）`);
+    let honji = 0;
+    ws.forEach((w, i) => {
+      const isHonji = !honji && w.date === s.date;
+      if (isHonji) honji = i + 1;
+      L.push(`　第${i + 1}時　${w.content ? String(w.content).replace(/\n/g, ' ') : '（　　）'}${isHonji ? '　…本時' : ''}`);
+    });
+    if (!ws.length) L.push('　（週案で この単元の 時間に 内容を 入れると、ここに 並びます）');
+    L.push('');
+    L.push(`6　本時の学習${honji ? `（${honji}／${total || ws.length}時間目）` : ''}`);
+    L.push(`（1）本時の題　${s.title || ''}`);
+    L.push('（2）本時の目標', `　${s.aim ? s.aim.replace(/\n/g, '\n　') : ''}`);
+    L.push('（3）展開');
+    const rows = String(s.flow || '').split('\n').map((x) => x.trim()).filter(Boolean);
+    if (rows.length) {
+      L.push('　学習活動　／　指導上の留意点・手立て');
+      rows.forEach((x, i) => {
+        const [a, b] = x.split(/[｜|]/);
+        L.push(`　${i + 1}　${(a || '').trim()}${b ? `　／　${b.trim()}` : ''}`);
+      });
+    } else L.push('　');
+    L.push('（4）評価', '　', '');
+    if (r && r.theme) L.push('7　研究主題との かかわり', `　研究主題：${r.theme}${r.sub ? '　' + r.sub.replace(/\n/g, ' ') : ''}`, '　');
+    return L.join('\n');
+  }
+  function showShidoan(id) {
+    const s = get('studies', id);
+    if (!s) return;
+    openDialog({
+      title: '📄 指導案の 下書き',
+      readOnly: true,
+      body: `<div class="toolbar" style="margin:0"><span>子どもの 書き方：</span>
+          <label class="check" style="font-weight:400"><input type="radio" name="anon" value="" data-chg="shidoanAnon" data-id="${esc(id)}" ${view.shidoanAnon ? '' : 'checked'}> 呼び名</label>
+          <label class="check" style="font-weight:400"><input type="radio" name="anon" value="1" data-chg="shidoanAnon" data-id="${esc(id)}" ${view.shidoanAnon ? 'checked' : ''}> A児・B児…</label></div>
+        <textarea class="input" id="draftText" rows="18" aria-label="指導案の 下書き">${esc(shidoanText(s, view.shidoanAnon))}</textarea>
+        <div class="toolbar" style="margin:0"><button class="btn primary" data-act="copyDraft">📋 コピーする</button><span class="hint" id="copyMsg" role="status"></span></div>
+        <p class="hint">単元計画・週案の 内容・個別の指導計画の 目標（同じ 学期・同じ 教科）・研究主題から 作りました。学校の 指導案の 書式に 貼り付けて 仕上げてください。指導案を 配る ときは、子どもの 名前の 書き方を 学校の 決まりに 合わせてください。</p>`,
+    });
+  }
+
   /* ---------- 準備中の 部屋 ---------- */
   function viewSoon(room) {
     return `<section class="card soon-room">
@@ -3675,6 +4041,25 @@
       const k = get('children', l.childId);
       editTask('', { title: `${o ? o.name + '：' : ''}${short(l.followup.replace(/\n/g, ' '), 60)}`, cat: '連絡', memo: `${isDate(l.date) ? jdate(l.date) + ' ' : ''}${l.method || ''}の 記録より${k ? '（' + k.name + '）' : ''}`, fromId: `${l.id}:f` });
     },
+    kenNendo: (d) => { const n = Number(d.n); view.kenNendo = n ? view.kenNendo + n : nendoOf(today()); render(); },
+    editTraining: (d) => editTraining(d.id || ''),
+    trainText: () => trainText(),
+    trainToTask: (d) => {
+      const x = get('trainings', d.id);
+      if (!x) return;
+      if (d.k === 'r') editTask('', { title: `報告書：${x.title}`, cat: '提出物', due: isDate(x.reportDue) ? x.reportDue : '', memo: `${jdate(x.date)}の 研修`, fromId: `${x.id}:r` });
+      else editTask('', { title: short(String(x.apply).replace(/\n/g, ' '), 60), cat: '準備', memo: `${jdate(x.date)}「${x.title}」で 学んだこと より`, fromId: `${x.id}:a` });
+    },
+    reportDone: (d) => {
+      const x = get('trainings', d.id);
+      if (!x) return;
+      const tk = list('tasks').filter((v) => v.fromId === `${x.id}:r` && !v.done);
+      if (tk.length) putRecs('tasks', tk.map((v) => ({ id: v.id, done: today() })), { render: false });
+      putRecs('trainings', { id: x.id, report: '提出ずみ' });
+    },
+    editResearch: () => editResearch(),
+    editStudy: (d) => editStudy(d.id || '', d.kind || ''),
+    shidoan: (d) => showShidoan(d.id),
     dlgClose: () => closeDialog(),
     dlgDelete: () => {
       if (!dlg) return;
@@ -3752,6 +4137,14 @@
     orgId: (el) => { view.orgId = el.value; render(); },
     staffDate: (el) => { if (isDate(el.value)) { view.staffDate = el.value; render(); } },
     staffDay: changeStaffDay,
+    trainKind: (el) => { view.trainKind = el.value; render(); },
+    studyStep: changeStudyStep,
+    shidoanAnon: (el) => {
+      view.shidoanAnon = el.value === '1';
+      const s = get('studies', el.dataset.id);
+      const ta = document.getElementById('draftText');
+      if (s && ta) ta.value = shidoanText(s, view.shidoanAnon);
+    },
     staffBase: changeStaffBase,
     lessonSubj: (el) => {
       const form = el.form;
@@ -3987,7 +4380,19 @@
       { id: 'ol1', orgId: 'og1', childId: 'cA', date: pastDay(4), method: '電話', content: '来週の 短縮日課に ついて、お迎えの 時間を 伝えた', followup: '' },
       { id: 'ol2', orgId: 'og2', childId: 'cC', date: pastDay(8), method: '面談', content: '学校での 様子を 伝え、支援の 方法を 相談した（保護者 同意 あり）', followup: '次回の 面談の 日を 保護者と 決める' },
     ];
-    return { settings: { className: 'ひまわり学級（サンプル）', standards: { '国語': 175, '算数': 175, '音楽': 70, '図工': 70, '体育': 105, '学級活動': 35, '自立活動': 70, '日常生活の指導': 175, '生活単元学習': 140 }, standardTotal: 1015 }, tables: { events, timetable, weekly, children, exchange, units, materials, tasks, duties, dutyItems, meetings, templates, notes, plans, goals, contacts, classes, handovers, staff, staffPlans, orgs, orgLogs } };
+    // 研究・研修の部屋（名前は すべて 架空）
+    const trainings = [
+      { id: 'tr1', date: pastDay(9), time: '14:00', title: '特別支援教育研修会「自立活動の 指導」', kind: '特別支援教育', org: '市教育委員会', place: '教育センター', hours: 3, learned: '6区分27項目から 子どもの 課題を 整理する 方法。目標は「〜できる」の 形で 具体的に', apply: '朝の会に 体を 動かす 活動（ストレッチ）を 入れる', report: 'あり', reportDue: addDays(t, 5), url: '' },
+      { id: 'tr2', date: pastDay(20), time: '15:30', title: '校内研修：タブレットで 学びを 記録する', kind: 'ICT', org: '校内', place: '図書室', hours: 1, learned: '写真と 音声で ふりかえりカードを 作る 方法', apply: '', report: '', reportDue: '', url: '' },
+      { id: 'tr3', date: pastDay(30), time: '', title: '本を 読んで：絵カードを 使った コミュニケーション支援', kind: '自主研修・読書', org: '', place: '', hours: 2, learned: '選ぶ 場面を たくさん 作る ことで、伝える 力が 育つ', apply: '', report: '', reportDue: '', url: '' },
+      { id: 'tr4', date: schoolDay(12), time: '13:30', title: '特別支援学級 担当者 研修', kind: '特別支援教育', org: '県教育センター', place: 'オンライン', hours: 3, learned: '', apply: '', report: 'あり', reportDue: addDays(t, 40), url: '' },
+    ];
+    const research = [{ id: `rs${n0}`, nendo: n0, theme: '一人ひとりが「わかった」「できた」を 実感できる 授業づくり', sub: '〜見通しを もたせる 支援の 工夫を 通して〜', group: '特別支援部会', role: '授業者', memo: '指導案の 提出は 授業の 1週間前' }];
+    const studies = [
+      { id: 'sd1', kind: '自分の授業', date: schoolDay(16), time: '3校時', teacher: '', room: '', subject: '生活単元学習', unitId: 'u3', title: '見つけた 秋を 友だちに 伝えよう', steps: '指導案 第一稿', aim: '校庭で 見つけた ものを、絵カードと ことばで 友だちに 伝える', flow: 'はじめの あいさつ・めあての 確認｜絵カードで 活動の 流れを 示す\n見つけた ものを 選ぶ｜写真を 2つから 選べるように する\n友だちに 伝える｜「◯◯を 見つけました」の 話型を 掲示\nふりかえり｜よかったことを 具体的に ほめる', feedback: '', reflect: '' },
+      { id: 'sd2', kind: '参観', date: pastDay(7), time: '5校時', teacher: '森先生', room: '3年2組', subject: '国語', unitId: '', title: 'お気に入りの 本を しょうかいしよう', steps: '', aim: '', flow: '', feedback: '', reflect: 'めあてを 黒板の 同じ 場所に いつも 書いていて、見通しが もちやすい。ペアで 話す 前に 話型を 確認していた' },
+    ];
+    return { settings: { className: 'ひまわり学級（サンプル）', standards: { '国語': 175, '算数': 175, '音楽': 70, '図工': 70, '体育': 105, '学級活動': 35, '自立活動': 70, '日常生活の指導': 175, '生活単元学習': 140 }, standardTotal: 1015 }, tables: { events, timetable, weekly, children, exchange, units, materials, tasks, duties, dutyItems, meetings, templates, notes, plans, goals, contacts, classes, handovers, staff, staffPlans, orgs, orgLogs, trainings, research, studies } };
   }
 
   boot();

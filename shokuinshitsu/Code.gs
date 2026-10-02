@@ -114,6 +114,21 @@ const TABLES = {
     sheet: '関係機関との連絡',
     cols: [['id', COL_ID], ['orgId', '関係機関ID'], ['childId', '子どもID'], ['date', '日付', 'date'], ['method', '方法'], ['content', '内容', 'long'], ['followup', '次にすること', 'long']],
   },
+  // ここから 研究・研修の部屋
+  trainings: {
+    sheet: '研修の記録',
+    cols: [['id', COL_ID], ['date', '日付', 'date'], ['time', '時刻'], ['title', '研修名'], ['kind', '種類'], ['org', '主催'], ['place', '場所・方法'], ['hours', '時間', 'num'],
+      ['learned', '学んだこと', 'long'], ['apply', '学級で生かすこと', 'long'], ['report', '報告書'], ['reportDue', '報告書の締め切り', 'date'], ['url', '資料のリンク']],
+  },
+  research: {
+    sheet: '校内研究',
+    cols: [['id', COL_ID], ['nendo', '年度', 'num'], ['theme', '研究主題'], ['sub', '副題・研究の重点', 'long'], ['group', '部会'], ['role', '自分の役割'], ['memo', 'メモ', 'long']],
+  },
+  studies: {
+    sheet: '研究授業',
+    cols: [['id', COL_ID], ['kind', '種類'], ['date', '日付', 'date'], ['time', '時刻'], ['teacher', '授業者'], ['room', '学級'], ['subject', '教科'], ['unitId', '単元ID'], ['title', '本時の題'],
+      ['steps', '終わった段階'], ['aim', '本時の目標', 'long'], ['flow', '本時の展開', 'long'], ['feedback', '協議会での意見', 'long'], ['reflect', 'ふりかえり・学んだこと', 'long']],
+  },
   // ここから 公務の部屋
   tasks: {
     sheet: 'やること',
