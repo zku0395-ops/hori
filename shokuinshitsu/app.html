@@ -236,6 +236,19 @@
 
     /* 学習の 部屋 */
     .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    .cards.wide { grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); }
+    /* 連携の部屋 */
+    .xlist { list-style: none; padding: 0; margin: 4px 0 0; font-size: 14px; }
+    .xlist li { padding: 3px 0; border-bottom: 1px dashed var(--line); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .xlist li:last-child { border-bottom: 0; }
+    .xlist .nd { color: var(--sub); font-size: 13px; min-width: 8em; }
+    .ho-mini { font-size: 14px; padding: 2px 0; cursor: pointer; }
+    .ho-mini:hover { text-decoration: underline; }
+    .staff-day th .ptime { display: block; font-size: 11px; color: var(--sub); font-weight: 400; }
+    .staff-day td { min-width: 150px; }
+    .staff-in { padding: 4px 8px; font-size: 14px; }
+    .staff-in.own { background: var(--today); border-color: var(--today-line); }
+    .staff-line { font-size: 13px; color: var(--sub); margin-top: 2px; }
     .unit-card { cursor: pointer; display: flex; flex-direction: column; gap: 6px; }
     .unit-card:hover, .mat:hover { border-color: var(--glow); box-shadow: 0 0 0 3px var(--glow-soft); }
     .unit-card h3, .mat h3 { margin: 0; font-size: 17px; }
@@ -381,7 +394,7 @@
      決まりごと
      ========================================================= */
   /* 共通ここから */
-  const KINDS = ['events', 'timetable', 'weekly', 'children', 'exchange', 'units', 'materials', 'tasks', 'duties', 'dutyItems', 'meetings', 'templates', 'days', 'weeks', 'notes', 'plans', 'goals', 'contacts'];
+  const KINDS = ['events', 'timetable', 'weekly', 'children', 'exchange', 'units', 'materials', 'tasks', 'duties', 'dutyItems', 'meetings', 'templates', 'days', 'weeks', 'notes', 'plans', 'goals', 'contacts', 'classes', 'handovers', 'staff', 'staffPlans', 'orgs', 'orgLogs'];
   const DAYS = [1, 2, 3, 4, 5]; // 月〜金
   const WD = ['日', '月', '火', '水', '木', '金', '土'];
   const KYUGYO = '休業日';
@@ -419,8 +432,7 @@
     { id: 'gakushu', icon: '📚', name: '学習の部屋', desc: '単元計画・教材の置き場' },
     { id: 'koumu', icon: '📝', name: '公務の部屋', desc: 'やること・校務分掌・会議メモ・文書のひな形' },
     { id: 'kodomo', icon: '🧒', name: '子どもの部屋', desc: '一人ひとり・日々の記録・指導計画・保護者連絡' },
-    { id: 'renkei', icon: '🤝', name: '連携の部屋', soon: true, desc: '交流学級・支援員・関係機関',
-      ideas: ['交流学級の担任への申し送り', '支援員さんと共有する1日の動き', '関係機関（放課後等デイサービス・医療など）の連絡先と連絡の記録'] },
+    { id: 'renkei', icon: '🤝', name: '連携の部屋', desc: '交流学級・支援員さん・関係機関' },
     { id: 'settings', icon: '⚙️', name: '設定' },
   ];
 
@@ -530,7 +542,7 @@
   const meta = { sheetUrl: '', draftTrigger: false, draftSheetUrl: '', triggerError: '' };
   const view = {
     room: 'lobby',
-    tab: { yotei: 'week', gakushu: 'units', koumu: 'tasks', kodomo: 'child' },
+    tab: { yotei: 'week', gakushu: 'units', koumu: 'tasks', kodomo: 'child', renkei: 'classes' },
     week: mondayOf(today()),
     month: today().slice(0, 7),
     childId: '',
@@ -540,6 +552,7 @@
     hoursAll: false,
     planTerm: '', noteKid: '', noteTag: '', noteTerm: 'term', noteQ: '', lastTag: '', contactKid: '',
     meetQ: '', meetKind: '',
+    renkeiWeek: mondayOf(today()), hoRoom: '', staffDate: '', staffId: '', orgId: '',
     periodsDraft: null,
   };
 
@@ -817,6 +830,7 @@
       case 'yotei': return subtabs('yotei', [['week', '📝 週案'], ['hours', '⏱ 時数'], ['month', '🗓 月の予定'], ['timetable', '🕘 基本の時間割'], ['koryu', '🚶 交流学級']]) + ({ week: viewWeek, hours: viewHours, month: viewMonth, timetable: viewTimetable, koryu: viewKoryu })[view.tab.yotei]();
       case 'gakushu': return subtabs('gakushu', [['units', '📘 単元計画'], ['materials', '🧰 教材の置き場']]) + ({ units: viewUnits, materials: viewMaterials })[view.tab.gakushu]();
       case 'kodomo': return viewKodomo();
+      case 'renkei': return viewRenkei();
       case 'koumu': return subtabs('koumu', [['tasks', '✅ やること'], ['duties', '🗂 校務分掌'], ['meetings', '📝 会議メモ'], ['templates', '📄 文書のひな形']]) + ({ tasks: viewTasks, duties: viewDuties, meetings: viewMeetings, templates: viewTemplates })[view.tab.koumu]();
       case 'settings': return viewSettings();
       default: return viewLobby();
@@ -920,8 +934,11 @@
         return n ? `きょうは ${n}人が 交流学級へ 行くよ。` : 'きょうは 交流学級へ 行く子は いないよ。';
       }
       case 'renkei': {
+        const st = offReason(t) ? [] : staffOn(t);
+        if (st.length) return `きょうは ${st.slice(0, 3).map((x) => x.name + 'さん').join('・')}が 来るクマ。動きを たしかめてね。`;
         const e = eventsBetween(t, addDays(t, 30)).find((v) => v.cat === '交流' || v.cat === '保護者');
-        return e ? `「${short(e.title, 16)}」が ${whenText(e.date < t ? t : e.date)}に あるクマ。` : '連携の部屋は じゅんび中だクマ。';
+        if (e) return `「${short(e.title, 16)}」が ${whenText(e.date < t ? t : e.date)}に あるクマ。`;
+        return list('classes').length || list('handovers').length ? '交流学級への 申し送りは ここで 書けるクマ。' : '交流学級の 担任の 先生を 入れておくと べんりだクマ。';
       }
       default:
         return S.className ? '校時や 教科は ここで 変えられるよ。' : '学級名・校時・教科は ここで 決めてね。';
@@ -1153,13 +1170,15 @@
     return S.periods.map((p) => {
       const L = lesson(day, p.id);
       const outs = outsAt(dayOf(day), p.id);
-      if (!L.subject && !L.subject2 && !L.content && !L.note && (!outs.length || L.noClass)) return '';
+      const sp = staffOn(day).map((x) => ({ x, t: staffText(x.id, day, p.id) })).filter((v) => v.t);
+      if (!L.subject && !L.subject2 && !L.content && !L.note && (!outs.length || L.noClass) && !sp.length) return '';
       return `<li><div class="pname">${esc(p.name)}<span class="ptime">${esc(p.start)}〜${esc(p.end)}</span></div>
         <div class="what">${L.subject ? chip(L.subject) : '<span class="muted">（なし）</span>'}${L.subject2 ? ' ＋ ' + chip(L.subject2) : ''}
           ${L.unit ? `<span class="muted" style="font-size:13px">📘 ${esc(L.unit.name)}</span>` : ''}
           ${L.content ? `<div class="content">${nl(L.content)}</div>` : ''}
           ${L.note ? `<div class="content">📝 ${nl(L.note)}</div>` : ''}
-          ${outs.length ? `<div class="outs">${outs.map(outChip).join('')}</div>` : ''}</div></li>`;
+          ${outs.length ? `<div class="outs">${outs.map(outChip).join('')}</div>` : ''}
+          ${sp.map((v) => `<div class="staff-line">👥 ${esc(v.x.name)}：${esc(v.t)}</div>`).join('')}</div></li>`;
     }).join('');
   }
 
@@ -1629,9 +1648,12 @@
         <label class="field">メモ <textarea name="memo" rows="2" maxlength="500">${esc(k.memo)}</textarea></label>
         <p class="hint">障害名や診断などの くわしい情報は、ここには書かないでください。</p>`,
       deleteLabel: id ? 'この子を消す' : '',
-      deleteConfirm: `${k.name} を消します。交流の時間・日々の記録・指導計画・保護者との連絡の 記録も すべて 消えます。よろしいですか？`,
+      deleteConfirm: `${k.name} を消します。交流の時間・日々の記録・指導計画・保護者との連絡・申し送りの 記録も すべて 消えます。よろしいですか？`,
       onDelete: () => {
-        ['exchange', 'notes', 'goals', 'plans', 'contacts'].forEach((kind) => removeRecs(kind, list(kind).filter((x) => x.childId === id).map((x) => x.id), { render: false }));
+        ['exchange', 'notes', 'goals', 'plans', 'contacts', 'handovers'].forEach((kind) => removeRecs(kind, list(kind).filter((x) => x.childId === id).map((x) => x.id), { render: false }));
+        // 関係機関との 連絡は 残し、子どもとの つながりだけ はずす
+        putRecs('orgLogs', list('orgLogs').filter((x) => x.childId === id).map((x) => ({ id: x.id, childId: '' })), { render: false });
+        putRecs('orgs', list('orgs').filter((o) => String(o.childIds || '').split(',').includes(id)).map((o) => ({ id: o.id, childIds: String(o.childIds).split(',').filter((c) => c && c !== id).join(',') })), { render: false });
         removeRecs('children', id);
       },
       onSave: (f) => {
@@ -3117,6 +3139,344 @@
     });
   }
 
+  /* =========================================================
+     連携の部屋
+     ========================================================= */
+  const STAFF_ROLES = ['支援員', '介助員', '学習補助員', '専科', '通級', 'スクールカウンセラー', '看護師', 'その他'];
+  const ORG_KINDS = ['放課後等デイサービス', '医療', '相談機関', '教育委員会', '学童', 'その他'];
+  const ORG_METHODS = ['電話', '面談', '訪問', '書類', 'メール', 'その他'];
+  const sbId = (sid, day, pid) => `sb${sid}-${day}-${pid}`;
+  const sdId = (sid, date, pid) => `sd${sid}-${date}-${pid}`;
+
+  function staffList() { return list('staff').sort((a, b) => (Number(a.order) || 0) - (Number(b.order) || 0) || String(a.name).localeCompare(String(b.name), 'ja')); }
+  function staffOn(date) { const d = String(dayOf(date)); return staffList().filter((x) => String(x.days || '').includes(d)); }
+  const NO_PLAN = '—'; // その日だけ「動きなし」
+  // その日の 動き（その日だけの 変更 → なければ 曜日の 基本）
+  function staffRaw(sid, date, pid) {
+    const o = get('staffPlans', sdId(sid, date, pid));
+    if (o) return String(o.text || '');
+    const b = get('staffPlans', sbId(sid, dayOf(date), pid));
+    return b ? String(b.text || '') : '';
+  }
+  function staffText(sid, date, pid) { const t = staffRaw(sid, date, pid); return t === NO_PLAN ? '' : t; }
+  function staffDaysLabel(days) { return String(days || '').split('').filter((c) => /[1-6]/.test(c)).map((c) => WD[Number(c)]).join('・') || '—'; }
+  // 交流学級の 名前（子どもの 交流学級と、交流の 行き先から）
+  function classNames() {
+    const names = new Set();
+    children().forEach((k) => { if (k.homeroom) names.add(k.homeroom); });
+    list('exchange').forEach((x) => { if (x.room) names.add(x.room); });
+    list('classes').forEach((c) => { if (c.name) names.add(c.name); });
+    return Array.from(names).sort((a, b) => zen2han(a).localeCompare(zen2han(b), 'ja', { numeric: true }));
+  }
+  function classRec(name) { return list('classes').find((c) => c.name === name); }
+  // ある 学級への この週の 交流（休みの 日は のぞく）
+  function classWeek(name, mon) {
+    const out = [];
+    weekDates(mon).forEach((d) => {
+      if (offReason(d)) return;
+      S.periods.forEach((p) => {
+        outsAt(dayOf(d), p.id).forEach((o) => {
+          if ((o.x.room || o.child.homeroom) === name) out.push({ date: d, p, child: o.child, x: o.x });
+        });
+      });
+    });
+    return out;
+  }
+  function orgKids(o) { return String(o.childIds || '').split(',').map((x) => x.trim()).filter((id) => get('children', id)); }
+
+  function viewRenkei() {
+    return subtabs('renkei', [['classes', '🏫 交流学級'], ['staff', '👥 支援員さん'], ['orgs', '🏥 関係機関']]) +
+      ({ classes: viewClasses, staff: viewStaff, orgs: viewOrgs })[view.tab.renkei]();
+  }
+
+  /* ---------- 交流学級 ---------- */
+  function viewClasses() {
+    const mon = view.renkeiWeek;
+    const names = classNames();
+    const hs = list('handovers').filter((h) => !view.hoRoom || h.room === view.hoRoom).sort(byDateDesc);
+    const card = (name) => {
+      const c = classRec(name) || {};
+      const kids = children().filter((k) => k.homeroom === name);
+      const wk = classWeek(name, mon);
+      const recent = list('handovers').filter((h) => h.room === name).sort(byDateDesc).slice(0, 2);
+      return `<section class="card">
+        <div class="toolbar"><h3 style="margin:0;font-size:17px">🏫 ${esc(name)}</h3><span class="muted">担任：${c.teacher ? esc(c.teacher) : '—'}</span><span class="grow"></span>
+          <button class="btn small" data-act="editClass" data-name="${esc(name)}">直す</button></div>
+        ${kids.length ? `<div class="pills" style="margin-bottom:6px">${kids.map((k) => kidChip(k.id)).join('')}</div>` : ''}
+        <b style="font-size:14px">この週の 交流（${wk.length}回）</b>
+        ${wk.length ? `<ul class="xlist">${wk.map((v) => `<li><span class="nd">${md(v.date)}（${WD[dayOf(v.date)]}）${esc(v.p.name)}</span>${chip(v.x.subject) || ''} ${esc(v.child.name)}${v.x.memo ? `<span class="muted">（${esc(v.x.memo)}）</span>` : ''}</li>`).join('')}</ul>` : '<p class="hint">この週の 交流は ありません。</p>'}
+        ${recent.length ? `<div class="mine"><b>📨 最近の 申し送り</b>${recent.map((h) => `<div class="ho-mini" data-act="editHandover" data-id="${esc(h.id)}" role="button" tabindex="0">${md(h.date)}${h.childId ? ' ' + esc((get('children', h.childId) || {}).name || '') : ''}：${esc(short(h.content, 50))}</div>`).join('')}</div>` : ''}
+        <div class="toolbar" style="margin:10px 0 0"><span class="grow"></span>
+          <button class="btn small" data-act="classWeekText" data-name="${esc(name)}">📋 交流の予定を 送る文</button>
+          <button class="btn small primary" data-act="editHandover" data-room="${esc(name)}">＋ 申し送り</button></div>
+      </section>`;
+    };
+    return `<div class="toolbar">
+        <button class="btn" data-act="renkeiWeek" data-n="-7">◀ 前の週</button>
+        <button class="btn" data-act="renkeiWeek" data-n="0">今週</button>
+        <button class="btn" data-act="renkeiWeek" data-n="7">次の週 ▶</button>
+        <h2 class="wk-title">${jdate(mon)} 〜 ${jdate(addDays(mon, 4))}</h2>
+      </div>
+      ${names.length ? `<div class="cards wide">${names.map(card).join('')}</div>` : '<div class="empty-note">交流学級は まだ ありません。「子どもの部屋」で 子どもの 交流学級を 入れてください。</div>'}
+      <div class="toolbar" style="margin-top:20px"><h2 class="sec">📨 申し送りの 記録</h2><span class="grow"></span>
+        <select class="input" style="width:auto" data-chg="hoRoom" aria-label="学級で しぼりこむ">${opt('', view.hoRoom, 'すべての学級')}${names.map((n) => opt(n, view.hoRoom)).join('')}</select>
+        <button class="btn primary" data-act="editHandover">＋ 申し送り</button></div>
+      ${hs.length ? `<div class="stack" style="gap:8px" id="ho-list">${hs.map((h) => `<section class="card" style="padding:10px 14px">
+        <div class="meta"><b style="color:var(--ink)">${isDate(h.date) ? jdate(h.date) : ''}</b><span class="tag">${esc(h.room || '—')}</span>${h.childId ? kidChip(h.childId) : ''}<span class="grow"></span><button class="btn small" data-act="editHandover" data-id="${esc(h.id)}">直す</button></div>
+        ${h.content ? `<div class="ct-body">${nl(h.content)}</div>` : ''}
+        ${h.reply ? `<div class="mine"><b>↩ 返事・次にすること</b><div>${nl(h.reply)}</div></div>` : ''}
+      </section>`).join('')}</div>` : '<div class="empty-note">申し送りの 記録は まだ ありません。</div>'}`;
+  }
+  function editClass(name) {
+    const c = classRec(name) || {};
+    openDialog({
+      title: `${name} の 情報`,
+      body: `<label class="field">担任 <input name="teacher" maxlength="30" value="${esc(c.teacher)}" placeholder="例：〇〇先生"></label>
+        <label class="field">メモ（連絡の しかた、気をつけることなど） <textarea name="memo" rows="3" maxlength="1000">${esc(c.memo)}</textarea></label>`,
+      onSave: (f) => putRecs('classes', { id: c.id || uid('cl'), name, teacher: f.teacher.trim(), memo: f.memo.trim() }),
+    });
+  }
+  function editHandover(id, room) {
+    const h = id ? get('handovers', id) : { date: today(), room: room || '' };
+    if (!h) return;
+    const names = classNames();
+    openDialog({
+      title: id ? '申し送りを 直す' : '交流学級への 申し送り',
+      body: `<div class="row2">
+          <label class="field">日付 <input type="date" name="date" required value="${esc(h.date)}"></label>
+          <label class="field">学級 <select name="room">${opt('', h.room || '', '—')}${names.concat(h.room && !names.includes(h.room) ? [h.room] : []).map((n) => opt(n, h.room)).join('')}</select></label>
+        </div>
+        <label class="field">子ども <select name="childId">${kidOptions(h.childId || '', '（学級全体）')}</select></label>
+        <label class="field">内容 <textarea name="content" rows="4" maxlength="2000" placeholder="例：音楽の 時間は イヤーマフを 使います。大きな 音の 前に 声を かけてください">${esc(h.content)}</textarea></label>
+        <label class="field">返事・次にすること <textarea name="reply" rows="2" maxlength="1000">${esc(h.reply)}</textarea></label>`,
+      deleteLabel: id ? 'この申し送りを消す' : '',
+      onDelete: () => removeRecs('handovers', id),
+      onSave: (f) => putRecs('handovers', { id: id || uid('ho'), date: f.date, room: f.room, childId: f.childId, content: f.content.trim(), reply: f.reply.trim() }),
+    });
+  }
+  function classWeekText(name, mon) {
+    const c = classRec(name) || {};
+    const wk = classWeek(name, mon);
+    const lines = [`${name} ${c.teacher ? c.teacher : '担任の先生'}へ`, '', `${jdate(mon)}〜の 交流の 予定です。よろしく お願いします。`];
+    if (wk.length) wk.forEach((v) => lines.push(`・${md(v.date)}（${WD[dayOf(v.date)]}）${v.p.name}${v.x.subject ? ' ' + v.x.subject : ''}：${v.child.name}${v.x.memo ? `（${v.x.memo}）` : ''}`));
+    else lines.push('・この週の 交流は ありません。');
+    lines.push('', `${S.className || ''} 担任`);
+    openDialog({
+      title: `📋 ${name} への 交流の予定`,
+      readOnly: true,
+      body: `<textarea class="input" id="draftText" rows="12" aria-label="交流の予定">${esc(lines.join('\n'))}</textarea>
+        <div class="toolbar" style="margin:0"><button class="btn primary" data-act="copyDraft">📋 コピーする</button><span class="hint" id="copyMsg" role="status"></span></div>
+        <p class="hint">基本の時間割と 交流の時間から 作りました。お休みの 日は のぞいています。行事などで 変わる ときは、ここで 書きかえてから コピーしてください。</p>`,
+    });
+  }
+
+  /* ---------- 支援員さん ---------- */
+  function viewStaff() {
+    const staff = staffList();
+    if (!isDate(view.staffDate)) view.staffDate = offReason(today()) ? nextSchoolDay(today()) : today();
+    const date = view.staffDate;
+    const st = staff.find((x) => x.id === view.staffId) || staff[0];
+    const onDay = staffOn(date);
+    const off = offReason(date);
+    const daySheet = onDay.length && !off ? `<div class="table-wrap"><table class="list staff-day"><thead><tr><th>校時</th><th>学級の 時間割</th>${onDay.map((x) => `<th>👥 ${esc(x.name)}<small class="muted"> ${esc(x.role || '')}</small></th>`).join('')}</tr></thead><tbody>
+        ${S.periods.map((p) => {
+          const L = lesson(date, p.id);
+          const outs = L.noClass ? [] : outsAt(dayOf(date), p.id);
+          return `<tr><th>${esc(p.name)}<span class="ptime">${esc(p.start)}</span></th>
+            <td>${L.subject ? chip(L.subject) : '<span class="muted">—</span>'}${outs.length ? `<div class="outs">${outs.map(outChip).join('')}</div>` : ''}</td>
+            ${onDay.map((x) => {
+              const own = !!get('staffPlans', sdId(x.id, date, p.id));
+              return `<td><input class="input staff-in${own ? ' own' : ''}" data-chg="staffDay" data-sid="${esc(x.id)}" data-date="${date}" data-pid="${esc(p.id)}" value="${esc(staffRaw(x.id, date, p.id))}" maxlength="200" aria-label="${esc(x.name)} ${esc(p.name)}"></td>`;
+            }).join('')}</tr>`;
+        }).join('')}</tbody></table></div>
+        <p class="hint" style="margin-top:6px">ここで 書きかえた ところは、その日だけの 変更です（色の ついた 欄）。空に すると 基本の動きに もどります。その日だけ 何も ない ときは「—」と 書いてください。</p>`
+      : `<div class="empty-note">${off ? `${jdate(date)}は ${esc(off)}です。` : staff.length ? `${jdate(date)}に 勤務する 人は いません（勤務曜日を 確かめてください）。` : '支援員さんなどを 登録してください。'}</div>`;
+    const base = st ? `<div class="pills" style="margin-bottom:8px">${staff.map((x) => `<button class="pill${x.id === st.id ? ' on' : ''}" data-act="pickStaff" data-id="${esc(x.id)}">${esc(x.name)}</button>`).join('')}</div>
+      <div class="table-wrap"><table class="week"><thead><tr><th class="pcol">校時</th>${DAYS.map((d) => `<th${String(st.days || '').includes(String(d)) ? '' : ' class="muted"'}>${WD[d]}曜日${String(st.days || '').includes(String(d)) ? '' : '（休み）'}</th>`).join('')}</tr></thead><tbody>
+        ${S.periods.map((p) => `<tr><th class="pcol">${esc(p.name)}</th>${DAYS.map((d) => {
+          const b = baseLesson(d, p.id);
+          const rec = get('staffPlans', sbId(st.id, d, p.id));
+          return `<td class="ttcell"><div class="muted" style="font-size:12px">${b && b.subject ? esc(b.subject) : '—'}</div><input data-chg="staffBase" data-sid="${esc(st.id)}" data-day="${d}" data-pid="${esc(p.id)}" value="${esc(rec ? rec.text : '')}" maxlength="200" placeholder="動き" aria-label="${WD[d]}曜日 ${esc(p.name)}の 動き"></td>`;
+        }).join('')}</tr>`).join('')}</tbody></table></div>` : '';
+    return `<div class="stack">
+      <section class="card noprint">
+        <div class="toolbar"><h2 class="sec">👥 支援員さん・いっしょに 働く 人</h2><span class="grow"></span><button class="btn primary" data-act="editStaff">＋ 追加</button></div>
+        ${staff.length ? `<div class="table-wrap"><table class="list"><thead><tr><th>名前</th><th>役割</th><th>勤務曜日</th><th>メモ</th><th></th></tr></thead><tbody>${staff.map((x) => `<tr><td><b>${esc(x.name)}</b></td><td>${esc(x.role)}</td><td>${staffDaysLabel(x.days)}</td><td class="muted" style="font-size:14px">${nl(x.memo)}</td><td><button class="btn small" data-act="editStaff" data-id="${esc(x.id)}">直す</button></td></tr>`).join('')}</tbody></table></div>`
+          : '<div class="empty-note">支援員さん・介助員さんなどを「＋ 追加」から 入れてください。</div>'}
+      </section>
+      <section class="card">
+        <div class="toolbar"><h2 class="sec">📅 ${jdate(date)} の 動き</h2>
+          <span class="noprint toolbar" style="margin:0">
+          <input class="input" type="date" style="width:auto" value="${date}" data-chg="staffDate" aria-label="日付">
+          <button class="btn small" data-act="staffDateMove" data-n="-1">◀ 前の 登校日</button>
+          <button class="btn small" data-act="staffDateMove" data-n="0">きょう</button>
+          <button class="btn small" data-act="staffDateMove" data-n="1">次の 登校日 ▶</button></span>
+          <span class="grow"></span>
+          ${onDay.length && !off ? `<span class="noprint toolbar" style="margin:0"><button class="btn small" data-act="staffDayText" data-date="${date}">📋 支援員さんへの 文</button><button class="btn small" data-act="print">🖨 印刷</button></span>` : ''}</div>
+        ${daySheet}
+      </section>
+      ${st ? `<section class="card noprint" id="staff-base">
+        <div class="toolbar"><h2 class="sec">🗓 基本の動き（曜日ごと）</h2></div>
+        <p class="hint" style="margin-bottom:8px">毎週 同じ 動きを 入れておくと、その日の 表に 自動で 出ます。</p>
+        ${base}</section>` : ''}
+    </div>`;
+  }
+  function editStaff(id) {
+    const x = id ? get('staff', id) : { days: '12345', role: '支援員' };
+    if (!x) return;
+    openDialog({
+      title: id ? `${x.name} さんの 情報` : '支援員さんなどを 追加',
+      body: `<div class="row2">
+          <label class="field">名前 <input name="name" required maxlength="20" value="${esc(x.name)}" placeholder="例：〇〇さん"></label>
+          <label class="field">役割 <input name="role" list="role-list2" maxlength="20" value="${esc(x.role)}"></label>
+        </div>
+        <datalist id="role-list2">${STAFF_ROLES.map((r) => `<option value="${esc(r)}">`).join('')}</datalist>
+        <div class="field">勤務曜日 <div class="pills">${DAYS.map((d) => `<label class="check" style="font-weight:400"><input type="checkbox" name="d${d}" ${String(x.days || '').includes(String(d)) ? 'checked' : ''}> ${WD[d]}</label>`).join('')}</div></div>
+        <label class="field">メモ（得意なこと、連絡の しかた など） <textarea name="memo" rows="2" maxlength="1000">${esc(x.memo)}</textarea></label>`,
+      deleteLabel: id ? 'この人を消す' : '',
+      deleteConfirm: `${x.name} さんを 消します。動きの 記録も 消えます。よろしいですか？`,
+      onDelete: () => {
+        removeRecs('staffPlans', list('staffPlans').filter((p) => p.staffId === id).map((p) => p.id), { render: false });
+        removeRecs('staff', id);
+      },
+      onSave: (f) => {
+        const days = DAYS.filter((d) => f['d' + d]).join('');
+        const order = id ? x.order : Math.max(0, ...list('staff').map((s) => Number(s.order) || 0)) + 1;
+        const rec = { id: id || uid('st'), name: f.name.trim(), role: f.role.trim(), days, memo: f.memo.trim(), order };
+        if (!id) view.staffId = rec.id;
+        putRecs('staff', rec);
+      },
+    });
+  }
+  function staffDayText(date) {
+    const lines = [`${jdate(date)} の 動き`];
+    staffOn(date).forEach((x) => {
+      lines.push('', `【${x.name}さん${x.role ? '（' + x.role + '）' : ''}】`);
+      let n = 0;
+      S.periods.forEach((p) => {
+        const t = staffText(x.id, date, p.id);
+        if (!t) return;
+        n++;
+        const L = lesson(date, p.id);
+        lines.push(`・${p.name}${L.subject ? '（' + L.subject + '）' : ''}：${t}`);
+      });
+      if (!n) lines.push('・（動きは まだ 入っていません）');
+    });
+    lines.push('', 'よろしく お願いします。');
+    openDialog({
+      title: `📋 ${jdate(date)} 支援員さんへの 文`,
+      readOnly: true,
+      body: `<textarea class="input" id="draftText" rows="14" aria-label="支援員さんへの 文">${esc(lines.join('\n'))}</textarea>
+        <div class="toolbar" style="margin:0"><button class="btn primary" data-act="copyDraft">📋 コピーする</button><span class="hint" id="copyMsg" role="status"></span></div>`,
+    });
+  }
+
+  const DASHES = /^[—\-ー－―‐]$/;
+  function changeStaffDay(el) {
+    const { sid, date, pid } = el.dataset;
+    const id = sdId(sid, date, pid);
+    let v = el.value.trim();
+    if (DASHES.test(v)) v = NO_PLAN;
+    const b = get('staffPlans', sbId(sid, dayOf(date), pid));
+    const base = b ? String(b.text || '') : '';
+    if (!v || v === base) {
+      removeRecs('staffPlans', id, { render: false });
+      el.value = base;
+      el.classList.remove('own');
+    } else {
+      putRecs('staffPlans', { id, staffId: sid, date, day: '', period: pid, text: v }, { render: false });
+      el.value = v;
+      el.classList.add('own');
+    }
+  }
+  function changeStaffBase(el) {
+    const { sid, day, pid } = el.dataset;
+    const id = sbId(sid, day, pid);
+    const v = el.value.trim();
+    if (!v) removeRecs('staffPlans', id, { render: false });
+    else putRecs('staffPlans', { id, staffId: sid, date: '', day: Number(day), period: pid, text: v }, { render: false });
+    // 上の その日の 表で、変更していない 欄を 新しい 基本に そろえる
+    document.querySelectorAll('[data-chg=staffDay]').forEach((x) => {
+      if (x.dataset.sid === sid && x.dataset.pid === pid && dayOf(x.dataset.date) === Number(day) && !x.classList.contains('own')) x.value = v;
+    });
+  }
+
+  /* ---------- 関係機関 ---------- */
+  function viewOrgs() {
+    const orgs = list('orgs').sort((a, b) => ORG_KINDS.indexOf(a.kind) - ORG_KINDS.indexOf(b.kind) || String(a.name).localeCompare(String(b.name), 'ja'));
+    const logs = list('orgLogs').filter((l) => (!view.orgId || l.orgId === view.orgId)).sort(byDateDesc);
+    return `<div class="toolbar"><h2 class="sec">🏥 関係機関</h2><span class="grow"></span><button class="btn primary" data-act="editOrg">＋ 関係機関を追加</button></div>
+      ${orgs.length ? `<div class="cards">${orgs.map((o) => `<article class="card org">
+        <div class="meta">${o.kind ? `<span class="tag">${esc(o.kind)}</span>` : ''}<span class="grow"></span><button class="btn small" data-act="editOrg" data-id="${esc(o.id)}">直す</button></div>
+        <h3 style="margin:4px 0;font-size:17px">${esc(o.name)}</h3>
+        <div class="meta">${o.person ? `<span>👤 ${esc(o.person)}</span>` : ''}${o.phone ? `<span>☎ ${esc(o.phone)}</span>` : ''}</div>
+        ${orgKids(o).length ? `<div class="pills" style="margin-top:6px">${orgKids(o).map(kidChip).join('')}</div>` : ''}
+        ${o.memo ? `<p class="hint" style="margin-top:6px">${nl(o.memo)}</p>` : ''}
+        <div class="mat-act" style="margin-top:8px"><button class="btn small" data-act="orgFilter" data-id="${esc(o.id)}">連絡の 記録</button><button class="btn small primary" data-act="editOrgLog" data-org="${esc(o.id)}">＋ 連絡を記録</button></div>
+      </article>`).join('')}</div>` : '<div class="empty-note">放課後等デイサービス・相談機関などを「＋ 関係機関を追加」から 入れてください。</div>'}
+      <div class="toolbar" style="margin-top:20px" id="org-logs"><h2 class="sec">📞 連絡の 記録</h2><span class="grow"></span>
+        <select class="input" style="width:auto" data-chg="orgId" aria-label="関係機関で しぼりこむ">${opt('', view.orgId, 'すべての関係機関')}${orgs.map((o) => opt(o.id, view.orgId, o.name)).join('')}</select></div>
+      ${logs.length ? `<div class="stack" style="gap:8px" id="log-list">${logs.map((l) => {
+        const o = get('orgs', l.orgId);
+        const done = l.followup && list('tasks').some((x) => x.fromId === `${l.id}:f`);
+        return `<section class="card" style="padding:10px 14px">
+          <div class="meta"><b style="color:var(--ink)">${isDate(l.date) ? jdate(l.date) : ''}</b><span class="tag">${esc(o ? o.name : '（消した 機関）')}</span>${l.childId ? kidChip(l.childId) : ''}${l.method ? `<span class="tag">${esc(l.method)}</span>` : ''}<span class="grow"></span><button class="btn small" data-act="editOrgLog" data-id="${esc(l.id)}">直す</button></div>
+          ${l.content ? `<div class="ct-body">${nl(l.content)}</div>` : ''}
+          ${l.followup ? `<div class="mine"><b>👉 次にすること</b><div class="task" style="border:0;padding:4px 0 0"><div class="tmain">${nl(l.followup)}</div>${done ? '<span class="tag">✓ やることに入れました</span>' : `<button class="btn small" data-act="orgLogToTask" data-id="${esc(l.id)}">＋ やることへ</button>`}</div></div>` : ''}
+        </section>`;
+      }).join('')}</div>` : '<div class="empty-note">連絡の 記録は まだ ありません。</div>'}`;
+  }
+  function editOrg(id) {
+    const o = id ? get('orgs', id) : { kind: '放課後等デイサービス' };
+    if (!o) return;
+    const sel = orgKids(o);
+    openDialog({
+      title: id ? '関係機関を 直す' : '関係機関を 追加',
+      body: `<div class="row2">
+          <label class="field">名前 <input name="name" required maxlength="60" value="${esc(o.name)}" placeholder="例：〇〇デイサービス"></label>
+          <label class="field">種類 <select name="kind">${ORG_KINDS.map((k) => opt(k, o.kind || 'その他')).join('')}</select></label>
+        </div>
+        <div class="row2">
+          <label class="field">担当者 <input name="person" maxlength="40" value="${esc(o.person)}"></label>
+          <label class="field">電話 <input name="phone" maxlength="30" value="${esc(o.phone)}" inputmode="tel"></label>
+        </div>
+        <div class="field">関係する 子ども <div class="pills">${children().map((k) => `<label class="check" style="font-weight:400"><input type="checkbox" name="k_${esc(k.id)}" ${sel.includes(k.id) ? 'checked' : ''}> ${esc(k.name)}</label>`).join('') || '<span class="hint">子どもが 登録されていません</span>'}</div></div>
+        <label class="field">メモ（送迎の 時間、連絡の しかた など） <textarea name="memo" rows="3" maxlength="1000">${esc(o.memo)}</textarea></label>`,
+      deleteLabel: id ? 'この関係機関を消す' : '',
+      deleteConfirm: 'この関係機関を 消します。連絡の 記録は 残ります。よろしいですか？',
+      onDelete: () => removeRecs('orgs', id),
+      onSave: (f) => {
+        const kids = children().filter((k) => f['k_' + k.id]).map((k) => k.id).join(',');
+        putRecs('orgs', { id: id || uid('og'), name: f.name.trim(), kind: f.kind, person: f.person.trim(), phone: f.phone.trim(), childIds: kids, memo: f.memo.trim() });
+      },
+    });
+  }
+  function editOrgLog(id, orgId) {
+    const l = id ? get('orgLogs', id) : { orgId: orgId || view.orgId || '', date: today(), method: '電話' };
+    if (!l) return;
+    const orgs = list('orgs');
+    openDialog({
+      title: id ? '連絡の 記録を 直す' : '関係機関との 連絡を 記録',
+      body: `<div class="row2">
+          <label class="field">関係機関 <select name="orgId" required>${opt('', l.orgId || '', '—')}${orgs.map((o) => opt(o.id, l.orgId, o.name)).join('')}</select></label>
+          <label class="field">日付 <input type="date" name="date" required value="${esc(l.date)}"></label>
+        </div>
+        <div class="row2">
+          <label class="field">子ども <select name="childId">${kidOptions(l.childId || '', '—')}</select></label>
+          <label class="field">方法 <select name="method">${ORG_METHODS.map((m) => opt(m, l.method || 'その他')).join('')}</select></label>
+        </div>
+        <label class="field">内容 <textarea name="content" rows="4" maxlength="2000">${esc(l.content)}</textarea></label>
+        <label class="field">次にすること <textarea name="followup" rows="2" maxlength="500">${esc(l.followup)}</textarea></label>
+        <p class="hint">関係機関と 子どもの 情報を やりとりする ときは、保護者の 同意など 学校の 決まりに 従ってください。</p>`,
+      deleteLabel: id ? 'この記録を消す' : '',
+      onDelete: () => removeRecs('orgLogs', id),
+      onSave: (f) => {
+        if (!f.orgId) return '関係機関を 選んでください。';
+        putRecs('orgLogs', { id: id || uid('ol'), orgId: f.orgId, childId: f.childId, date: f.date, method: f.method, content: f.content.trim(), followup: f.followup.trim() });
+      },
+    });
+  }
+
   /* ---------- 準備中の 部屋 ---------- */
   function viewSoon(room) {
     return `<section class="card soon-room">
@@ -3291,6 +3651,30 @@
     editTemplate: (d) => editTemplate(d.id || ''),
     useTemplate: (d) => useTemplate(d.id),
     copyDraft: () => copyDraft(),
+    renkeiWeek: (d) => { view.renkeiWeek = Number(d.n) ? addDays(view.renkeiWeek, Number(d.n)) : mondayOf(today()); render(); },
+    editClass: (d) => editClass(d.name),
+    editHandover: (d) => editHandover(d.id || '', d.room || ''),
+    classWeekText: (d) => classWeekText(d.name, view.renkeiWeek),
+    editStaff: (d) => editStaff(d.id || ''),
+    pickStaff: (d) => { view.staffId = d.id; render(); },
+    staffDateMove: (d) => {
+      const n = Number(d.n);
+      let x = view.staffDate;
+      if (!n) x = today();
+      else for (let i = 0; i < 120; i++) { x = addDays(x, n); if (!offReason(x)) break; }
+      view.staffDate = x; render();
+    },
+    staffDayText: (d) => staffDayText(d.date),
+    editOrg: (d) => editOrg(d.id || ''),
+    editOrgLog: (d) => editOrgLog(d.id || '', d.org || ''),
+    orgFilter: (d) => { view.orgId = d.id; render(); const el = document.getElementById('org-logs'); if (el) el.scrollIntoView(); },
+    orgLogToTask: (d) => {
+      const l = get('orgLogs', d.id);
+      if (!l) return;
+      const o = get('orgs', l.orgId);
+      const k = get('children', l.childId);
+      editTask('', { title: `${o ? o.name + '：' : ''}${short(l.followup.replace(/\n/g, ' '), 60)}`, cat: '連絡', memo: `${isDate(l.date) ? jdate(l.date) + ' ' : ''}${l.method || ''}の 記録より${k ? '（' + k.name + '）' : ''}`, fromId: `${l.id}:f` });
+    },
     dlgClose: () => closeDialog(),
     dlgDelete: () => {
       if (!dlg) return;
@@ -3364,6 +3748,11 @@
     contactKid: (el) => { view.contactKid = el.value; render(); },
     taskDuty: (el) => { view.taskDuty = el.value; render(); },
     meetKind: (el) => { view.meetKind = el.value; render(); },
+    hoRoom: (el) => { view.hoRoom = el.value; render(); },
+    orgId: (el) => { view.orgId = el.value; render(); },
+    staffDate: (el) => { if (isDate(el.value)) { view.staffDate = el.value; render(); } },
+    staffDay: changeStaffDay,
+    staffBase: changeStaffBase,
     lessonSubj: (el) => {
       const form = el.form;
       const date = form.dataset.date;
@@ -3567,7 +3956,38 @@
       { id: 'ctA1', childId: 'cA', date: pastDay(3), method: '連絡帳', content: '音読の 練習を 家でも がんばっていると 書いて くださった。学校での 様子（大きな 声で 読めた）を 返信した', followup: '' },
       { id: 'ctC1', childId: 'cC', date: pastDay(11), method: '電話', content: '朝 ねむそうな 日が 続いている ことを 伝えた。家でも 夜ふかしが 増えているとの こと', followup: '1週間 様子を 見て、連絡帳で 伝える' },
     ];
-    return { settings: { className: 'ひまわり学級（サンプル）', standards: { '国語': 175, '算数': 175, '音楽': 70, '図工': 70, '体育': 105, '学級活動': 35, '自立活動': 70, '日常生活の指導': 175, '生活単元学習': 140 }, standardTotal: 1015 }, tables: { events, timetable, weekly, children, exchange, units, materials, tasks, duties, dutyItems, meetings, templates, notes, plans, goals, contacts } };
+    // 連携の部屋（名前は すべて 架空）
+    const classes = [
+      { id: 'cl1', name: '2年1組', teacher: '青木先生', memo: '連絡は 朝の 打ち合わせの あと' },
+      { id: 'cl2', name: '3年2組', teacher: '森先生', memo: '' },
+    ];
+    const handovers = [
+      { id: 'ho1', date: pastDay(2), room: '2年1組', childId: 'cA', content: '音楽の 時間は イヤーマフを 使います。大きな 音の 前に 声を かけてください', reply: '次の 音楽は 合奏。席を ドアの 近くに してもらう' },
+      { id: 'ho2', date: pastDay(6), room: '4年1組', childId: 'cC', content: '図工の 作品は 学級で 仕上げます。のりと はさみは 持たせます', reply: '' },
+    ];
+    const staff = [
+      { id: 'st1', name: '川口', role: '支援員', days: '12345', order: 1, memo: '朝の 支度を 中心に' },
+      { id: 'st2', name: '石井', role: '介助員', days: '135', order: 2, memo: '火・木は お休み' },
+    ];
+    const staffPlans = [];
+    const sp = (sid, d, pid, text) => staffPlans.push({ id: sbId(sid, d, pid), staffId: sid, date: '', day: d, period: pid, text });
+    DAYS.forEach((d) => sp('st1', d, '1', '朝の 支度・連絡帳の 確認'));
+    sp('st1', 1, '4', 'Bさんと 3年2組へ（音楽）');
+    sp('st1', 3, '4', 'Aさんと 2年1組へ（音楽）');
+    sp('st1', 5, '5', 'Aさんと 2年1組へ（図工）');
+    sp('st1', 2, '2', '教室で Cさんの 算数を 見る');
+    sp('st2', 1, '3', 'Aさんの 算数（具体物の 操作）');
+    sp('st2', 3, '5', '教室で 学級活動の 補助');
+    sp('st2', 5, '4', 'Cさんと 4年1組へ（図工）');
+    const orgs = [
+      { id: 'og1', name: 'デイサービス ひだまり', kind: '放課後等デイサービス', person: '担当：田村さん', phone: '000-0000-0000', childIds: 'cA,cB', memo: 'お迎えは 15:20 に 正門。行事で 下校が 変わる ときは 前の 週までに 連絡' },
+      { id: 'og2', name: '市 教育相談室', kind: '相談機関', person: '', phone: '', childIds: 'cC', memo: '' },
+    ];
+    const orgLogs = [
+      { id: 'ol1', orgId: 'og1', childId: 'cA', date: pastDay(4), method: '電話', content: '来週の 短縮日課に ついて、お迎えの 時間を 伝えた', followup: '' },
+      { id: 'ol2', orgId: 'og2', childId: 'cC', date: pastDay(8), method: '面談', content: '学校での 様子を 伝え、支援の 方法を 相談した（保護者 同意 あり）', followup: '次回の 面談の 日を 保護者と 決める' },
+    ];
+    return { settings: { className: 'ひまわり学級（サンプル）', standards: { '国語': 175, '算数': 175, '音楽': 70, '図工': 70, '体育': 105, '学級活動': 35, '自立活動': 70, '日常生活の指導': 175, '生活単元学習': 140 }, standardTotal: 1015 }, tables: { events, timetable, weekly, children, exchange, units, materials, tasks, duties, dutyItems, meetings, templates, notes, plans, goals, contacts, classes, handovers, staff, staffPlans, orgs, orgLogs } };
   }
 
   boot();

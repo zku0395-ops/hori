@@ -89,6 +89,31 @@ const TABLES = {
     sheet: '保護者連絡',
     cols: [['id', COL_ID], ['childId', '子どもID'], ['date', '日付', 'date'], ['method', '方法'], ['content', '内容', 'long'], ['followup', '次にすること', 'long']],
   },
+  // ここから 連携の部屋
+  classes: {
+    sheet: '交流学級',
+    cols: [['id', COL_ID], ['name', '学級'], ['teacher', '担任'], ['memo', 'メモ', 'long']],
+  },
+  handovers: {
+    sheet: '申し送り',
+    cols: [['id', COL_ID], ['date', '日付', 'date'], ['room', '学級'], ['childId', '子どもID'], ['content', '内容', 'long'], ['reply', '返事・次にすること', 'long']],
+  },
+  staff: {
+    sheet: '支援員など',
+    cols: [['id', COL_ID], ['name', '名前'], ['role', '役割'], ['days', '勤務曜日'], ['order', '並び順', 'num'], ['memo', 'メモ', 'long']],
+  },
+  staffPlans: {
+    sheet: '支援員の動き',
+    cols: [['id', COL_ID], ['staffId', '支援員ID'], ['date', '日付（その日だけ）', 'date'], ['day', '曜日（基本）', 'num'], ['period', '校時ID'], ['text', '動き', 'long']],
+  },
+  orgs: {
+    sheet: '関係機関',
+    cols: [['id', COL_ID], ['name', '名前'], ['kind', '種類'], ['person', '担当者'], ['phone', '電話'], ['childIds', '関係する子どもID'], ['memo', 'メモ', 'long']],
+  },
+  orgLogs: {
+    sheet: '関係機関との連絡',
+    cols: [['id', COL_ID], ['orgId', '関係機関ID'], ['childId', '子どもID'], ['date', '日付', 'date'], ['method', '方法'], ['content', '内容', 'long'], ['followup', '次にすること', 'long']],
+  },
   // ここから 公務の部屋
   tasks: {
     sheet: 'やること',
