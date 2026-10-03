@@ -455,9 +455,28 @@
   // 起動の 見守り：読みこみが 止まった ときに、考えられる 理由と エラーを 画面に 出す
   // （下の 大きな プログラムが 動かない ときも 動くように、古い 書き方で 書く）
   (function () {
-    var errs = [];
-    window.addEventListener('error', function (e) { errs.push((e && e.message) || String(e)); });
+    // 正しい 版の 下の プログラムの 文字数・始まる 行・25行ごとの しるし
+    // （版を 作る たびに tools/stamp.js で 書きこむ。コピーや 貼り付けで こわれた 場所を さがす ため）
+    var EXPECT = { len: 352430, line: 526, self: 462, last: 5819, sums: '10ncvyo,1qsoqsg,134urv9,pbz0zm,1wjrlfy,2hic26,1kf6hu,5anezl,1x99eg5,k6myk3,17x21i8,6v8ndy,18uei8d,bx00y8,ptqdwf,1oseu81,b9wupg,1q58dwu,1yjbgex,hayli9,wnf3y0,18u958b,17kjpps,1yoxtk5,k54qjq,rpzmom,wcm2z8,1xq2y56,pyh1bn,1rlhk7n,1qnhq1v,1ki63tv,sizwwi,1yqcuqs,1f43np1,osvl45,4sq8fw,16lttr6,ad84mg,1ugvril,w09ggr,1ymx47x,1nlt3cp,p9b9tr,2hlyxi,1vh1m4w,xy7por,icy0c7,8fnr3n,1m4res8,tecj3a,1ch908b,44jhs5,1l8yung,6uc1rx,1qijpqv,ukaxxw,18ddoiy,insdjc,1u482fd,qg6dy,kqf0g6,1yquo1i,o8gnw6,1nc51b4,16l7789,7zy0f9,hdu0te,3jxaxy,5kyh2e,6hunbb,n4kmqk,zbqfz4,1d3t4sd,1l99iua,1qc1syl,pm654x,1drspat,151fwda,7yjzzq,11do2cz,1voq55u,m4xehi,1f0fa1r,13zwmfa,1tuum4m,1gv3cpk,vpxyi9,1ablx8y,1vb883j,1pfax4n,fsh6qo,ovw0ms,150ohm1,djmc2r,lkz2db,1cty2db,73l94b,12xxir6,1bdby3g,1wp2ym,185yzvz,qxb7hj,sjxgq5,2ihjlk,54e1yk,drj0wg,1m9lm10,lxx94d,1p4i2sa,19qkdkw,xi4q5l,73fp8j,16b86y2,zbgsra,7w0tpv,s6x6xc,ffw05n,1r4fzz9,73tfmo,54atxm,153nmd6,1rdpmou,1iqeomi,m6f9hs,bvtxr,1nh3plo,8232br,yclges,gjzetu,a1wy1e,1haxadi,iz09yo,1348efc,1dsicd3,1td5wf,hyazyi,1vh6vsf,vqu53n,1j972do,u7jwv1,22fzev,18h72ll,huxtzg,14ia8wn,mcjwip,15o98hb,1kvo0my,19a4rtx,2krazk,4ebhbb,26hskf,omsbxu,18bz1wb,a32mei,t2nfbi,kh8mrq,1v2f6sh,r6qqtf,nxr9p4,1123b2o,ngfjwp,je7g13,ay19p4,o72st1,sw0hlf,1llpw9k,17tlnwt,65468s,1p0lz09,duqx1d,19i4o0j,17ynzdy,od2xkt,2uxm1y,1q1q2i8,3agtoa,t56doq,1iifosu,xgcc7a,1fq77iq,j72s7r,85s3ms,1auk37p,8p3s5h,19ny5zw,17die8a,ii64mq,441mam,12ejiw7,144bmq9,13h05oe,4p579l,1ibbr2w,sckcbk,ok8diq,v5zlb1,jmwyp4,19max40,u9ej8c,1qjtbpj,1wsnhpg,lypoa7,1pp2lx7,hyargj,ugu99t,a7inzx,12xm9u6,o74ffk,uap5m5,4x26ab,1jzbzii' };
+    // この 行が、実際に 開いた 画面の 中で 何行目に あるか（Apps Script が 前に 足す 行の ずれを はかる）
+    var here = 0; try { throw new Error('here'); } catch (er) { var hm = /:(\d+):\d+\)?\s*$/.exec(String(er.stack || '').split('\n')[1] || ''); if (hm) here = +hm[1]; }
+    var errs = [], first = null;
+    window.addEventListener('error', function (e) {
+      var msg = (e && e.message) || String(e);
+      errs.push(msg);
+      if (e && e.lineno && (!first || (!first.syntax && /SyntaxError/.test(msg)))) first = { line: e.lineno, col: e.colno || 0, syntax: /SyntaxError/.test(msg) };
+    });
     var escText = function (t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+    var hash = function (t) { var h = 2166136261; for (var i = 0; i < t.length; i++) { h = Math.imul(h ^ t.charCodeAt(i), 16777619); } return (h >>> 0).toString(36); };
+    // 下の プログラムを 正しい 版と くらべる（{ bad: ちがう 行の 始まり, same: 全部 同じか }）
+    var compare = function (main) {
+      var rows = main.split('\n'), sums = EXPECT.sums ? EXPECT.sums.split(',') : [];
+      for (var k = 0; k < sums.length; k++) {
+        if (hash(rows.slice(k * 25, k * 25 + 25).join('\n')) !== sums[k]) return { bad: EXPECT.line + k * 25, rows: rows };
+      }
+      if (rows.length > sums.length * 25) return { bad: EXPECT.line + sums.length * 25, rows: rows };
+      return { bad: 0, rows: rows, same: main.length === EXPECT.len };
+    };
     setTimeout(function () {
       if (window.__appReady) return;
       var app = document.getElementById('app');
@@ -470,15 +489,41 @@
           + '<li>通信が 遅い ときは、少し 待ってから 読みこみなおしてください。</li></ol>'
         : '<b>画面の プログラムが 動きませんでした。</b><ol>'
           + '<li>Apps Script の <b>app.html の いちばん下が &lt;/html&gt; で 終わっているか</b> 確かめてください。途中で 切れて いたら、もう一度 全文を 貼り付けて 保存し、「新バージョン」で デプロイしてください。</li>'
+          + '<li>コピーする ページを、ブラウザが <b>翻訳</b>して いないか 確かめてください（翻訳されると プログラムが こわれます）。Word などで 開いて コピーすると、記号が 変わる ことも あります。</li>'
           + '<li>古い ブラウザでは 動かない ことが あります。新しい Chrome か Edge で 開いてください。</li></ol>';
+      // こわれた ところを さがす 手がかり（どの 行か、正しい 版と 同じか）
+      var info = '';
+      if (!started) {
+        var mainEl = document.getElementById('main-js');
+        var main = mainEl ? (mainEl.textContent || '') : '';
+        var cmp = compare(main), box = '<div style="font-size:13px;margin-top:8px">';
+        if (first && EXPECT.line) {
+          var at = first.line - (here && EXPECT.self ? here - EXPECT.self : 0); // app.html の 何行目か
+          var row = cmp.rows[at - EXPECT.line];
+          if (row != null) {
+            var c0 = Math.max(0, first.col - 1);
+            info += box + 'エラーの 場所：app.html の <b>' + at + '行目</b>（' + (c0 + 1) + '文字目）<br><code style="white-space:pre-wrap;word-break:break-all;background:rgba(127,127,127,.15);padding:2px 4px">'
+              + escText(row.slice(Math.max(0, c0 - 60), c0)) + '<b style="color:#e0457b;text-decoration:underline">' + escText(row.slice(c0, c0 + 1) || '␣') + '</b>' + escText(row.slice(c0 + 1, c0 + 60)) + '</code></div>';
+          }
+        }
+        if (EXPECT.sums) {
+          info += box + (cmp.bad
+            ? '<b>app.html の ' + cmp.bad + '〜' + (cmp.bad + 24) + '行目 あたりが、正しい 版と ちがいます。</b>コピーや 貼り付けの とちゅうで 中身が 変わったか、欠けています。もう一度 全文を コピーして 貼り付けなおしてください。'
+            : cmp.same ? 'プログラムの 中身は 正しい 版と 同じです（貼り付けは 正しく できています）。ブラウザが 古い ことが 考えられます。'
+            : 'プログラムの 文字数が 正しい 版と ちがいます（' + main.length + '／' + EXPECT.len + '）。') + '</div>';
+        }
+        if (EXPECT.last) info += box + 'この 版の app.html は、いちばん下の &lt;/html&gt; が <b>' + EXPECT.last + '行目</b> です（Apps Script の 画面の 行番号と くらべてください）。</div>';
+        var ua = navigator.userAgent.match(/(Edg|Chrome|Firefox|Version)\/\d+/g);
+        if (ua) info += box + 'ブラウザ：' + escText(ua.join(' ')) + '</div>';
+      }
       app.innerHTML = '<div class="fatal">⚠️<div>職員室を 開けません（読みこみが 止まっています）</div>'
         + '<div style="font-size:15px;text-align:left;max-width:680px;line-height:1.7">' + tips
-        + (errs.length ? '<div style="font-size:13px">表示された エラー：' + escText(errs.join(' / ')) + '</div>' : '') + '</div>'
+        + (errs.length ? '<div style="font-size:13px">表示された エラー：' + escText(errs.join(' / ')) + '</div>' : '') + info + '</div>'
         + '<button class="btn primary" onclick="location.reload()">もう一度 読みこむ</button></div>';
     }, window.__bootWait || 25000);
   })();
   </script>
-  <script>
+  <script id="main-js">
   'use strict';
   window.__appStarted = true;
 
@@ -600,7 +645,7 @@
      データの 置き場所（Apps Script の 中なら スプレッドシート、外なら この端末）
      ========================================================= */
   const IN_GAS = typeof google !== 'undefined' && !!(google.script && google.script.run);
-  const APP_VERSION = '2026-10-03e'; // 画面の 版（更新した ときの 目じるし）
+  const APP_VERSION = '2026-10-03f'; // 画面の 版（更新した ときの 目じるし）
 
   function gasCall(fn, ...args) {
     return new Promise((resolve, reject) => {
