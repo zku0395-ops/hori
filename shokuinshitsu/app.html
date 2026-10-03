@@ -237,6 +237,23 @@
     /* 学習の 部屋 */
     .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
     .cards.wide { grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); }
+    /* めあて・学習内容の 一覧 */
+    .aim { font-weight: 700; }
+    .cell .aim { font-size: 12px; margin-top: 2px; }
+    .picker { border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; background: var(--soft); }
+    .picker summary { cursor: pointer; font-weight: 700; font-size: 14px; }
+    #lesson-pick { max-height: 260px; overflow-y: auto; margin-top: 6px; display: flex; flex-direction: column; gap: 4px; }
+    .pick-h { font-size: 13px; font-weight: 700; color: var(--sub); margin-top: 4px; }
+    .pick { display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: baseline; text-align: left; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 8px; padding: 5px 8px; cursor: pointer; font: inherit; font-size: 14px; }
+    .pick:hover, .pick:focus-visible { border-color: var(--today-line); }
+    .pick.picked { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary); }
+    .pick .no { color: var(--sub); font-size: 12px; min-width: 3em; }
+    .pick span:last-child { color: var(--sub); }
+    table.items td.no { white-space: nowrap; text-align: center; width: 3em; }
+    table.items tr.next td { background: var(--today); }
+    table.items tr.done td { color: var(--sub); }
+    .harvest { max-height: 50vh; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+    .hv { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; border-bottom: 1px dashed var(--line); padding: 4px 0; font-size: 14px; }
     /* 研究・研修の部屋 */
     .ken-h { font-size: 15px; margin: 14px 0 8px; color: var(--sub); }
     .ken-top { align-items: start; }
@@ -415,7 +432,7 @@
      決まりごと
      ========================================================= */
   /* 共通ここから */
-  const KINDS = ['events', 'timetable', 'weekly', 'children', 'exchange', 'units', 'materials', 'tasks', 'duties', 'dutyItems', 'meetings', 'templates', 'days', 'weeks', 'notes', 'plans', 'goals', 'contacts', 'classes', 'handovers', 'staff', 'staffPlans', 'orgs', 'orgLogs', 'trainings', 'research', 'studies', 'subs'];
+  const KINDS = ['events', 'timetable', 'weekly', 'children', 'exchange', 'units', 'materials', 'tasks', 'duties', 'dutyItems', 'meetings', 'templates', 'days', 'weeks', 'notes', 'plans', 'goals', 'contacts', 'lessonItems', 'classes', 'handovers', 'staff', 'staffPlans', 'orgs', 'orgLogs', 'trainings', 'research', 'studies', 'subs'];
   const DAYS = [1, 2, 3, 4, 5]; // 月〜金
   const WD = ['日', '月', '火', '水', '木', '金', '土'];
   const KYUGYO = '休業日';
@@ -443,7 +460,10 @@
     autoDraft: true,    // 毎週火曜日から、次の週の 週案の 下書きを 自動で 作る
     draftCarry: true,   // 下書きの 学習内容に、前の 同じ 教科の 内容を 写す
     draftTriggerOff: false, // 火曜日の朝の 自動作成（Apps Script の トリガー）を 自分で オフに したか
+    sbUnit: true,       // 週案簿の 学習内容の 欄の 1行目に 単元名を 書く
+    aimMark: '○',      // 週案簿で めあての 行の 頭に つける しるし
   };
+  const AIM_MARKS = ['○', '◎', 'めあて：', ''];
   // 時数の 集計で 別に 数える もの（週案簿の「学校行事」「児童会等」）
   const SPECIAL_SUBJECTS = ['行事', 'クラブ', '委員会'];
   const KOKUGO_PARTS = ['図書', '書写']; // 国語計に ふくめる
@@ -575,7 +595,7 @@
     planTerm: '', noteKid: '', noteTag: '', noteTerm: 'term', noteQ: '', lastTag: '', contactKid: '',
     meetQ: '', meetKind: '',
     renkeiWeek: mondayOf(today()), hoRoom: '', staffDate: '', staffId: '', orgId: '',
-    kenNendo: 0, trainKind: '', shidoanAnon: false, subsCare: true,
+    kenNendo: 0, trainKind: '', shidoanAnon: false, subsCare: true, itemSubj: '',
     periodsDraft: null,
   };
 
@@ -667,6 +687,8 @@
     if (typeof s.autoDraft === 'boolean') out.autoDraft = s.autoDraft;
     if (typeof s.draftCarry === 'boolean') out.draftCarry = s.draftCarry;
     out.draftTriggerOff = s.draftTriggerOff === true;
+    if (typeof s.sbUnit === 'boolean') out.sbUnit = s.sbUnit;
+    if (AIM_MARKS.includes(s.aimMark)) out.aimMark = s.aimMark;
     out.jisuMonths = Array.isArray(s.jisuMonths) ? s.jisuMonths.map(String).filter((m) => /^\d{4}-\d{2}$/.test(m)) : [];
     return out;
   }
@@ -719,7 +741,7 @@
     const hours2 = subject2 && Number(w.hours2) > 0 ? Number(w.hours2) : 0;
     const unit = w && w.unitId ? get('units', w.unitId) : null;
     const noClass = !subject && !subject2 && (fixed || beyond || (w && w.subject === NONE));
-    return { w, base, subject, hours, subject2, hours2, unit, noClass, content: w ? w.content : '', note: w ? w.note : '' };
+    return { w, base, subject, hours, subject2, hours2, unit, noClass, content: w ? w.content : '', note: w ? w.note : '', aim: w ? w.aim || '' : '' };
   }
   // 時数の 表示（⅓・⅔ を 分数で）
   function fmtH(x) {
@@ -804,6 +826,13 @@
     });
     return { done, plan, dates: dates.sort() };
   }
+  // 単元の めあて・学習内容の 一覧（時の 順）
+  function unitItems(uid) { return list('lessonItems').filter((x) => x.unitId === uid).sort((a, b) => (Number(a.no) || 0) - (Number(b.no) || 0) || String(a.id).localeCompare(String(b.id))); }
+  // その時間より 前に、週案で この単元に した 時間の 数（＝ 次は 一覧の 何番目か）
+  function unitCountBefore(uid, date, pid) {
+    const pi = S.periods.findIndex((p) => p.id === String(pid));
+    return list('weekly').filter((w) => w.unitId === uid && isDate(w.date) && (w.date < date || (w.date === date && S.periods.findIndex((p) => p.id === String(w.period)) < pi))).length;
+  }
   function unitPhase(u) {
     const t = today();
     if (isDate(u.end) && u.end < t) return 'done';
@@ -851,7 +880,7 @@
     if (room.soon) return viewSoon(room);
     switch (room.id) {
       case 'yotei': return subtabs('yotei', [['week', '📝 週案'], ['hours', '⏱ 時数'], ['month', '🗓 月の予定'], ['timetable', '🕘 基本の時間割'], ['koryu', '🚶 交流学級']]) + ({ week: viewWeek, hours: viewHours, month: viewMonth, timetable: viewTimetable, koryu: viewKoryu })[view.tab.yotei]();
-      case 'gakushu': return subtabs('gakushu', [['units', '📘 単元計画'], ['materials', '🧰 教材の置き場']]) + ({ units: viewUnits, materials: viewMaterials })[view.tab.gakushu]();
+      case 'gakushu': return subtabs('gakushu', [['units', '📘 単元計画'], ['items', '📋 めあて・学習内容'], ['materials', '🧰 教材の置き場']]) + ({ units: viewUnits, items: viewItems, materials: viewMaterials })[view.tab.gakushu]();
       case 'kodomo': return viewKodomo();
       case 'renkei': return viewRenkei();
       case 'kenkyu': return viewKenkyu();
@@ -1232,10 +1261,11 @@
       const outs = outsAt(dayOf(day), p.id);
       const sp = staffOn(day).map((x) => ({ x, t: staffText(x.id, day, p.id) })).filter((v) => v.t);
       const sub = get('subs', subId(day, p.id));
-      if (!L.subject && !L.subject2 && !L.content && !L.note && (!outs.length || L.noClass) && !sp.length && !sub) return '';
+      if (!L.subject && !L.subject2 && !L.aim && !L.content && !L.note && (!outs.length || L.noClass) && !sp.length && !sub) return '';
       return `<li><div class="pname">${esc(p.name)}<span class="ptime">${esc(p.start)}〜${esc(p.end)}</span></div>
         <div class="what">${L.subject ? chip(L.subject) : '<span class="muted">（なし）</span>'}${L.subject2 ? ' ＋ ' + chip(L.subject2) : ''}
           ${L.unit ? `<span class="muted" style="font-size:13px">📘 ${esc(L.unit.name)}</span>` : ''}
+          ${L.aim ? `<div class="content aim">${esc(S.aimMark || '○')}${esc(L.aim)}</div>` : ''}
           ${L.content ? `<div class="content">${nl(L.content)}</div>` : ''}
           ${L.note ? `<div class="content">📝 ${nl(L.note)}</div>` : ''}
           ${outs.length ? `<div class="outs">${outs.map(outChip).join('')}</div>` : ''}
@@ -1440,6 +1470,7 @@
       ${L.subject ? chip(L.subject) + hrs(L.hours) : ''}${L.subject2 ? `<span class="plus">＋</span>${chip(L.subject2)}${hrs(L.hours2)}` : ''}
       ${!L.subject && !L.subject2 ? (L.noClass ? '<span class="dash">—</span>' : '<span class="empty noprint">＋</span>') : ''}
       ${L.unit ? `<div class="unit">📘 ${esc(L.unit.name)}</div>` : ''}
+      ${L.aim ? `<div class="aim">${esc(S.aimMark || '○')}${esc(L.aim)}</div>` : ''}
       ${L.content ? `<div class="content">${nl(L.content)}</div>` : ''}
       ${L.note ? `<div class="note">📝 ${nl(L.note)}</div>` : ''}
       ${outs.length && !L.noClass ? `<div class="outs">${outs.map(outChip).join('')}</div>` : ''}
@@ -1461,7 +1492,7 @@
     const followLabel = di && Number(di.fixed) ? 'なし（週案簿で 空いていた時間）' : '基本の時間割のとおり' + (baseSubj ? `（${baseSubj}）` : '');
     openDialog({
       title: `${jdate(date)} ${p.name}`,
-      attrs: `data-date="${date}" data-base="${esc(baseSubj)}"`,
+      attrs: `data-date="${date}" data-pid="${esc(pid)}" data-base="${esc(baseSubj)}"`,
       body: `<p class="hint">${esc(p.start)}${p.end ? '〜' + esc(p.end) : ''}　／　基本の時間割：${baseSubj ? chip(baseSubj) : 'なし'}</p>
         <div class="row2">
           <label class="field">教科
@@ -1472,8 +1503,11 @@
           <label class="field">2つ目の教科（1時間を 分けるとき） <select name="subject2">${opt('', w.subject2 || '', '—')}${S.subjects.concat(w.subject2 && !S.subjects.includes(w.subject2) ? [w.subject2] : []).map((s) => opt(s, w.subject2)).join('')}</select></label>
           <label class="field">2つ目の時数 <select name="hours2">${hourOptions(w.hours2 || 2 / 3)}</select></label>
         </div>
-        <label class="field">単元 <select name="unitId">${unitOptions(effective, date, unitId)}</select></label>
-        <label class="field">学習内容 <textarea name="content" rows="4" maxlength="4000" placeholder="例：「おおきな かぶ」を 役に分かれて 音読する">${esc(w.content)}</textarea></label>
+        <label class="field">① 単元 <select name="unitId" data-chg="lessonUnit">${unitOptions(effective, date, unitId)}</select></label>
+        <details class="picker" open><summary>📋 一覧から 選ぶ（単元・めあて・学習内容が 入ります）</summary><div id="lesson-pick">${lessonPicker(effective, date, pid, unitId)}</div></details>
+        <label class="field">② めあて <input name="aim" maxlength="300" value="${esc(w.aim)}" placeholder="例：はしを そろえて 長さを くらべよう"></label>
+        <label class="field">③ 学習内容 <textarea name="content" rows="4" maxlength="4000" placeholder="例：①えんぴつの 長さくらべ&#10;②テープで 長さを うつしとる">${esc(w.content)}</textarea></label>
+        <label class="check" style="font-weight:400"><input type="checkbox" name="addItem"> この めあて・学習内容を 一覧にも 入れる</label>
         <label class="field">メモ・ふりかえり <textarea name="note" rows="2" maxlength="1000" placeholder="例：準備物、子どもの様子、次の時間への引きつぎ">${esc(w.note)}</textarea></label>
         ${outs.length ? `<div class="info">この時間の交流：<div class="outs">${outs.map(outChip).join('')}</div></div>` : ''}
         ${get('subs', subId(date, pid)) ? `<div class="info">🚗 この時間は 補教です（${esc(get('subs', subId(date, pid)).teacher || '先生は 未定')}）${get('subs', subId(date, pid)).task ? '：' + esc(get('subs', subId(date, pid)).task) : ''}
@@ -1481,12 +1515,18 @@
       deleteLabel: w.id ? 'この時間の書きこみを消す' : '',
       onDelete: () => removeRecs('weekly', id),
       onSave: (f) => {
-        const rec = { id, date, period: pid, subject: f.subject, unitId: f.unitId, content: f.content.trim(), note: f.note.trim(),
+        const rec = { id, date, period: pid, subject: f.subject, unitId: f.unitId, aim: f.aim.trim(), content: f.content.trim(), note: f.note.trim(),
           hours: f.hours === '' ? '' : Number(f.hours), subject2: f.subject2, hours2: f.subject2 ? Number(f.hours2) : '' };
-        if (!rec.subject && !rec.unitId && !rec.content && !rec.note && !rec.subject2 && rec.hours === '') { if (w.id) removeRecs('weekly', id); else render(); return; }
+        if (!rec.subject && !rec.unitId && !rec.aim && !rec.content && !rec.note && !rec.subject2 && rec.hours === '') { if (w.id) removeRecs('weekly', id); else render(); return; }
+        // 一覧にも 入れる（同じ ものが なければ）
+        const subj = f.subject === NONE ? '' : (f.subject || baseSubj);
+        if (f.addItem && subj && (rec.aim || rec.content) && !list('lessonItems').some((x) => (x.unitId || '') === rec.unitId && x.aim === rec.aim && x.content === rec.content)) {
+          putRecs('lessonItems', { id: uid('li'), subject: subj, unitId: rec.unitId, no: nextItemNo(subj, rec.unitId), aim: rec.aim, content: rec.content }, { render: false });
+        }
         putRecs('weekly', rec);
       },
     });
+    scrollPickerToNext();
   }
 
   // 日ごとの 授業時数・休み時間・備考・記録欄
@@ -1791,6 +1831,182 @@
       ${u.goal ? `<p class="goal">🎯 ${nl(u.goal)}</p>` : ''}</article>`;
   }
 
+  /* ---------- 学習の部屋：めあて・学習内容の 一覧 ---------- */
+  const lineOf = (s) => String(s || '').replace(/\n/g, ' ');
+  const AIM_LINE = /^(○|◎|めあて[：:])\s*/;
+  function itemSubject(x) { const u = x.unitId && get('units', x.unitId); return u ? u.subject : x.subject || ''; }
+  function nextItemNo(subject, uid) { return Math.max(0, ...list('lessonItems').filter((i) => (i.unitId || '') === (uid || '') && itemSubject(i) === subject).map((i) => Number(i.no) || 0)) + 1; }
+  // 書いた 週案を、めあてと 学習内容に 分ける（「○」「◎」「めあて：」の 行が めあて。1行目が 単元名なら はずす）
+  function splitEntry(w) {
+    const lines = String(w.content || '').split('\n').map((x) => x.trim()).filter(Boolean);
+    let aim = w.aim || '';
+    if (!aim) {
+      const i = lines.findIndex((x) => AIM_LINE.test(x));
+      if (i >= 0) { aim = lines[i].replace(AIM_LINE, ''); lines.splice(i, 1); }
+    }
+    let unitId = w.unitId || '';
+    const u = get('units', unitId);
+    if (u && lines[0] === u.name) lines.shift();
+    else if (!u && lines.length) {
+      const m = list('units').find((x) => x.subject === entrySubject(w) && lines[0] === x.name);
+      if (m) { unitId = m.id; lines.shift(); }
+    }
+    return { aim, content: lines.join('\n'), unitId };
+  }
+  function itemRow(x, i, done) {
+    const cls = i < done ? 'done' : i === done ? 'next' : '';
+    return `<tr class="${cls}"><td class="no">${esc(x.no || i + 1)}${i === done ? '<br><span class="tag red">つぎ</span>' : i < done ? '<br><span class="muted">✓</span>' : ''}</td>
+      <td>${x.aim ? `<b>${esc(S.aimMark || '○')}${esc(x.aim)}</b>` : '<span class="muted">—</span>'}</td><td>${nl(x.content)}</td>
+      <td><button class="btn small" data-act="editItem" data-id="${esc(x.id)}">直す</button></td></tr>`;
+  }
+  function itemGroup(title, sub, unitSel, items, done) {
+    return `<section class="card item-group">
+      <div class="toolbar"><h3 style="margin:0;font-size:17px">${title}</h3>${sub}<span class="grow"></span>
+        <button class="btn small" data-act="editItem" data-unit="${esc(unitSel)}">＋ 1つ 追加</button>
+        <button class="btn small" data-act="bulkItems" data-unit="${esc(unitSel)}">まとめて 入れる</button></div>
+      ${items.length ? `<div class="table-wrap"><table class="list items"><thead><tr><th>時</th><th>めあて</th><th>学習内容</th><th></th></tr></thead><tbody>${items.map((x, i) => itemRow(x, i, done)).join('')}</tbody></table></div>`
+        : '<p class="hint">まだ ありません。入れておくと、週案で 選べます。単元の ものは、週案の 下書きにも 順に 入ります。</p>'}
+    </section>`;
+  }
+  function viewItems() {
+    const has = (x) => list('lessonItems').some((i) => itemSubject(i) === x) || list('units').some((u) => u.subject === x);
+    if (!S.subjects.includes(view.itemSubj)) view.itemSubj = S.subjects.find(has) || S.subjects[0] || '';
+    const subj = view.itemSubj;
+    const order = { now: 0, next: 1, done: 2 };
+    const units = list('units').filter((u) => u.subject === subj).sort((a, b) => order[unitPhase(a)] - order[unitPhase(b)] || String(a.start || '9999').localeCompare(String(b.start || '9999')));
+    const free = list('lessonItems').filter((x) => !x.unitId && x.subject === subj).sort((a, b) => (Number(a.no) || 0) - (Number(b.no) || 0));
+    return `<div class="toolbar">
+        <select class="input" style="width:auto" data-chg="itemSubj" aria-label="教科">${S.subjects.map((x) => opt(x, subj, x + (has(x) ? '' : '（まだ なし）'))).join('')}</select>
+        <span class="grow"></span>
+        <button class="btn" data-act="harvestItems">📥 これまでの 週案から つくる</button>
+        <button class="btn primary" data-act="editUnit">＋ 単元を追加</button>
+      </div>
+      <p class="hint">教科ごと・単元ごとに、1時間ずつの「めあて」と「学習内容」を 入れておきます。週案の マスを 押すと、ここから 選んで 入れられます。「つぎ」は、週案で その単元に した 時間の 次の 時です。</p>
+      <div class="stack" id="item-list">
+        ${units.map((u) => { const st = unitStats(u); return itemGroup(`📘 ${esc(u.name)}`, `<span class="muted" style="font-size:13px">${unitRange(u)}　実施 ${st.done}${u.hours ? ' ／ 計画 ' + esc(u.hours) : ''}時間</span>`, u.id, unitItems(u.id), st.done); }).join('')}
+        ${itemGroup('🔁 単元なし（いつも 使う もの）', '<span class="muted" style="font-size:13px">朝の会・帰りの会、くり返す 活動など</span>', '', free, -1)}
+      </div>`;
+  }
+  function editItem(id, unitSel) {
+    const x = id ? get('lessonItems', id) : { unitId: unitSel || '', subject: view.itemSubj };
+    if (!x) return;
+    const subj = itemSubject(x) || view.itemSubj;
+    const units = list('units').filter((u) => u.subject === subj);
+    openDialog({
+      title: id ? 'めあて・学習内容を 直す' : `${subj}：めあて・学習内容を 追加`,
+      body: `<div class="row2">
+          <label class="field">単元 <select name="unitId">${opt('', x.unitId || '', '（単元なし：いつも 使う もの）')}${units.map((u) => opt(u.id, x.unitId, u.name)).join('')}</select></label>
+          <label class="field">時（順番） <input type="number" name="no" min="1" max="999" value="${esc(x.no || nextItemNo(subj, x.unitId))}"></label>
+        </div>
+        <label class="field">めあて <input name="aim" maxlength="200" value="${esc(x.aim)}" placeholder="例：はしを そろえて 長さを くらべよう"></label>
+        <label class="field">学習内容 <textarea name="content" rows="4" maxlength="2000" placeholder="例：①えんぴつの 長さくらべ&#10;②テープで 長さを うつしとる">${esc(x.content)}</textarea></label>`,
+      deleteLabel: id ? 'これを消す' : '',
+      onDelete: () => removeRecs('lessonItems', id),
+      onSave: (f) => {
+        if (!f.aim.trim() && !f.content.trim()) return 'めあてか 学習内容を 入れてください。';
+        putRecs('lessonItems', { id: id || uid('li'), subject: subj, unitId: f.unitId, no: Number(f.no) > 0 ? Number(f.no) : nextItemNo(subj, f.unitId), aim: f.aim.trim(), content: f.content.trim() });
+      },
+    });
+  }
+  function bulkItems(unitSel) {
+    const u = get('units', unitSel);
+    const subj = u ? u.subject : view.itemSubj;
+    openDialog({
+      title: `まとめて 入れる：${u ? u.name : subj + '（単元なし）'}`,
+      body: `<p class="hint">1行に 1時間ずつ、「めあて｜学習内容」の 形で 入れてください（「｜」が なければ めあてだけ）。Excel の 2列（めあて・学習内容）を そのまま 貼り付けることも できます。</p>
+        <textarea class="input" name="lines" rows="10" aria-label="めあてと 学習内容" placeholder="例：&#10;はしを そろえて くらべよう｜①えんぴつの 長さくらべ ②気づいたことを 発表&#10;テープで 長さを うつそう｜①テープで うつしとる ②くらべて 発表"></textarea>`,
+      saveLabel: '一覧に 入れる',
+      onSave: (f) => {
+        const rows = String(f.lines || '').split('\n').map((l) => l.trim()).filter(Boolean);
+        if (!rows.length) return '1行以上 入れてください。';
+        let no = nextItemNo(subj, unitSel);
+        putRecs('lessonItems', rows.map((l, i) => {
+          const p = l.split(/[｜|\t]/);
+          return { id: uid('li') + i, subject: subj, unitId: unitSel || '', no: no++, aim: p[0].trim().replace(AIM_LINE, ''), content: p.slice(1).map((x) => x.trim()).filter(Boolean).join(' ') };
+        }));
+      },
+    });
+  }
+  // これまでの 週案（週案簿から 取りこんだ ものも）から、一覧の 候補を 集める
+  function harvestItems() {
+    const subj = view.itemSubj;
+    const key = (c) => `${c.unitId || ''}|${c.aim || ''}|${c.content || ''}`;
+    const have = new Set(list('lessonItems').map(key));
+    const seen = new Set();
+    const cands = list('weekly').filter((w) => isDate(w.date) && (w.content || w.aim) && entrySubject(w) === subj)
+      .sort((a, b) => a.date.localeCompare(b.date) || periodIndex(a.period) - periodIndex(b.period))
+      .map((w) => Object.assign({ date: w.date }, splitEntry(w)))
+      .filter((c) => { const k = key(c); if (!(c.aim || c.content) || have.has(k) || seen.has(k)) return false; seen.add(k); return true; });
+    if (!cands.length) { alert(`${subj}の 週案で、まだ 一覧に ない ものは ありません。`); return; }
+    openDialog({
+      title: `📥 ${subj}：これまでの 週案から つくる`,
+      body: `<p class="hint">${subj}の 週案から、同じ ものを まとめて ${cands.length}件 見つけました。一覧に 入れる ものに チェックを 入れてください。「○」「◎」「めあて：」の 行を めあてに、ほかの 行を 学習内容に します。</p>
+        <div class="toolbar" style="margin:0"><button type="button" class="btn small" data-act="checkAll" data-on="1">すべて 選ぶ</button><button type="button" class="btn small" data-act="checkAll" data-on="">すべて はずす</button></div>
+        <div class="harvest">${cands.map((c, i) => `<label class="hv"><input type="checkbox" name="h${i}" checked>
+          <span class="muted">${md(c.date)}</span>${c.unitId ? `<span class="tag">📘 ${esc((get('units', c.unitId) || {}).name || '')}</span>` : ''}
+          <span>${c.aim ? `<b>${esc(S.aimMark || '○')}${esc(c.aim)}</b> ` : ''}${esc(short(lineOf(c.content), 70))}</span></label>`).join('')}</div>`,
+      saveLabel: '一覧に 入れる',
+      onSave: (f) => {
+        const pick = cands.filter((_, i) => f['h' + i]);
+        if (!pick.length) return '1つ以上 選んでください。';
+        const no = {};
+        putRecs('lessonItems', pick.map((c, i) => {
+          if (!(c.unitId in no)) no[c.unitId] = nextItemNo(subj, c.unitId);
+          return { id: uid('li') + i, subject: subj, unitId: c.unitId, no: no[c.unitId]++, aim: c.aim, content: c.content };
+        }));
+      },
+    });
+  }
+
+  /* ---------- 週案の マス：一覧から 選ぶ ---------- */
+  function lessonPicker(subject, date, pid, unitId) {
+    if (!subject) return '<p class="hint">教科を 選ぶと、一覧が 出ます。</p>';
+    const u = get('units', unitId);
+    const uItems = u ? unitItems(u.id) : [];
+    const next = u ? unitCountBefore(u.id, date, pid) : -1;
+    const free = list('lessonItems').filter((x) => !x.unitId && x.subject === subject).sort((a, b) => (Number(a.no) || 0) - (Number(b.no) || 0));
+    const seen = new Set();
+    const past = list('weekly').filter((w) => isDate(w.date) && w.date < date && (w.content || w.aim) && entrySubject(w) === subject)
+      .sort((a, b) => b.date.localeCompare(a.date) || periodIndex(b.period) - periodIndex(a.period))
+      .filter((w) => { const sp = splitEntry(w); const k = sp.aim + '|' + sp.content; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 6);
+    const btn = (act, id, head, aim, content, next) => `<button type="button" class="pick${next ? ' next' : ''}" data-act="${act}" data-id="${esc(id)}">${head}${aim ? `<b>${esc(S.aimMark || '○')}${esc(aim)}</b>` : ''}<span>${esc(short(lineOf(content), 60))}</span></button>`;
+    let html = '';
+    if (u) html += `<div class="pick-h">📘 ${esc(u.name)}</div>` + (uItems.length
+      ? uItems.map((x, i) => btn('pickItem', x.id, `<span class="no">${esc(x.no || i + 1)}時${i === next ? ' <span class="tag red">つぎ</span>' : ''}</span>`, x.aim, x.content, i === next)).join('')
+      : '<p class="hint">この単元の 一覧は まだ ありません（学習の部屋 →「めあて・学習内容」で 入れられます）。</p>');
+    if (free.length) html += '<div class="pick-h">🔁 いつも 使う もの</div>' + free.map((x) => btn('pickItem', x.id, '', x.aim, x.content)).join('');
+    if (past.length) html += '<div class="pick-h">🕘 前に 書いた 週案</div>' + past.map((w) => { const sp = splitEntry(w); return btn('pickPast', w.id, `<span class="no">${md(w.date)}</span>`, sp.aim, sp.content); }).join('');
+    return html || '<p class="hint">この教科の 一覧は まだ ありません。学習の部屋 →「めあて・学習内容」で 入れておくと、ここから 選べます。</p>';
+  }
+  function refreshPicker(form) {
+    const pk = document.getElementById('lesson-pick');
+    if (!pk || !form) return;
+    const subject = form.elements.subject.value === NONE ? '' : (form.elements.subject.value || form.dataset.base);
+    pk.innerHTML = lessonPicker(subject, form.dataset.date, form.dataset.pid, form.elements.unitId.value);
+    scrollPickerToNext();
+  }
+  // 一覧が 長い ときは「つぎ」が 見える ところまで 送る
+  function scrollPickerToNext() {
+    const pk = document.getElementById('lesson-pick');
+    const nx = pk && pk.querySelector('.pick.next');
+    if (nx) pk.scrollTop = Math.max(0, nx.offsetTop - pk.offsetTop - 40);
+  }
+  // 選んだ ものを 単元・めあて・学習内容の 欄に 入れる
+  function fillLesson(uidSel, aim, content, el) {
+    const form = document.getElementById('dlgForm');
+    if (!form || !form.elements.aim) return;
+    const sel = form.elements.unitId;
+    const changed = uidSel && sel.value !== uidSel;
+    if (uidSel) {
+      if (!Array.from(sel.options).some((o) => o.value === uidSel)) { const u = get('units', uidSel); if (u) sel.add(new Option(u.name, uidSel)); }
+      sel.value = uidSel;
+    }
+    form.elements.aim.value = aim || '';
+    form.elements.content.value = content || '';
+    if (changed) refreshPicker(form);
+    else if (el) { form.querySelectorAll('.pick.picked').forEach((b) => b.classList.remove('picked')); el.classList.add('picked'); }
+  }
+
   function editUnit(id) {
     const u = id ? get('units', id) : { subject: view.unitSubj || S.subjects[0] || '' };
     if (!u) return;
@@ -1811,8 +2027,9 @@
         <label class="field">メモ（準備物・評価の観点など） <textarea name="memo" rows="3" maxlength="1000">${esc(u.memo)}</textarea></label>
         ${st.dates.length ? `<div class="info">週案に入っている日（${st.dates.length}時間）<div class="date-chips">${st.dates.map((d) => `<span class="tag">${md(d)}</span>`).join('')}</div></div>` : ''}`,
       deleteLabel: id ? 'この単元を消す' : '',
-      deleteConfirm: 'この単元を消します。週案に書いた学習内容は残ります。よろしいですか？',
+      deleteConfirm: 'この単元を消します。週案に書いた学習内容は残ります（この単元の めあて・学習内容の 一覧は 消えます）。よろしいですか？',
       onDelete: () => {
+        removeRecs('lessonItems', unitItems(id).map((x) => x.id), { render: false });
         const ws = list('weekly').filter((w) => w.unitId === id).map((w) => Object.assign({}, w, { unitId: '' }));
         if (ws.length) putRecs('weekly', ws, { render: false });
         const ms = list('materials').filter((m) => m.unitId === id).map((m) => Object.assign({}, m, { unitId: '' }));
@@ -1924,6 +2141,9 @@
         <h2 class="sec" style="margin-bottom:6px">📝 週案の 下書き</h2>
         <label class="check"><input type="checkbox" id="set-autodraft" ${S.autoDraft ? 'checked' : ''}> 毎週火曜日から、次の週の 週案の 下書きを 自動で 作る</label>
         <label class="check" style="margin-top:6px"><input type="checkbox" id="set-carry" ${S.draftCarry ? 'checked' : ''}> 下書きの 学習内容に、前の 同じ教科の 内容を 写す（先週の 同じ曜日・校時を 先に 見ます）</label>
+        <label class="check" style="margin-top:6px"><input type="checkbox" id="set-sbunit" ${S.sbUnit ? 'checked' : ''}> 週案簿に 書き出す とき、学習内容の 欄の 1行目に 単元名を 入れる</label>
+        <label class="field" style="margin-top:10px;max-width:320px">週案簿で めあての 行の 頭に つける しるし <select class="input" id="set-aimmark">${AIM_MARKS.map((m) => opt(m, S.aimMark, m || '（つけない）')).join('')}</select></label>
+        <p class="hint">週案簿の 学習内容の 欄は「単元名／${esc(S.aimMark)}めあて／学習内容」の 順に なります。単元に「めあて・学習内容の 一覧」が あれば、下書きには 一覧の 次の 時が 入ります。</p>
         <label class="field" style="margin-top:10px;max-width:320px">週案簿の 第1週の 月曜日（シートの 番号に 使います）<input class="input" type="date" id="set-sbstart" value="${esc(S.shuanboStart)}"></label>
         <div class="info" style="margin-top:10px">${IN_GAS
           ? `<b>⏰ 火曜日の朝（6時台）の 自動作成：${meta.draftTrigger ? '<span style="color:var(--primary)">オン</span>' : 'オフ'}</b>
@@ -2684,15 +2904,16 @@
     if (w.subject === NONE) return '';
     return w.subject || ((baseLesson(dayOf(w.date), w.period) || {}).subject || '');
   }
-  function prevContent(date, pid, subject) {
+  // 前の 同じ 教科の 書きこみ（先週の 同じ 曜日・校時を 先に 見る）
+  function prevEntry(date, pid, subject) {
     const w1 = get('weekly', wkId(addDays(date, -7), pid));
-    if (w1 && w1.content && entrySubject(w1) === subject) return w1.content;
+    if (w1 && (w1.content || w1.aim) && entrySubject(w1) === subject) return w1;
     let best = null;
     list('weekly').forEach((w) => {
-      if (!w.content || !isDate(w.date) || w.date >= date || entrySubject(w) !== subject) return;
+      if (!(w.content || w.aim) || !isDate(w.date) || w.date >= date || entrySubject(w) !== subject) return;
       if (!best || w.date > best.date || (w.date === best.date && periodIndex(w.period) > periodIndex(best.period))) best = w;
     });
-    return best ? best.content : '';
+    return best;
   }
   // 下書きを 作る（計算だけ）：書きこみの ない 時間に、時間割・授業時数・単元・前の 時間の 内容から 入れる 記録と、週の しるし
   function draftRecs(mon) {
@@ -2715,8 +2936,12 @@
           return;
         }
         const unitId = autoUnit(L.subject, d);
-        const carry = S.draftCarry ? prevContent(d, p.id, L.subject) : '';
-        recs.push(Object.assign(base, { subject: L.subject, unitId, content: carry || (unitId ? get('units', unitId).name : '') }));
+        // 単元の 一覧が あれば、次の 時の めあて・学習内容を 入れる
+        const items = unitId ? unitItems(unitId) : [];
+        const item = items[unitCountBefore(unitId, d, p.id) + recs.filter((r) => r.unitId === unitId).length];
+        if (item) { recs.push(Object.assign(base, { subject: L.subject, unitId, aim: item.aim || '', content: item.content || '' })); return; }
+        const carry = S.draftCarry ? prevEntry(d, p.id, L.subject) : null;
+        recs.push(Object.assign(base, { subject: L.subject, unitId, aim: carry ? carry.aim || '' : '', content: carry ? carry.content || '' : (unitId && !S.sbUnit ? get('units', unitId).name : '') }));
       });
     });
     return { recs, mark, plan: false };
@@ -2787,6 +3012,15 @@
     if (ss.length) lines.push('補教：' + ss.map((x) => { const p = S.periods.find((q) => q.id === String(x.period)); return `${p ? p.name : x.period} ${x.teacher || '未定'}`; }).join('、'));
     return lines.filter((l) => !String(di.biko || '').includes(l));
   }
+  // 週案簿の 学習内容の 欄：単元名／○めあて／学習内容
+  function shuanboText(L) {
+    const lines = [];
+    const body = String(L.content || '');
+    if (S.sbUnit && L.w && L.unit && L.unit.name && !body.startsWith(L.unit.name)) lines.push(L.unit.name);
+    if (L.aim) lines.push((S.aimMark || '') + L.aim);
+    if (body) lines.push(body);
+    return lines.join('\n');
+  }
   function shuanboCells(mon) {
     const cells = {};
     const splits = [];
@@ -2818,7 +3052,7 @@
         if (!r) return;
         const L = lesson(d, p.id);
         if (L.subject) { cells[c + r] = L.subject; if (Math.abs(L.hours - 1) > 0.01) cells[hc + r] = L.hours; }
-        let content = L.content || '';
+        let content = shuanboText(L);
         if (L.subject2) {
           content = `（＋${L.subject2} ${fmtH(L.hours2)}）` + (content ? '\n' + content : '');
           splits.push(`${jdate(d)} ${p.name}`);
@@ -4283,7 +4517,8 @@
     },
     saveDraftSettings: () => {
       const start = document.getElementById('set-sbstart').value;
-      saveSettings({ autoDraft: document.getElementById('set-autodraft').checked, draftCarry: document.getElementById('set-carry').checked, shuanboStart: isDate(start) ? mondayOf(start) : '' });
+      saveSettings({ autoDraft: document.getElementById('set-autodraft').checked, draftCarry: document.getElementById('set-carry').checked, shuanboStart: isDate(start) ? mondayOf(start) : '',
+        sbUnit: document.getElementById('set-sbunit').checked, aimMark: document.getElementById('set-aimmark').value });
     },
     editFocus: (d) => editFocus(d.mon),
     editChild: (d) => editChild(d.id || ''),
@@ -4291,6 +4526,12 @@
     editX: (d) => editX(Number(d.day), d.pid),
     editUnit: (d) => editUnit(d.id || ''),
     editMat: (d) => editMat(d.id || ''),
+    editItem: (d) => editItem(d.id || '', d.unit || ''),
+    bulkItems: (d) => bulkItems(d.unit || ''),
+    harvestItems: () => harvestItems(),
+    checkAll: (d) => { document.querySelectorAll('#dlgForm .harvest input[type=checkbox]').forEach((el) => { el.checked = !!d.on; }); },
+    pickItem: (d, el) => { const x = get('lessonItems', d.id); if (x) fillLesson(x.unitId, x.aim, x.content, el); },
+    pickPast: (d, el) => { const w = get('weekly', d.id); if (!w) return; const sp = splitEntry(w); fillLesson(sp.unitId, sp.aim, sp.content, el); },
     editTask: (d) => editTask(d.id || ''),
     pickKid: (d) => { view.childId = d.id; view.tab.kodomo = 'child'; view.room = 'kodomo'; render(); window.scrollTo(0, 0); },
     kidNotes: (d) => { view.noteKid = d.id; view.tab.kodomo = 'notes'; render(); window.scrollTo(0, 0); },
@@ -4454,6 +4695,8 @@
     tt: changeTimetable,
     weekJump: (el) => { if (isDate(el.value)) { view.week = mondayOf(el.value); render(); } },
     unitSubj: (el) => { view.unitSubj = el.value; render(); },
+    itemSubj: (el) => { view.itemSubj = el.value; render(); },
+    lessonUnit: (el) => refreshPicker(el.form),
     matSubj: (el) => { view.matSubj = el.value; render(); },
     matKind: (el) => { view.matKind = el.value; render(); },
     importFile: (el) => importFile(el),
@@ -4489,6 +4732,7 @@
       const date = form.dataset.date;
       const subject = el.value === NONE ? '' : (el.value || form.dataset.base);
       form.elements.unitId.innerHTML = unitOptions(subject, date, autoUnit(subject, date));
+      refreshPicker(form);
     },
   };
 
@@ -4582,23 +4826,32 @@
       { id: 'u4', subject: '自立活動', name: '気持ちを ことばで 伝えよう', start: addDays(mon, -30), end: addDays(mon, 60), hours: 15, target: '全員', goal: '困ったときに「手伝ってください」と伝える。', memo: '' },
       { id: 'u5', subject: '図工', name: 'ちぎり絵で つくろう', start: addDays(mon, 28), end: addDays(mon, 45), hours: 6, target: '全員', goal: '', memo: '' },
     ];
-    const contents = {
-      u1: ['範読を聞いて、登場人物を確かめる', '「うんとこしょ どっこいしょ」を みんなで', '役に分かれて音読する', '音読はかせで 録音して ふりかえる'],
-      u2: ['えんぴつと クレヨンの 長さくらべ', 'はしを そろえて くらべる', 'テープで 長さを うつしとる'],
-      u3: ['秋みつけの めあてを 決める', '校庭で どんぐり・落ち葉を さがす', '見つけたものを 絵に かく'],
-      u4: ['「てつだってください」カードの 練習'],
+    // めあて・学習内容の 一覧（単元の 計画時数ぶん、流れを くり返して 入れる）
+    const phases = {
+      u1: [['お話の 登場人物を 確かめよう', '①範読を 聞く\n②登場人物を 絵カードで 確かめる'], ['声を そろえて 読もう', '①「うんとこしょ どっこいしょ」を みんなで\n②動作を つけて 読む'],
+        ['役に なりきって 読もう', '①役を 決める\n②役に 分かれて 音読する'], ['音読を ふりかえろう', '①音読はかせで 録音する\n②よかった ところを 伝え合う']],
+      u2: [['どちらが 長いか くらべよう', '①えんぴつと クレヨンの 長さくらべ\n②気づいたことを 発表する'], ['はしを そろえて くらべよう', '①はしを そろえる\n②2つの ものを くらべる'],
+        ['テープで 長さを うつそう', '①テープで 長さを うつしとる\n②うつした テープで くらべる']],
+      u3: [['秋みつけの めあてを 決めよう', '①秋の 写真を 見る\n②見つけたい ものを 決める'], ['校庭で 秋を さがそう', '①どんぐり・落ち葉を さがす\n②見つけた ものを 袋に 入れる'],
+        ['見つけた 秋を 絵に かこう', '①見つけた ものを 見ながら かく\n②友だちに 見せる']],
+      u4: [['「てつだってください」と 伝えよう', '①気持ちカードの 練習\n②ロールプレイ']],
     };
+    const lessonItems = [];
+    units.forEach((u) => { const ph = phases[u.id]; if (ph) for (let i = 0; i < (Number(u.hours) || ph.length); i++) lessonItems.push({ id: `li-${u.id}-${i + 1}`, subject: u.subject, unitId: u.id, no: i + 1, aim: ph[i % ph.length][0], content: ph[i % ph.length][1] }); });
+    lessonItems.push(
+      { id: 'li-nichi-1', subject: '日常生活の指導', unitId: '', no: 1, aim: '見通しを もって 1日を 始めよう', content: '①朝の会（日付・天気・きょうの 予定）\n②着がえ・持ち物の 整理' },
+      { id: 'li-nichi-2', subject: '日常生活の指導', unitId: '', no: 2, aim: '自分で 帰りの したくを しよう', content: '①連絡帳を 書く\n②帰りの会' });
     const weekly = [];
     const counter = {};
     for (let d = addDays(mon, -14); d <= addDays(mon, 4); d = addDays(d, 1)) {
       const w = dayOf(d);
       if (w === 0 || w === 6 || holiday(d)) continue;
       (tt[w] || []).forEach((s, i) => {
-        const u = units.find((x) => x.subject === s && x.start <= d && d <= x.end && contents[x.id]);
+        const u = units.find((x) => x.subject === s && x.start <= d && d <= x.end && phases[x.id]);
         if (!u) return;
         const n = counter[u.id] = (counter[u.id] || 0) + 1;
-        const list = contents[u.id];
-        weekly.push({ id: wkId(d, String(i + 1)), date: d, period: String(i + 1), subject: '', unitId: u.id, content: list[(n - 1) % list.length], note: '' });
+        const it = lessonItems.find((x) => x.unitId === u.id && x.no === n) || {};
+        weekly.push({ id: wkId(d, String(i + 1)), date: d, period: String(i + 1), subject: '', unitId: u.id, aim: it.aim || '', content: it.content || '', note: '' });
       });
     }
     // 予定は 土日・祝日を さけて 入れる
@@ -4731,7 +4984,7 @@
       { id: 'sd1', kind: '自分の授業', date: schoolDay(16), time: '3校時', teacher: '', room: '', subject: '生活単元学習', unitId: 'u3', title: '見つけた 秋を 友だちに 伝えよう', steps: '指導案 第一稿', aim: '校庭で 見つけた ものを、絵カードと ことばで 友だちに 伝える', flow: 'はじめの あいさつ・めあての 確認｜絵カードで 活動の 流れを 示す\n見つけた ものを 選ぶ｜写真を 2つから 選べるように する\n友だちに 伝える｜「◯◯を 見つけました」の 話型を 掲示\nふりかえり｜よかったことを 具体的に ほめる', feedback: '', reflect: '' },
       { id: 'sd2', kind: '参観', date: pastDay(7), time: '5校時', teacher: '森先生', room: '3年2組', subject: '国語', unitId: '', title: 'お気に入りの 本を しょうかいしよう', steps: '', aim: '', flow: '', feedback: '', reflect: 'めあてを 黒板の 同じ 場所に いつも 書いていて、見通しが もちやすい。ペアで 話す 前に 話型を 確認していた' },
     ];
-    return { settings: { className: 'ひまわり学級（サンプル）', standards: { '国語': 175, '算数': 175, '音楽': 70, '図工': 70, '体育': 105, '学級活動': 35, '自立活動': 70, '日常生活の指導': 175, '生活単元学習': 140 }, standardTotal: 1015 }, tables: { events, timetable, weekly, children, exchange, units, materials, tasks, duties, dutyItems, meetings, templates, notes, plans, goals, contacts, classes, handovers, staff, staffPlans, orgs, orgLogs, trainings, research, studies, subs } };
+    return { settings: { className: 'ひまわり学級（サンプル）', standards: { '国語': 175, '算数': 175, '音楽': 70, '図工': 70, '体育': 105, '学級活動': 35, '自立活動': 70, '日常生活の指導': 175, '生活単元学習': 140 }, standardTotal: 1015 }, tables: { events, timetable, weekly, children, exchange, units, materials, tasks, duties, dutyItems, meetings, templates, notes, plans, goals, contacts, lessonItems, classes, handovers, staff, staffPlans, orgs, orgLogs, trainings, research, studies, subs } };
   }
 
   boot();

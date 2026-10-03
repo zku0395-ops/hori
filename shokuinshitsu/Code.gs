@@ -41,7 +41,7 @@ const TABLES = {
   weekly: {
     sheet: '週案',
     cols: [['id', COL_ID], ['date', '日付', 'date'], ['period', '校時ID'], ['subject', '教科'], ['unitId', '単元ID'], ['content', '学習内容', 'long'], ['note', 'メモ・ふりかえり'],
-      ['hours', '時数', 'num'], ['subject2', '教科2'], ['hours2', '時数2', 'num']],
+      ['hours', '時数', 'num'], ['subject2', '教科2'], ['hours2', '時数2', 'num'], ['aim', 'めあて', 'long']],
   },
   // 日ごとの 情報（授業時数・週案簿の 備考など）
   days: {
@@ -65,6 +65,11 @@ const TABLES = {
   units: {
     sheet: '単元計画',
     cols: [['id', COL_ID], ['subject', '教科'], ['name', '単元名'], ['start', 'はじめ', 'date'], ['end', 'おわり', 'date'], ['hours', '計画時数', 'num'], ['target', '対象'], ['goal', 'ねらい'], ['memo', 'メモ']],
+  },
+  // 教科・単元ごとの めあてと 学習内容（週案で 選んで 使う）
+  lessonItems: {
+    sheet: 'めあて・学習内容の一覧',
+    cols: [['id', COL_ID], ['subject', '教科'], ['unitId', '単元ID'], ['no', '時', 'num'], ['aim', 'めあて', 'long'], ['content', '学習内容', 'long']],
   },
   materials: {
     sheet: '教材',
