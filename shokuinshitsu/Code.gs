@@ -41,7 +41,7 @@ const TABLES = {
   weekly: {
     sheet: '週案',
     cols: [['id', COL_ID], ['date', '日付', 'date'], ['period', '校時ID'], ['subject', '教科'], ['unitId', '単元ID'], ['content', '学習内容', 'long'], ['note', 'メモ・ふりかえり'],
-      ['hours', '時数', 'num'], ['subject2', '教科2'], ['hours2', '時数2', 'num'], ['aim', 'めあて', 'long']],
+      ['hours', '時数', 'num'], ['subject2', '教科2'], ['hours2', '時数2', 'num'], ['aim', 'めあて', 'long'], ['head', '1行目', 'long']],
   },
   // 日ごとの 情報（授業時数・週案簿の 備考など）
   days: {
@@ -69,7 +69,13 @@ const TABLES = {
   // 教科・単元ごとの めあてと 学習内容（週案で 選んで 使う）
   lessonItems: {
     sheet: 'めあて・学習内容の一覧',
-    cols: [['id', COL_ID], ['subject', '教科'], ['unitId', '単元ID'], ['no', '時', 'num'], ['aim', 'めあて', 'long'], ['content', '学習内容', 'long']],
+    cols: [['id', COL_ID], ['subject', '教科'], ['unitId', '単元ID'], ['no', '時', 'num'], ['aim', 'めあて', 'long'], ['content', '学習内容', 'long'], ['head', '1行目']],
+  },
+  // スモールステップの 段階表（シートを 作る ときに、app.html の はじめの 内容を 入れる）
+  steps: {
+    sheet: '段階表',
+    cols: [['id', COL_ID], ['subject', '教科'], ['stage', '段階'], ['area', '領域'], ['no', '並び順', 'num'], ['aim', 'めあて', 'long'], ['content', '学習内容', 'long']],
+    seed: function () { return stepDefaults_(); },
   },
   materials: {
     sheet: '教材',
@@ -323,6 +329,14 @@ function weeklyDraftJob(force) {
   });
 }
 
+// 段階表の はじめの 内容（app.html の「段階表ここから」〜「段階表ここまで」）
+function stepDefaults_() {
+  const html = HtmlService.createHtmlOutputFromFile('app').getContent();
+  const m = html.match(/\/\* 段階表ここから \*\/([\s\S]*?)\/\* 段階表ここまで \*\//);
+  if (!m) return [];
+  return new Function(m[1] + '\nreturn stepRows();')();
+}
+
 // app.html の「共通ここから」〜「共通ここまで」を 読みこんで、画面と 同じ 計算を 使う
 function shared_(T, S) {
   const html = HtmlService.createHtmlOutputFromFile('app').getContent();
@@ -517,7 +531,7 @@ function tableSheet_(kind) {
     sh = ss.insertSheet(t.sheet);
     sh.getRange(1, 1, 1, labels.length).setValues([labels]).setFontWeight('bold').setBackground(HEADER_BG);
     sh.setFrozenRows(1);
-    if (t.seed) writeTable_(kind, t.seed);
+    if (t.seed) writeTable_(kind, typeof t.seed === 'function' ? t.seed() : t.seed);
     return sh;
   }
   const width = Math.max(sh.getLastColumn(), 1);

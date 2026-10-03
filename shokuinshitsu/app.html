@@ -237,6 +237,22 @@
     /* 学習の 部屋 */
     .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
     .cards.wide { grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); }
+    /* 段階表 */
+    .steps-table { min-width: 900px; table-layout: fixed; }
+    .steps-table th:first-child { width: 7.5em; }
+    .steps-table td { vertical-align: top; }
+    .stp { display: block; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 8px; padding: 4px 6px; margin-bottom: 4px; cursor: pointer; font: inherit; font-size: 13px; line-height: 1.45; }
+    .stp:hover, .stp:focus-visible { border-color: var(--today-line); }
+    .stp b { display: block; }
+    .stp small { color: var(--sub); font-size: 12px; }
+    .stp-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 6px; }
+    .stp-pick-list { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+    .stp-pick { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; border: 1px solid var(--line); background: var(--card); border-radius: 8px; padding: 5px 8px; font-size: 14px; }
+    .stp-pick .stp-txt { flex: 1 1 220px; min-width: 0; }
+    .stp-pick .stp-btns { display: flex; gap: 4px; margin-left: auto; }
+    .stp-pick .btn.picked { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary); }
+    .head-line { font-size: 12px; color: var(--sub); }
+    @media print { .steps-table { min-width: 0; } .stp { border: 0; padding: 0 0 4px; } }
     /* めあて・学習内容の 一覧 */
     .aim { font-weight: 700; }
     .cell .aim { font-size: 12px; margin-top: 2px; }
@@ -432,7 +448,7 @@
      決まりごと
      ========================================================= */
   /* 共通ここから */
-  const KINDS = ['events', 'timetable', 'weekly', 'children', 'exchange', 'units', 'materials', 'tasks', 'duties', 'dutyItems', 'meetings', 'templates', 'days', 'weeks', 'notes', 'plans', 'goals', 'contacts', 'lessonItems', 'classes', 'handovers', 'staff', 'staffPlans', 'orgs', 'orgLogs', 'trainings', 'research', 'studies', 'subs'];
+  const KINDS = ['events', 'timetable', 'weekly', 'children', 'exchange', 'units', 'materials', 'tasks', 'duties', 'dutyItems', 'meetings', 'templates', 'days', 'weeks', 'notes', 'plans', 'goals', 'contacts', 'lessonItems', 'steps', 'classes', 'handovers', 'staff', 'staffPlans', 'orgs', 'orgLogs', 'trainings', 'research', 'studies', 'subs'];
   const DAYS = [1, 2, 3, 4, 5]; // 月〜金
   const WD = ['日', '月', '火', '水', '木', '金', '土'];
   const KYUGYO = '休業日';
@@ -595,7 +611,7 @@
     planTerm: '', noteKid: '', noteTag: '', noteTerm: 'term', noteQ: '', lastTag: '', contactKid: '',
     meetQ: '', meetKind: '',
     renkeiWeek: mondayOf(today()), hoRoom: '', staffDate: '', staffId: '', orgId: '',
-    kenNendo: 0, trainKind: '', shidoanAnon: false, subsCare: true, itemSubj: '',
+    kenNendo: 0, trainKind: '', shidoanAnon: false, subsCare: true, itemSubj: '', stepSubj: '', stepStage: '', stepPick: {},
     periodsDraft: null,
   };
 
@@ -741,7 +757,7 @@
     const hours2 = subject2 && Number(w.hours2) > 0 ? Number(w.hours2) : 0;
     const unit = w && w.unitId ? get('units', w.unitId) : null;
     const noClass = !subject && !subject2 && (fixed || beyond || (w && w.subject === NONE));
-    return { w, base, subject, hours, subject2, hours2, unit, noClass, content: w ? w.content : '', note: w ? w.note : '', aim: w ? w.aim || '' : '' };
+    return { w, base, subject, hours, subject2, hours2, unit, noClass, content: w ? w.content : '', note: w ? w.note : '', aim: w ? w.aim || '' : '', head: w ? w.head || '' : '' };
   }
   // 時数の 表示（⅓・⅔ を 分数で）
   function fmtH(x) {
@@ -880,7 +896,7 @@
     if (room.soon) return viewSoon(room);
     switch (room.id) {
       case 'yotei': return subtabs('yotei', [['week', '📝 週案'], ['hours', '⏱ 時数'], ['month', '🗓 月の予定'], ['timetable', '🕘 基本の時間割'], ['koryu', '🚶 交流学級']]) + ({ week: viewWeek, hours: viewHours, month: viewMonth, timetable: viewTimetable, koryu: viewKoryu })[view.tab.yotei]();
-      case 'gakushu': return subtabs('gakushu', [['units', '📘 単元計画'], ['items', '📋 めあて・学習内容'], ['materials', '🧰 教材の置き場']]) + ({ units: viewUnits, items: viewItems, materials: viewMaterials })[view.tab.gakushu]();
+      case 'gakushu': return subtabs('gakushu', [['units', '📘 単元計画'], ['items', '📋 めあて・学習内容'], ['steps', '🪜 段階表'], ['materials', '🧰 教材の置き場']]) + ({ units: viewUnits, items: viewItems, steps: viewSteps, materials: viewMaterials })[view.tab.gakushu]();
       case 'kodomo': return viewKodomo();
       case 'renkei': return viewRenkei();
       case 'kenkyu': return viewKenkyu();
@@ -1265,6 +1281,7 @@
       return `<li><div class="pname">${esc(p.name)}<span class="ptime">${esc(p.start)}〜${esc(p.end)}</span></div>
         <div class="what">${L.subject ? chip(L.subject) : '<span class="muted">（なし）</span>'}${L.subject2 ? ' ＋ ' + chip(L.subject2) : ''}
           ${L.unit ? `<span class="muted" style="font-size:13px">📘 ${esc(L.unit.name)}</span>` : ''}
+          ${L.head ? `<div class="content head-line">${nl(L.head)}</div>` : ''}
           ${L.aim ? `<div class="content aim">${esc(S.aimMark || '○')}${esc(L.aim)}</div>` : ''}
           ${L.content ? `<div class="content">${nl(L.content)}</div>` : ''}
           ${L.note ? `<div class="content">📝 ${nl(L.note)}</div>` : ''}
@@ -1470,6 +1487,7 @@
       ${L.subject ? chip(L.subject) + hrs(L.hours) : ''}${L.subject2 ? `<span class="plus">＋</span>${chip(L.subject2)}${hrs(L.hours2)}` : ''}
       ${!L.subject && !L.subject2 ? (L.noClass ? '<span class="dash">—</span>' : '<span class="empty noprint">＋</span>') : ''}
       ${L.unit ? `<div class="unit">📘 ${esc(L.unit.name)}</div>` : ''}
+      ${L.head ? `<div class="head-line">${nl(L.head)}</div>` : ''}
       ${L.aim ? `<div class="aim">${esc(S.aimMark || '○')}${esc(L.aim)}</div>` : ''}
       ${L.content ? `<div class="content">${nl(L.content)}</div>` : ''}
       ${L.note ? `<div class="note">📝 ${nl(L.note)}</div>` : ''}
@@ -1505,6 +1523,8 @@
         </div>
         <label class="field">① 単元 <select name="unitId" data-chg="lessonUnit">${unitOptions(effective, date, unitId)}</select></label>
         <details class="picker" open><summary>📋 一覧から 選ぶ（単元・めあて・学習内容が 入ります）</summary><div id="lesson-pick">${lessonPicker(effective, date, pid, unitId)}</div></details>
+        <details class="picker"><summary>🪜 段階表から 選ぶ（スモールステップ）</summary><div id="step-pick">${effective ? stepPicker(effective) : '<p class="hint">教科を 選ぶと、段階表が 出ます。</p>'}</div></details>
+        <label class="field">1行目（週案簿の 1行目：学習形態・場所など。空なら 単元名） <input name="head" maxlength="100" value="${esc(w.head)}" placeholder="例：体育館で（2グループ）"></label>
         <label class="field">② めあて <input name="aim" maxlength="300" value="${esc(w.aim)}" placeholder="例：はしを そろえて 長さを くらべよう"></label>
         <label class="field">③ 学習内容 <textarea name="content" rows="4" maxlength="4000" placeholder="例：①えんぴつの 長さくらべ&#10;②テープで 長さを うつしとる">${esc(w.content)}</textarea></label>
         <label class="check" style="font-weight:400"><input type="checkbox" name="addItem"> この めあて・学習内容を 一覧にも 入れる</label>
@@ -1515,13 +1535,13 @@
       deleteLabel: w.id ? 'この時間の書きこみを消す' : '',
       onDelete: () => removeRecs('weekly', id),
       onSave: (f) => {
-        const rec = { id, date, period: pid, subject: f.subject, unitId: f.unitId, aim: f.aim.trim(), content: f.content.trim(), note: f.note.trim(),
+        const rec = { id, date, period: pid, subject: f.subject, unitId: f.unitId, head: f.head.trim(), aim: f.aim.trim(), content: f.content.trim(), note: f.note.trim(),
           hours: f.hours === '' ? '' : Number(f.hours), subject2: f.subject2, hours2: f.subject2 ? Number(f.hours2) : '' };
-        if (!rec.subject && !rec.unitId && !rec.aim && !rec.content && !rec.note && !rec.subject2 && rec.hours === '') { if (w.id) removeRecs('weekly', id); else render(); return; }
+        if (!rec.subject && !rec.unitId && !rec.head && !rec.aim && !rec.content && !rec.note && !rec.subject2 && rec.hours === '') { if (w.id) removeRecs('weekly', id); else render(); return; }
         // 一覧にも 入れる（同じ ものが なければ）
         const subj = f.subject === NONE ? '' : (f.subject || baseSubj);
         if (f.addItem && subj && (rec.aim || rec.content) && !list('lessonItems').some((x) => (x.unitId || '') === rec.unitId && x.aim === rec.aim && x.content === rec.content)) {
-          putRecs('lessonItems', { id: uid('li'), subject: subj, unitId: rec.unitId, no: nextItemNo(subj, rec.unitId), aim: rec.aim, content: rec.content }, { render: false });
+          putRecs('lessonItems', { id: uid('li'), subject: subj, unitId: rec.unitId, no: nextItemNo(subj, rec.unitId), head: rec.head, aim: rec.aim, content: rec.content }, { render: false });
         }
         putRecs('weekly', rec);
       },
@@ -1831,32 +1851,337 @@
       ${u.goal ? `<p class="goal">🎯 ${nl(u.goal)}</p>` : ''}</article>`;
   }
 
+  /* 段階表ここから */
+  // スモールステップの 段階表（はじめに 入れておく 内容）。学習指導要領（平成29年告示）の 内容を もとに、1時間で 扱える 大きさに 分けた 目安。
+  // 1段階〜3段階：特別支援学校（知的障害）小学部の 段階。小1〜小3：小学校の 学年の 内容。ステップ1〜3：教科の 段階の ない 指導の 目安
+  // [段階, 領域, [[めあて, 学習内容], …]]
+  const STEP_DEFAULT = {
+    ko: ['国語', [
+      ['1段階', '聞くこと・話すこと', [['先生の声に気付こう', '名前を呼ばれたら顔を向けたり、手を挙げたりする'], ['読み聞かせを楽しもう', '繰り返しのある絵本を聞き、声や身振りで応じる'], ['「ちょうだい」を伝えよう', '欲しい物を指さし・身振り・声で伝える']]],
+      ['1段階', '書くこと', [['いろいろな筆記具にふれよう', 'クレヨンや太いペンを握り、紙に自由に線をかく'], ['なぐりがきを楽しもう', '線や点を思いのままにかき、かいた跡に気付く']]],
+      ['1段階', '読むこと', [['絵本を一緒に見よう', '教師と一緒に絵本を見て、指さされた物に注目する'], ['同じ絵を見付けよう', '実物と写真・絵カードを合わせる']]],
+      ['1段階', '言葉', [['身近な物の名前を知ろう', '実物を見ながら名前を聞き、まねして言う']]],
+      ['2段階', '聞くこと・話すこと', [['話を聞いて動こう', '「〜を持ってきて」など簡単な指示を聞いて行動する'], ['あいさつをしよう', '場面に合ったあいさつ（おはよう・ありがとう）を言う'], ['見た物の名前を言おう', '絵カードを見て、物の名前を言う']]],
+      ['2段階', '書くこと', [['線をなぞろう', '直線・曲線・ジグザグの線をなぞる'], ['形をなぞろう', '〇・△・□をなぞったり写したりする'], ['名前をなぞろう', '自分の名前の文字を指や鉛筆でなぞる']]],
+      ['2段階', '読むこと', [['絵と言葉を合わせよう', '絵カードと文字カード（単語）を合わせる'], ['お話に出てくる物を見付けよう', '読み聞かせを聞いて、出てきた物を指さしたり答えたりする']]],
+      ['2段階', '言葉', [['仲間の言葉を集めよう', 'くだもの・動物など、仲間の言葉を集める'], ['身の回りの文字に気付こう', '名前や表示など、身の回りの文字を見付ける']]],
+      ['3段階', '聞くこと・話すこと', [['したことを話そう', '写真を見ながら「いつ・どこで・なにをした」を話す'], ['質問に答えよう', '「だれ」「なに」の質問に二語文で答える']]],
+      ['3段階', '書くこと', [['ひらがなを書こう', '清音を手本を見て、筆順に気を付けて書く'], ['自分の名前を書こう', '手本を見て自分の名前を書く'], ['言葉を書こう', '絵に合う2〜3文字の言葉を書く']]],
+      ['3段階', '読むこと', [['ひらがなを読もう', '清音を一文字ずつ読み、言葉として読む'], ['短い文を読もう', '「〇〇が △△する」の文を読み、絵と合わせる']]],
+      ['3段階', '言葉', [['音の数を数えよう', '言葉を手をたたいて音に分ける（り・ん・ご）'], ['しりとりをしよう', '言葉のはじめと終わりの音に気付き、しりとりをする']]],
+      ['小1', '聞くこと・話すこと', [['順番に話そう', '「はじめに・つぎに・さいごに」を使って話す'], ['話す人を見て聞こう', '話す人の方を見て聞き、内容を確かめる']]],
+      ['小1', '書くこと', [['濁音・半濁音・拗音を書こう', '「が・ぱ・きゃ」などを正しく書く'], ['カタカナを書こう', 'カタカナを読み書きし、カタカナで書く言葉を知る'], ['文を書こう', '主語と述語のある文を書き、句点・読点を付ける'], ['絵日記を書こう', '経験したことを絵と短い文で書く']]],
+      ['小1', '読むこと', [['音読しよう', 'はっきりした声で、言葉のまとまりで区切って読む'], ['お話の順番を確かめよう', '場面の様子や出来事の順番を、絵と合わせて確かめる']]],
+      ['小1', '言葉', [['1年の漢字を覚えよう', '1年の配当漢字を読み、書く'], ['「は・を・へ」を使おう', '助詞の「は・を・へ」を正しく使って文を書く']]],
+      ['小2', '聞くこと・話すこと', [['友達の話に質問しよう', '話の中心に気を付けて聞き、質問や感想を言う'], ['声の大きさを考えて話そう', '相手や場に合わせた声の大きさで話す']]],
+      ['小2', '書くこと', [['順序を考えて書こう', '観察したことや経験したことを、順序よく書く'], ['手紙を書こう', '相手に伝えたいことを考えて、短い手紙を書く']]],
+      ['小2', '読むこと', [['説明文を読もう', '時間や事柄の順序を考えて、内容をとらえる'], ['登場人物のしたことを読もう', '場面の様子や人物の行動を想像して読む']]],
+      ['小2', '言葉', [['2年の漢字を覚えよう', '2年の配当漢字を読み書きし、文の中で使う'], ['かぎ（「」）を使おう', '会話の文にかぎを付けて書く']]],
+      ['小3', '聞くこと・話すこと', [['話の中心が分かるように話そう', '理由や例を挙げて、話の中心が分かるように話す'], ['話し合いをしよう', '司会や記録の役割を決めて話し合う']]],
+      ['小3', '書くこと', [['段落を考えて書こう', '「はじめ・中・終わり」の組み立てで書く'], ['ローマ字を書こう', '身近な言葉をローマ字で読み書きする']]],
+      ['小3', '読むこと', [['段落の要点をまとめよう', '段落ごとの要点をとらえ、考えと例を区別する'], ['登場人物の気持ちを読もう', '行動や会話から、気持ちの変化を想像する']]],
+      ['小3', '言葉', [['3年の漢字を覚えよう', '3年の配当漢字を読み書きし、文の中で使う'], ['国語辞典を使おう', '辞典の引き方を知り、言葉の意味を調べる'], ['こそあど言葉・つなぎ言葉を使おう', '指示語や接続語の働きを知り、文の中で使う']]],
+    ]],
+    sa: ['算数', [
+      ['1段階', '数量の基礎', [['あるかないか気付こう', '目の前で隠した物を探して見付ける'], ['同じ物を集めよう', '同じ色・同じ形の物を集める'], ['1つずつ配ろう', '皿に1つずつ物をのせる（1対1対応）']]],
+      ['1段階', '数と計算', [['「1つ」と「たくさん」を知ろう', '1つとたくさんを比べ、指さしや言葉で選ぶ'], ['3までの数に親しもう', '歌や手遊びで1〜3を唱え、物を数える']]],
+      ['1段階', '図形', [['形に気付こう', '型はめパズルで〇・△・□をはめる']]],
+      ['1段階', '測定', [['大きい・小さいを比べよう', '2つの物から大きい方・小さい方を選ぶ']]],
+      ['2段階', '数と計算', [['10まで数えよう', '具体物を1つずつ指さしながら10まで数える'], ['数字を読もう', '1〜10の数字を読み、数と数字を合わせる'], ['数字を書こう', '1〜10の数字をなぞって書く'], ['どちらが多いか比べよう', '2つの集まりを1対1で対応させて、多い・少ないを比べる'], ['0を知ろう', '何もないことを「0（れい）」と表す']]],
+      ['2段階', '図形', [['色や形で分けよう', '色・形・大きさの違いで分ける'], ['形を作ろう', '積み木や色板で形を作る']]],
+      ['2段階', '測定', [['長い・短いを比べよう', '2本のひもを、端をそろえて比べる'], ['重い・軽いを比べよう', '両手に持って重さを比べる']]],
+      ['2段階', 'データの活用', [['仲間に分けよう', '身近な物を仲間ごとに分けて並べる']]],
+      ['3段階', '数と計算', [['10はいくつといくつ', '10の合成・分解をブロックで表す'], ['たし算をしよう（10まで）', '合わせる・増える場面をブロックで操作し、式に表す'], ['ひき算をしよう（10まで）', '残りや違いを求める場面を操作し、式に表す'], ['20まで数えよう', '10のまとまりを作って20まで数える']]],
+      ['3段階', '図形', [['まる・さんかく・しかくを見付けよう', '身の回りから〇△□の形を見付ける'], ['前・後ろ・上・下を言おう', '位置を表す言葉を使って、物の場所を言う']]],
+      ['3段階', '測定', [['長さやかさを比べよう', '直接比べたり、同じ物のいくつ分かで比べたりする'], ['時計を読もう（何時）', '時計の短い針を見て、何時かを読む']]],
+      ['3段階', 'データの活用', [['絵グラフに表そう', '好きな果物などを絵カードで並べて、数を比べる']]],
+      ['小1', '数と計算', [['100までの数を知ろう', '10のまとまりを使って数え、数の並びや大小を調べる'], ['くり上がりのあるたし算をしよう', '10のまとまりを作る方法で計算する'], ['くり下がりのあるひき算をしよう', '10から引く方法などで計算する'], ['3つの数の計算をしよう', '3つの数のたし算・ひき算をする']]],
+      ['小1', '図形', [['いろいろな形を作ろう', '箱や色板で形を作ったり分けたりする']]],
+      ['小1', '測定', [['いくつ分で長さを比べよう', '消しゴムなどのいくつ分かで長さを比べる'], ['何時何分を読もう', '時計の長い針と短い針を読み、何時何分を言う']]],
+      ['小1', 'データの活用', [['数を整理しよう', '物の個数を絵や図に整理して比べる']]],
+      ['小2', '数と計算', [['1000までの数を知ろう', '100のまとまりを使って数を表し、大小を比べる'], ['たし算・ひき算の筆算をしよう', '2けたのたし算・ひき算を筆算で計算する'], ['九九を覚えよう', 'かけ算の意味を知り、九九を唱えて使う'], ['分数を知ろう', '紙を折って、1/2・1/4の大きさを確かめる']]],
+      ['小2', '図形', [['三角形と四角形を調べよう', '辺や頂点の数で、三角形と四角形を分ける'], ['長方形・正方形をかこう', '直角に気を付けて、方眼に長方形・正方形をかく']]],
+      ['小2', '測定', [['ものさしで長さを測ろう', 'cm・mmの単位を知り、ものさしで測る'], ['かさを測ろう', 'L・dL・mLの単位を知り、かさを測る'], ['時間を調べよう', '1時間＝60分を知り、かかった時間を求める']]],
+      ['小2', 'データの活用', [['表とグラフに表そう', '身近な数を簡単な表や〇のグラフに表す']]],
+      ['小3', '数と計算', [['大きな数を知ろう', '万の位までの数の読み書きと仕組みを調べる'], ['わり算をしよう', '同じ数ずつ分ける・何人に分けられるかを式に表す'], ['かけ算の筆算をしよう', '2けた・3けた×1けたの筆算をする'], ['小数・分数を知ろう', '1/10の位の小数や簡単な分数で表す']]],
+      ['小3', '図形', [['円と球を調べよう', '中心・半径・直径を知り、コンパスで円をかく'], ['二等辺三角形・正三角形を調べよう', '辺の長さに目を付けて三角形を分ける']]],
+      ['小3', '測定', [['重さを測ろう', 'g・kgの単位を知り、はかりで測る'], ['長い長さを測ろう', 'km・mの単位と巻き尺の使い方を知る'], ['時刻と時間を求めよう', 'ある時刻から何分後の時刻などを求める']]],
+      ['小3', 'データの活用', [['棒グラフに表そう', '調べたことを分類整理して、表や棒グラフに表して読む']]],
+    ]],
+    ta: ['体育', [
+      ['1段階', '体つくり', [['先生と一緒に体を動かそう', '音楽に合わせて手足を動かしたり、揺れたりする']]],
+      ['1段階', '器械・器具', [['遊具で遊ぼう', '滑り台やブランコなどの遊具に、教師と一緒に乗る']]],
+      ['1段階', '走・跳', [['歩こう・走ろう', '目印に向かって歩いたり走ったりする']]],
+      ['1段階', '水遊び', [['水にふれて遊ぼう', '水をすくう・かける・水の中を歩く']]],
+      ['1段階', 'ボール・ゲーム', [['ボールにふれよう', '大きなボールを転がしたり、受け止めたりする']]],
+      ['1段階', '表現', [['まねっこをしよう', '動物の動きなどを、教師のまねをして表す']]],
+      ['2段階', '体つくり', [['いろいろな動きをしよう', 'くぐる・またぐ・はう・転がるの動きをする']]],
+      ['2段階', '器械・器具', [['マットで転がろう', 'マットの上で横転がりやゆりかごをする'], ['平均台を渡ろう', '低い平均台を、手を添えてもらって渡る']]],
+      ['2段階', '走・跳', [['合図でスタートしよう', '笛の合図で、決められた所まで走る'], ['両足で跳ぼう', '輪（ケンステップ）を両足跳びで進む']]],
+      ['2段階', '水遊び', [['顔に水をつけよう', '水をかけ合ったり、顔を水につけたりする']]],
+      ['2段階', 'ボール・ゲーム', [['ボールを投げよう・捕ろう', '的に向かって投げる、転がってきたボールを捕る']]],
+      ['2段階', '表現', [['リズムに合わせて動こう', '太鼓のリズムに合わせて歩いたり止まったりする']]],
+      ['3段階', '体つくり', [['準備運動をしよう', '準備運動の動きを順番に行う']]],
+      ['3段階', '器械・器具', [['前転がりをしよう', '坂道マットで前転がりをする'], ['鉄棒にぶら下がろう', '鉄棒にぶら下がったり、跳び上がったりする']]],
+      ['3段階', '走・跳', [['リレーをしよう', 'バトンを受け取って走り、次の人に渡す'], ['ケンケンをしよう', '片足跳びで線の上を進む']]],
+      ['3段階', '水遊び', [['もぐろう・浮こう', '水中で息を止めたり、補助具を使って浮いたりする']]],
+      ['3段階', 'ボール・ゲーム', [['ルールを守ってゲームをしよう', '玉入れや的当てなどの簡単なルールを守って遊ぶ']]],
+      ['3段階', '表現', [['ダンスを楽しもう', '簡単な振り付けを覚えて、音楽に合わせて踊る']]],
+      ['3段階', '保健', [['手洗い・うがいをしよう', '運動の後に、手洗い・うがい・汗ふきをする']]],
+      ['小1・2', '体つくり', [['体ほぐしの運動をしよう', '友達と手をつなぐ・押し合うなど、体を動かす楽しさを味わう'], ['なわとびをしよう', '短なわで前回し跳びをする']]],
+      ['小1・2', '器械・器具', [['マット遊びをしよう', '前転がり・後ろ転がり・壁倒立の遊びをする'], ['跳び箱遊びをしよう', '踏み越し跳びやまたぎ乗りをする'], ['鉄棒遊びをしよう', 'ツバメ・前回り下り・布団干しをする']]],
+      ['小1・2', '走・跳', [['かけっこ・リレーをしよう', 'いろいろな形のコースを走り、リレーをする'], ['跳ぶ遊びをしよう', '幅跳び遊びやゴム跳び遊びをする']]],
+      ['小1・2', '水遊び', [['水遊びをしよう', 'もぐる・浮く・息をはく（バブリング）']]],
+      ['小1・2', 'ボール・ゲーム', [['ボールゲームをしよう', '簡単なボール操作で、シュートゲームや的当てをする'], ['鬼遊びをしよう', '逃げる・追いかける・陣地を取り合う']]],
+      ['小1・2', '表現', [['表現リズム遊びをしよう', '身近な題材の特徴をとらえて、全身で表す']]],
+      ['小3', '体つくり', [['いろいろな動きを組み合わせよう', 'バランス・移動・用具の操作の動きを組み合わせる']]],
+      ['小3', '器械・器具', [['マット運動をしよう', '前転・後転・開脚前転に取り組む'], ['跳び箱運動をしよう', '開脚跳びに取り組む'], ['鉄棒運動をしよう', '補助逆上がりや膝掛け振り上がりに取り組む']]],
+      ['小3', '走・跳', [['小型ハードル走をしよう', '一定のリズムでハードルを走り越える'], ['幅跳び・高跳びをしよう', '助走をつけて、片足で踏み切って跳ぶ']]],
+      ['小3', '水遊び', [['浮いて進もう', 'け伸びやばた足で、浮いて進む']]],
+      ['小3', 'ボール・ゲーム', [['ゴール型ゲームをしよう', 'パスをつないで、ゴールに向かう'], ['ネット型ゲームをしよう', '風船やソフトバレーボールを相手のコートに返す']]],
+      ['小3', '表現', [['表現運動をしよう', '題材の特徴をとらえて、ひと流れの動きで踊る']]],
+      ['小3', '保健', [['健康な生活を考えよう', '1日の生活のリズムや体の清潔について考える']]],
+    ]],
+    zu: ['図工', [
+      ['1段階', '造形遊び', [['いろいろな材料にふれよう', '砂・粘土・紙・水などにふれて、感触を楽しむ'], ['紙をちぎろう', '新聞紙を破る・ちぎる・丸める']]],
+      ['1段階', '絵・立体・工作', [['手形・足形をとろう', '絵の具を手や足に付けて、紙に押す'], ['シールを貼ろう', '大きなシールを台紙に貼る']]],
+      ['1段階', '鑑賞', [['色や光を見よう', 'ライトや色水などの、色の変化を見る']]],
+      ['2段階', '造形遊び', [['並べて遊ぼう', '積み木・カップ・ペットボトルのふたを並べたり積んだりする']]],
+      ['2段階', '絵・立体・工作', [['クレヨンでかこう', '好きな色を選んで、クレヨンでかく'], ['のりで貼ろう', 'のりを指で付けて紙を貼る'], ['はさみで切ろう（1回切り）', '細長い紙を、はさみで1回で切る'], ['粘土で形を作ろう', '粘土を丸める・伸ばす・ちぎる']]],
+      ['2段階', '鑑賞', [['できた作品を見よう', '自分の作品を指さしたり、友達の作品を見たりする']]],
+      ['3段階', '造形遊び', [['つないで遊ぼう', '紙テープやモールをつないで長くする']]],
+      ['3段階', '絵・立体・工作', [['線に沿って切ろう', '直線や曲線に沿って、はさみで切る'], ['絵の具でかこう', '筆に絵の具を付けて、塗ったりかいたりする'], ['したことを絵にかこう', '経験したことを思い出して絵にかく'], ['箱で作ろう', '空き箱を組み合わせて、テープで留める']]],
+      ['3段階', '鑑賞', [['作品のよいところを見付けよう', '友達の作品の好きなところを伝える']]],
+      ['小1・2', '造形遊び', [['並べたりつないだりしよう', '身近な材料の形や色から、思い付いた遊びをする']]],
+      ['小1・2', '絵・立体・工作', [['想像したことを絵にかこう', 'クレヨンやパスで、お話や想像したことをかく'], ['紙で工作しよう', 'はさみやのりを使って、切る・折る・貼るで作る'], ['粘土で作ろう', '粘土の形を変えながら、作りたいものを作る'], ['写して遊ぼう', '身近な物に絵の具を付けて写す（スタンピング）']]],
+      ['小1・2', '鑑賞', [['友達の作品を見よう', '形や色の面白さ・楽しさを感じ取って伝える']]],
+      ['小3', '造形遊び', [['組み合わせて作ろう', '材料の組み合わせ方を工夫して造形遊びをする']]],
+      ['小3', '絵・立体・工作', [['水彩絵の具でかこう', '水の量を加減して色を混ぜ、塗る'], ['木で工作しよう', 'のこぎりや金づちを使って、木切れを組み合わせる'], ['動くおもちゃを作ろう', '仕組みを考えて、動く・飛び出す工作をする']]],
+      ['小3', '鑑賞', [['作品のよさを話し合おう', '表し方の工夫や感じたことを、友達と話し合う']]],
+    ]],
+    on: ['音楽', [
+      ['1段階', '音楽遊び・鑑賞', [['音や音楽を聴こう', '身近な音や音楽に気付き、音のする方に顔を向ける'], ['楽器にふれよう', '鈴や太鼓を振ったりたたいたりして音を出す'], ['音楽に合わせて体を揺らそう', '教師と一緒に、音楽に合わせて体を動かす']]],
+      ['2段階', '歌唱', [['まねして歌おう', '教師の歌に合わせて、一部分を歌ったり声を出したりする']]],
+      ['2段階', '器楽', [['合図で鳴らそう', '合図に合わせて、打楽器を鳴らしたり止めたりする']]],
+      ['2段階', '身体表現', [['速い・遅いを感じよう', '曲の速さに合わせて歩いたり走ったりする']]],
+      ['2段階', '鑑賞', [['好きな曲を聴こう', '聴いた曲の感じを、表情や身振りで表す']]],
+      ['3段階', '歌唱', [['みんなで歌おう', '簡単な歌を、友達と一緒に歌う']]],
+      ['3段階', '器楽', [['リズム打ちをしよう', '簡単なリズムを手拍子や打楽器で打つ'], ['鍵盤ハーモニカを吹こう', 'ドレミの音を鍵盤ハーモニカで吹く']]],
+      ['3段階', '音楽づくり', [['音楽をつくろう', '声や楽器で、強い・弱いなどの音を選んでつなげる']]],
+      ['3段階', '鑑賞', [['曲の感じを聴き取ろう', '曲を聴いて、楽しい・静かなどの感じを伝える']]],
+    ]],
+    se: ['生活', [
+      ['1段階', '基本的生活習慣', [['手を洗おう', '教師と一緒に手を洗い、タオルでふく']]],
+      ['1段階', '人との関わり', [['あいさつをしよう', '身近な人に、身振りや声であいさつする']]],
+      ['1段階', '生命・自然', [['身近な自然にふれよう', '花や虫などを見たり触ったりする']]],
+      ['1段階', '日課・予定', [['予定を見よう', '写真や絵カードの予定を、教師と一緒に見る']]],
+      ['2段階', '基本的生活習慣', [['自分で着替えよう', '手順表を見ながら、服を脱いだり着たりする']]],
+      ['2段階', '安全', [['危ない所を知ろう', '道路や階段など、危ない場所での行動を知る']]],
+      ['2段階', '役割', [['係の仕事をしよう', '簡単な係の仕事を、教師と一緒に行う']]],
+      ['2段階', '生命・自然', [['植物を育てよう', '水やりをして、植物の育ちを観察する']]],
+      ['2段階', '人との関わり', [['友達と遊ぼう', '友達と一緒に、遊具やおもちゃで遊ぶ']]],
+      ['3段階', '基本的生活習慣', [['身の回りを整えよう', '持ち物の整理整頓を自分でする']]],
+      ['3段階', '金銭', [['お金を使ってみよう', '買い物ごっこで硬貨を使う']]],
+      ['3段階', '社会の仕組みと公共施設', [['公共の施設を使おう', '図書館や公園の使い方・きまりを知る']]],
+      ['3段階', '生命・自然', [['季節の変化を感じよう', '季節の行事や自然の変化に気付く']]],
+      ['3段階', '役割', [['家の手伝いをしよう', '自分ができる手伝いを考えて行う']]],
+      ['3段階', 'ものの仕組みと働き', [['おもちゃの仕組みを調べよう', 'おもちゃや道具の動く仕組みを試す']]],
+    ]],
+    ji: ['自立活動', [
+      ['ステップ1', '健康の保持', [['生活のリズムを整えよう', '起きる・寝る・食事の時間を、絵カードで確かめる']]],
+      ['ステップ1', '心理的な安定', [['気持ちを落ち着けよう', '落ち着く場所や物を使って、気持ちを整える']]],
+      ['ステップ1', '人間関係の形成', [['先生と一緒に活動しよう', '教師と一緒に、遊びや活動に参加する']]],
+      ['ステップ1', '環境の把握', [['音や光に気付こう', '音のする方や光る物に注目する']]],
+      ['ステップ1', '身体の動き', [['よい姿勢で座ろう', 'いすに座って、よい姿勢を保つ']]],
+      ['ステップ1', 'コミュニケーション', [['欲しい物を伝えよう', '身振りや絵カードで、欲しい物を伝える']]],
+      ['ステップ2', '健康の保持', [['体の調子を伝えよう', '「いたい」「つかれた」などを、言葉やカードで伝える']]],
+      ['ステップ2', '心理的な安定', [['気持ちを表そう', '気持ちカードで、今の気持ちを選ぶ']]],
+      ['ステップ2', '人間関係の形成', [['順番を待とう', '順番を待つ・交代するルールを守る']]],
+      ['ステップ2', '環境の把握', [['手順表を見て動こう', 'スケジュールや手順表を見て行動する']]],
+      ['ステップ2', '身体の動き', [['手や指を使おう', 'つまむ・ひねる・はさむなど、手指の動きをする']]],
+      ['ステップ2', 'コミュニケーション', [['「てつだってください」を言おう', '困った場面で、手伝いを頼む言葉を使う']]],
+      ['ステップ3', '健康の保持', [['自分の体のことを知ろう', '苦手な感覚や体調の変化に気付き、対処の仕方を考える']]],
+      ['ステップ3', '心理的な安定', [['予定の変更を受け入れよう', '変更を前もって知り、見通しをもって行動する']]],
+      ['ステップ3', '人間関係の形成', [['友達と協力しよう', '友達と役割を分担して活動する']]],
+      ['ステップ3', '環境の把握', [['時間や場所をとらえよう', 'タイマーや地図を使って、時間や場所をとらえる']]],
+      ['ステップ3', '身体の動き', [['体をコントロールしよう', '片足立ちやボール運動などで、バランスや協応動作を高める']]],
+      ['ステップ3', 'コミュニケーション', [['相手に合わせて話そう', '話す順番や声の大きさに気を付けて会話する']]],
+    ]],
+    ni: ['日常生活の指導', [
+      ['ステップ1', '朝の支度', [['朝の支度をしよう', 'かばんを掛ける・連絡帳を出すを、教師と一緒にする']]],
+      ['ステップ1', '着替え・身だしなみ', [['着替えをしよう', '体操服の着替えを、手伝ってもらいながらする']]],
+      ['ステップ1', '手洗い・トイレ', [['手を洗おう', 'トイレの後や給食の前に手を洗う']]],
+      ['ステップ1', '給食', [['給食の準備をしよう', 'ナフキンを広げ、食器を受け取る']]],
+      ['ステップ2', '朝の支度', [['手順表を見て支度をしよう', '手順表を見て、自分で順番に支度をする']]],
+      ['ステップ2', '着替え・身だしなみ', [['服をたたもう', '脱いだ服をたたんで袋に入れる']]],
+      ['ステップ2', '手洗い・トイレ', [['歯みがきをしよう', '歯ブラシで、順番に歯をみがく']]],
+      ['ステップ2', '給食', [['配膳をしよう', '給食当番として食器を運ぶ']]],
+      ['ステップ3', '朝の支度', [['時計を見て支度をしよう', '時計を見て、決められた時刻までに支度を終える']]],
+      ['ステップ3', '着替え・身だしなみ', [['身だしなみを整えよう', '鏡を見て、服装や髪を整える']]],
+      ['ステップ3', '帰りの支度・係', [['帰りの支度をしよう', '持ち帰る物を確かめて、かばんに入れる'], ['係の仕事をやり遂げよう', '自分の係の仕事を最後まで行い、報告する']]],
+    ]],
+    sei: ['生活単元学習', [
+      ['ステップ1', '季節・行事', [['季節の行事を楽しもう', '季節の歌を歌い、飾りを作る']]],
+      ['ステップ1', '買い物', [['お店屋さんごっこをしよう', '品物を選び、お金を渡すやり取りをする']]],
+      ['ステップ1', '調理', [['食材にふれよう', '野菜を洗ったりちぎったりする']]],
+      ['ステップ1', '校外学習', [['校外学習の予定を知ろう', '写真や絵で、行き先や乗り物を知る']]],
+      ['ステップ1', '栽培・飼育', [['生き物にふれよう', '生き物を見る・触る・えさをあげる']]],
+      ['ステップ2', '季節・行事', [['行事の準備をしよう', '招待状や飾りを作り、行事の準備をする']]],
+      ['ステップ2', '買い物', [['買い物の計画を立てよう', '買う物のリストと予算を決める']]],
+      ['ステップ2', '調理', [['簡単な調理をしよう', '手順表を見て、混ぜる・皮をむく・切る']]],
+      ['ステップ2', '校外学習', [['校外学習の準備をしよう', '持ち物やきまりを確かめ、しおりを作る']]],
+      ['ステップ2', '栽培・飼育', [['野菜を育てよう', '種まき・水やり・観察をする']]],
+      ['ステップ3', '季節・行事', [['行事をふりかえろう', '写真を見て、がんばったことを発表する']]],
+      ['ステップ3', '買い物', [['お店で買い物をしよう', '実際の店でリストの物を買い、おつりを確かめる']]],
+      ['ステップ3', '調理', [['調理と片付けをしよう', '役割を分担して調理し、食器を洗って片付ける']]],
+      ['ステップ3', '校外学習', [['校外学習をまとめよう', '見たことや感想を、写真と文でまとめて発表する']]],
+      ['ステップ3', '栽培・飼育', [['収穫して味わおう', '収穫した野菜を数え、調理して食べる']]],
+    ]],
+  };
+  // 段階表の 行（id は 教科ごとの 通し番号）
+  function stepRows() {
+    const rows = [];
+    Object.keys(STEP_DEFAULT).forEach((code) => {
+      const [subject, groups] = STEP_DEFAULT[code];
+      let n = 0;
+      groups.forEach(([stage, area, steps]) => steps.forEach(([aim, content]) => { n++; rows.push({ id: `sk-${code}-${n}`, subject, stage, area, no: n, aim, content }); }));
+    });
+    return rows;
+  }
+  /* 段階表ここまで */
+
+  /* ---------- 学習の部屋：スモールステップの 段階表 ---------- */
+  const STAGE_ORDER = ['1段階', '2段階', '3段階', '小1', '小2', '小1・2', '小3', 'ステップ1', 'ステップ2', 'ステップ3'];
+  const stageRank = (s) => { const i = STAGE_ORDER.indexOf(s); return i < 0 ? 99 : i; };
+  const circled = (n) => (n >= 1 && n <= 20 ? String.fromCharCode(0x2460 + n - 1) : `(${n})`);
+  function stepsOf(subject) {
+    return list('steps').filter((x) => x.subject === subject)
+      .sort((a, b) => stageRank(a.stage) - stageRank(b.stage) || String(a.stage).localeCompare(String(b.stage)) || (Number(a.no) || 0) - (Number(b.no) || 0));
+  }
+  function stagesOf(subject) { return Array.from(new Set(stepsOf(subject).map((x) => x.stage || ''))); }
+  function areasOf(subject) {
+    return Array.from(new Set(list('steps').filter((x) => x.subject === subject).sort((a, b) => (Number(a.no) || 0) - (Number(b.no) || 0)).map((x) => x.area || '')));
+  }
+  function stepSubjects() {
+    const has = new Set(list('steps').map((x) => x.subject));
+    return S.subjects.filter((x) => has.has(x)).concat(Array.from(has).filter((x) => x && !S.subjects.includes(x)));
+  }
+  const stepBtn = (x) => `<button class="stp" data-act="editStep" data-id="${esc(x.id)}"><b>${esc(S.aimMark || '○')}${esc(x.aim)}</b><small>${esc(x.content)}</small></button>`;
+  function viewSteps() {
+    if (!list('steps').length) {
+      return `<div class="empty-note">段階表が ありません。<br><button class="btn primary" data-act="stepsSeed" style="margin-top:8px">🪜 はじめの 段階表を 入れる</button></div>`;
+    }
+    const subs = stepSubjects();
+    if (!subs.includes(view.stepSubj)) view.stepSubj = subs[0] || '';
+    const subj = view.stepSubj;
+    const stages = stagesOf(subj), areas = areasOf(subj);
+    if (view.stepStage && !stages.includes(view.stepStage)) view.stepStage = '';
+    const st = view.stepStage;
+    const all = stepsOf(subj);
+    const body = st
+      ? areas.map((a) => { const xs = all.filter((x) => x.stage === st && (x.area || '') === a); return xs.length ? `<section class="card"><h3 class="mini" style="margin:0 0 6px">${esc(a || '（領域なし）')}</h3><div class="stp-list">${xs.map(stepBtn).join('')}</div></section>` : ''; }).join('')
+      : `<div class="table-wrap"><table class="list steps-table"><thead><tr><th>領域</th>${stages.map((s) => `<th>${esc(s)}</th>`).join('')}</tr></thead><tbody>
+          ${areas.map((a) => `<tr><th>${esc(a || '（領域なし）')}</th>${stages.map((s) => `<td>${all.filter((x) => x.stage === s && (x.area || '') === a).map(stepBtn).join('')}</td>`).join('')}</tr>`).join('')}
+        </tbody></table></div>`;
+    return `<div class="toolbar noprint">
+        <select class="input" style="width:auto" data-chg="stepSubj" aria-label="教科">${subs.map((x) => opt(x, subj)).join('')}</select>
+        <select class="input" style="width:auto" data-chg="stepStageView" aria-label="段階">${opt('', st, 'すべての段階（一覧表）')}${stages.map((s) => opt(s, st)).join('')}</select>
+        <span class="grow"></span>
+        <button class="btn" data-act="print">🖨 印刷</button>
+        <button class="btn primary" data-act="editStep">＋ ステップを追加</button>
+      </div>
+      <h2 class="wk-title print-only">${esc(subj)} 段階表</h2>
+      <p class="hint noprint">1段階〜3段階は 特別支援学校（知的障害）小学部の 段階、小1〜小3は 小学校の 学年の 内容です。学習指導要領を もとに、1時間で 扱える 大きさに 分けた 目安です。押すと 直したり、単元の「めあて・学習内容」に 入れたり できます。週案の マスからも 選べます。</p>
+      <div class="stack" id="step-view">${body}</div>
+      <p class="hint noprint" style="margin-top:10px"><button class="btn small" data-act="stepsSeed">↺ はじめの 段階表で 足りない ものを 足す</button></p>`;
+  }
+  function editStep(id) {
+    const x = id ? get('steps', id) : { subject: view.stepSubj || S.subjects[0] || '', stage: view.stepStage || '' };
+    if (!x) return;
+    const subj = x.subject;
+    const units = list('units').filter((u) => u.subject === subj);
+    openDialog({
+      title: id ? 'ステップを 直す' : 'ステップを 追加',
+      body: `<div class="row2">
+          <label class="field">教科 <select name="subject">${subjOptions(subj)}</select></label>
+          <label class="field">段階 <input name="stage" list="stage-list" maxlength="20" value="${esc(x.stage)}" placeholder="例：2段階"></label>
+        </div>
+        <datalist id="stage-list">${STAGE_ORDER.map((s) => `<option value="${esc(s)}">`).join('')}</datalist>
+        <div class="row2">
+          <label class="field">領域 <input name="area" list="area-list" maxlength="40" value="${esc(x.area)}"></label>
+          <label class="field">並び順 <input type="number" name="no" min="1" max="9999" value="${esc(x.no || Math.max(0, ...list('steps').filter((s) => s.subject === subj).map((s) => Number(s.no) || 0)) + 1)}"></label>
+        </div>
+        <datalist id="area-list">${areasOf(subj).map((a) => `<option value="${esc(a)}">`).join('')}</datalist>
+        <label class="field">めあて <input name="aim" maxlength="200" value="${esc(x.aim)}"></label>
+        <label class="field">学習内容 <textarea name="content" rows="3" maxlength="1000">${esc(x.content)}</textarea></label>
+        ${id ? `<div class="info"><b>📋 単元の「めあて・学習内容」に 入れる</b>
+          <div class="toolbar" style="margin:6px 0 0"><select class="input" style="width:auto" id="step-unit" aria-label="単元">${opt('', '', '（単元なし：いつも 使う もの）')}${units.map((u) => opt(u.id, '', u.name)).join('')}</select>
+          <button type="button" class="btn small" data-act="stepToItem" data-id="${esc(id)}">入れる</button><span class="hint" id="stepMsg" role="status"></span></div></div>` : ''}`,
+      deleteLabel: id ? 'このステップを消す' : '',
+      onDelete: () => removeRecs('steps', id),
+      onSave: (f) => {
+        if (!f.aim.trim() && !f.content.trim()) return 'めあてか 学習内容を 入れてください。';
+        putRecs('steps', { id: id || uid('sk'), subject: f.subject, stage: f.stage.trim(), area: f.area.trim(), no: Number(f.no) || 1, aim: f.aim.trim(), content: f.content.trim() });
+        view.stepSubj = f.subject;
+      },
+    });
+  }
+  // 週案の マス：段階表から 選ぶ
+  function stepPicker(subject) {
+    const all = stepsOf(subject);
+    if (!all.length) return '<p class="hint">この教科の 段階表は ありません（学習の部屋 →「段階表」で 足せます）。</p>';
+    const mem = (view.stepPick || {})[subject] || {};
+    const stages = stagesOf(subject), areas = areasOf(subject);
+    const stage = stages.includes(mem.stage) ? mem.stage : '', area = areas.includes(mem.area) ? mem.area : '';
+    const xs = all.filter((x) => (!stage || x.stage === stage) && (!area || (x.area || '') === area));
+    return `<div class="toolbar" style="margin:6px 0">
+        <select class="input" style="width:auto" data-chg="stepPick" data-k="stage" data-subj="${esc(subject)}" aria-label="段階">${opt('', stage, 'すべての段階')}${stages.map((s) => opt(s, stage)).join('')}</select>
+        <select class="input" style="width:auto" data-chg="stepPick" data-k="area" data-subj="${esc(subject)}" aria-label="領域">${opt('', area, 'すべての領域')}${areas.map((a) => opt(a, area)).join('')}</select>
+        <select class="input" style="width:auto" name="stepKid" aria-label="だれの 学習か">${opt('', '', '全員')}${children().map((k) => opt(k.name, '')).join('')}</select>
+      </div>
+      <div class="stp-pick-list">${xs.map((x) => `<div class="stp-pick"><span class="tag">${esc(x.stage)}</span><span class="muted">${esc(x.area)}</span>
+          <span class="stp-txt"><b>${esc(S.aimMark || '○')}${esc(x.aim)}</b> ${esc(x.content)}</span>
+          <span class="stp-btns"><button type="button" class="btn small" data-act="useStep" data-id="${esc(x.id)}" data-mode="set">入れる</button><button type="button" class="btn small" data-act="useStep" data-id="${esc(x.id)}" data-mode="add">＋足す</button></span></div>`).join('')}</div>
+      <p class="hint">「入れる」は めあてと 学習内容を 入れかえます。「＋足す」は 学習内容に ①②…の 行を 足します（子どもを 選ぶと「Aさん：」が つきます。めあてが 空なら めあても 入ります）。</p>`;
+  }
+  function refreshStepPicker(form) {
+    const el = document.getElementById('step-pick');
+    if (!el || !form) return;
+    const subject = form.elements.subject.value === NONE ? '' : (form.elements.subject.value || form.dataset.base);
+    el.innerHTML = subject ? stepPicker(subject) : '<p class="hint">教科を 選ぶと、段階表が 出ます。</p>';
+  }
+
   /* ---------- 学習の部屋：めあて・学習内容の 一覧 ---------- */
   const lineOf = (s) => String(s || '').replace(/\n/g, ' ');
   const AIM_LINE = /^(○|◎|めあて[：:])\s*/;
   function itemSubject(x) { const u = x.unitId && get('units', x.unitId); return u ? u.subject : x.subject || ''; }
   function nextItemNo(subject, uid) { return Math.max(0, ...list('lessonItems').filter((i) => (i.unitId || '') === (uid || '') && itemSubject(i) === subject).map((i) => Number(i.no) || 0)) + 1; }
-  // 書いた 週案を、めあてと 学習内容に 分ける（「○」「◎」「めあて：」の 行が めあて。1行目が 単元名なら はずす）
+  // 書いた 週案を、1行目・めあて・学習内容に 分ける（「○」「◎」「めあて：」の 行が めあて、それより 前の 行が 1行目。1行目が 単元名なら 単元に する）
   function splitEntry(w) {
-    const lines = String(w.content || '').split('\n').map((x) => x.trim()).filter(Boolean);
-    let aim = w.aim || '';
+    let lines = String(w.content || '').split('\n').map((x) => x.trim()).filter(Boolean);
+    let aim = w.aim || '', head = w.head || '';
     if (!aim) {
       const i = lines.findIndex((x) => AIM_LINE.test(x));
-      if (i >= 0) { aim = lines[i].replace(AIM_LINE, ''); lines.splice(i, 1); }
+      if (i >= 0) {
+        aim = lines[i].replace(AIM_LINE, '');
+        if (!head) head = lines.slice(0, i).join('\n');
+        lines = lines.slice(i + 1);
+      }
     }
     let unitId = w.unitId || '';
     const u = get('units', unitId);
-    if (u && lines[0] === u.name) lines.shift();
-    else if (!u && lines.length) {
-      const m = list('units').find((x) => x.subject === entrySubject(w) && lines[0] === x.name);
-      if (m) { unitId = m.id; lines.shift(); }
+    if (u && (head === u.name || (!head && lines[0] === u.name))) { if (head === u.name) head = ''; else lines.shift(); }
+    else if (!u) {
+      const name = head || lines[0];
+      const m = name && list('units').find((x) => x.subject === entrySubject(w) && name === x.name);
+      if (m) { unitId = m.id; if (head) head = ''; else lines.shift(); }
     }
-    return { aim, content: lines.join('\n'), unitId };
+    return { head, aim, content: lines.join('\n'), unitId };
   }
   function itemRow(x, i, done) {
     const cls = i < done ? 'done' : i === done ? 'next' : '';
     return `<tr class="${cls}"><td class="no">${esc(x.no || i + 1)}${i === done ? '<br><span class="tag red">つぎ</span>' : i < done ? '<br><span class="muted">✓</span>' : ''}</td>
-      <td>${x.aim ? `<b>${esc(S.aimMark || '○')}${esc(x.aim)}</b>` : '<span class="muted">—</span>'}</td><td>${nl(x.content)}</td>
+      <td>${x.head ? `<div class="muted" style="font-size:13px">${nl(x.head)}</div>` : ''}${x.aim ? `<b>${esc(S.aimMark || '○')}${esc(x.aim)}</b>` : '<span class="muted">—</span>'}</td><td>${nl(x.content)}</td>
       <td><button class="btn small" data-act="editItem" data-id="${esc(x.id)}">直す</button></td></tr>`;
   }
   function itemGroup(title, sub, unitSel, items, done) {
@@ -1898,13 +2223,14 @@
           <label class="field">単元 <select name="unitId">${opt('', x.unitId || '', '（単元なし：いつも 使う もの）')}${units.map((u) => opt(u.id, x.unitId, u.name)).join('')}</select></label>
           <label class="field">時（順番） <input type="number" name="no" min="1" max="999" value="${esc(x.no || nextItemNo(subj, x.unitId))}"></label>
         </div>
+        <label class="field">1行目（学習形態・場所など。空なら 単元名） <input name="head" maxlength="100" value="${esc(x.head)}" placeholder="例：体育館で（2グループ）"></label>
         <label class="field">めあて <input name="aim" maxlength="200" value="${esc(x.aim)}" placeholder="例：はしを そろえて 長さを くらべよう"></label>
         <label class="field">学習内容 <textarea name="content" rows="4" maxlength="2000" placeholder="例：①えんぴつの 長さくらべ&#10;②テープで 長さを うつしとる">${esc(x.content)}</textarea></label>`,
       deleteLabel: id ? 'これを消す' : '',
       onDelete: () => removeRecs('lessonItems', id),
       onSave: (f) => {
         if (!f.aim.trim() && !f.content.trim()) return 'めあてか 学習内容を 入れてください。';
-        putRecs('lessonItems', { id: id || uid('li'), subject: subj, unitId: f.unitId, no: Number(f.no) > 0 ? Number(f.no) : nextItemNo(subj, f.unitId), aim: f.aim.trim(), content: f.content.trim() });
+        putRecs('lessonItems', { id: id || uid('li'), subject: subj, unitId: f.unitId, no: Number(f.no) > 0 ? Number(f.no) : nextItemNo(subj, f.unitId), head: f.head.trim(), aim: f.aim.trim(), content: f.content.trim() });
       },
     });
   }
@@ -1930,7 +2256,7 @@
   // これまでの 週案（週案簿から 取りこんだ ものも）から、一覧の 候補を 集める
   function harvestItems() {
     const subj = view.itemSubj;
-    const key = (c) => `${c.unitId || ''}|${c.aim || ''}|${c.content || ''}`;
+    const key = (c) => `${c.unitId || ''}|${c.head || ''}|${c.aim || ''}|${c.content || ''}`;
     const have = new Set(list('lessonItems').map(key));
     const seen = new Set();
     const cands = list('weekly').filter((w) => isDate(w.date) && (w.content || w.aim) && entrySubject(w) === subj)
@@ -1940,11 +2266,11 @@
     if (!cands.length) { alert(`${subj}の 週案で、まだ 一覧に ない ものは ありません。`); return; }
     openDialog({
       title: `📥 ${subj}：これまでの 週案から つくる`,
-      body: `<p class="hint">${subj}の 週案から、同じ ものを まとめて ${cands.length}件 見つけました。一覧に 入れる ものに チェックを 入れてください。「○」「◎」「めあて：」の 行を めあてに、ほかの 行を 学習内容に します。</p>
+      body: `<p class="hint">${subj}の 週案から、同じ ものを まとめて ${cands.length}件 見つけました。一覧に 入れる ものに チェックを 入れてください。「○」「◎」「めあて：」の 行を めあてに、それより 前の 行を 1行目（単元名・学習形態）に、後の 行を 学習内容に します。</p>
         <div class="toolbar" style="margin:0"><button type="button" class="btn small" data-act="checkAll" data-on="1">すべて 選ぶ</button><button type="button" class="btn small" data-act="checkAll" data-on="">すべて はずす</button></div>
         <div class="harvest">${cands.map((c, i) => `<label class="hv"><input type="checkbox" name="h${i}" checked>
           <span class="muted">${md(c.date)}</span>${c.unitId ? `<span class="tag">📘 ${esc((get('units', c.unitId) || {}).name || '')}</span>` : ''}
-          <span>${c.aim ? `<b>${esc(S.aimMark || '○')}${esc(c.aim)}</b> ` : ''}${esc(short(lineOf(c.content), 70))}</span></label>`).join('')}</div>`,
+          <span>${c.head ? `<span class="muted">${esc(lineOf(c.head))}</span> ` : ''}${c.aim ? `<b>${esc(S.aimMark || '○')}${esc(c.aim)}</b> ` : ''}${esc(short(lineOf(c.content), 70))}</span></label>`).join('')}</div>`,
       saveLabel: '一覧に 入れる',
       onSave: (f) => {
         const pick = cands.filter((_, i) => f['h' + i]);
@@ -1952,7 +2278,7 @@
         const no = {};
         putRecs('lessonItems', pick.map((c, i) => {
           if (!(c.unitId in no)) no[c.unitId] = nextItemNo(subj, c.unitId);
-          return { id: uid('li') + i, subject: subj, unitId: c.unitId, no: no[c.unitId]++, aim: c.aim, content: c.content };
+          return { id: uid('li') + i, subject: subj, unitId: c.unitId, no: no[c.unitId]++, head: c.head, aim: c.aim, content: c.content };
         }));
       },
     });
@@ -1969,13 +2295,13 @@
     const past = list('weekly').filter((w) => isDate(w.date) && w.date < date && (w.content || w.aim) && entrySubject(w) === subject)
       .sort((a, b) => b.date.localeCompare(a.date) || periodIndex(b.period) - periodIndex(a.period))
       .filter((w) => { const sp = splitEntry(w); const k = sp.aim + '|' + sp.content; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 6);
-    const btn = (act, id, head, aim, content, next) => `<button type="button" class="pick${next ? ' next' : ''}" data-act="${act}" data-id="${esc(id)}">${head}${aim ? `<b>${esc(S.aimMark || '○')}${esc(aim)}</b>` : ''}<span>${esc(short(lineOf(content), 60))}</span></button>`;
+    const btn = (act, id, head, aim, content, next, first) => `<button type="button" class="pick${next ? ' next' : ''}" data-act="${act}" data-id="${esc(id)}">${head}${first ? `<span class="muted">${esc(lineOf(first))}</span>` : ''}${aim ? `<b>${esc(S.aimMark || '○')}${esc(aim)}</b>` : ''}<span>${esc(short(lineOf(content), 60))}</span></button>`;
     let html = '';
     if (u) html += `<div class="pick-h">📘 ${esc(u.name)}</div>` + (uItems.length
-      ? uItems.map((x, i) => btn('pickItem', x.id, `<span class="no">${esc(x.no || i + 1)}時${i === next ? ' <span class="tag red">つぎ</span>' : ''}</span>`, x.aim, x.content, i === next)).join('')
+      ? uItems.map((x, i) => btn('pickItem', x.id, `<span class="no">${esc(x.no || i + 1)}時${i === next ? ' <span class="tag red">つぎ</span>' : ''}</span>`, x.aim, x.content, i === next, x.head)).join('')
       : '<p class="hint">この単元の 一覧は まだ ありません（学習の部屋 →「めあて・学習内容」で 入れられます）。</p>');
-    if (free.length) html += '<div class="pick-h">🔁 いつも 使う もの</div>' + free.map((x) => btn('pickItem', x.id, '', x.aim, x.content)).join('');
-    if (past.length) html += '<div class="pick-h">🕘 前に 書いた 週案</div>' + past.map((w) => { const sp = splitEntry(w); return btn('pickPast', w.id, `<span class="no">${md(w.date)}</span>`, sp.aim, sp.content); }).join('');
+    if (free.length) html += '<div class="pick-h">🔁 いつも 使う もの</div>' + free.map((x) => btn('pickItem', x.id, '', x.aim, x.content, false, x.head)).join('');
+    if (past.length) html += '<div class="pick-h">🕘 前に 書いた 週案</div>' + past.map((w) => { const sp = splitEntry(w); return btn('pickPast', w.id, `<span class="no">${md(w.date)}</span>`, sp.aim, sp.content, false, sp.head); }).join('');
     return html || '<p class="hint">この教科の 一覧は まだ ありません。学習の部屋 →「めあて・学習内容」で 入れておくと、ここから 選べます。</p>';
   }
   function refreshPicker(form) {
@@ -1992,7 +2318,7 @@
     if (nx) pk.scrollTop = Math.max(0, nx.offsetTop - pk.offsetTop - 40);
   }
   // 選んだ ものを 単元・めあて・学習内容の 欄に 入れる
-  function fillLesson(uidSel, aim, content, el) {
+  function fillLesson(uidSel, aim, content, el, head) {
     const form = document.getElementById('dlgForm');
     if (!form || !form.elements.aim) return;
     const sel = form.elements.unitId;
@@ -2003,6 +2329,7 @@
     }
     form.elements.aim.value = aim || '';
     form.elements.content.value = content || '';
+    if (form.elements.head) form.elements.head.value = head || '';
     if (changed) refreshPicker(form);
     else if (el) { form.querySelectorAll('.pick.picked').forEach((b) => b.classList.remove('picked')); el.classList.add('picked'); }
   }
@@ -2939,9 +3266,9 @@
         // 単元の 一覧が あれば、次の 時の めあて・学習内容を 入れる
         const items = unitId ? unitItems(unitId) : [];
         const item = items[unitCountBefore(unitId, d, p.id) + recs.filter((r) => r.unitId === unitId).length];
-        if (item) { recs.push(Object.assign(base, { subject: L.subject, unitId, aim: item.aim || '', content: item.content || '' })); return; }
+        if (item) { recs.push(Object.assign(base, { subject: L.subject, unitId, head: item.head || '', aim: item.aim || '', content: item.content || '' })); return; }
         const carry = S.draftCarry ? prevEntry(d, p.id, L.subject) : null;
-        recs.push(Object.assign(base, { subject: L.subject, unitId, aim: carry ? carry.aim || '' : '', content: carry ? carry.content || '' : (unitId && !S.sbUnit ? get('units', unitId).name : '') }));
+        recs.push(Object.assign(base, { subject: L.subject, unitId, head: carry ? carry.head || '' : '', aim: carry ? carry.aim || '' : '', content: carry ? carry.content || '' : (unitId && !S.sbUnit ? get('units', unitId).name : '') }));
       });
     });
     return { recs, mark, plan: false };
@@ -3012,11 +3339,12 @@
     if (ss.length) lines.push('補教：' + ss.map((x) => { const p = S.periods.find((q) => q.id === String(x.period)); return `${p ? p.name : x.period} ${x.teacher || '未定'}`; }).join('、'));
     return lines.filter((l) => !String(di.biko || '').includes(l));
   }
-  // 週案簿の 学習内容の 欄：単元名／○めあて／学習内容
+  // 週案簿の 学習内容の 欄：1行目（単元名・学習形態）／○めあて／学習内容
   function shuanboText(L) {
     const lines = [];
     const body = String(L.content || '');
-    if (S.sbUnit && L.w && L.unit && L.unit.name && !body.startsWith(L.unit.name)) lines.push(L.unit.name);
+    if (L.head) lines.push(L.head);
+    else if (S.sbUnit && L.w && L.unit && L.unit.name && !body.startsWith(L.unit.name)) lines.push(L.unit.name);
     if (L.aim) lines.push((S.aimMark || '') + L.aim);
     if (body) lines.push(body);
     return lines.join('\n');
@@ -4530,8 +4858,41 @@
     bulkItems: (d) => bulkItems(d.unit || ''),
     harvestItems: () => harvestItems(),
     checkAll: (d) => { document.querySelectorAll('#dlgForm .harvest input[type=checkbox]').forEach((el) => { el.checked = !!d.on; }); },
-    pickItem: (d, el) => { const x = get('lessonItems', d.id); if (x) fillLesson(x.unitId, x.aim, x.content, el); },
-    pickPast: (d, el) => { const w = get('weekly', d.id); if (!w) return; const sp = splitEntry(w); fillLesson(sp.unitId, sp.aim, sp.content, el); },
+    pickItem: (d, el) => { const x = get('lessonItems', d.id); if (x) fillLesson(x.unitId, x.aim, x.content, el, x.head); },
+    pickPast: (d, el) => { const w = get('weekly', d.id); if (!w) return; const sp = splitEntry(w); fillLesson(sp.unitId, sp.aim, sp.content, el, sp.head); },
+    editStep: (d) => editStep(d.id || ''),
+    stepsSeed: () => {
+      const add = stepRows().filter((r) => !get('steps', r.id));
+      if (!add.length) { alert('はじめの 段階表は すべて 入っています。'); return; }
+      if (list('steps').length && !confirm(`はじめの 段階表の うち、ない もの ${add.length}件を 足します。よろしいですか？`)) return;
+      putRecs('steps', add);
+    },
+    stepToItem: (d) => {
+      const x = get('steps', d.id);
+      const sel = document.getElementById('step-unit');
+      if (!x || !sel) return;
+      const exists = list('lessonItems').some((i) => (i.unitId || '') === sel.value && i.aim === x.aim && i.content === x.content);
+      if (!exists) putRecs('lessonItems', { id: uid('li'), subject: x.subject, unitId: sel.value, no: nextItemNo(x.subject, sel.value), head: '', aim: x.aim, content: x.content }, { render: false });
+      const msg = document.getElementById('stepMsg');
+      if (msg) msg.textContent = exists ? 'もう 入っています。' : '✓ 入れました。';
+    },
+    useStep: (d, el) => {
+      const x = get('steps', d.id);
+      const form = document.getElementById('dlgForm');
+      if (!x || !form || !form.elements.aim) return;
+      const kid = form.elements.stepKid ? form.elements.stepKid.value : '';
+      const text = (kid ? kid + '：' : '') + (x.content || '');
+      if (d.mode === 'set') {
+        form.elements.aim.value = x.aim || '';
+        form.elements.content.value = text;
+      } else {
+        const cur = form.elements.content.value.replace(/\s+$/, '');
+        const n = (cur.match(/^[\u2460-\u2473]/gm) || []).length;
+        form.elements.content.value = (cur ? cur + '\n' : '') + circled(n + 1) + text;
+        if (!form.elements.aim.value.trim()) form.elements.aim.value = x.aim || '';
+      }
+      el.classList.add('picked');
+    },
     editTask: (d) => editTask(d.id || ''),
     pickKid: (d) => { view.childId = d.id; view.tab.kodomo = 'child'; view.room = 'kodomo'; render(); window.scrollTo(0, 0); },
     kidNotes: (d) => { view.noteKid = d.id; view.tab.kodomo = 'notes'; render(); window.scrollTo(0, 0); },
@@ -4697,6 +5058,15 @@
     unitSubj: (el) => { view.unitSubj = el.value; render(); },
     itemSubj: (el) => { view.itemSubj = el.value; render(); },
     lessonUnit: (el) => refreshPicker(el.form),
+    stepSubj: (el) => { view.stepSubj = el.value; view.stepStage = ''; render(); },
+    stepStageView: (el) => { view.stepStage = el.value; render(); },
+    stepPick: (el) => {
+      const m = view.stepPick[el.dataset.subj] = view.stepPick[el.dataset.subj] || {};
+      m[el.dataset.k] = el.value;
+      const kid = el.form && el.form.elements.stepKid ? el.form.elements.stepKid.value : '';
+      refreshStepPicker(el.form);
+      if (el.form && el.form.elements.stepKid) el.form.elements.stepKid.value = kid;
+    },
     matSubj: (el) => { view.matSubj = el.value; render(); },
     matKind: (el) => { view.matKind = el.value; render(); },
     importFile: (el) => importFile(el),
@@ -4733,6 +5103,7 @@
       const subject = el.value === NONE ? '' : (el.value || form.dataset.base);
       form.elements.unitId.innerHTML = unitOptions(subject, date, autoUnit(subject, date));
       refreshPicker(form);
+      refreshStepPicker(form);
     },
   };
 
@@ -4984,7 +5355,7 @@
       { id: 'sd1', kind: '自分の授業', date: schoolDay(16), time: '3校時', teacher: '', room: '', subject: '生活単元学習', unitId: 'u3', title: '見つけた 秋を 友だちに 伝えよう', steps: '指導案 第一稿', aim: '校庭で 見つけた ものを、絵カードと ことばで 友だちに 伝える', flow: 'はじめの あいさつ・めあての 確認｜絵カードで 活動の 流れを 示す\n見つけた ものを 選ぶ｜写真を 2つから 選べるように する\n友だちに 伝える｜「◯◯を 見つけました」の 話型を 掲示\nふりかえり｜よかったことを 具体的に ほめる', feedback: '', reflect: '' },
       { id: 'sd2', kind: '参観', date: pastDay(7), time: '5校時', teacher: '森先生', room: '3年2組', subject: '国語', unitId: '', title: 'お気に入りの 本を しょうかいしよう', steps: '', aim: '', flow: '', feedback: '', reflect: 'めあてを 黒板の 同じ 場所に いつも 書いていて、見通しが もちやすい。ペアで 話す 前に 話型を 確認していた' },
     ];
-    return { settings: { className: 'ひまわり学級（サンプル）', standards: { '国語': 175, '算数': 175, '音楽': 70, '図工': 70, '体育': 105, '学級活動': 35, '自立活動': 70, '日常生活の指導': 175, '生活単元学習': 140 }, standardTotal: 1015 }, tables: { events, timetable, weekly, children, exchange, units, materials, tasks, duties, dutyItems, meetings, templates, notes, plans, goals, contacts, lessonItems, classes, handovers, staff, staffPlans, orgs, orgLogs, trainings, research, studies, subs } };
+    return { settings: { className: 'ひまわり学級（サンプル）', standards: { '国語': 175, '算数': 175, '音楽': 70, '図工': 70, '体育': 105, '学級活動': 35, '自立活動': 70, '日常生活の指導': 175, '生活単元学習': 140 }, standardTotal: 1015 }, tables: { events, timetable, weekly, children, exchange, units, materials, tasks, duties, dutyItems, meetings, templates, notes, plans, goals, contacts, lessonItems, steps: stepRows(), classes, handovers, staff, staffPlans, orgs, orgLogs, trainings, research, studies, subs } };
   }
 
   boot();
