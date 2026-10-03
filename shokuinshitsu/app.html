@@ -452,7 +452,35 @@
   <dialog id="dlg"></dialog>
 
   <script>
+  // 起動の 見守り：読みこみが 止まった ときに、考えられる 理由と エラーを 画面に 出す
+  // （下の 大きな プログラムが 動かない ときも 動くように、古い 書き方で 書く）
+  (function () {
+    var errs = [];
+    window.addEventListener('error', function (e) { errs.push((e && e.message) || String(e)); });
+    var escText = function (t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+    setTimeout(function () {
+      if (window.__appReady) return;
+      var app = document.getElementById('app');
+      if (!app) return;
+      var started = !!window.__appStarted;
+      var tips = started
+        ? '<b>サーバー（Apps Script）から 返事が ありません。</b><ol>'
+          + '<li>学校以外の Google アカウントにも ログインしている ブラウザでは、動かない ことが あります。<b>学校の アカウントだけで ログインした ウィンドウ</b>（シークレット ウィンドウで 学校の アカウントに ログイン など）で 開いてください。</li>'
+          + '<li>新しい 許可が まだ かも しれません。Apps Script の 画面の 上で 関数「apiDiag」を 選んで「実行」を 押し、自分の アカウントで「許可」してから、「デプロイを管理」→「新バージョン」で デプロイしてください。</li>'
+          + '<li>通信が 遅い ときは、少し 待ってから 読みこみなおしてください。</li></ol>'
+        : '<b>画面の プログラムが 動きませんでした。</b><ol>'
+          + '<li>Apps Script の <b>app.html の いちばん下が &lt;/html&gt; で 終わっているか</b> 確かめてください。途中で 切れて いたら、もう一度 全文を 貼り付けて 保存し、「新バージョン」で デプロイしてください。</li>'
+          + '<li>古い ブラウザでは 動かない ことが あります。新しい Chrome か Edge で 開いてください。</li></ol>';
+      app.innerHTML = '<div class="fatal">⚠️<div>職員室を 開けません（読みこみが 止まっています）</div>'
+        + '<div style="font-size:15px;text-align:left;max-width:680px;line-height:1.7">' + tips
+        + (errs.length ? '<div style="font-size:13px">表示された エラー：' + escText(errs.join(' / ')) + '</div>' : '') + '</div>'
+        + '<button class="btn primary" onclick="location.reload()">もう一度 読みこむ</button></div>';
+    }, window.__bootWait || 25000);
+  })();
+  </script>
+  <script>
   'use strict';
+  window.__appStarted = true;
 
   /* =========================================================
      「共通ここから」〜「共通ここまで」の 部分は、計算だけを する 部分です。
@@ -572,7 +600,7 @@
      データの 置き場所（Apps Script の 中なら スプレッドシート、外なら この端末）
      ========================================================= */
   const IN_GAS = typeof google !== 'undefined' && !!(google.script && google.script.run);
-  const APP_VERSION = '2026-10-03d'; // 画面の 版（更新した ときの 目じるし）
+  const APP_VERSION = '2026-10-03e'; // 画面の 版（更新した ときの 目じるし）
 
   function gasCall(fn, ...args) {
     return new Promise((resolve, reject) => {
@@ -5534,9 +5562,11 @@
       lastError = null;
       dataVersion++;
       render();
+      window.__appReady = true;
       autoDraftCheck();
       ensureDraftTrigger();
     } catch (err) {
+      window.__appReady = true;
       console.error(err);
       document.getElementById('app').innerHTML = `<div class="fatal">⚠️<div>職員室のデータを読みこめませんでした。</div>
         <div style="font-size:14px">${esc(err && err.message ? err.message : err)}</div>
