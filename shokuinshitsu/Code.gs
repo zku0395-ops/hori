@@ -79,7 +79,8 @@ const TABLES = {
   },
   materials: {
     sheet: '教材',
-    cols: [['id', COL_ID], ['name', '名前'], ['subject', '教科'], ['kind', '種類'], ['url', 'URL'], ['unitId', '単元ID'], ['memo', 'メモ']],
+    cols: [['id', COL_ID], ['name', '名前'], ['subject', '教科'], ['kind', '種類'], ['url', 'URL'], ['unitId', '単元ID'], ['memo', 'メモ'],
+      ['fileId', 'ファイルID'], ['fileName', 'ファイル名'], ['mime', 'ファイルの種類'], ['size', '大きさ（バイト）', 'num'], ['savedAt', '保存した日', 'date']],
     // シートを 作った ときに 最初から 入れておく 行
     seed: [{ id: 'm-ondoku', name: 'おんどくはかせの ちょうせんじょう', subject: '国語', kind: 'アプリ', url: 'https://zku0395-ops.github.io/hori/', memo: '自作の音読アプリ。全員の記録は「音読はかせ 記録」のスプレッドシートで見られます。' }],
   },
@@ -278,6 +279,60 @@ function apiDiag() {
     batch: all.batch,
     ms: Date.now() - t0,
   });
+}
+
+/* ---------- 教材置き場の ファイル（自分の Google ドライブの「仮想職員室 教材置き場」） ---------- */
+const MAT_FOLDER = '仮想職員室 教材置き場';
+const MAX_FILE = 20 * 1024 * 1024; // 1つの ファイルは 20MB まで
+function matRoot_() {
+  const props = PropertiesService.getScriptProperties();
+  const id = props.getProperty('MAT_FOLDER_ID');
+  if (id) {
+    try { const f = DriveApp.getFolderById(id); if (!f.isTrashed()) return f; } catch (e) { /* 消された ときは 作りなおす */ }
+  }
+  const root = DriveApp.createFolder(MAT_FOLDER);
+  props.setProperty('MAT_FOLDER_ID', root.getId());
+  return root;
+}
+// 教科ごとの 小さい フォルダ
+function matFolder_(subject) {
+  const root = matRoot_();
+  if (!subject) return root;
+  const it = root.getFoldersByName(subject);
+  return it.hasNext() ? it.next() : root.createFolder(subject);
+}
+// 教材置き場の フォルダ（か その 中の 教科の フォルダ）に ある ファイルだけ さわる
+function matFile_(id) {
+  const file = DriveApp.getFileById(String(id));
+  const rootId = PropertiesService.getScriptProperties().getProperty('MAT_FOLDER_ID');
+  const ps = file.getParents();
+  while (ps.hasNext()) {
+    const p = ps.next();
+    if (p.getId() === rootId) return file;
+    const pp = p.getParents();
+    while (pp.hasNext()) if (pp.next().getId() === rootId) return file;
+  }
+  throw new Error('教材置き場の ファイルでは ありません。');
+}
+// data = { name, mime, data（base64）, subject }
+function apiSaveFile(json) {
+  const d = JSON.parse(json);
+  const name = String(d.name || 'ファイル').replace(/[\\/:*?"<>|]/g, '_').slice(0, 200);
+  const bytes = Utilities.base64Decode(String(d.data || ''));
+  if (bytes.length > MAX_FILE) throw new Error('20MBを こえる ファイルは 保存できません。Google ドライブに 直接 入れて、リンクを 貼ってください。');
+  const blob = Utilities.newBlob(bytes, String(d.mime || 'application/octet-stream'), name);
+  const file = withLock_(function () { return matFolder_(String(d.subject || '').slice(0, 30)).createFile(blob); });
+  return JSON.stringify({ id: file.getId(), url: file.getUrl(), name: file.getName(), size: file.getSize(), mime: file.getMimeType() });
+}
+// 文字の ファイル（プログラム・HTML の アプリなど）の 中身
+function apiReadFile(id) {
+  const file = matFile_(id);
+  if (file.getSize() > 5 * 1024 * 1024) throw new Error('大きすぎて 表示できません（5MBまで）。');
+  return file.getBlob().getDataAsString('UTF-8');
+}
+function apiTrashFile(id) {
+  matFile_(id).setTrashed(true);
+  return true;
 }
 
 // 記録を 書きこむ（同じ ID の 行が あれば 書きかえ、なければ 下に 足す）

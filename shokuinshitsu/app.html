@@ -326,7 +326,12 @@
     .mat { display: grid; grid-template-columns: 44px minmax(0, 1fr); grid-template-rows: 1fr auto; gap: 10px; }
     .mat-icon { font-size: 30px; line-height: 1; }
     .mat p { margin: 4px 0 0; font-size: 14px; color: var(--sub); }
-    .mat-act { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
+    .mat-file { font-size: 13px; color: var(--sub); margin-top: 2px; word-break: break-all; }
+    .mat-msg { padding: 6px 10px; border-radius: 8px; background: var(--today); border: 1px solid var(--today-line); }
+    .code-view { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; white-space: pre; }
+    dialog.app-run { width: min(1200px, calc(100vw - 16px)); max-width: none; }
+    .app-frame { width: 100%; height: min(75vh, 900px); border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+    .mat-act { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; align-items: center; min-width: 0; }
     .date-chips { display: flex; flex-wrap: wrap; gap: 4px; }
 
     /* 週案：週案簿に 合わせた 部分 */
@@ -464,7 +469,7 @@
   const KYUGYO = '休業日';
   // 予定の 種類と 色（色相）。-1 は 灰色
   const CATS = { '行事': 28, '会議': 212, '出張': 268, '締め切り': 0, '保護者': 145, '交流': 180, [KYUGYO]: -1, 'その他': 48 };
-  const MAT_KINDS = { 'プリント': '📄', 'スライド': '🖼️', '動画': '🎬', 'アプリ': '📱', '絵本・本': '📚', '絵カード・写真': '🃏', '教具・具体物': '🧩', 'その他': '📎' };
+  const MAT_KINDS = { 'プリント': '📄', 'スライド': '🖼️', '動画': '🎬', 'アプリ': '📱', 'プログラム': '💻', '絵本・本': '📚', '絵カード・写真': '🃏', '教具・具体物': '🧩', 'その他': '📎' };
   const NONE = 'なし';
   const GRADES = ['1年', '2年', '3年', '4年', '5年', '6年'];
   const ONDOKU_URL = 'https://zku0395-ops.github.io/hori/';
@@ -567,7 +572,7 @@
      データの 置き場所（Apps Script の 中なら スプレッドシート、外なら この端末）
      ========================================================= */
   const IN_GAS = typeof google !== 'undefined' && !!(google.script && google.script.run);
-  const APP_VERSION = '2026-10-03c'; // 画面の 版（更新した ときの 目じるし）
+  const APP_VERSION = '2026-10-03d'; // 画面の 版（更新した ときの 目じるし）
 
   function gasCall(fn, ...args) {
     return new Promise((resolve, reject) => {
@@ -2496,6 +2501,91 @@
   }
 
   /* ---------- 学習の部屋：教材の置き場 ---------- */
+  /* ---------- 教材置き場の ファイル（学校の Google ドライブに 保存） ---------- */
+  const MAX_UPLOAD = 20 * 1024 * 1024;
+  const TEXT_EXT = /\.(gs|js|html?|css|json|txt|md|csv|tsv|xml|svg)$/i;
+  const HTML_EXT = /\.html?$/i;
+  function kindFromFile(name, mime) {
+    const n = String(name || '').toLowerCase();
+    if (/\.(pdf|docx?|xlsx?|xlsm|csv|odt|ods)$/.test(n)) return 'プリント';
+    if (/\.(pptx?|key|odp)$/.test(n)) return 'スライド';
+    if (/\.(png|jpe?g|gif|webp|heic|bmp)$/.test(n) || /^image\//.test(mime || '')) return '絵カード・写真';
+    if (/\.(mp4|mov|m4v|webm|avi)$/.test(n) || /^video\//.test(mime || '')) return '動画';
+    if (HTML_EXT.test(n)) return 'アプリ';
+    if (/\.(gs|js|css|json|md|txt|xml)$/.test(n)) return 'プログラム';
+    return 'その他';
+  }
+  function mimeOf(name) {
+    const n = String(name || '').toLowerCase();
+    return HTML_EXT.test(n) ? 'text/html' : /\.(gs|js)$/.test(n) ? 'text/plain' : /\.json$/.test(n) ? 'application/json' : TEXT_EXT.test(n) ? 'text/plain' : 'application/octet-stream';
+  }
+  function fileSizeText(n) { n = Number(n) || 0; return n >= 1048576 ? (n / 1048576).toFixed(1) + 'MB' : n >= 1024 ? Math.round(n / 1024) + 'KB' : n + 'B'; }
+  function readAsBase64(file) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result).replace(/^data:[^,]*,/, ''));
+      r.onerror = () => reject(r.error || new Error('ファイルを 読めませんでした。'));
+      r.readAsDataURL(file);
+    });
+  }
+  function matMsg(text) { const el = document.getElementById('mat-msg'); if (el) { el.textContent = text; el.hidden = !text; } }
+  // ファイルを ドライブに 保存して、教材の 記録に する
+  async function uploadMaterial(file, rec) {
+    if (file.size > MAX_UPLOAD) throw new Error(`「${file.name}」は 20MBを こえています。Google ドライブに 直接 入れて、リンクを 貼ってください。`);
+    const data = await readAsBase64(file);
+    // 種類が 分からない ファイル（.gs など）は 名前から 決める
+    const mime = !file.type || file.type === 'application/octet-stream' ? mimeOf(file.name) : file.type;
+    const r = JSON.parse(await gasCall('apiSaveFile', JSON.stringify({ name: file.name, mime, data, subject: rec.subject || '' })));
+    return Object.assign({}, rec, { url: r.url, fileId: r.id, fileName: r.name, mime: r.mime, size: r.size, savedAt: today() });
+  }
+  // まとめて 保存（1つずつ 順に 送る）
+  async function uploadMany(files) {
+    const done = [], ng = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      matMsg(`保存しています（${i + 1}／${files.length}）：${file.name}`);
+      try {
+        const rec = await uploadMaterial(file, { id: uid('m') + i, name: file.name.replace(/\.[^.]+$/, '') || file.name, subject: view.matSubj, kind: kindFromFile(file.name, file.type), unitId: '', memo: '' });
+        putRecs('materials', rec);
+        done.push(file.name);
+      } catch (err) { ng.push(`${file.name}（${err && err.message ? err.message : err}）`); }
+    }
+    matMsg(`✓ ${done.length}件 保存しました。${ng.length ? `⚠ 保存できなかった もの：${ng.join('、')}` : ''}`);
+  }
+  async function showMatText(id) {
+    const m = get('materials', id);
+    if (!m || !m.fileId) return;
+    matMsg('読みこんでいます…');
+    try {
+      const text = await gasCall('apiReadFile', m.fileId);
+      matMsg('');
+      openDialog({
+        title: `📄 ${m.fileName || m.name}`,
+        readOnly: true,
+        body: `<textarea class="input code-view" id="draftText" rows="18" readonly aria-label="ファイルの 中身">${esc(text)}</textarea>
+          <div class="toolbar" style="margin:0"><button class="btn primary" data-act="copyDraft">📋 すべて コピー</button><button class="btn" data-act="matTextDl" data-id="${esc(id)}">⬇ ダウンロード</button><span class="hint" id="copyMsg" role="status"></span></div>
+          <p class="hint">${text.length.toLocaleString()}文字。Apps Script に 貼る ときは「すべて コピー」を 押して、Apps Script の 画面で Ctrl＋A → Ctrl＋V で 入れかえます。</p>`,
+      });
+    } catch (err) { matMsg('⚠ ' + (err && err.message ? err.message : err)); }
+  }
+  // HTML の アプリを、この 画面の 中で 動かす（ほかの 部分とは 切りはなす）
+  async function runMatApp(id) {
+    const m = get('materials', id);
+    if (!m || !m.fileId) return;
+    matMsg('アプリを 読みこんでいます…');
+    try {
+      const html = await gasCall('apiReadFile', m.fileId);
+      matMsg('');
+      openDialog({
+        title: `▶ ${m.name}`,
+        cls: 'app-run',
+        readOnly: true,
+        body: `<iframe class="app-frame" title="${esc(m.name)}" sandbox="allow-scripts allow-forms allow-modals allow-popups allow-downloads" srcdoc="${esc(html)}"></iframe>
+          <p class="hint">マイクや カメラを 使う アプリ、データを 残す アプリは、ここでは うまく 動かない ことが あります。</p>`,
+      });
+    } catch (err) { matMsg('⚠ ' + (err && err.message ? err.message : err)); }
+  }
+
   function viewMaterials() {
     const used = Array.from(new Set(list('materials').map((m) => m.subject).filter(Boolean)));
     return `<div class="toolbar">
@@ -2503,9 +2593,13 @@
         <select class="input" style="width:auto" data-chg="matSubj" aria-label="教科でしぼりこむ">${opt('', view.matSubj, 'すべての教科')}${S.subjects.filter((s) => used.includes(s)).concat(used.filter((s) => !S.subjects.includes(s))).map((s) => opt(s, view.matSubj)).join('')}</select>
         <select class="input" style="width:auto" data-chg="matKind" aria-label="種類でしぼりこむ">${opt('', view.matKind, 'すべての種類')}${Object.keys(MAT_KINDS).map((k) => opt(k, view.matKind)).join('')}</select>
         <span class="grow"></span>
+        ${IN_GAS ? '<label class="btn">📤 ファイルを まとめて 保存<input type="file" multiple data-chg="matUpload" hidden></label>' : ''}
         <button class="btn primary" data-act="editMat">＋ 教材を追加</button>
       </div>
-      <p class="hint" style="margin-bottom:12px">Google ドライブに置いたプリントやスライドは、共有のリンクを貼っておくと、ここからすぐ開けます。</p>
+      <p class="hint" style="margin-bottom:12px">${IN_GAS
+        ? 'プリント（PDF・Word・Excel）、スライド（PowerPoint）、写真、アプリや プログラム（app.html・Code.gs など）を 保存できます（1つ 20MBまで）。ファイルは 学校の Google ドライブの「仮想職員室 教材置き場」フォルダに、教科ごとに 入ります。ドライブに ある ものは、リンクを 貼っても 登録できます。'
+        : '試作モードでは、ファイルの 保存は できません（リンクの 登録だけ）。学校の Google（Apps Script）で 開くと、プリントや スライド、プログラムの ファイルを 保存できます。'}</p>
+      <p class="hint mat-msg" id="mat-msg" role="status" hidden></p>
       <div id="mat-list">${materialList()}</div>`;
   }
 
@@ -2519,10 +2613,14 @@
     return `<div class="cards">${ms.map((m) => {
       const url = safeUrl(m.url);
       const u = get('units', m.unitId);
+      const fn = m.fileName || '';
       return `<article class="card mat">
         <div class="mat-icon">${MAT_KINDS[m.kind] || '📎'}</div>
-        <div><h3>${esc(m.name)}</h3><div class="meta">${chip(m.subject)}${m.kind ? `<span>${esc(m.kind)}</span>` : ''}${u ? `<span>📘 ${esc(u.name)}</span>` : ''}</div>${m.memo ? `<p>${nl(m.memo)}</p>` : ''}</div>
-        <div class="mat-act">${url ? `<a class="btn primary small" href="${esc(url)}" target="_blank" rel="noopener noreferrer">開く ↗</a>` : ''}<button class="btn small" data-act="editMat" data-id="${esc(m.id)}">直す</button></div>
+        <div><h3>${esc(m.name)}</h3><div class="meta">${chip(m.subject)}${m.kind ? `<span>${esc(m.kind)}</span>` : ''}${u ? `<span>📘 ${esc(u.name)}</span>` : ''}</div>
+          ${m.fileId ? `<div class="mat-file">📎 ${esc(fn)}${m.size ? `・${fileSizeText(m.size)}` : ''}${isDate(m.savedAt) ? `・${md(m.savedAt)} 保存` : ''}</div>` : ''}${m.memo ? `<p>${nl(m.memo)}</p>` : ''}</div>
+        <div class="mat-act">${IN_GAS && m.fileId && HTML_EXT.test(fn) ? `<button class="btn primary small" data-act="matRun" data-id="${esc(m.id)}">▶ ひらく</button>` : ''}
+          ${IN_GAS && m.fileId && TEXT_EXT.test(fn) ? `<button class="btn small" data-act="matText" data-id="${esc(m.id)}">📄 中身を見る</button>` : ''}
+          ${url ? `<a class="btn ${m.fileId && HTML_EXT.test(fn) ? '' : 'primary '}small" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${m.fileId ? 'ドライブで 開く ↗' : '開く ↗'}</a>` : ''}<button class="btn small" data-act="editMat" data-id="${esc(m.id)}">直す</button></div>
       </article>`;
     }).join('')}</div>`;
   }
@@ -2533,20 +2631,41 @@
     const units = list('units').sort((a, b) => S.subjects.indexOf(a.subject) - S.subjects.indexOf(b.subject) || String(a.start).localeCompare(String(b.start)));
     openDialog({
       title: id ? '教材を直す' : '教材を追加',
-      body: `<label class="field">名前 <input name="name" required maxlength="100" value="${esc(m.name)}" placeholder="例：ひらがな なぞりプリント（あ行）"></label>
+      body: `${IN_GAS ? `<label class="field">📎 ファイルを 保存する（PDF・Word・PowerPoint・写真・app.html・Code.gs など。20MBまで）${m.fileId ? `<span class="hint">いまの ファイル：${esc(m.fileName)}（選ぶと 入れかえます）</span>` : ''}
+          <input type="file" name="file" data-chg="matFile"></label>` : ''}
+        <label class="field">名前 <input name="name" maxlength="100" value="${esc(m.name)}" placeholder="例：ひらがな なぞりプリント（あ行）"></label>
         <div class="row2">
           <label class="field">教科 <select name="subject">${subjOptions(m.subject || '', '—')}</select></label>
           <label class="field">種類 <select name="kind">${Object.keys(MAT_KINDS).map((k) => opt(k, m.kind || 'その他', MAT_KINDS[k] + ' ' + k)).join('')}</select></label>
         </div>
-        <label class="field">リンク（URL） <input type="url" name="url" maxlength="1000" value="${esc(m.url)}" placeholder="https://drive.google.com/…"></label>
+        ${m.fileId ? '' : `<label class="field">リンク（URL）${IN_GAS ? '（ファイルを 保存しない とき）' : ''} <input type="url" name="url" maxlength="1000" value="${esc(m.url)}" placeholder="https://drive.google.com/…"></label>`}
         <label class="field">使う単元 <select name="unitId">${opt('', m.unitId || '', '（えらばない）')}${units.map((u) => opt(u.id, m.unitId, `［${u.subject}］${u.name}`)).join('')}</select></label>
         <label class="field">メモ <textarea name="memo" rows="3" maxlength="1000" placeholder="例：Aさん用に文字を大きくした版あり">${esc(m.memo)}</textarea></label>`,
       deleteLabel: id ? 'この教材を消す' : '',
-      onDelete: () => removeRecs('materials', id),
+      deleteConfirm: m.fileId ? 'この教材を 消します。ドライブの ファイルは ゴミ箱に 入ります（30日の あいだは ドライブの ゴミ箱から もどせます）。よろしいですか？' : undefined,
+      onDelete: () => {
+        if (m.fileId && IN_GAS) gasCall('apiTrashFile', m.fileId).catch((err) => console.error(err));
+        removeRecs('materials', id);
+      },
       onSave: (f) => {
-        const url = f.url.trim();
-        if (url && !safeUrl(url)) return 'リンクは https:// で始まるものを入れてください。';
-        putRecs('materials', { id: id || uid('m'), name: f.name.trim(), subject: f.subject, kind: f.kind, url, unitId: f.unitId, memo: f.memo.trim() });
+        const file = f.file && f.file.size ? f.file : null;
+        const name = f.name.trim() || (file ? file.name.replace(/\.[^.]+$/, '') : '');
+        if (!name) return '名前を 入れてください。';
+        const url = m.fileId ? m.url : String(f.url || '').trim();
+        if (!m.fileId && url && !safeUrl(url)) return 'リンクは https:// で始まるものを入れてください。';
+        const rec = { id: id || uid('m'), name, subject: f.subject, kind: f.kind, url, unitId: f.unitId, memo: f.memo.trim() };
+        if (!file) { putRecs('materials', rec); return; }
+        if (file.size > MAX_UPLOAD) return `「${file.name}」は 20MBを こえています。Google ドライブに 直接 入れて、リンクを 貼ってください。`;
+        // ファイルは 送り終わってから 記録する（入れかえた ときは 前の ファイルを ゴミ箱へ）
+        matMsg(`「${file.name}」を 保存しています…`);
+        persist(async () => {
+          try {
+            const full = await uploadMaterial(file, rec);
+            putRecs('materials', full);
+            if (m.fileId && m.fileId !== full.fileId) gasCall('apiTrashFile', m.fileId).catch((err) => console.error(err));
+            matMsg(`✓ 「${file.name}」を 保存しました。`);
+          } catch (err) { matMsg('⚠ ' + (err && err.message ? err.message : err)); throw err; }
+        });
       },
     });
   }
@@ -4920,6 +5039,7 @@
   function openDialog(o) {
     const el = document.getElementById('dlg');
     dlg = o;
+    el.className = o.cls || '';
     el.innerHTML = `<form id="dlgForm" ${o.attrs || ''}>
       <header><h2>${esc(o.title)}</h2><button type="button" class="x" data-act="dlgClose" aria-label="閉じる">✕</button></header>
       <div class="dlg-body">${o.body}<p class="hint" id="dlgMsg" role="alert" style="color:var(--danger)"></p></div>
@@ -4970,7 +5090,8 @@
       openDialog(o);
       const form = document.getElementById('dlgForm');
       Array.from(form.elements).forEach((el) => { if (el.type === 'checkbox' && el.name) el.checked = Object.prototype.hasOwnProperty.call(f, el.name); });
-      Object.keys(f).forEach((k) => { const field = form.elements[k]; if (field && field.type !== 'checkbox') field.value = f[k]; });
+      // ファイルの 欄は ブラウザの 決まりで 戻せないので とばす
+      Object.keys(f).forEach((k) => { const field = form.elements[k]; if (field && field.type !== 'checkbox' && field.type !== 'file' && typeof f[k] === 'string') field.value = f[k]; });
       if (form.elements.subject && form.elements.subject.dataset.chg === 'lessonSubj') { CHANGES.lessonSubj(form.elements.subject); form.elements.unitId.value = f.unitId; }
       document.getElementById('dlgMsg').textContent = msg;
     }
@@ -5042,6 +5163,13 @@
     editX: (d) => editX(Number(d.day), d.pid),
     editUnit: (d) => editUnit(d.id || ''),
     editMat: (d) => editMat(d.id || ''),
+    matText: (d) => { closeDialog(); showMatText(d.id); },
+    matRun: (d) => { closeDialog(); runMatApp(d.id); },
+    matTextDl: (d) => {
+      const m = get('materials', d.id);
+      const ta = document.getElementById('draftText');
+      if (m && ta) downloadBlob(new Blob([ta.value], { type: (m.mime || 'text/plain') + ';charset=utf-8' }), m.fileName || m.name);
+    },
     editItem: (d) => editItem(d.id || '', d.unit || ''),
     bulkItems: (d) => bulkItems(d.unit || ''),
     harvestItems: () => harvestItems(),
@@ -5306,6 +5434,15 @@
     },
     matSubj: (el) => { view.matSubj = el.value; render(); },
     matKind: (el) => { view.matKind = el.value; render(); },
+    matUpload: (el) => { const files = Array.from(el.files || []); el.value = ''; if (files.length) uploadMany(files); },
+    // ファイルを 選んだら、名前と 種類を 入れておく
+    matFile: (el) => {
+      const file = el.files && el.files[0];
+      const form = el.form;
+      if (!file || !form) return;
+      if (!form.elements.name.value.trim()) form.elements.name.value = file.name.replace(/\.[^.]+$/, '');
+      form.elements.kind.value = kindFromFile(file.name, file.type);
+    },
     importFile: (el) => importFile(el),
     hoursAll: (el) => { view.hoursAll = el.checked; render(); },
     taskDone: (el) => { const x = get('tasks', el.dataset.id); if (x) putRecs('tasks', Object.assign({}, x, { done: el.checked ? today() : '' })); },
