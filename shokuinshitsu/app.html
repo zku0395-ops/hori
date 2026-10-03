@@ -241,6 +241,8 @@
     .ken-h { font-size: 15px; margin: 14px 0 8px; color: var(--sub); }
     .ken-top { align-items: start; }
     .theme { font-size: 18px; font-weight: 700; }
+    .shidoan-text summary { cursor: pointer; font-weight: 700; padding: 4px 0; }
+    .shidoan-text[open] summary { margin-bottom: 6px; }
     .ken-title { display: flex; gap: 8px; align-items: flex-start; margin: 4px 0; }
     .ken-title h3 { flex: 1; min-width: 0; margin: 0; font-size: 17px; }
     .theme-sub { color: var(--sub); }
@@ -2821,16 +2823,8 @@
     ws['!cols'] = [{ wch: 8 }].concat(SB_DAY_COLS.flatMap(() => [{ wch: 18 }, { wch: 5 }]));
     const wb = X.utils.book_new();
     X.utils.book_append_sheet(wb, ws, String(no || '週案'));
-    // ファイル名が 確実に つくように、自分で ダウンロードさせる
     const blob = new Blob([X.write(wb, { type: 'array', bookType: 'xlsx' })], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `週案の下書き_${no ? '第' + no + '週_' : ''}${mon}.xlsx`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    downloadBlob(blob, `週案の下書き_${no ? '第' + no + '週_' : ''}${mon}.xlsx`);
   }
   function exportShuanbo(mon) {
     const { splits, lastCol } = shuanboCells(mon);
@@ -3773,60 +3767,180 @@
     putRecs('studies', { id: s.id, steps: STUDY_STEPS.filter((x) => done.has(x)).join(',') });
   }
 
-  // 指導案の 下書き（単元計画・週案・個別の指導計画の 目標から つくる）
-  function shidoanText(s, anon) {
+  // 指導案の 中身（単元計画・週案・個別の指導計画の 目標・研究主題から 集める）
+  function shidoanModel(s, anon) {
     const u = get('units', s.unitId);
     const r = researchOf(nendoOf(s.date));
     const subj = s.subject || (u ? u.subject : '');
     const kids = children();
     const letter = (k) => String.fromCharCode(0x41 + kids.findIndex((c) => c.id === k.id)) + '児';
-    const callName = (k) => (anon ? letter(k) : k.name);
     // 単元の 対象の 子（「全員」や 空なら 全員）
     const target = u && u.target && !/全員/.test(u.target) ? kids.filter((k) => String(u.target).includes(k.name)) : kids;
     const { term } = termNow(s.date);
     const n = nendoOf(s.date);
-    const L = [];
-    L.push(`${S.className || '　　学級'}　${subj || '　　'} 学習指導案`, '');
-    L.push(`日時：${wareki(parse(s.date).getFullYear())}${jdate(s.date)}${s.time ? ' ' + s.time : ''}`);
-    L.push(`児童：${target.length}名`, '授業者：', '');
-    L.push(`1　単元名　${u ? `「${u.name}」` : '「　　」'}`, '');
-    L.push('2　単元の目標', `　${u && u.goal ? u.goal : ''}`, '');
-    L.push('3　単元について', '（1）児童の実態', '　', '（2）教材について', '　', '（3）指導について', '　', '');
-    L.push('4　一人ひとりの 目標と 手立て');
-    target.forEach((k) => {
-      const g = list('goals').find((x) => x.childId === k.id && Number(x.nendo) === n && (x.term === term || x.term === '年間') && (x.area === subj || String(x.area || '').includes(subj)));
-      L.push(`・${callName(k)}${k.grade ? '（' + k.grade + '）' : ''}`);
-      L.push(`　目標：${g ? g.goal : ''}`, `　手立て：${g ? g.support : ''}`);
-    });
-    if (!target.length) L.push('・（子どもが 登録されていません）');
-    L.push('');
     // 指導計画（週案で この単元に した 時間から）
     const ws = u ? list('weekly').filter((w) => w.unitId === u.id && isDate(w.date)).sort((a, b) => a.date.localeCompare(b.date) || S.periods.findIndex((p) => p.id === String(a.period)) - S.periods.findIndex((p) => p.id === String(b.period))) : [];
-    const total = u && Number(u.hours) ? Number(u.hours) : ws.length;
-    L.push(`5　指導計画（全${total || '　'}時間）`);
     let honji = 0;
-    ws.forEach((w, i) => {
+    const plan = ws.map((w, i) => {
       const isHonji = !honji && w.date === s.date;
       if (isHonji) honji = i + 1;
-      L.push(`　第${i + 1}時　${w.content ? String(w.content).replace(/\n/g, ' ') : '（　　）'}${isHonji ? '　…本時' : ''}`);
+      return { n: i + 1, content: w.content ? String(w.content).replace(/\n/g, ' ') : '', honji: isHonji };
     });
-    if (!ws.length) L.push('　（週案で この単元の 時間に 内容を 入れると、ここに 並びます）');
-    L.push('');
-    L.push(`6　本時の学習${honji ? `（${honji}／${total || ws.length}時間目）` : ''}`);
-    L.push(`（1）本時の題　${s.title || ''}`);
-    L.push('（2）本時の目標', `　${s.aim ? s.aim.replace(/\n/g, '\n　') : ''}`);
+    return {
+      title: `${S.className || '　　学級'}　${subj || '　　'} 学習指導案`,
+      subj,
+      when: `${wareki(parse(s.date).getFullYear())}${jdate(s.date)}${s.time ? ' ' + s.time : ''}`,
+      nKids: target.length,
+      unitName: u ? u.name : '',
+      unitGoal: u && u.goal ? u.goal : '',
+      kids: target.map((k) => {
+        const g = list('goals').find((x) => x.childId === k.id && Number(x.nendo) === n && (x.term === term || x.term === '年間') && (x.area === subj || String(x.area || '').includes(subj)));
+        return { name: anon ? letter(k) : k.name, grade: k.grade || '', goal: g ? g.goal || '' : '', support: g ? g.support || '' : '' };
+      }),
+      total: u && Number(u.hours) ? Number(u.hours) : ws.length,
+      plan,
+      honji,
+      lessonTitle: s.title || '',
+      aim: s.aim || '',
+      flow: String(s.flow || '').split('\n').map((x) => x.trim()).filter(Boolean).map((x) => {
+        const p = x.split(/[｜|]/);
+        return { act: p[0].trim(), note: p.slice(1).join('｜').trim() };
+      }),
+      theme: r && r.theme ? r.theme : '',
+      sub: r && r.sub ? r.sub.replace(/\n/g, ' ') : '',
+    };
+  }
+  // 文の 形（コピー用）
+  function shidoanText(s, anon) {
+    const m = shidoanModel(s, anon);
+    const L = [];
+    L.push(m.title, '');
+    L.push(`日時：${m.when}`, `児童：${m.nKids}名`, '授業者：', '');
+    L.push(`1　単元名　「${m.unitName || '　　'}」`, '');
+    L.push('2　単元の目標', `　${m.unitGoal}`, '');
+    L.push('3　単元について', '（1）児童の実態', '　', '（2）教材について', '　', '（3）指導について', '　', '');
+    L.push('4　一人ひとりの 目標と 手立て');
+    m.kids.forEach((k) => L.push(`・${k.name}${k.grade ? '（' + k.grade + '）' : ''}`, `　目標：${k.goal}`, `　手立て：${k.support}`));
+    if (!m.kids.length) L.push('・（子どもが 登録されていません）');
+    L.push('', `5　指導計画（全${m.total || '　'}時間）`);
+    m.plan.forEach((p) => L.push(`　第${p.n}時　${p.content || '（　　）'}${p.honji ? '　…本時' : ''}`));
+    if (!m.plan.length) L.push('　（週案で この単元の 時間に 内容を 入れると、ここに 並びます）');
+    L.push('', `6　本時の学習${m.honji ? `（${m.honji}／${m.total}時間目）` : ''}`);
+    L.push(`（1）本時の題　${m.lessonTitle}`);
+    L.push('（2）本時の目標', `　${m.aim.replace(/\n/g, '\n　')}`);
     L.push('（3）展開');
-    const rows = String(s.flow || '').split('\n').map((x) => x.trim()).filter(Boolean);
-    if (rows.length) {
+    if (m.flow.length) {
       L.push('　学習活動　／　指導上の留意点・手立て');
-      rows.forEach((x, i) => {
-        const [a, b] = x.split(/[｜|]/);
-        L.push(`　${i + 1}　${(a || '').trim()}${b ? `　／　${b.trim()}` : ''}`);
-      });
+      m.flow.forEach((f, i) => L.push(`　${i + 1}　${f.act}${f.note ? `　／　${f.note}` : ''}`));
     } else L.push('　');
     L.push('（4）評価', '　', '');
-    if (r && r.theme) L.push('7　研究主題との かかわり', `　研究主題：${r.theme}${r.sub ? '　' + r.sub.replace(/\n/g, ' ') : ''}`, '　');
+    if (m.theme) L.push('7　研究主題との かかわり', `　研究主題：${m.theme}${m.sub ? '　' + m.sub : ''}`, '　');
     return L.join('\n');
+  }
+
+  /* ---------- Word の ファイル（.docx）を 作る ---------- */
+  const W_NS = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+  const XML_HEAD = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+  const W_WIDTH = 9638; // A4 の 横幅から 左右 20mm を 引いた 幅（1/20 ポイント）
+  // XML に 書けない 文字を 取りのぞき、記号を 置きかえる
+  function xmlEsc(s) { return String(s === undefined || s === null ? '' : s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F￾￿]/g, '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+  // 段落（style：見出しなど、ind：左の 字下げ、jc：そろえ方、b：太字）。改行は 段落を 分ける（両端そろえで 行が 広がらないように）
+  function wP(text, o) {
+    o = o || {};
+    const pPr = (o.style ? `<w:pStyle w:val="${o.style}"/>` : '') + (o.ind ? `<w:ind w:left="${o.ind}"/>` : '') + (o.jc ? `<w:jc w:val="${o.jc}"/>` : '');
+    const rPr = o.b ? '<w:rPr><w:b/><w:bCs/></w:rPr>' : '';
+    return String(text || '').split('\n').map((line) => `<w:p>${pPr ? `<w:pPr>${pPr}</w:pPr>` : ''}<w:r>${rPr}<w:t xml:space="preserve">${xmlEsc(line)}</w:t></w:r></w:p>`).join('');
+  }
+  // 表（1行目は 見出し。shade：色を つける 行）
+  function wTable(widths, head, rows, shade) {
+    const cell = (text, w, o) => `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${o.fill ? `<w:shd w:val="clear" w:color="auto" w:fill="${o.fill}"/>` : ''}</w:tcPr>${wP(text, { b: o.b, jc: o.jc || 'left' })}</w:tc>`;
+    const border = (n) => `<w:${n} w:val="single" w:sz="4" w:space="0" w:color="000000"/>`;
+    return `<w:tbl><w:tblPr><w:tblW w:w="${W_WIDTH}" w:type="dxa"/><w:tblBorders>${['top', 'left', 'bottom', 'right', 'insideH', 'insideV'].map(border).join('')}</w:tblBorders><w:tblLayout w:type="fixed"/>
+      <w:tblCellMar><w:top w:w="40" w:type="dxa"/><w:left w:w="80" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/><w:right w:w="80" w:type="dxa"/></w:tblCellMar></w:tblPr>
+      <w:tblGrid>${widths.map((w) => `<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>
+      <w:tr><w:trPr><w:tblHeader/></w:trPr>${head.map((h, i) => cell(h, widths[i], { b: true, jc: 'center', fill: 'E7EEF6' })).join('')}</w:tr>
+      ${rows.map((r, ri) => `<w:tr><w:trPr><w:cantSplit/></w:trPr>${r.map((c, i) => cell(c, widths[i], { fill: shade && shade(ri) ? 'FFF4CC' : '', jc: i === 0 && widths[i] < 1500 ? 'center' : '' })).join('')}</w:tr>`).join('')}</w:tbl>`;
+  }
+  function shidoanDocXml(m) {
+    const B = [];
+    const H1 = (t) => B.push(wP(t, { style: 'Heading1' }));
+    const H2 = (t) => B.push(wP(t, { style: 'Heading2' }));
+    const body = (t) => B.push(wP(t, { ind: 420 }));
+    const blank = (n) => { for (let i = 0; i < n; i++) B.push(wP('', { ind: 420 })); };
+    B.push(wP(m.title, { style: 'Title' }));
+    [['日　時', m.when], ['児　童', `${m.nKids}名`], ['授業者', '']].forEach(([k, v]) => B.push(wP(`${k}　${v}`, { ind: 4400 })));
+    B.push(wP(''));
+    H1(`1　単元名　「${m.unitName || '　　　　'}」`);
+    H1('2　単元の目標');
+    body(m.unitGoal); if (!m.unitGoal) blank(1);
+    H1('3　単元について');
+    ['（1）児童の実態', '（2）教材について', '（3）指導について'].forEach((t) => { H2(t); blank(3); });
+    H1('4　一人ひとりの目標と手立て');
+    B.push(wTable([1700, 3969, 3969], ['児童', '目標', '手立て'], m.kids.length ? m.kids.map((k) => [`${k.name}${k.grade ? '\n（' + k.grade + '）' : ''}`, k.goal, k.support]) : [['', '', '']]));
+    B.push(wP(''));
+    H1(`5　指導計画（全${m.total || '　'}時間）`);
+    const plan = m.plan.length ? m.plan.map((p) => [String(p.n), p.content + (p.honji ? '（本時）' : '')]) : [['', ''], ['', ''], ['', '']];
+    B.push(wTable([900, 8738], ['時', '学習内容'], plan, (i) => m.plan[i] && m.plan[i].honji));
+    B.push(wP(''));
+    H1(`6　本時の学習${m.honji ? `（${m.honji}／${m.total}時間目）` : ''}`);
+    H2(`（1）本時の題　${m.lessonTitle}`);
+    H2('（2）本時の目標');
+    body(m.aim); if (!m.aim) blank(1);
+    H2('（3）展開');
+    const flow = m.flow.length ? m.flow.map((f, i) => [`${i + 1}　${f.act}`, f.note]) : [['', ''], ['', ''], ['', ''], ['', '']];
+    B.push(wTable([4200, 5438], ['学習活動', '指導上の留意点・手立て'], flow));
+    H2('（4）評価');
+    blank(2);
+    if (m.theme) {
+      H1('7　研究主題とのかかわり');
+      body(`研究主題：${m.theme}${m.sub ? '\n' + m.sub : ''}`);
+      blank(2);
+    }
+    return `${XML_HEAD}<w:document xmlns:w="${W_NS}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>${B.join('')}
+      <w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="567" w:footer="567" w:gutter="0"/><w:cols w:space="425"/></w:sectPr></w:body></w:document>`;
+  }
+  // 明朝の 本文、ゴシックの 見出し（学校の 指導案で よく 使う 形）
+  function docxStyles() {
+    const gothic = '<w:rFonts w:ascii="ＭＳ ゴシック" w:eastAsia="ＭＳ ゴシック" w:hAnsi="ＭＳ ゴシック"/>';
+    return `${XML_HEAD}<w:styles xmlns:w="${W_NS}">
+      <w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Century" w:eastAsia="ＭＳ 明朝" w:hAnsi="Century" w:cs="Times New Roman"/><w:kern w:val="2"/><w:sz w:val="21"/><w:szCs w:val="22"/><w:lang w:val="en-US" w:eastAsia="ja-JP" w:bidi="ar-SA"/></w:rPr></w:rPrDefault>
+        <w:pPrDefault><w:pPr><w:spacing w:after="0" w:line="300" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>
+      <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/><w:pPr><w:widowControl w:val="0"/><w:jc w:val="both"/></w:pPr></w:style>
+      <w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:after="240"/><w:jc w:val="center"/></w:pPr><w:rPr>${gothic}<w:b/><w:sz w:val="28"/><w:szCs w:val="28"/></w:rPr></w:style>
+      <w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="160" w:after="40"/><w:outlineLvl w:val="0"/></w:pPr><w:rPr>${gothic}<w:b/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr></w:style>
+      <w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 2"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="60"/><w:ind w:left="210"/><w:outlineLvl w:val="1"/></w:pPr><w:rPr>${gothic}</w:rPr></w:style>
+      <w:style w:type="table" w:default="1" w:styleId="TableNormal"><w:name w:val="Normal Table"/><w:uiPriority w:val="99"/><w:semiHidden/><w:unhideWhenUsed/><w:tblPr><w:tblInd w:w="0" w:type="dxa"/><w:tblCellMar><w:top w:w="0" w:type="dxa"/><w:left w:w="108" w:type="dxa"/><w:bottom w:w="0" w:type="dxa"/><w:right w:w="108" w:type="dxa"/></w:tblCellMar></w:tblPr></w:style>
+    </w:styles>`;
+  }
+  async function shidoanDocx(s, anon) {
+    const X = await loadXlsx(); // ZIP を 作る 道具（SheetJS の CFB）を 使う
+    const m = shidoanModel(s, anon);
+    const REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+    const PKG = 'http://schemas.openxmlformats.org/package/2006/relationships';
+    const files = [
+      ['[Content_Types].xml', `${XML_HEAD}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>`],
+      ['_rels/.rels', `${XML_HEAD}<Relationships xmlns="${PKG}"><Relationship Id="rId1" Type="${REL}/officeDocument" Target="word/document.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>`],
+      ['docProps/core.xml', `${XML_HEAD}<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>${xmlEsc(m.title)}</dc:title><dc:creator>仮想職員室</dc:creator><dcterms:created xsi:type="dcterms:W3CDTF">${new Date().toISOString().replace(/\.\d+Z$/, 'Z')}</dcterms:created></cp:coreProperties>`],
+      ['word/document.xml', shidoanDocXml(m)],
+      ['word/styles.xml', docxStyles()],
+      ['word/_rels/document.xml.rels', `${XML_HEAD}<Relationships xmlns="${PKG}"><Relationship Id="rId1" Type="${REL}/styles" Target="styles.xml"/></Relationships>`],
+    ];
+    const zip = X.CFB.utils.cfb_new({ root: 'R' });
+    const enc = new TextEncoder();
+    files.forEach(([path, xml]) => X.CFB.utils.cfb_add(zip, path, enc.encode(xml)));
+    const bytes = X.CFB.write(zip, { fileType: 'zip', type: 'array', compression: true });
+    return { blob: new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), name: `指導案_${m.subj || '下書き'}_${s.date}.docx` };
+  }
+  // ファイル名が 確実に つくように、自分で ダウンロードさせる
+  function downloadBlob(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
   }
   function showShidoan(id) {
     const s = get('studies', id);
@@ -3837,9 +3951,13 @@
       body: `<div class="toolbar" style="margin:0"><span>子どもの 書き方：</span>
           <label class="check" style="font-weight:400"><input type="radio" name="anon" value="" data-chg="shidoanAnon" data-id="${esc(id)}" ${view.shidoanAnon ? '' : 'checked'}> 呼び名</label>
           <label class="check" style="font-weight:400"><input type="radio" name="anon" value="1" data-chg="shidoanAnon" data-id="${esc(id)}" ${view.shidoanAnon ? 'checked' : ''}> A児・B児…</label></div>
-        <textarea class="input" id="draftText" rows="18" aria-label="指導案の 下書き">${esc(shidoanText(s, view.shidoanAnon))}</textarea>
-        <div class="toolbar" style="margin:0"><button class="btn primary" data-act="copyDraft">📋 コピーする</button><span class="hint" id="copyMsg" role="status"></span></div>
-        <p class="hint">単元計画・週案の 内容・個別の指導計画の 目標（同じ 学期・同じ 教科）・研究主題から 作りました。学校の 指導案の 書式に 貼り付けて 仕上げてください。指導案を 配る ときは、子どもの 名前の 書き方を 学校の 決まりに 合わせてください。</p>`,
+        <div class="toolbar" style="margin:0"><button class="btn primary" data-act="shidoanDocx" data-id="${esc(id)}">📝 Word で 保存（.docx）</button><span class="hint" id="docxMsg" role="status"></span></div>
+        <p class="hint">表の 形に 整えた 指導案の ファイルが ダウンロードされます。Word（Google ドキュメントでも）で 開いて、「単元について」など 空いている ところを 書き足してください。</p>
+        <details class="shidoan-text"><summary>文で 見る・コピーする</summary>
+          <textarea class="input" id="draftText" rows="16" aria-label="指導案の 下書き">${esc(shidoanText(s, view.shidoanAnon))}</textarea>
+          <div class="toolbar" style="margin:0"><button class="btn" data-act="copyDraft">📋 コピーする</button><span class="hint" id="copyMsg" role="status"></span></div>
+        </details>
+        <p class="hint">単元計画・週案の 内容・個別の指導計画の 目標（同じ 学期・同じ 教科）・研究主題から 作りました。指導案を 配る ときは、子どもの 名前の 書き方を 学校の 決まりに 合わせてください。</p>`,
     });
   }
 
@@ -4060,6 +4178,17 @@
     editResearch: () => editResearch(),
     editStudy: (d) => editStudy(d.id || '', d.kind || ''),
     shidoan: (d) => showShidoan(d.id),
+    shidoanDocx: async (d) => {
+      const s = get('studies', d.id);
+      const msg = (t) => { const el = document.getElementById('docxMsg'); if (el) el.textContent = t; };
+      if (!s) return;
+      msg('ファイルを 作っています…');
+      try {
+        const f = await shidoanDocx(s, view.shidoanAnon);
+        downloadBlob(f.blob, f.name);
+        msg(`✓ 「${f.name}」を ダウンロードしました。`);
+      } catch (err) { console.error(err); msg('⚠ ' + (err && err.message ? err.message : err)); }
+    },
     dlgClose: () => closeDialog(),
     dlgDelete: () => {
       if (!dlg) return;
