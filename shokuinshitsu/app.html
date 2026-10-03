@@ -237,6 +237,14 @@
     /* 学習の 部屋 */
     .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
     .cards.wide { grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); }
+    /* 段階の あゆみ・動作チェック */
+    .stage-up { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: var(--today); border: 1px solid var(--today-line); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .stage-logs { margin-top: 8px; font-size: 14px; }
+    .stage-logs summary { cursor: pointer; font-weight: 700; }
+    .stage-logs ul { margin: 6px 0 0; padding-left: 1.2em; }
+    .diag { list-style: none; margin: 0; padding: 0; }
+    .diag li { display: grid; grid-template-columns: 1.4em minmax(9em, auto) 1fr; gap: 6px; padding: 4px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
+    .diag li.ng { color: var(--danger); }
     /* 段階表 */
     .stage-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 4px 12px; }
     .kid-mini { display: inline-block; margin: 2px 2px 0 0; padding: 0 6px; border-radius: 999px; font-size: 11px; font-weight: 400; background: var(--today); color: var(--ink); }
@@ -450,7 +458,7 @@
      決まりごと
      ========================================================= */
   /* 共通ここから */
-  const KINDS = ['events', 'timetable', 'weekly', 'children', 'exchange', 'units', 'materials', 'tasks', 'duties', 'dutyItems', 'meetings', 'templates', 'days', 'weeks', 'notes', 'plans', 'goals', 'contacts', 'lessonItems', 'steps', 'classes', 'handovers', 'staff', 'staffPlans', 'orgs', 'orgLogs', 'trainings', 'research', 'studies', 'subs'];
+  const KINDS = ['events', 'timetable', 'weekly', 'children', 'exchange', 'units', 'materials', 'tasks', 'duties', 'dutyItems', 'meetings', 'templates', 'days', 'weeks', 'notes', 'plans', 'goals', 'contacts', 'stageLogs', 'lessonItems', 'steps', 'classes', 'handovers', 'staff', 'staffPlans', 'orgs', 'orgLogs', 'trainings', 'research', 'studies', 'subs'];
   const DAYS = [1, 2, 3, 4, 5]; // 月〜金
   const WD = ['日', '月', '火', '水', '木', '金', '土'];
   const KYUGYO = '休業日';
@@ -559,6 +567,7 @@
      データの 置き場所（Apps Script の 中なら スプレッドシート、外なら この端末）
      ========================================================= */
   const IN_GAS = typeof google !== 'undefined' && !!(google.script && google.script.run);
+  const APP_VERSION = '2026-10-03'; // 画面の 版（更新した ときの 目じるし）
 
   function gasCall(fn, ...args) {
     return new Promise((resolve, reject) => {
@@ -599,7 +608,7 @@
      ========================================================= */
   let S = null;                 // 設定
   const T = {};                 // 種類ごとの Map（id → 記録）
-  const meta = { sheetUrl: '', draftTrigger: false, draftSheetUrl: '', triggerError: '' };
+  const meta = { sheetUrl: '', draftTrigger: false, draftSheetUrl: '', triggerError: '', loadMs: 0 };
   const view = {
     room: 'lobby',
     tab: { yotei: 'week', gakushu: 'units', koumu: 'tasks', kodomo: 'child', renkei: 'classes', kenkyu: 'trainings' },
@@ -998,6 +1007,8 @@
       case 'kodomo': {
         const kids = children();
         if (!kids.length) return '「子どもの部屋」で 子どもを 登録してね。';
+        const up = stageUpCandidates();
+        if (up.length) return `${up[0].k.name}の ${up[0].subject}、目標が ◎に なったよ。${up[0].to}へ 進めるか 考えてみてね。`;
         if (offReason(t)) return 'きょうは お休み。先生も ゆっくり 休んでね。';
         // 1週間 記録が ない 子を 知らせる
         const quiet = kids.filter((k) => !list('notes').some((n) => n.childId === k.id && n.date > addDays(t, -7) && n.date <= t));
@@ -1785,7 +1796,7 @@
       deleteLabel: id ? 'この子を消す' : '',
       deleteConfirm: `${k.name} を消します。交流の時間・日々の記録・指導計画・保護者との連絡・申し送りの 記録も すべて 消えます。よろしいですか？`,
       onDelete: () => {
-        ['exchange', 'notes', 'goals', 'plans', 'contacts', 'handovers'].forEach((kind) => removeRecs(kind, list(kind).filter((x) => x.childId === id).map((x) => x.id), { render: false }));
+        ['exchange', 'notes', 'goals', 'plans', 'contacts', 'handovers', 'stageLogs'].forEach((kind) => removeRecs(kind, list(kind).filter((x) => x.childId === id).map((x) => x.id), { render: false }));
         // 関係機関との 連絡は 残し、子どもとの つながりだけ はずす
         putRecs('orgLogs', list('orgLogs').filter((x) => x.childId === id).map((x) => ({ id: x.id, childId: '' })), { render: false });
         putRecs('orgs', list('orgs').filter((o) => String(o.childIds || '').split(',').includes(id)).map((o) => ({ id: o.id, childIds: String(o.childIds).split(',').filter((c) => c && c !== id).join(',') })), { render: false });
@@ -2183,6 +2194,10 @@
         // 段階表に ない 教科の 段階は そのまま 残す
         const keep = Object.keys(cur).filter((sub) => !subs.includes(sub)).map((sub) => `${sub}：${cur[sub]}`);
         const lines = subs.map((sub, i) => (f['st' + i] ? `${sub}：${f['st' + i]}` : '')).filter(Boolean).concat(keep);
+        // 変えた ところは あゆみに 残す
+        const logs = subs.map((sub, i) => ({ sub, from: cur[sub] || '', to: f['st' + i] || '' })).filter((x) => x.to && x.from !== x.to)
+          .map((x, i) => ({ id: uid('sl') + i, childId: k.id, date: today(), subject: x.sub, from: x.from, to: x.to, memo: '' }));
+        if (logs.length) putRecs('stageLogs', logs, { render: false });
         putRecs('children', { id: k.id, stages: lines.join('\n') });
       },
     });
@@ -2195,6 +2210,9 @@
         <button class="btn small" data-act="editKidStages" data-id="${esc(k.id)}">直す</button></div>
       ${subs.length ? `<div class="pills">${subs.map((sub) => `<button class="pill" data-act="openSteps" data-subj="${esc(sub)}" data-stage="${esc(st[sub])}" title="段階表で 見る">${esc(sub)}　<b>${esc(st[sub])}</b></button>`).join('')}</div>`
         : '<p class="hint">段階表の どの 段階を 学習しているかを 入れておくと、週案や 目標で その 段階が 先に 出ます。</p>'}
+      ${stageUpCandidates(k.id).map((c) => `<div class="stage-up">🎉 ${esc(c.subject)}の 目標「${esc(short(c.goal.goal, 30))}」が ◎に なりました。次の 段階へ 進めますか？
+        <button class="btn small primary" data-act="stageUp" data-kid="${esc(k.id)}" data-subj="${esc(c.subject)}" data-to="${esc(c.to)}" data-goal="${esc(c.goal.id)}">${esc(c.from)} → ${esc(c.to)}へ 進める</button></div>`).join('')}
+      ${stageLogsOf(k.id).length ? `<details class="stage-logs"><summary>📈 段階の あゆみ（${stageLogsOf(k.id).length}）</summary><ul>${stageLogsOf(k.id).map((x) => `<li><span class="muted">${isDate(x.date) ? jdate(x.date) : ''}</span> ${esc(x.subject)}　${esc(x.from || '—')} → <b>${esc(x.to)}</b>${x.memo ? `<span class="muted">（${esc(x.memo)}）</span>` : ''}</li>`).join('')}</ul></details>` : ''}
     </section>`;
   }
   // 段階表の ステップを 子どもの 学期の 目標に する
@@ -2206,6 +2224,38 @@
     putRecs('goals', { id: uid('gl'), childId: cid, nendo, term, area, goal: x.content, support: '', level: '', evaluation: '', order }, { render: false });
     return true;
   }
+  // 段階を 変えて、あゆみに 残す
+  function setKidStage(k, subject, to, memo) {
+    const cur = kidStages(k);
+    const from = cur[subject] || '';
+    if (from === to) return;
+    const lines = Object.keys(cur).filter((s) => s !== subject).map((s) => `${s}：${cur[s]}`);
+    if (to) lines.push(`${subject}：${to}`);
+    putRecs('children', { id: k.id, stages: lines.join('\n') }, { render: false });
+    if (to) putRecs('stageLogs', { id: uid('sl'), childId: k.id, date: today(), subject, from, to, memo: memo || '' }, { render: false });
+  }
+  function nextStage(subject, stage) {
+    const st = stagesOf(subject);
+    const i = st.indexOf(stage);
+    return i >= 0 && i < st.length - 1 ? st[i + 1] : '';
+  }
+  // 次の 段階へ 進めそうな ところ：いまの 段階の ステップから 立てた 目標が「◎」に なった
+  function stageUpCandidates(kid) {
+    const nendo = termNow().nendo;
+    const out = [];
+    children().filter((k) => !kid || k.id === kid).forEach((k) => {
+      const st = kidStages(k);
+      Object.keys(st).forEach((subject) => {
+        const to = nextStage(subject, st[subject]);
+        if (!to) return;
+        const contents = new Set(stepsOf(subject).filter((x) => x.stage === st[subject]).map((x) => x.content));
+        const g = list('goals').find((x) => x.childId === k.id && Number(x.nendo) === nendo && x.level === '◎' && contents.has(x.goal));
+        if (g) out.push({ k, subject, from: st[subject], to, goal: g });
+      });
+    });
+    return out;
+  }
+  function stageLogsOf(kid) { return list('stageLogs').filter((x) => x.childId === kid).sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.id).localeCompare(String(a.id))); }
   // 目標の 入力で 段階表から 選ぶ
   function goalStepPicker(cid) {
     const k = get('children', cid);
@@ -2502,9 +2552,60 @@
   }
 
   /* ---------- 設定 ---------- */
+  /* ---------- 設定：動作チェック ---------- */
+  // Apps Script に 入れた あと、つまずきやすい ところを まとめて 確かめる（個人の 情報は 出さない）
+  async function runDiag() {
+    const out = document.getElementById('diagOut');
+    if (!out) return;
+    out.innerHTML = '<p class="hint">チェックしています…</p>';
+    const rows = [];
+    const add = (ok, label, detail) => rows.push({ ok, label, detail: detail || '' });
+    add(IN_GAS ? true : null, '動いている 場所', IN_GAS ? 'Apps Script（学校の Google）' : '試作モード（この端末の ブラウザだけ）');
+    add(true, '画面の 版', APP_VERSION);
+    add(meta.loadMs < 15000, '読みこみに かかった 時間', `${(meta.loadMs / 1000).toFixed(1)}秒`);
+    const bTz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    add(bTz === 'Asia/Tokyo', 'この 端末の 時間帯', bTz);
+    add(true, 'きょうの 日付', `${today()}（${WD[dayOf(today())]}）`);
+    add(!lastError, '保存', lastError ? `⚠ 保存できなかった ことが あります：${lastError.message || lastError}` : 'エラーは ありません');
+    if (IN_GAS) {
+      try {
+        const d = JSON.parse(await gasCall('apiDiag'));
+        add(d.scriptTz === 'Asia/Tokyo', 'Apps Script の 時間帯', d.scriptTz);
+        add(d.sheetTz === 'Asia/Tokyo', 'スプレッドシートの 時間帯', d.sheetTz);
+        add(true, 'サーバーの 時刻', d.now);
+        add(!d.missing.length, 'シート', d.missing.length ? `たりない シート：${d.missing.join('・')}` : `${d.sheets}枚（すべて あります）`);
+        add(d.rows.steps > 0, '段階表', `${d.rows.steps}件`);
+        add(d.rows.templates > 0, '文書の ひな形', `${d.rows.templates}件`);
+        add(d.trigger ? true : null, '火曜日の朝の 自動作成', d.trigger ? 'オン' : 'オフ（メニュー「仮想職員室」から オンに できます）');
+        add(d.ms < 10000, 'サーバーの 速さ', `${d.ms}ミリ秒`);
+      } catch (err) { add(false, 'サーバーとの やりとり', String(err && err.message ? err.message : err)); }
+    }
+    try { await loadXlsx(); add(true, 'Excel を 読む 道具（SheetJS）', '読みこめました'); } catch (err) { add(false, 'Excel を 読む 道具（SheetJS）', '読みこめません（学校の ネットワークで cdnjs.cloudflare.com が 止められている かも しれません）'); }
+    const mark = (ok) => (ok === true ? '✓' : ok === false ? '⚠' : '・');
+    const report = ['仮想職員室 動作チェック', ...rows.map((r) => `${mark(r.ok)} ${r.label}：${r.detail}`)].join('\n');
+    out.innerHTML = `<ul class="diag">${rows.map((r) => `<li class="${r.ok === false ? 'ng' : ''}"><span>${mark(r.ok)}</span><b>${esc(r.label)}</b><span>${esc(r.detail)}</span></li>`).join('')}</ul>
+      <label class="field" style="margin-top:8px">結果の 文（個人の 情報は 入っていません。困った ときは、この 文を 送ってください）
+        <textarea class="input" id="draftText" rows="6" readonly>${esc(report)}</textarea></label>
+      <div class="toolbar" style="margin:0"><button class="btn small" data-act="copyDraft">📋 コピーする</button><span class="hint" id="copyMsg" role="status"></span></div>`;
+  }
+  function diagSection() {
+    return `<section class="card">
+      <h2 class="sec" style="margin-bottom:6px">🩺 動作チェック</h2>
+      <p class="hint">学校の Google（Apps Script）に 入れた あとに 押してください。時間帯・シート・段階表・Excel の 読みこみ などを まとめて 確かめます。</p>
+      <div class="toolbar" style="margin:8px 0 0">
+        <button class="btn primary" data-act="runDiag">🩺 チェックする</button>
+        <button class="btn" data-act="diagDownload">📄 ダウンロードの テスト</button>
+        <button class="btn" data-act="diagDocx">📝 Word の テスト</button>
+      </div>
+      <p class="hint" style="margin-top:6px">「ダウンロードの テスト」「Word の テスト」は、小さな ファイルが ダウンロードされれば 大丈夫です（週案簿の Excel や 指導案の Word と 同じ しくみです）。</p>
+      <div id="diagOut" style="margin-top:8px"></div>
+    </section>`;
+  }
+
   function viewSettings() {
     const ps = view.periodsDraft || S.periods;
     return `<div class="stack" style="max-width:820px">
+      ${IN_GAS ? diagSection() : ''}
       <section class="card">
         <h2 class="sec" style="margin-bottom:10px">🏷 学級名</h2>
         <div class="toolbar" style="margin:0"><input class="input" id="set-class" maxlength="40" value="${esc(S.className)}" placeholder="例：ひまわり学級" style="max-width:360px"><button class="btn primary" data-act="saveClass">保存する</button></div>
@@ -3835,6 +3936,11 @@
         part.forEach((n) => lines.push(`・${md(n.date)} ${String(n.text).replace(/\n/g, ' ')}`));
       });
     }
+    const sl = stageLogsOf(kid).filter((x) => x.date >= from && x.date <= to).reverse();
+    if (sl.length) {
+      lines.push('', '■ 段階の あゆみ');
+      sl.forEach((x) => lines.push(`・${md(x.date)} ${x.subject}：${x.from || '—'} → ${x.to}`));
+    }
     const cs = contactsOf(kid).filter((c) => c.date >= from && c.date <= to).reverse();
     if (cs.length) {
       lines.push('', '■ 保護者との連絡');
@@ -4940,6 +5046,19 @@
     pickPast: (d, el) => { const w = get('weekly', d.id); if (!w) return; const sp = splitEntry(w); fillLesson(sp.unitId, sp.aim, sp.content, el, sp.head); },
     editStep: (d) => editStep(d.id || ''),
     editKidStages: (d) => editKidStages(d.id),
+    stageUp: (d) => {
+      const k = get('children', d.kid);
+      const g = get('goals', d.goal);
+      if (!k || !confirm(`${k.name}の ${d.subj}を ${d.to}へ 進めます。よろしいですか？`)) return;
+      setKidStage(k, d.subj, d.to, g ? `目標「${short(g.goal, 40)}」が ◎` : '');
+      render();
+    },
+    runDiag: () => runDiag(),
+    diagDownload: () => downloadBlob(new Blob(['仮想職員室 ダウンロードの テスト\r\n'], { type: 'text/plain' }), 'ダウンロードのテスト.txt'),
+    diagDocx: async () => {
+      try { downloadBlob(await makeDocx('Word の テスト', wP('仮想職員室 Word の テスト', { style: 'Title' }) + wP('この ファイルが 開ければ 大丈夫です。')), 'Wordのテスト.docx'); }
+      catch (err) { alert('⚠ ' + (err && err.message ? err.message : err)); }
+    },
     openSteps: (d) => { view.room = 'gakushu'; view.tab.gakushu = 'steps'; view.stepSubj = d.subj; view.stepStage = d.stage || ''; render(); window.scrollTo(0, 0); },
     stepToGoal: (d) => {
       const x = get('steps', d.id);
@@ -5263,7 +5382,9 @@
      ========================================================= */
   async function boot() {
     try {
+      const t0 = Date.now();
       const data = await api.load();
+      meta.loadMs = Date.now() - t0;
       S = mergeSettings(data.settings);
       KINDS.forEach((k) => { T[k] = new Map(((data.tables || {})[k] || []).filter((r) => r && r.id).map((r) => [String(r.id), r])); });
       meta.sheetUrl = data.sheetUrl || '';
@@ -5425,6 +5546,7 @@
       { id: 'ctA1', childId: 'cA', date: pastDay(3), method: '連絡帳', content: '音読の 練習を 家でも がんばっていると 書いて くださった。学校での 様子（大きな 声で 読めた）を 返信した', followup: '' },
       { id: 'ctC1', childId: 'cC', date: pastDay(11), method: '電話', content: '朝 ねむそうな 日が 続いている ことを 伝えた。家でも 夜ふかしが 増えているとの こと', followup: '1週間 様子を 見て、連絡帳で 伝える' },
     ];
+    const stageLogs = [{ id: 'slA1', childId: 'cA', date: pastDay(40), subject: '国語', from: '2段階', to: '3段階', memo: '目標「絵カードと文字カード（単語）を合わせる」が ◎' }];
     // 連携の部屋（名前は すべて 架空）
     const classes = [
       { id: 'cl1', name: '2年1組', teacher: '青木先生', memo: '連絡は 朝の 打ち合わせの あと' },
@@ -5469,7 +5591,7 @@
       { id: 'sd1', kind: '自分の授業', date: schoolDay(16), time: '3校時', teacher: '', room: '', subject: '生活単元学習', unitId: 'u3', title: '見つけた 秋を 友だちに 伝えよう', steps: '指導案 第一稿', aim: '校庭で 見つけた ものを、絵カードと ことばで 友だちに 伝える', flow: 'はじめの あいさつ・めあての 確認｜絵カードで 活動の 流れを 示す\n見つけた ものを 選ぶ｜写真を 2つから 選べるように する\n友だちに 伝える｜「◯◯を 見つけました」の 話型を 掲示\nふりかえり｜よかったことを 具体的に ほめる', feedback: '', reflect: '' },
       { id: 'sd2', kind: '参観', date: pastDay(7), time: '5校時', teacher: '森先生', room: '3年2組', subject: '国語', unitId: '', title: 'お気に入りの 本を しょうかいしよう', steps: '', aim: '', flow: '', feedback: '', reflect: 'めあてを 黒板の 同じ 場所に いつも 書いていて、見通しが もちやすい。ペアで 話す 前に 話型を 確認していた' },
     ];
-    return { settings: { className: 'ひまわり学級（サンプル）', standards: { '国語': 175, '算数': 175, '音楽': 70, '図工': 70, '体育': 105, '学級活動': 35, '自立活動': 70, '日常生活の指導': 175, '生活単元学習': 140 }, standardTotal: 1015 }, tables: { events, timetable, weekly, children, exchange, units, materials, tasks, duties, dutyItems, meetings, templates, notes, plans, goals, contacts, lessonItems, steps: stepRows(), classes, handovers, staff, staffPlans, orgs, orgLogs, trainings, research, studies, subs } };
+    return { settings: { className: 'ひまわり学級（サンプル）', standards: { '国語': 175, '算数': 175, '音楽': 70, '図工': 70, '体育': 105, '学級活動': 35, '自立活動': 70, '日常生活の指導': 175, '生活単元学習': 140 }, standardTotal: 1015 }, tables: { events, timetable, weekly, children, exchange, units, materials, tasks, duties, dutyItems, meetings, templates, notes, plans, goals, contacts, stageLogs, lessonItems, steps: stepRows(), classes, handovers, staff, staffPlans, orgs, orgLogs, trainings, research, studies, subs } };
   }
 
   boot();

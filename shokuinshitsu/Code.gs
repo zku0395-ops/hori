@@ -96,6 +96,11 @@ const TABLES = {
     sheet: '指導計画の目標',
     cols: [['id', COL_ID], ['childId', '子どもID'], ['nendo', '年度', 'num'], ['term', '学期'], ['area', '領域'], ['goal', '目標', 'long'], ['support', '手立て', 'long'], ['level', '達成'], ['evaluation', '評価', 'long'], ['order', '並び順', 'num']],
   },
+  // 子どもが 段階表の 次の 段階へ 進んだ 記録
+  stageLogs: {
+    sheet: '段階のあゆみ',
+    cols: [['id', COL_ID], ['childId', '子どもID'], ['date', '日付', 'date'], ['subject', '教科'], ['from', 'まえの段階'], ['to', 'つぎの段階'], ['memo', 'メモ', 'long']],
+  },
   contacts: {
     sheet: '保護者連絡',
     cols: [['id', COL_ID], ['childId', '子どもID'], ['date', '日付', 'date'], ['method', '方法'], ['content', '内容', 'long'], ['followup', '次にすること', 'long']],
@@ -234,6 +239,28 @@ function apiGetAll() {
   const out = { settings: readSettings_(), tables: {}, sheetUrl: ss.getUrl(), draftTrigger: draftTriggerOn_(), draftSheetUrl: draftId ? 'https://docs.google.com/spreadsheets/d/' + draftId + '/edit' : '' };
   Object.keys(TABLES).forEach(function (kind) { out.tables[kind] = readTable_(kind, tz); });
   return JSON.stringify(out);
+}
+
+// 動作チェック（設定の「🩺 動作チェック」から）：個人の 情報は 返さない
+function apiDiag() {
+  const t0 = Date.now();
+  const ss = ss_();
+  const names = ss.getSheets().map(function (sh) { return sh.getName(); });
+  const rows = {};
+  Object.keys(TABLES).forEach(function (k) {
+    const sh = ss.getSheetByName(TABLES[k].sheet);
+    rows[k] = sh ? Math.max(0, sh.getLastRow() - 1) : -1;
+  });
+  return JSON.stringify({
+    scriptTz: Session.getScriptTimeZone(),
+    sheetTz: ss.getSpreadsheetTimeZone(),
+    now: Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone(), 'yyyy-MM-dd HH:mm'),
+    sheets: names.length,
+    missing: Object.keys(TABLES).map(function (k) { return TABLES[k].sheet; }).filter(function (n) { return names.indexOf(n) < 0; }),
+    rows: rows,
+    trigger: draftTriggerOn_(),
+    ms: Date.now() - t0,
+  });
 }
 
 // 記録を 書きこむ（同じ ID の 行が あれば 書きかえ、なければ 下に 足す）
