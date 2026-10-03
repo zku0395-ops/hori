@@ -567,7 +567,7 @@
      データの 置き場所（Apps Script の 中なら スプレッドシート、外なら この端末）
      ========================================================= */
   const IN_GAS = typeof google !== 'undefined' && !!(google.script && google.script.run);
-  const APP_VERSION = '2026-10-03'; // 画面の 版（更新した ときの 目じるし）
+  const APP_VERSION = '2026-10-03b'; // 画面の 版（更新した ときの 目じるし）
 
   function gasCall(fn, ...args) {
     return new Promise((resolve, reject) => {
@@ -2562,22 +2562,25 @@
     const add = (ok, label, detail) => rows.push({ ok, label, detail: detail || '' });
     add(IN_GAS ? true : null, '動いている 場所', IN_GAS ? 'Apps Script（学校の Google）' : '試作モード（この端末の ブラウザだけ）');
     add(true, '画面の 版', APP_VERSION);
-    add(meta.loadMs < 15000, '読みこみに かかった 時間', `${(meta.loadMs / 1000).toFixed(1)}秒`);
+    add(meta.loadMs < 15000, '読みこみに かかった 時間', `${(meta.loadMs / 1000).toFixed(1)}秒${meta.loadMs >= 15000 ? '（はじめて 開いた ときや、新しい 版に した ときは 長く かかります。もう一度 開いて 確かめてください）' : ''}`);
+    // 名前が ちがっても、日本時間と 同じ（世界標準時 ＋9時間）なら 大丈夫
     const bTz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-    add(bTz === 'Asia/Tokyo', 'この 端末の 時間帯', bTz);
+    const jst = (tz, ok) => (tz === 'Asia/Tokyo' ? tz : `${tz}${ok ? '（日本時間と 同じ）' : '（日本時間と ちがいます）'}`);
+    const bOk = new Date().getTimezoneOffset() === -540;
+    add(bOk, 'この 端末の 時間帯', jst(bTz, bOk));
     add(true, 'きょうの 日付', `${today()}（${WD[dayOf(today())]}）`);
     add(!lastError, '保存', lastError ? `⚠ 保存できなかった ことが あります：${lastError.message || lastError}` : 'エラーは ありません');
     if (IN_GAS) {
       try {
         const d = JSON.parse(await gasCall('apiDiag'));
-        add(d.scriptTz === 'Asia/Tokyo', 'Apps Script の 時間帯', d.scriptTz);
-        add(d.sheetTz === 'Asia/Tokyo', 'スプレッドシートの 時間帯', d.sheetTz);
+        add(d.scriptOffset === '+0900', 'Apps Script の 時間帯', jst(d.scriptTz, d.scriptOffset === '+0900'));
+        add(d.sheetOffset === '+0900', 'スプレッドシートの 時間帯', jst(d.sheetTz, d.sheetOffset === '+0900'));
         add(true, 'サーバーの 時刻', d.now);
         add(!d.missing.length, 'シート', d.missing.length ? `たりない シート：${d.missing.join('・')}` : `${d.sheets}枚（すべて あります）`);
         add(d.rows.steps > 0, '段階表', `${d.rows.steps}件`);
         add(d.rows.templates > 0, '文書の ひな形', `${d.rows.templates}件`);
         add(d.trigger ? true : null, '火曜日の朝の 自動作成', d.trigger ? 'オン' : 'オフ（メニュー「仮想職員室」から オンに できます）');
-        add(d.ms < 10000, 'サーバーの 速さ', `${d.ms}ミリ秒`);
+        add(d.readMs < 8000, 'すべての シートを 読む 時間（サーバー）', `${(d.readMs / 1000).toFixed(1)}秒`);
       } catch (err) { add(false, 'サーバーとの やりとり', String(err && err.message ? err.message : err)); }
     }
     try { await loadXlsx(); add(true, 'Excel を 読む 道具（SheetJS）', '読みこめました'); } catch (err) { add(false, 'Excel を 読む 道具（SheetJS）', '読みこめません（学校の ネットワークで cdnjs.cloudflare.com が 止められている かも しれません）'); }

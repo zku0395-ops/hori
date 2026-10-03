@@ -233,32 +233,51 @@ function setupSheets() {
 // すべての データを 1回で 返す（日付の 値は 文字に そろえる）
 function apiGetAll() {
   const ss = ss_();
-  withLock_(setup_);
+  // シートの 一覧を 1回だけ 見て、足りない ときだけ 準備する（はじめて 開いた とき・新しい 版に した とき）
+  const byName = sheetsByName_(ss);
+  const missing = !byName[SHEET_SETTINGS] || Object.keys(TABLES).some(function (k) { return !byName[TABLES[k].sheet]; });
+  if (missing) withLock_(setup_);
+  const sheets = missing ? sheetsByName_(ss) : byName;
   const tz = ss.getSpreadsheetTimeZone();
   const draftId = PropertiesService.getScriptProperties().getProperty('DRAFT_SSID');
   const out = { settings: readSettings_(), tables: {}, sheetUrl: ss.getUrl(), draftTrigger: draftTriggerOn_(), draftSheetUrl: draftId ? 'https://docs.google.com/spreadsheets/d/' + draftId + '/edit' : '' };
-  Object.keys(TABLES).forEach(function (kind) { out.tables[kind] = readTable_(kind, tz); });
+  Object.keys(TABLES).forEach(function (kind) { out.tables[kind] = readTable_(kind, tz, sheets[TABLES[kind].sheet]); });
   return JSON.stringify(out);
+}
+
+function sheetsByName_(ss) {
+  const out = {};
+  ss.getSheets().forEach(function (sh) { out[sh.getName()] = sh; });
+  return out;
 }
 
 // 動作チェック（設定の「🩺 動作チェック」から）：個人の 情報は 返さない
 function apiDiag() {
   const t0 = Date.now();
   const ss = ss_();
-  const names = ss.getSheets().map(function (sh) { return sh.getName(); });
+  const byName = sheetsByName_(ss);
+  const names = Object.keys(byName);
+  // すべての シートを 読む（画面を 開く ときと 同じ 読み方）時間と、行の 数
+  const t1 = Date.now();
   const rows = {};
   Object.keys(TABLES).forEach(function (k) {
-    const sh = ss.getSheetByName(TABLES[k].sheet);
-    rows[k] = sh ? Math.max(0, sh.getLastRow() - 1) : -1;
+    const sh = byName[TABLES[k].sheet];
+    rows[k] = sh ? Math.max(0, sh.getDataRange().getValues().length - 1) : -1;
   });
+  const readMs = Date.now() - t1;
+  const scriptTz = Session.getScriptTimeZone();
+  const sheetTz = ss.getSpreadsheetTimeZone();
   return JSON.stringify({
-    scriptTz: Session.getScriptTimeZone(),
-    sheetTz: ss.getSpreadsheetTimeZone(),
-    now: Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone(), 'yyyy-MM-dd HH:mm'),
+    scriptTz: scriptTz,
+    scriptOffset: Utilities.formatDate(new Date(), scriptTz, 'Z'),
+    sheetTz: sheetTz,
+    sheetOffset: Utilities.formatDate(new Date(), sheetTz, 'Z'),
+    now: Utilities.formatDate(new Date(), sheetTz, 'yyyy-MM-dd HH:mm'),
     sheets: names.length,
     missing: Object.keys(TABLES).map(function (k) { return TABLES[k].sheet; }).filter(function (n) { return names.indexOf(n) < 0; }),
     rows: rows,
     trigger: draftTriggerOn_(),
+    readMs: readMs,
     ms: Date.now() - t0,
   });
 }
@@ -413,11 +432,17 @@ function healDraftTrigger_() {
 }
 
 /* ---------- シートの 読み書き ---------- */
-function readTable_(kind, tz) {
+// 見出しと 中身を 1回で 読む（sh を 渡せば シートを さがす 手間も はぶく）
+function readTable_(kind, tz, sh) {
   const t = table_(kind);
-  const values = tableSheet_(kind).getDataRange().getValues();
+  let values = (sh || tableSheet_(kind)).getDataRange().getValues();
+  let header = (values[0] || []).map(String);
+  // 新しい 版で 見出しが 足りない ときだけ、足してから 読みなおす
+  if (t.cols.some(function (c) { return header.indexOf(c[1]) < 0; })) {
+    values = withLock_(function () { return tableSheet_(kind).getDataRange().getValues(); });
+    header = (values[0] || []).map(String);
+  }
   if (values.length < 2) return [];
-  const header = values[0].map(String);
   const idx = t.cols.map(function (c) { return header.indexOf(c[1]); });
   const list = [];
   for (let i = 1; i < values.length; i++) {
