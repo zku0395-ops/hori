@@ -240,8 +240,7 @@ function apiGetAll() {
   const sheets = missing ? sheetsByName_(ss) : byName;
   const tz = ss.getSpreadsheetTimeZone();
   const draftId = PropertiesService.getScriptProperties().getProperty('DRAFT_SSID');
-  const out = { settings: readSettings_(), tables: {}, sheetUrl: ss.getUrl(), draftTrigger: draftTriggerOn_(), draftSheetUrl: draftId ? 'https://docs.google.com/spreadsheets/d/' + draftId + '/edit' : '' };
-  Object.keys(TABLES).forEach(function (kind) { out.tables[kind] = readTable_(kind, tz, sheets[TABLES[kind].sheet]); });
+  const out = { settings: readSettings_(), tables: readAllTables_(ss, tz, sheets).tables, sheetUrl: ss.getUrl(), draftTrigger: draftTriggerOn_(), draftSheetUrl: draftId ? 'https://docs.google.com/spreadsheets/d/' + draftId + '/edit' : '' };
   return JSON.stringify(out);
 }
 
@@ -257,14 +256,12 @@ function apiDiag() {
   const ss = ss_();
   const byName = sheetsByName_(ss);
   const names = Object.keys(byName);
-  // すべての シートを 読む（画面を 開く ときと 同じ 読み方）時間と、行の 数
+  // すべての シートを 読む（画面を 開く ときと 同じ 読み方）時間と、記録の 数
   const t1 = Date.now();
-  const rows = {};
-  Object.keys(TABLES).forEach(function (k) {
-    const sh = byName[TABLES[k].sheet];
-    rows[k] = sh ? Math.max(0, sh.getDataRange().getValues().length - 1) : -1;
-  });
+  const all = readAllTables_(ss, ss.getSpreadsheetTimeZone(), byName);
   const readMs = Date.now() - t1;
+  const rows = {};
+  Object.keys(TABLES).forEach(function (k) { rows[k] = byName[TABLES[k].sheet] ? all.tables[k].length : -1; });
   const scriptTz = Session.getScriptTimeZone();
   const sheetTz = ss.getSpreadsheetTimeZone();
   return JSON.stringify({
@@ -278,6 +275,7 @@ function apiDiag() {
     rows: rows,
     trigger: draftTriggerOn_(),
     readMs: readMs,
+    batch: all.batch,
     ms: Date.now() - t0,
   });
 }
@@ -353,7 +351,8 @@ function weeklyDraftJob(force) {
   return withLock_(function () {
     const tz = ss_().getSpreadsheetTimeZone();
     const T = {};
-    Object.keys(TABLES).forEach(function (k) { T[k] = new Map(readTable_(k, tz).map(function (r) { return [String(r.id), r]; })); });
+    const all = readAllTables_(ss_(), tz).tables;
+    Object.keys(TABLES).forEach(function (k) { T[k] = new Map(all[k].map(function (r) { return [String(r.id), r]; })); });
     const S = {};
     const lib = shared_(T, S);
     Object.assign(S, lib.mergeSettings(readSettings_()));
@@ -436,18 +435,65 @@ function healDraftTrigger_() {
 function readTable_(kind, tz, sh) {
   const t = table_(kind);
   let values = (sh || tableSheet_(kind)).getDataRange().getValues();
-  let header = (values[0] || []).map(String);
   // 新しい 版で 見出しが 足りない ときだけ、足してから 読みなおす
-  if (t.cols.some(function (c) { return header.indexOf(c[1]) < 0; })) {
-    values = withLock_(function () { return tableSheet_(kind).getDataRange().getValues(); });
-    header = (values[0] || []).map(String);
+  if (!hasHeader_(t, values)) values = withLock_(function () { return tableSheet_(kind).getDataRange().getValues(); });
+  return valuesToRecs_(kind, values, tz, false);
+}
+function hasHeader_(t, values) {
+  const header = (values[0] || []).map(String);
+  return t.cols.every(function (c) { return header.indexOf(c[1]) >= 0; });
+}
+
+// すべての 表を 読む。Apps Script の「サービス」に Google Sheets API を 足して あれば、1回で まとめて 読む（速い）
+function readAllTables_(ss, tz, sheets) {
+  const kinds = Object.keys(TABLES);
+  const batch = batchValues_(ss, kinds.map(function (k) { return TABLES[k].sheet; }));
+  const tables = {};
+  kinds.forEach(function (kind) {
+    const t = TABLES[kind];
+    const values = batch && batch[t.sheet];
+    tables[kind] = values && hasHeader_(t, values) ? valuesToRecs_(kind, values, tz, true) : readTable_(kind, tz, sheets && sheets[t.sheet]);
+  });
+  return { tables: tables, batch: !!batch };
+}
+function batchValues_(ss, names) {
+  if (typeof Sheets === 'undefined' || !Sheets.Spreadsheets || !Sheets.Spreadsheets.Values) return null;
+  try {
+    const res = Sheets.Spreadsheets.Values.batchGet(ss.getId(), {
+      ranges: names.map(function (n) { return "'" + n.replace(/'/g, "''") + "'"; }),
+      valueRenderOption: 'UNFORMATTED_VALUE',
+      dateTimeRenderOption: 'SERIAL_NUMBER',
+    });
+    const out = {};
+    (res.valueRanges || []).forEach(function (vr, i) { out[names[i]] = vr.values || []; });
+    return out;
+  } catch (e) {
+    console.warn('Google Sheets API で まとめて 読めませんでした：' + e);
+    return null;
   }
+}
+// シートの 日付の 通し番号（1899年12月30日から 何日目か）を 'yyyy-MM-dd' に
+function serialToYmd_(v) {
+  const d = new Date(Date.UTC(1899, 11, 30) + Math.round(Number(v) * 86400000));
+  return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2);
+}
+// 読んだ 値を 記録に する（serial：日付が 通し番号で 来る 読み方）
+function valuesToRecs_(kind, values, tz, serial) {
+  const t = table_(kind);
   if (values.length < 2) return [];
+  const header = values[0].map(String);
   const idx = t.cols.map(function (c) { return header.indexOf(c[1]); });
   const list = [];
   for (let i = 1; i < values.length; i++) {
+    const row = values[i] || [];
     const rec = {};
-    t.cols.forEach(function (c, k) { rec[c[0]] = idx[k] >= 0 ? fromCell_(values[i][idx[k]], c[2], tz) : ''; });
+    t.cols.forEach(function (c, k) {
+      if (idx[k] < 0) { rec[c[0]] = ''; return; }
+      let v = row[idx[k]];
+      if (v === undefined) v = '';
+      if (serial && c[2] === 'date' && typeof v === 'number') v = serialToYmd_(v);
+      rec[c[0]] = fromCell_(v, c[2], tz);
+    });
     if (rec.id) list.push(rec);
   }
   return list;

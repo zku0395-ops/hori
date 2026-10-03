@@ -567,7 +567,7 @@
      データの 置き場所（Apps Script の 中なら スプレッドシート、外なら この端末）
      ========================================================= */
   const IN_GAS = typeof google !== 'undefined' && !!(google.script && google.script.run);
-  const APP_VERSION = '2026-10-03b'; // 画面の 版（更新した ときの 目じるし）
+  const APP_VERSION = '2026-10-03c'; // 画面の 版（更新した ときの 目じるし）
 
   function gasCall(fn, ...args) {
     return new Promise((resolve, reject) => {
@@ -2580,7 +2580,8 @@
         add(d.rows.steps > 0, '段階表', `${d.rows.steps}件`);
         add(d.rows.templates > 0, '文書の ひな形', `${d.rows.templates}件`);
         add(d.trigger ? true : null, '火曜日の朝の 自動作成', d.trigger ? 'オン' : 'オフ（メニュー「仮想職員室」から オンに できます）');
-        add(d.readMs < 8000, 'すべての シートを 読む 時間（サーバー）', `${(d.readMs / 1000).toFixed(1)}秒`);
+        add(d.readMs < 5000, 'すべての シートを 読む 時間（サーバー）', `${(d.readMs / 1000).toFixed(1)}秒`);
+        add(d.batch ? true : null, 'まとめて 読む（Google Sheets API）', d.batch ? 'オン' : 'オフ（Apps Script の「サービス」に Google Sheets API を 足すと 速く なります）');
       } catch (err) { add(false, 'サーバーとの やりとり', String(err && err.message ? err.message : err)); }
     }
     try { await loadXlsx(); add(true, 'Excel を 読む 道具（SheetJS）', '読みこめました'); } catch (err) { add(false, 'Excel を 読む 道具（SheetJS）', '読みこめません（学校の ネットワークで cdnjs.cloudflare.com が 止められている かも しれません）'); }
