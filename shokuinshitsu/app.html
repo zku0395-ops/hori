@@ -238,6 +238,8 @@
     .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
     .cards.wide { grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); }
     /* 段階表 */
+    .stage-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 4px 12px; }
+    .kid-mini { display: inline-block; margin: 2px 2px 0 0; padding: 0 6px; border-radius: 999px; font-size: 11px; font-weight: 400; background: var(--today); color: var(--ink); }
     .steps-table { min-width: 900px; table-layout: fixed; }
     .steps-table th:first-child { width: 7.5em; }
     .steps-table td { vertical-align: top; }
@@ -611,7 +613,7 @@
     planTerm: '', noteKid: '', noteTag: '', noteTerm: 'term', noteQ: '', lastTag: '', contactKid: '',
     meetQ: '', meetKind: '',
     renkeiWeek: mondayOf(today()), hoRoom: '', staffDate: '', staffId: '', orgId: '',
-    kenNendo: 0, trainKind: '', shidoanAnon: false, subsCare: true, itemSubj: '', stepSubj: '', stepStage: '', stepPick: {},
+    kenNendo: 0, trainKind: '', shidoanAnon: false, subsCare: true, itemSubj: '', stepSubj: '', stepStage: '', stepPick: {}, goalPick: {},
     periodsDraft: null,
   };
 
@@ -2079,8 +2081,8 @@
     const st = view.stepStage;
     const all = stepsOf(subj);
     const body = st
-      ? areas.map((a) => { const xs = all.filter((x) => x.stage === st && (x.area || '') === a); return xs.length ? `<section class="card"><h3 class="mini" style="margin:0 0 6px">${esc(a || '（領域なし）')}</h3><div class="stp-list">${xs.map(stepBtn).join('')}</div></section>` : ''; }).join('')
-      : `<div class="table-wrap"><table class="list steps-table"><thead><tr><th>領域</th>${stages.map((s) => `<th>${esc(s)}</th>`).join('')}</tr></thead><tbody>
+      ? (kidsAtStage(subj, st).length ? `<p class="hint">この 段階の 子：${kidsAtStage(subj, st).map((k) => esc(k.name)).join('・')}</p>` : '') + areas.map((a) => { const xs = all.filter((x) => x.stage === st && (x.area || '') === a); return xs.length ? `<section class="card"><h3 class="mini" style="margin:0 0 6px">${esc(a || '（領域なし）')}</h3><div class="stp-list">${xs.map(stepBtn).join('')}</div></section>` : ''; }).join('')
+      : `<div class="table-wrap"><table class="list steps-table"><thead><tr><th>領域</th>${stages.map((s) => `<th>${esc(s)}${kidsAtStage(subj, s).map((k) => `<span class="kid-mini">${esc(k.name)}</span>`).join('')}</th>`).join('')}</tr></thead><tbody>
           ${areas.map((a) => `<tr><th>${esc(a || '（領域なし）')}</th>${stages.map((s) => `<td>${all.filter((x) => x.stage === s && (x.area || '') === a).map(stepBtn).join('')}</td>`).join('')}</tr>`).join('')}
         </tbody></table></div>`;
     return `<div class="toolbar noprint">
@@ -2116,7 +2118,11 @@
         <label class="field">学習内容 <textarea name="content" rows="3" maxlength="1000">${esc(x.content)}</textarea></label>
         ${id ? `<div class="info"><b>📋 単元の「めあて・学習内容」に 入れる</b>
           <div class="toolbar" style="margin:6px 0 0"><select class="input" style="width:auto" id="step-unit" aria-label="単元">${opt('', '', '（単元なし：いつも 使う もの）')}${units.map((u) => opt(u.id, '', u.name)).join('')}</select>
-          <button type="button" class="btn small" data-act="stepToItem" data-id="${esc(id)}">入れる</button><span class="hint" id="stepMsg" role="status"></span></div></div>` : ''}`,
+          <button type="button" class="btn small" data-act="stepToItem" data-id="${esc(id)}">入れる</button><span class="hint" id="stepMsg" role="status"></span></div></div>
+        ${children().length ? `<div class="info"><b>🎯 子どもの 学期の 目標に 入れる</b>
+          <div class="toolbar" style="margin:6px 0 0"><select class="input" style="width:auto" id="step-kid" aria-label="子ども">${children().slice().sort((a, b) => Number(kidStage(b, subj) === x.stage) - Number(kidStage(a, subj) === x.stage)).map((k) => opt(k.id, '', k.name + (kidStage(k, subj) ? `（${kidStage(k, subj)}）` : ''))).join('')}</select>
+          <select class="input" style="width:auto" id="step-term" aria-label="学期">${PLAN_TERMS.map((t) => opt(t, termNow().term)).join('')}</select>
+          <button type="button" class="btn small" data-act="stepToGoal" data-id="${esc(id)}">入れる</button><span class="hint" id="goalMsg" role="status"></span></div></div>` : ''}` : ''}`,
       deleteLabel: id ? 'このステップを消す' : '',
       onDelete: () => removeRecs('steps', id),
       onSave: (f) => {
@@ -2137,18 +2143,87 @@
     return `<div class="toolbar" style="margin:6px 0">
         <select class="input" style="width:auto" data-chg="stepPick" data-k="stage" data-subj="${esc(subject)}" aria-label="段階">${opt('', stage, 'すべての段階')}${stages.map((s) => opt(s, stage)).join('')}</select>
         <select class="input" style="width:auto" data-chg="stepPick" data-k="area" data-subj="${esc(subject)}" aria-label="領域">${opt('', area, 'すべての領域')}${areas.map((a) => opt(a, area)).join('')}</select>
-        <select class="input" style="width:auto" name="stepKid" aria-label="だれの 学習か">${opt('', '', '全員')}${children().map((k) => opt(k.name, '')).join('')}</select>
+        <select class="input" style="width:auto" name="stepKid" data-chg="stepKid" data-subj="${esc(subject)}" aria-label="だれの 学習か">${opt('', '', '全員')}${children().map((k) => opt(k.name, '', k.name + (kidStage(k, subject) ? `（${kidStage(k, subject)}）` : ''))).join('')}</select>
       </div>
       <div class="stp-pick-list">${xs.map((x) => `<div class="stp-pick"><span class="tag">${esc(x.stage)}</span><span class="muted">${esc(x.area)}</span>
           <span class="stp-txt"><b>${esc(S.aimMark || '○')}${esc(x.aim)}</b> ${esc(x.content)}</span>
           <span class="stp-btns"><button type="button" class="btn small" data-act="useStep" data-id="${esc(x.id)}" data-mode="set">入れる</button><button type="button" class="btn small" data-act="useStep" data-id="${esc(x.id)}" data-mode="add">＋足す</button></span></div>`).join('')}</div>
-      <p class="hint">「入れる」は めあてと 学習内容を 入れかえます。「＋足す」は 学習内容に ①②…の 行を 足します（子どもを 選ぶと「Aさん：」が つきます。めあてが 空なら めあても 入ります）。</p>`;
+      <p class="hint">「入れる」は めあてと 学習内容を 入れかえます。「＋足す」は 学習内容に ①②…の 行を 足します（子どもを 選ぶと、その子の 段階に なり「Aさん：」が つきます。めあてが 空なら めあても 入ります）。</p>`;
   }
   function refreshStepPicker(form) {
     const el = document.getElementById('step-pick');
     if (!el || !form) return;
     const subject = form.elements.subject.value === NONE ? '' : (form.elements.subject.value || form.dataset.base);
     el.innerHTML = subject ? stepPicker(subject) : '<p class="hint">教科を 選ぶと、段階表が 出ます。</p>';
+  }
+
+  /* ---------- 子どもごとの 段階・段階表から 目標へ ---------- */
+  // 子どもの 段階は「国語：2段階」の 行で 持つ（シートでも 読める 形）
+  function kidStages(k) {
+    const out = {};
+    String((k && k.stages) || '').split('\n').forEach((line) => {
+      const m = line.trim().match(/^(.+?)[：:]\s*(.+)$/);
+      if (m) out[m[1].trim()] = m[2].trim();
+    });
+    return out;
+  }
+  function kidStage(k, subject) { return kidStages(k)[subject] || ''; }
+  function kidByName(name) { return children().find((k) => k.name === name); }
+  function kidsAtStage(subject, stage) { return children().filter((k) => kidStage(k, subject) === stage); }
+  function editKidStages(cid) {
+    const k = get('children', cid);
+    if (!k) return;
+    const cur = kidStages(k);
+    const subs = stepSubjects();
+    openDialog({
+      title: `${k.name}　教科ごとの 段階`,
+      body: `<p class="hint">段階表の どの 段階を 学習しているかを 入れます。週案で 段階表から 選ぶ ときや、目標を 選ぶ ときに、この 段階が 先に 出ます。</p>
+        <div class="stage-grid">${subs.map((sub, i) => `<label class="field">${chip(sub)} <select name="st${i}">${opt('', cur[sub] || '', '—')}${stagesOf(sub).map((s) => opt(s, cur[sub] || '')).join('')}</select></label>`).join('')}</div>`,
+      onSave: (f) => {
+        // 段階表に ない 教科の 段階は そのまま 残す
+        const keep = Object.keys(cur).filter((sub) => !subs.includes(sub)).map((sub) => `${sub}：${cur[sub]}`);
+        const lines = subs.map((sub, i) => (f['st' + i] ? `${sub}：${f['st' + i]}` : '')).filter(Boolean).concat(keep);
+        putRecs('children', { id: k.id, stages: lines.join('\n') });
+      },
+    });
+  }
+  function kidStagesCard(k) {
+    const st = kidStages(k);
+    const subs = Object.keys(st);
+    return `<section class="card">
+      <div class="toolbar"><h2 class="sec">🪜 教科ごとの 段階</h2><span class="grow"></span>
+        <button class="btn small" data-act="editKidStages" data-id="${esc(k.id)}">直す</button></div>
+      ${subs.length ? `<div class="pills">${subs.map((sub) => `<button class="pill" data-act="openSteps" data-subj="${esc(sub)}" data-stage="${esc(st[sub])}" title="段階表で 見る">${esc(sub)}　<b>${esc(st[sub])}</b></button>`).join('')}</div>`
+        : '<p class="hint">段階表の どの 段階を 学習しているかを 入れておくと、週案や 目標で その 段階が 先に 出ます。</p>'}
+    </section>`;
+  }
+  // 段階表の ステップを 子どもの 学期の 目標に する
+  function goalFromStep(x, cid, term) {
+    const nendo = termNow().nendo;
+    const area = x.area ? `${x.subject}・${x.area}` : x.subject;
+    if (list('goals').some((g) => g.childId === cid && Number(g.nendo) === nendo && g.term === term && g.goal === x.content)) return false;
+    const order = Math.max(0, ...list('goals').filter((g) => g.childId === cid).map((g) => Number(g.order) || 0)) + 1;
+    putRecs('goals', { id: uid('gl'), childId: cid, nendo, term, area, goal: x.content, support: '', level: '', evaluation: '', order }, { render: false });
+    return true;
+  }
+  // 目標の 入力で 段階表から 選ぶ
+  function goalStepPicker(cid) {
+    const k = get('children', cid);
+    const subs = stepSubjects();
+    if (!subs.length) return '<p class="hint">段階表が ありません。</p>';
+    const mem = view.goalPick || {};
+    const st = kidStages(k);
+    const subj = subs.includes(mem.subj) ? mem.subj : (subs.find((s) => st[s]) || subs[0]);
+    const stages = stagesOf(subj);
+    // 段階を 自分で 選んだ ときは それ（「すべて」も）、まだなら その子の 段階
+    const stage = mem.subj === subj && 'stage' in mem ? (stages.includes(mem.stage) ? mem.stage : '') : (stages.includes(st[subj]) ? st[subj] : '');
+    const xs = stepsOf(subj).filter((x) => !stage || x.stage === stage);
+    return `<div class="toolbar" style="margin:6px 0">
+        <select class="input" style="width:auto" data-chg="goalPick" data-k="subj" data-kid="${esc(cid)}" aria-label="教科">${subs.map((s) => opt(s, subj, s + (st[s] ? `（${st[s]}）` : ''))).join('')}</select>
+        <select class="input" style="width:auto" data-chg="goalPick" data-k="stage" data-kid="${esc(cid)}" aria-label="段階">${opt('', stage, 'すべての段階')}${stages.map((s) => opt(s, stage, s + (s === st[subj] ? '（いまの段階）' : ''))).join('')}</select>
+      </div>
+      <div class="stp-pick-list">${xs.map((x) => `<div class="stp-pick"><span class="tag">${esc(x.stage)}</span><span class="muted">${esc(x.area)}</span><span class="stp-txt">${esc(x.content)}</span>
+        <span class="stp-btns"><button type="button" class="btn small" data-act="stepToGoalForm" data-id="${esc(x.id)}">これにする</button></span></div>`).join('')}</div>`;
   }
 
   /* ---------- 学習の部屋：めあて・学習内容の 一覧 ---------- */
@@ -3562,8 +3637,9 @@
               ${plan.wishSelf ? `<dt>本人の願い</dt><dd>${nl(plan.wishSelf)}</dd>` : ''}${plan.wishParent ? `<dt>保護者の願い</dt><dd>${nl(plan.wishParent)}</dd>` : ''}${plan.longGoal ? `<dt>長期目標</dt><dd>${nl(plan.longGoal)}</dd>` : ''}</dl>` : ''}
             <div class="pills" style="margin:8px 0">${PLAN_TERMS.map((x) => `<button class="pill${x === term ? ' on' : ''}" data-act="planTerm" data-term="${x}">${x}${x === tn.term ? '（いま）' : ''}</button>`).join('')}</div>
             ${goals.length ? `<div class="stack" style="gap:8px">${goals.map(goalCard).join('')}</div>` : `<div class="empty-note">${esc(term)}の 目標は まだ ありません。</div>`}
-            <div class="toolbar" style="margin:10px 0 0"><span class="grow"></span><button class="btn small" data-act="editGoal" data-kid="${esc(k.id)}" data-term="${esc(term)}">＋ 目標を足す</button></div>
+            <div class="toolbar" style="margin:10px 0 0"><span class="grow"></span><button class="btn small" data-act="editGoal" data-kid="${esc(k.id)}" data-term="${esc(term)}">＋ 目標を足す（段階表からも 選べます）</button></div>
           </section>
+          ${kidStagesCard(k)}
           <section class="card">
             <div class="toolbar"><h2 class="sec">🚶 交流の時間</h2><span class="grow"></span><button class="btn small" data-act="goTab" data-room="yotei" data-tab="koryu">交流学級の表</button></div>
             ${xs.length ? `<ul class="day-list">${xs.map((x) => `<li><div class="pname">${WD[Number(x.day)]}曜日<span class="ptime">${esc(pName(x.period))}</span></div><div class="what">${chip(x.subject) || '—'} <span class="muted">${esc(x.room || k.homeroom || '')}</span>${x.memo ? `<div class="content">${esc(x.memo)}</div>` : ''}</div></li>`).join('')}</ul>` : '<p class="hint">交流の時間は ありません。</p>'}
@@ -3677,6 +3753,7 @@
     const g = id ? get('goals', id) : { childId: kid, nendo, term: term || termNow().term };
     if (!g) return;
     const k = get('children', g.childId);
+    view.goalPick = {};
     openDialog({
       title: `${k ? k.name + '　' : ''}${id ? '目標を直す' : '目標を足す'}`,
       body: `<div class="row2">
@@ -3684,6 +3761,7 @@
           <label class="field">領域・教科 <input name="area" list="area-list" maxlength="30" value="${esc(g.area)}" placeholder="例：国語"></label>
         </div>
         <datalist id="area-list">${PLAN_AREAS.map((a) => `<option value="${esc(a)}">`).join('')}</datalist>
+        ${list('steps').length ? `<details class="picker"${id ? '' : ' open'}><summary>🪜 段階表から 選ぶ（${k ? esc(k.name) + 'の 段階が 先に 出ます' : ''}）</summary><div id="goal-step-pick">${goalStepPicker(g.childId)}</div></details>` : ''}
         <label class="field">目標 <textarea name="goal" rows="2" required maxlength="1000" placeholder="例：絵本の 短い 文を、指で なぞりながら 読む">${esc(g.goal)}</textarea></label>
         <label class="field">手立て（支援） <textarea name="support" rows="2" maxlength="1000" placeholder="例：リーディングスリットを 使う。音読はかせで 練習する">${esc(g.support)}</textarea></label>
         <div class="row2">
@@ -4861,6 +4939,25 @@
     pickItem: (d, el) => { const x = get('lessonItems', d.id); if (x) fillLesson(x.unitId, x.aim, x.content, el, x.head); },
     pickPast: (d, el) => { const w = get('weekly', d.id); if (!w) return; const sp = splitEntry(w); fillLesson(sp.unitId, sp.aim, sp.content, el, sp.head); },
     editStep: (d) => editStep(d.id || ''),
+    editKidStages: (d) => editKidStages(d.id),
+    openSteps: (d) => { view.room = 'gakushu'; view.tab.gakushu = 'steps'; view.stepSubj = d.subj; view.stepStage = d.stage || ''; render(); window.scrollTo(0, 0); },
+    stepToGoal: (d) => {
+      const x = get('steps', d.id);
+      const kid = document.getElementById('step-kid'), term = document.getElementById('step-term');
+      if (!x || !kid || !kid.value) return;
+      const ok = goalFromStep(x, kid.value, term.value);
+      const msg = document.getElementById('goalMsg');
+      if (msg) msg.textContent = ok ? `✓ ${(get('children', kid.value) || {}).name}の ${term.value}の 目標に 入れました。` : 'もう 入っています。';
+    },
+    stepToGoalForm: (d, el) => {
+      const x = get('steps', d.id);
+      const form = document.getElementById('dlgForm');
+      if (!x || !form || !form.elements.goal) return;
+      form.elements.goal.value = x.content || '';
+      form.elements.area.value = x.area ? `${x.subject}・${x.area}` : x.subject;
+      form.querySelectorAll('.btn.picked').forEach((b) => b.classList.remove('picked'));
+      el.classList.add('picked');
+    },
     stepsSeed: () => {
       const add = stepRows().filter((r) => !get('steps', r.id));
       if (!add.length) { alert('はじめの 段階表は すべて 入っています。'); return; }
@@ -5059,6 +5156,23 @@
     itemSubj: (el) => { view.itemSubj = el.value; render(); },
     lessonUnit: (el) => refreshPicker(el.form),
     stepSubj: (el) => { view.stepSubj = el.value; view.stepStage = ''; render(); },
+    stepKid: (el) => {
+      const form = el.form;
+      const name = el.value;
+      const k = kidByName(name);
+      const st = k && kidStage(k, el.dataset.subj);
+      if (!st || !form) return;
+      const m = view.stepPick[el.dataset.subj] = view.stepPick[el.dataset.subj] || {};
+      m.stage = st;
+      refreshStepPicker(form);
+      form.elements.stepKid.value = name;
+    },
+    goalPick: (el) => {
+      if (el.dataset.k === 'subj') view.goalPick = { subj: el.value };
+      else view.goalPick = { subj: document.querySelector('#goal-step-pick [data-k=subj]').value, stage: el.value };
+      const box = document.getElementById('goal-step-pick');
+      if (box) box.innerHTML = goalStepPicker(el.dataset.kid);
+    },
     stepStageView: (el) => { view.stepStage = el.value; render(); },
     stepPick: (el) => {
       const m = view.stepPick[el.dataset.subj] = view.stepPick[el.dataset.subj] || {};
@@ -5184,9 +5298,9 @@
     const timetable = [];
     Object.keys(tt).forEach((d) => tt[d].forEach((s, i) => { if (s) timetable.push({ id: ttId(d, String(i + 1)), day: Number(d), period: String(i + 1), subject: s, memo: s === '体育' ? '体育館' : s === '日常生活の指導' ? '朝の会・着がえ' : '' }); }));
     const children = [
-      { id: 'cA', name: 'Aさん', grade: '2年', homeroom: '2年1組', order: 1, memo: '', likes: '電車の 絵本。数を 数えること', care: '大きな 音が 苦手（イヤーマフ）。予定の 変更は 絵カードで 前もって 伝える' },
-      { id: 'cB', name: 'Bさん', grade: '3年', homeroom: '3年2組', order: 2, memo: '', likes: '体を 動かすこと。係の 仕事', care: '話を 聞く ときは 前の 席で。指示は 1つずつ' },
-      { id: 'cC', name: 'Cさん', grade: '4年', homeroom: '4年1組', order: 3, memo: '', likes: '絵を かくこと。工作', care: '困った ときに 自分から 言えるよう、「てつだってカード」を 机に 置く' },
+      { id: 'cA', name: 'Aさん', grade: '2年', homeroom: '2年1組', order: 1, memo: '', stages: '国語：3段階\n算数：2段階\n体育：2段階\n図工：3段階', likes: '電車の 絵本。数を 数えること', care: '大きな 音が 苦手（イヤーマフ）。予定の 変更は 絵カードで 前もって 伝える' },
+      { id: 'cB', name: 'Bさん', grade: '3年', homeroom: '3年2組', order: 2, memo: '', stages: '国語：小1\n算数：小1\n体育：小1・2', likes: '体を 動かすこと。係の 仕事', care: '話を 聞く ときは 前の 席で。指示は 1つずつ' },
+      { id: 'cC', name: 'Cさん', grade: '4年', homeroom: '4年1組', order: 3, memo: '', stages: '国語：小2\n算数：3段階\n図工：小1・2', likes: '絵を かくこと。工作', care: '困った ときに 自分から 言えるよう、「てつだってカード」を 机に 置く' },
     ];
     const ex = [['cB', 1, '4', '音楽'], ['cC', 2, '4', '体育'], ['cA', 3, '4', '音楽'], ['cC', 3, '5', '学級活動'], ['cB', 4, '5', '体育'], ['cC', 5, '4', '図工'], ['cA', 5, '5', '図工']];
     const exchange = ex.map(([c, d, p, s]) => ({ id: xId(c, d, p), childId: c, day: d, period: p, subject: s, room: children.find((k) => k.id === c).homeroom, memo: c === 'cA' ? '支援員さん つきそい' : '' }));

@@ -56,7 +56,7 @@ const TABLES = {
   children: {
     sheet: '子ども',
     cols: [['id', COL_ID], ['name', '呼び名'], ['grade', '学年'], ['homeroom', '交流学級'], ['order', '並び順', 'num'], ['memo', 'メモ'],
-      ['likes', '好きなこと・得意なこと', 'long'], ['care', '配慮・支援のポイント', 'long']],
+      ['likes', '好きなこと・得意なこと', 'long'], ['care', '配慮・支援のポイント', 'long'], ['stages', '教科ごとの段階', 'long']],
   },
   exchange: {
     sheet: '交流',
