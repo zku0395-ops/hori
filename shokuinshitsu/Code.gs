@@ -118,7 +118,11 @@ const TABLES = {
   trainings: {
     sheet: '研修の記録',
     cols: [['id', COL_ID], ['date', '日付', 'date'], ['time', '時刻'], ['title', '研修名'], ['kind', '種類'], ['org', '主催'], ['place', '場所・方法'], ['hours', '時間', 'num'],
-      ['learned', '学んだこと', 'long'], ['apply', '学級で生かすこと', 'long'], ['report', '報告書'], ['reportDue', '報告書の締め切り', 'date'], ['url', '資料のリンク']],
+      ['learned', '学んだこと', 'long'], ['apply', '学級で生かすこと', 'long'], ['report', '報告書'], ['reportDue', '報告書の締め切り', 'date'], ['url', '資料のリンク'], ['trip', '出張']],
+  },
+  subs: {
+    sheet: '補教',
+    cols: [['id', COL_ID], ['date', '日付', 'date'], ['period', '校時ID'], ['trainingId', '研修ID'], ['teacher', '補教の先生'], ['task', 'お願いすること', 'long']],
   },
   research: {
     sheet: '校内研究',
