@@ -329,6 +329,25 @@
     .mat-file { font-size: 13px; color: var(--sub); margin-top: 2px; word-break: break-all; }
     .mat-msg { padding: 6px 10px; border-radius: 8px; background: var(--today); border: 1px solid var(--today-line); }
     .code-view { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; white-space: pre; }
+    /* コードを 見る 画面（行番号と 中身の 1行の 高さを そろえる） */
+    dialog.code-dlg { width: min(1200px, calc(100vw - 16px)); max-width: none; }
+    dialog.code-dlg .dlg-body { max-height: min(84vh, 1100px); }
+    .code-tabs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .code-tab { border: 1px solid var(--line); background: var(--soft); color: var(--ink); border-radius: 999px; padding: 4px 12px; font: inherit; font-size: 14px; cursor: pointer; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .code-tab.on { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); font-weight: 700; }
+    .code-tools, .code-foot { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .code-tools input[type=search] { flex: 1 1 200px; min-width: 0; }
+    .code-tools select { flex: 1 1 200px; min-width: 0; width: auto; }
+    .code-box { position: relative; display: flex; align-items: flex-start; height: min(56vh, 680px); overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+    .code-box pre { margin: 0; padding: 8px 0; font: 12.5px/18px ui-monospace, Menlo, Consolas, 'Courier New', monospace; white-space: pre; tab-size: 2; }
+    .code-ln { position: sticky; left: 0; z-index: 1; flex: none; min-height: 100%; box-sizing: border-box; padding: 8px 8px !important; text-align: right; color: var(--sub); background: var(--soft); border-right: 1px solid var(--line); user-select: none; }
+    .code-src { flex: none; padding: 8px 14px !important; color: var(--ink); }
+    .code-src mark { background: #ffe58a; color: #1b2533; border-radius: 2px; }
+    .code-src mark.cur { background: #ff9f43; outline: 2px solid #e8590c; }
+    .code-hl { position: absolute; left: 0; min-width: 100%; height: 18px; background: var(--glow-soft); border-top: 1px solid var(--today-line); border-bottom: 1px solid var(--today-line); pointer-events: none; box-sizing: border-box; }
+    .code-add { border: 2px dashed var(--line); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+    .code-add summary { cursor: pointer; font-weight: 700; }
+    .code-add details[open] { display: flex; flex-direction: column; gap: 8px; }
     dialog.app-run { width: min(1200px, calc(100vw - 16px)); max-width: none; }
     .app-frame { width: 100%; height: min(75vh, 900px); border: 1px solid var(--line); border-radius: 10px; background: #fff; }
     .mat-act { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; align-items: center; min-width: 0; }
@@ -457,7 +476,7 @@
   (function () {
     // 正しい 版の 下の プログラムの 文字数・始まる 行・25行ごとの しるし
     // （版を 作る たびに tools/stamp.js で 書きこむ。コピーや 貼り付けで こわれた 場所を さがす ため）
-    var EXPECT = { len: 352430, line: 526, self: 462, last: 5819, sums: '10ncvyo,1qsoqsg,134urv9,pbz0zm,1wjrlfy,2hic26,1kf6hu,5anezl,1x99eg5,k6myk3,17x21i8,6v8ndy,18uei8d,bx00y8,ptqdwf,1oseu81,b9wupg,1q58dwu,1yjbgex,hayli9,wnf3y0,18u958b,17kjpps,1yoxtk5,k54qjq,rpzmom,wcm2z8,1xq2y56,pyh1bn,1rlhk7n,1qnhq1v,1ki63tv,sizwwi,1yqcuqs,1f43np1,osvl45,4sq8fw,16lttr6,ad84mg,1ugvril,w09ggr,1ymx47x,1nlt3cp,p9b9tr,2hlyxi,1vh1m4w,xy7por,icy0c7,8fnr3n,1m4res8,tecj3a,1ch908b,44jhs5,1l8yung,6uc1rx,1qijpqv,ukaxxw,18ddoiy,insdjc,1u482fd,qg6dy,kqf0g6,1yquo1i,o8gnw6,1nc51b4,16l7789,7zy0f9,hdu0te,3jxaxy,5kyh2e,6hunbb,n4kmqk,zbqfz4,1d3t4sd,1l99iua,1qc1syl,pm654x,1drspat,151fwda,7yjzzq,11do2cz,1voq55u,m4xehi,1f0fa1r,13zwmfa,1tuum4m,1gv3cpk,vpxyi9,1ablx8y,1vb883j,1pfax4n,fsh6qo,ovw0ms,150ohm1,djmc2r,lkz2db,1cty2db,73l94b,12xxir6,1bdby3g,1wp2ym,185yzvz,qxb7hj,sjxgq5,2ihjlk,54e1yk,drj0wg,1m9lm10,lxx94d,1p4i2sa,19qkdkw,xi4q5l,73fp8j,16b86y2,zbgsra,7w0tpv,s6x6xc,ffw05n,1r4fzz9,73tfmo,54atxm,153nmd6,1rdpmou,1iqeomi,m6f9hs,bvtxr,1nh3plo,8232br,yclges,gjzetu,a1wy1e,1haxadi,iz09yo,1348efc,1dsicd3,1td5wf,hyazyi,1vh6vsf,vqu53n,1j972do,u7jwv1,22fzev,18h72ll,huxtzg,14ia8wn,mcjwip,15o98hb,1kvo0my,19a4rtx,2krazk,4ebhbb,26hskf,omsbxu,18bz1wb,a32mei,t2nfbi,kh8mrq,1v2f6sh,r6qqtf,nxr9p4,1123b2o,ngfjwp,je7g13,ay19p4,o72st1,sw0hlf,1llpw9k,17tlnwt,65468s,1p0lz09,duqx1d,19i4o0j,17ynzdy,od2xkt,2uxm1y,1q1q2i8,3agtoa,t56doq,1iifosu,xgcc7a,1fq77iq,j72s7r,85s3ms,1auk37p,8p3s5h,19ny5zw,17die8a,ii64mq,441mam,12ejiw7,144bmq9,13h05oe,4p579l,1ibbr2w,sckcbk,ok8diq,v5zlb1,jmwyp4,19max40,u9ej8c,1qjtbpj,1wsnhpg,lypoa7,1pp2lx7,hyargj,ugu99t,a7inzx,12xm9u6,o74ffk,uap5m5,4x26ab,1jzbzii' };
+    var EXPECT = { len: 368175, line: 545, self: 481, last: 6099, sums: '10ncvyo,1qsoqsg,134urv9,pbz0zm,cpuihz,2hic26,1kf6hu,5anezl,1x99eg5,k6myk3,17x21i8,6v8ndy,18uei8d,bx00y8,ptqdwf,1oseu81,b9wupg,1q58dwu,1yjbgex,hayli9,wnf3y0,18u958b,17kjpps,1yoxtk5,k54qjq,rpzmom,wcm2z8,1xq2y56,pyh1bn,1rlhk7n,1qnhq1v,1ki63tv,sizwwi,1yqcuqs,1f43np1,osvl45,4sq8fw,16lttr6,ad84mg,1ugvril,w09ggr,1ymx47x,1nlt3cp,p9b9tr,2hlyxi,1vh1m4w,xy7por,icy0c7,8fnr3n,1m4res8,tecj3a,1ch908b,44jhs5,1l8yung,6uc1rx,1qijpqv,ukaxxw,18ddoiy,insdjc,1u482fd,qg6dy,kqf0g6,1yquo1i,o8gnw6,1nc51b4,16l7789,7zy0f9,hdu0te,3jxaxy,5kyh2e,6hunbb,n4kmqk,zbqfz4,1d3t4sd,1l99iua,1qc1syl,pm654x,1drspat,151fwda,7yjzzq,11do2cz,1voq55u,m4xehi,1f0fa1r,yzqzf1,1nny23z,5al34f,mmui2q,38pfn,ybhgm0,rktbfq,ve9vm8,eumhvk,z0gkdj,abzbcb,1qxol4j,17ggaea,1aasqvp,3n2di5,1dvoiog,k36dqu,x9g1e3,1g5t0dh,n1pga6,4qnznr,fsfwz9,7ezwb7,464tcu,1v7iv9k,111wxe6,1s59nfl,1jlfe7l,9n5tcx,erwc9m,sipjyt,ls1u9i,1vcc1hh,rw9xcw,1jcr437,tf48ql,5ftpv7,u4gy6g,1pgl8xr,1a9vf0j,1mxwa3y,1pgnq29,1lfgk86,jsthu2,18mcgsm,1bit616,1qdppqv,o1226b,c87y1k,1kb7e8,kiinrt,ltr8k9,1v86jpt,11lkrt2,1cemrdx,2o56fi,ty6z9h,b7apk7,ly9jit,crhf0c,ogttln,1wcmo8e,hbcegd,rzzsw5,e49vkw,1w7dv05,n5kpk0,1b1v2yv,auko0a,1osn8ad,1bagvym,1ws1mbo,18oz8cr,wuv5ad,nldj3l,ndq7,3bfu0l,1755rml,1garn4w,15nbkp8,1ghdk43,1hg14h5,1h49aju,1bo8n6d,5g6gg4,1ru0ijd,1kmt3l1,11p14jc,tdmw61,1rm6bvl,ql18hd,gt1dr8,efsrr7,rqj0ta,1cery2i,1xy3lf3,bz5x23,1yaxu0s,ocjz7b,6egjxo,yvsa2w,2b1q48,ngvbuv,27i7ed,we6fzz,1ccbbyv,l3k1hm,1uqvbsx,vh9x8v,1gvcobl,aifom6,dj13oj,kgompp,1qdyp2x,hf8neb,i99air,5lsmv9,42k4sn,1r3036a,wgo4bu,10mw0zj,1msmua1,ajlyxy,1pi4bc6,17fo4u7,g6d8gl,62xd0p,t7jaou,wi056m,2ziy5x,1rrhst0,1rm17g0,1bc5wqu,1wfgisa,jhkm0k,x7y2yg,dis9gi,13fmuyd,fnd8g7' };
     // この 行が、実際に 開いた 画面の 中で 何行目に あるか（Apps Script が 前に 足す 行の ずれを はかる）
     var here = 0; try { throw new Error('here'); } catch (er) { var hm = /:(\d+):\d+\)?\s*$/.exec(String(er.stack || '').split('\n')[1] || ''); if (hm) here = +hm[1]; }
     var errs = [], first = null;
@@ -645,7 +664,7 @@
      データの 置き場所（Apps Script の 中なら スプレッドシート、外なら この端末）
      ========================================================= */
   const IN_GAS = typeof google !== 'undefined' && !!(google.script && google.script.run);
-  const APP_VERSION = '2026-10-03f'; // 画面の 版（更新した ときの 目じるし）
+  const APP_VERSION = '2026-10-05a'; // 画面の 版（更新した ときの 目じるし）
 
   function gasCall(fn, ...args) {
     return new Promise((resolve, reject) => {
@@ -2625,38 +2644,218 @@
     }
     matMsg(`✓ ${done.length}件 保存しました。${ng.length ? `⚠ 保存できなかった もの：${ng.join('、')}` : ''}`);
   }
-  async function showMatText(id) {
+  // HTML の アプリを、この 画面の 中で 動かす（ほかの 部分とは 切りはなす）。fileId が あれば その ファイルを
+  async function runMatApp(id, fileId) {
     const m = get('materials', id);
-    if (!m || !m.fileId) return;
-    matMsg('読みこんでいます…');
-    try {
-      const text = await gasCall('apiReadFile', m.fileId);
-      matMsg('');
-      openDialog({
-        title: `📄 ${m.fileName || m.name}`,
-        readOnly: true,
-        body: `<textarea class="input code-view" id="draftText" rows="18" readonly aria-label="ファイルの 中身">${esc(text)}</textarea>
-          <div class="toolbar" style="margin:0"><button class="btn primary" data-act="copyDraft">📋 すべて コピー</button><button class="btn" data-act="matTextDl" data-id="${esc(id)}">⬇ ダウンロード</button><span class="hint" id="copyMsg" role="status"></span></div>
-          <p class="hint">${text.length.toLocaleString()}文字。Apps Script に 貼る ときは「すべて コピー」を 押して、Apps Script の 画面で Ctrl＋A → Ctrl＋V で 入れかえます。</p>`,
-      });
-    } catch (err) { matMsg('⚠ ' + (err && err.message ? err.message : err)); }
-  }
-  // HTML の アプリを、この 画面の 中で 動かす（ほかの 部分とは 切りはなす）
-  async function runMatApp(id) {
-    const m = get('materials', id);
-    if (!m || !m.fileId) return;
+    const fid = fileId || (m && m.fileId);
+    if (!m || !fid) return;
     matMsg('アプリを 読みこんでいます…');
     try {
-      const html = await gasCall('apiReadFile', m.fileId);
+      const html = codeCache.has(fid) ? codeCache.get(fid) : await gasCall('apiReadFile', fid);
+      codeCache.set(fid, html);
       matMsg('');
       openDialog({
         title: `▶ ${m.name}`,
         cls: 'app-run',
         readOnly: true,
         body: `<iframe class="app-frame" title="${esc(m.name)}" sandbox="allow-scripts allow-forms allow-modals allow-popups allow-downloads" srcdoc="${esc(html)}"></iframe>
-          <p class="hint">マイクや カメラを 使う アプリ、データを 残す アプリは、ここでは うまく 動かない ことが あります。</p>`,
+          <p class="hint">マイクや カメラを 使う アプリ、データを 残す アプリ（Apps Script の サーバーを 使う ものなど）は、ここでは うまく 動かない ことが あります。</p>`,
       });
     } catch (err) { matMsg('⚠ ' + (err && err.message ? err.message : err)); }
+  }
+
+  /* ---------- 教材の コード（アプリの Code.gs・index.html など）を 見る ---------- */
+  const CODE_LH = 18; // コードの 1行の 高さ（px）。行番号と そろえる（CSS の .code-box pre と 同じ）
+  const CODE_MAX = 5 * 1024 * 1024; // 画面で 見られる 大きさ（サーバーの apiReadFile と 同じ）
+  const codeCache = new Map(); // ファイルID → 中身
+  let code = null; // いま 開いている コードの 画面 { id, fileId, q, hit, add, msg }
+  let codeTimer = 0;
+  // 教材に あとから 足した コードの ファイル
+  function matExtraFiles(m) {
+    try { const a = JSON.parse((m && m.files) || '[]'); return Array.isArray(a) ? a.filter((f) => f && f.id && f.name) : []; } catch (e) { return []; }
+  }
+  // 教材に 入っている コードの ファイル（保存した ファイルが コードなら それも）。.gs → .js → .html → ほか の 順
+  function matCodeFiles(m) {
+    const main = m.fileId && TEXT_EXT.test(m.fileName || '') ? [{ id: m.fileId, name: m.fileName, size: m.size, savedAt: m.savedAt, main: true }] : [];
+    const rank = (n) => (/\.gs$/i.test(n) ? 0 : /\.js$/i.test(n) ? 1 : HTML_EXT.test(n) ? 2 : 3);
+    return main.concat(matExtraFiles(m)).sort((a, b) => rank(a.name) - rank(b.name) || String(a.name).localeCompare(String(b.name), 'ja'));
+  }
+  function codeIcon(name) { return /\.(gs|js)$/i.test(name) ? '📜' : HTML_EXT.test(name) ? '🌐' : /\.css$/i.test(name) ? '🎨' : '📄'; }
+  // 大文字・小文字を 区別しないで さがす（英字だけ 小さく するので 文字の 位置は ずれない）
+  function asciiLower(t) { return t.replace(/[A-Z]+/g, (c) => c.toLowerCase()); }
+  // 目次：区切りの 見出しと 関数の 名前（行番号つき）
+  function codeOutline(text) {
+    const out = [];
+    const lines = text.split('\n');
+    for (let i = 0; i < lines.length && out.length < 3000; i++) {
+      const ln = lines[i];
+      let m = /^\s*\/\*\s*-{3,}\s*(.+?)\s*-{3,}\s*\*\/\s*$/.exec(ln) || /^\s*<!--\s*(.+?)\s*-->\s*$/.exec(ln);
+      if (!m && /^\s*\/\*\s*={5,}\s*$/.test(ln) && lines[i + 1] && lines[i + 1].trim()) m = [0, lines[i + 1].trim()];
+      if (m) { out.push({ line: i + 1, label: m[1].slice(0, 60), head: true }); continue; }
+      m = /^\s*(?:async\s+)?function\s*\*?\s*([\w$]+)\s*\(/.exec(ln)
+        || /^\s*(?:const|let|var)\s+([\w$]+)\s*=\s*(?:async\s+)?(?:function\b|\([^)]*\)\s*=>|[\w$]+\s*=>)/.exec(ln);
+      if (m) { out.push({ line: i + 1, label: m[1] }); continue; }
+      m = /^\s*<(script|style)\b/i.exec(ln);
+      if (m) out.push({ line: i + 1, label: `<${m[1].toLowerCase()}>`, head: true });
+    }
+    return out;
+  }
+  // さがす ことばに 印を つけた 中身
+  function codeHtml(text, q) {
+    if (!q) return { html: esc(text), n: 0 };
+    const low = asciiLower(text), ql = asciiLower(q);
+    let html = '', at = 0, n = 0, i;
+    while (n < 5000 && (i = low.indexOf(ql, at)) >= 0) {
+      html += esc(text.slice(at, i)) + `<mark>${esc(text.slice(i, i + q.length))}</mark>`;
+      at = i + q.length;
+      n++;
+    }
+    return { html: html + esc(text.slice(at)), n };
+  }
+  function textToBase64(t) {
+    const bytes = new TextEncoder().encode(t);
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(bin);
+  }
+  function showCode(id, fileId) {
+    const m = get('materials', id);
+    if (!m) return;
+    const files = matCodeFiles(m);
+    code = { id, fileId: fileId || (files[0] ? files[0].id : ''), q: code && code.id === id ? code.q : '', hit: 0, add: !files.length, msg: '' };
+    openDialog({ title: `💻 ${m.name} の コード`, cls: 'code-dlg', readOnly: true, body: '<div id="codeView" style="display:flex;flex-direction:column;gap:10px"></div>' });
+    renderCode();
+  }
+  async function renderCode() {
+    const view_ = document.getElementById('codeView');
+    const m = code && get('materials', code.id);
+    if (!view_ || !m) return;
+    const files = matCodeFiles(m);
+    if (!files.some((f) => f.id === code.fileId)) code.fileId = files[0] ? files[0].id : '';
+    const f = files.find((x) => x.id === code.fileId);
+    view_.innerHTML = `<div class="code-tabs" role="group" aria-label="ファイル">${files.map((x) => `<button type="button" class="code-tab${x.id === code.fileId ? ' on' : ''}" aria-pressed="${x.id === code.fileId}" data-act="codeTab" data-id="${esc(x.id)}">${codeIcon(x.name)} ${esc(x.name)}</button>`).join('')}
+        <button type="button" class="btn small${files.length ? '' : ' primary'}" data-act="codeAdd" aria-expanded="${code.add}">＋ ファイルを 足す</button></div>
+      ${code.add ? codeAddPanel() : ''}
+      <p class="hint mat-msg" id="codeMsg" role="status"${code.msg ? '' : ' hidden'}>${esc(code.msg)}</p>
+      <div id="codeBody">${f ? '<p class="hint">読みこんでいます…</p>' : '<div class="empty-note">まだ コードの ファイルが ありません。「＋ ファイルを 足す」から、この アプリの Code.gs や index.html を 入れると、ここで 見られます。</div>'}</div>`;
+    if (!f) return;
+    let text = codeCache.get(f.id);
+    if (text === undefined) {
+      try { text = await gasCall('apiReadFile', f.id); } catch (err) {
+        const box = document.getElementById('codeBody');
+        if (box && code && code.fileId === f.id) box.innerHTML = `<p class="hint" style="color:var(--danger)">⚠ ${esc(err && err.message ? err.message : err)}</p>`;
+        return;
+      }
+      codeCache.set(f.id, text);
+    }
+    if (code && code.fileId === f.id) codeBody(f, text); // 読んでいる あいだに ほかの ファイルに した ときは 書かない
+  }
+  function codeBody(f, text) {
+    const box = document.getElementById('codeBody');
+    if (!box) return;
+    const lines = text.split('\n');
+    const outline = codeOutline(text);
+    const fnCount = outline.filter((o) => !o.head).length;
+    const hl = codeHtml(text, code.q);
+    box.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px">
+      <div class="code-tools">
+        <input class="input" type="search" id="codeQ" data-inp="codeQ" value="${esc(code.q)}" placeholder="🔍 さがす（関数の 名前・ことば）" aria-label="コードの 中を さがす">
+        <button type="button" class="btn small" data-act="codeHit" data-n="-1" aria-label="前の ところへ">▲</button><button type="button" class="btn small" data-act="codeHit" data-n="1" aria-label="次の ところへ">▼</button>
+        <span class="hint" id="codeHits" role="status">${code.q ? `${hl.n}件` : ''}</span>
+        ${outline.length ? `<select class="input" data-chg="codeJump" aria-label="目次（見出しや 関数へ とぶ）"><option value="">📑 目次（${fnCount ? `関数 ${fnCount}個` : '見出し'}）へ とぶ</option>${outline.map((o) => `<option value="${o.line}">${o.head ? '■ ' : '　'}${esc(o.label)}（${o.line}行）</option>`).join('')}</select>` : ''}
+      </div>
+      <div class="code-box" id="codeBox" tabindex="0" role="region" aria-label="${esc(f.name)} の 中身"><pre class="code-ln" aria-hidden="true">${lines.map((_, i) => i + 1).join('\n')}</pre><pre class="code-src" id="codeSrc">${hl.html}</pre><div class="code-hl" id="codeHl" hidden></div></div>
+      <div class="code-foot"><span class="hint">${esc(f.name)}・${lines.length.toLocaleString()}行・${text.length.toLocaleString()}文字${isDate(f.savedAt) ? `・${md(f.savedAt)} 保存` : ''}</span><span class="grow"></span>
+        <button type="button" class="btn primary small" data-act="codeCopy">📋 すべて コピー</button>
+        <button type="button" class="btn small" data-act="codeDl">⬇ ダウンロード</button>
+        ${HTML_EXT.test(f.name) ? '<button type="button" class="btn small" data-act="codeRun">▶ ひらく</button>' : ''}
+        <button type="button" class="btn danger small" data-act="codeRemove">🗑 はずす</button></div>
+      <p class="hint" style="margin:0">Apps Script に 貼る ときは「すべて コピー」を 押して、Apps Script の 画面で Ctrl＋A → Ctrl＋V で 入れかえます。</p>
+    </div>`;
+    if (code.q && hl.n) codeGo(0);
+  }
+  function codeAddPanel() {
+    return `<div class="code-add">
+      <label class="btn" style="align-self:flex-start">📂 ファイルを 選ぶ（.gs・.html など。いくつでも）<input type="file" multiple accept=".gs,.js,.html,.htm,.css,.json,.txt,.md,.xml,.svg,.csv,.tsv" data-chg="codeFiles" hidden></label>
+      <details><summary>📋 コードを 貼り付けて 足す（Apps Script の 画面から コピーした ものなど）</summary>
+        <label class="field">ファイルの 名前 <input class="input" id="codePasteName" maxlength="100" placeholder="例：Code.gs ／ index.html"></label>
+        <label class="field">コード <textarea class="input code-view" id="codePasteText" rows="8" placeholder="ここに 貼り付けます（Ctrl＋V）"></textarea></label>
+        <div class="toolbar" style="margin:0"><span class="grow"></span><button type="button" class="btn primary" data-act="codePaste">💾 この コードを 保存する</button></div>
+      </details>
+      <p class="hint" style="margin:0">Apps Script の アプリなら「Code.gs」「index.html」など、プロジェクトの ファイルを 同じ 名前で 入れておくと、ここで まとめて 見られます。同じ 名前の ファイルを 入れると、新しい ほうに 入れかわります（前の ファイルは ドライブの ゴミ箱へ）。ファイルは 学校の Google ドライブの「仮想職員室 教材置き場」に 入ります。</p>
+    </div>`;
+  }
+  function codeSay(text) {
+    if (code) code.msg = text;
+    const el = document.getElementById('codeMsg');
+    if (el) { el.textContent = text; el.hidden = !text; }
+  }
+  // コードの ファイルを 教材に 足す（同じ 名前なら 入れかえる）。items = [{ name, mime, data（base64）}]
+  async function addCodeFiles(id, items) {
+    const done = [], ng = [];
+    for (let k = 0; k < items.length; k++) {
+      const it = items[k];
+      codeSay(`保存しています（${k + 1}／${items.length}）：${it.name}`);
+      try {
+        const m0 = get('materials', id);
+        if (!m0) throw new Error('教材が 見つかりません。');
+        if (!matCodeFiles(m0).some((x) => x.name === it.name) && matExtraFiles(m0).length >= 40) throw new Error('1つの 教材に 入れられる ファイルは 40個までです。');
+        const r = JSON.parse(await gasCall('apiSaveFile', JSON.stringify({ name: it.name, mime: it.mime, data: it.data, subject: m0.subject || '' })));
+        const m = get('materials', id) || m0;
+        const old = matCodeFiles(m).find((x) => x.name === r.name);
+        const extra = matExtraFiles(m).filter((x) => x.name !== r.name);
+        const patch = old && old.main
+          ? { id, fileId: r.id, fileName: r.name, mime: r.mime, size: r.size, savedAt: today(), url: r.url }
+          : { id, files: JSON.stringify(extra.concat([{ id: r.id, name: r.name, size: r.size, savedAt: today() }])) };
+        putRecs('materials', patch);
+        if (old) { codeCache.delete(old.id); gasCall('apiTrashFile', old.id).catch((err) => console.error(err)); }
+        if (code && code.id === id) code.fileId = r.id;
+        done.push(r.name);
+      } catch (err) { ng.push(`${it.name}（${err && err.message ? err.message : err}）`); }
+    }
+    if (!code || code.id !== id) return;
+    if (!ng.length) code.add = false;
+    code.msg = `${done.length ? `✓ ${done.join('・')} を 保存しました。` : ''}${ng.length ? `⚠ 保存できなかった もの：${ng.join('、')}` : ''}`;
+    renderCode();
+  }
+  // さがした ところへ
+  function codeGo(n) {
+    const box = document.getElementById('codeBox');
+    const marks = box ? box.querySelectorAll('#codeSrc mark') : [];
+    const hits = document.getElementById('codeHits');
+    if (!marks.length) { if (hits && code.q) hits.textContent = '0件'; return; }
+    code.hit = ((n % marks.length) + marks.length) % marks.length;
+    marks.forEach((x) => x.classList.remove('cur'));
+    const mk = marks[code.hit];
+    mk.classList.add('cur');
+    box.scrollTop = Math.max(0, mk.offsetTop - box.clientHeight / 2);
+    box.scrollLeft = Math.max(0, mk.offsetLeft - box.clientWidth / 2);
+    if (hits) hits.textContent = `${code.hit + 1}／${marks.length}件${marks.length >= 5000 ? '（5000件まで）' : ''}`;
+  }
+  function codeFind() {
+    const src = document.getElementById('codeSrc');
+    const text = code && codeCache.get(code.fileId);
+    if (!src || text === undefined) return;
+    const hl = codeHtml(text, code.q);
+    src.innerHTML = hl.html;
+    const hits = document.getElementById('codeHits');
+    if (hits) hits.textContent = code.q ? `${hl.n}件` : '';
+    if (hl.n) codeGo(0);
+  }
+  // 行へ とぶ（その 行に 色を つける）
+  function codeLine(n) {
+    const box = document.getElementById('codeBox');
+    const mark = document.getElementById('codeHl');
+    if (!box || !mark || !(n > 0)) return;
+    mark.style.top = (8 + (n - 1) * CODE_LH) + 'px';
+    mark.hidden = false;
+    box.scrollTop = Math.max(0, (n - 1) * CODE_LH - 3 * CODE_LH);
+    box.scrollLeft = 0;
+  }
+  function codeCurrent() {
+    const m = code && get('materials', code.id);
+    const f = m && matCodeFiles(m).find((x) => x.id === code.fileId);
+    return f ? { m, f, text: codeCache.get(f.id) } : null;
   }
 
   function viewMaterials() {
@@ -2670,7 +2869,7 @@
         <button class="btn primary" data-act="editMat">＋ 教材を追加</button>
       </div>
       <p class="hint" style="margin-bottom:12px">${IN_GAS
-        ? 'プリント（PDF・Word・Excel）、スライド（PowerPoint）、写真、アプリや プログラム（app.html・Code.gs など）を 保存できます（1つ 20MBまで）。ファイルは 学校の Google ドライブの「仮想職員室 教材置き場」フォルダに、教科ごとに 入ります。ドライブに ある ものは、リンクを 貼っても 登録できます。'
+        ? 'プリント（PDF・Word・Excel）、スライド（PowerPoint）、写真、アプリや プログラム（app.html・Code.gs など）を 保存できます（1つ 20MBまで）。ファイルは 学校の Google ドライブの「仮想職員室 教材置き場」フォルダに、教科ごとに 入ります。ドライブに ある ものは、リンクを 貼っても 登録できます。アプリや プログラムは「💻 コード」で、Code.gs・index.html など いくつかの ファイルを まとめて 入れて、コードを 見られます。'
         : '試作モードでは、ファイルの 保存は できません（リンクの 登録だけ）。学校の Google（Apps Script）で 開くと、プリントや スライド、プログラムの ファイルを 保存できます。'}</p>
       <p class="hint mat-msg" id="mat-msg" role="status" hidden></p>
       <div id="mat-list">${materialList()}</div>`;
@@ -2687,12 +2886,17 @@
       const url = safeUrl(m.url);
       const u = get('units', m.unitId);
       const fn = m.fileName || '';
+      const extra = matExtraFiles(m);
+      const codes = matCodeFiles(m);
+      // コードを 入れられる 教材（アプリ・プログラム、または コードの ファイルが ある もの）
+      const codeBtn = IN_GAS && (codes.length || m.kind === 'アプリ' || m.kind === 'プログラム')
+        ? `<button class="btn small" data-act="matCode" data-id="${esc(m.id)}">${codes.length ? `💻 コードを 見る（${codes.length}）` : '💻 コードを 入れる'}</button>` : '';
       return `<article class="card mat">
         <div class="mat-icon">${MAT_KINDS[m.kind] || '📎'}</div>
         <div><h3>${esc(m.name)}</h3><div class="meta">${chip(m.subject)}${m.kind ? `<span>${esc(m.kind)}</span>` : ''}${u ? `<span>📘 ${esc(u.name)}</span>` : ''}</div>
-          ${m.fileId ? `<div class="mat-file">📎 ${esc(fn)}${m.size ? `・${fileSizeText(m.size)}` : ''}${isDate(m.savedAt) ? `・${md(m.savedAt)} 保存` : ''}</div>` : ''}${m.memo ? `<p>${nl(m.memo)}</p>` : ''}</div>
+          ${m.fileId ? `<div class="mat-file">📎 ${esc(fn)}${m.size ? `・${fileSizeText(m.size)}` : ''}${isDate(m.savedAt) ? `・${md(m.savedAt)} 保存` : ''}</div>` : ''}${extra.length ? `<div class="mat-file">💻 ${extra.map((x) => esc(x.name)).join('・')}</div>` : ''}${m.memo ? `<p>${nl(m.memo)}</p>` : ''}</div>
         <div class="mat-act">${IN_GAS && m.fileId && HTML_EXT.test(fn) ? `<button class="btn primary small" data-act="matRun" data-id="${esc(m.id)}">▶ ひらく</button>` : ''}
-          ${IN_GAS && m.fileId && TEXT_EXT.test(fn) ? `<button class="btn small" data-act="matText" data-id="${esc(m.id)}">📄 中身を見る</button>` : ''}
+          ${codeBtn}
           ${url ? `<a class="btn ${m.fileId && HTML_EXT.test(fn) ? '' : 'primary '}small" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${m.fileId ? 'ドライブで 開く ↗' : '開く ↗'}</a>` : ''}<button class="btn small" data-act="editMat" data-id="${esc(m.id)}">直す</button></div>
       </article>`;
     }).join('')}</div>`;
@@ -2713,11 +2917,12 @@
         </div>
         ${m.fileId ? '' : `<label class="field">リンク（URL）${IN_GAS ? '（ファイルを 保存しない とき）' : ''} <input type="url" name="url" maxlength="1000" value="${esc(m.url)}" placeholder="https://drive.google.com/…"></label>`}
         <label class="field">使う単元 <select name="unitId">${opt('', m.unitId || '', '（えらばない）')}${units.map((u) => opt(u.id, m.unitId, `［${u.subject}］${u.name}`)).join('')}</select></label>
-        <label class="field">メモ <textarea name="memo" rows="3" maxlength="1000" placeholder="例：Aさん用に文字を大きくした版あり">${esc(m.memo)}</textarea></label>`,
+        <label class="field">メモ <textarea name="memo" rows="3" maxlength="1000" placeholder="例：Aさん用に文字を大きくした版あり">${esc(m.memo)}</textarea></label>
+        ${id && matExtraFiles(m).length ? `<p class="hint" style="margin:0">💻 コードの ファイル：${matExtraFiles(m).map((x) => esc(x.name)).join('・')}（足す・はずすは「💻 コードを 見る」から）</p>` : ''}`,
       deleteLabel: id ? 'この教材を消す' : '',
-      deleteConfirm: m.fileId ? 'この教材を 消します。ドライブの ファイルは ゴミ箱に 入ります（30日の あいだは ドライブの ゴミ箱から もどせます）。よろしいですか？' : undefined,
+      deleteConfirm: m.fileId || matExtraFiles(m).length ? 'この教材を 消します。ドライブの ファイルは ゴミ箱に 入ります（30日の あいだは ドライブの ゴミ箱から もどせます）。よろしいですか？' : undefined,
       onDelete: () => {
-        if (m.fileId && IN_GAS) gasCall('apiTrashFile', m.fileId).catch((err) => console.error(err));
+        if (IN_GAS) [m.fileId].concat(matExtraFiles(m).map((x) => x.id)).filter(Boolean).forEach((fid) => gasCall('apiTrashFile', fid).catch((err) => console.error(err)));
         removeRecs('materials', id);
       },
       onSave: (f) => {
@@ -5236,12 +5441,61 @@
     editX: (d) => editX(Number(d.day), d.pid),
     editUnit: (d) => editUnit(d.id || ''),
     editMat: (d) => editMat(d.id || ''),
-    matText: (d) => { closeDialog(); showMatText(d.id); },
+    matCode: (d) => showCode(d.id),
     matRun: (d) => { closeDialog(); runMatApp(d.id); },
-    matTextDl: (d) => {
-      const m = get('materials', d.id);
-      const ta = document.getElementById('draftText');
-      if (m && ta) downloadBlob(new Blob([ta.value], { type: (m.mime || 'text/plain') + ';charset=utf-8' }), m.fileName || m.name);
+    codeTab: (d) => { if (!code) return; code.fileId = d.id; code.hit = 0; code.msg = ''; renderCode(); },
+    codeAdd: () => { if (!code) return; code.add = !code.add; code.msg = ''; renderCode(); },
+    codeHit: (d) => { if (code) codeGo(code.hit + Number(d.n)); },
+    codeCopy: () => {
+      const c = codeCurrent();
+      if (!c || c.text === undefined) return;
+      const done = () => codeSay(`✓ ${c.f.name} を コピーしました。`);
+      const fallback = () => {
+        const ta = document.createElement('textarea');
+        ta.value = c.text;
+        ta.setAttribute('readonly', '');
+        ta.style.cssText = 'position:fixed;left:-9999px;top:0';
+        document.getElementById('dlg').appendChild(ta);
+        ta.select();
+        let ok = false;
+        try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+        ta.remove();
+        if (ok) done(); else codeSay('コピーできませんでした。「⬇ ダウンロード」で 保存してから 開いて ください。');
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(c.text).then(done, fallback);
+      else fallback();
+    },
+    codeDl: () => {
+      const c = codeCurrent();
+      if (c && c.text !== undefined) downloadBlob(new Blob([c.text], { type: mimeOf(c.f.name) + ';charset=utf-8' }), c.f.name);
+    },
+    codeRun: () => { const c = codeCurrent(); if (!c) return; closeDialog(); runMatApp(c.m.id, c.f.id); },
+    codeRemove: () => {
+      const c = codeCurrent();
+      if (!c) return;
+      if (!confirm(`「${c.f.name}」を この 教材から はずします。ドライブの ファイルは ゴミ箱に 入ります（30日の あいだは ドライブの ゴミ箱から もどせます）。よろしいですか？`)) return;
+      putRecs('materials', c.f.main
+        ? { id: c.m.id, fileId: '', fileName: '', mime: '', size: '', savedAt: '', url: '' }
+        : { id: c.m.id, files: JSON.stringify(matExtraFiles(c.m).filter((x) => x.id !== c.f.id)) });
+      gasCall('apiTrashFile', c.f.id).catch((err) => console.error(err));
+      codeCache.delete(c.f.id);
+      code.msg = `✓ ${c.f.name} を はずしました。`;
+      renderCode();
+    },
+    codePaste: () => {
+      if (!code) return;
+      const nameEl = document.getElementById('codePasteName');
+      const textEl = document.getElementById('codePasteText');
+      if (!nameEl || !textEl) return;
+      const text = textEl.value;
+      let name = nameEl.value.trim().replace(/[\\/:*?"<>|]/g, '_');
+      if (!text.trim()) { codeSay('⚠ コードを 貼り付けてください。'); textEl.focus(); return; }
+      if (!name) { codeSay('⚠ ファイルの 名前を 入れてください（例：Code.gs）。'); nameEl.focus(); return; }
+      // 名前に 種類（.gs など）が ない ときは、中身から 決める
+      if (!TEXT_EXT.test(name)) name += /^\s*</.test(text) ? '.html' : '.gs';
+      const data = textToBase64(text);
+      if (data.length * 0.75 > CODE_MAX) { codeSay('⚠ 5MBまでの コードを 入れてください。'); return; }
+      addCodeFiles(code.id, [{ name, mime: mimeOf(name), data }]);
     },
     editItem: (d) => editItem(d.id || '', d.unit || ''),
     bulkItems: (d) => bulkItems(d.unit || ''),
@@ -5508,6 +5762,20 @@
     matSubj: (el) => { view.matSubj = el.value; render(); },
     matKind: (el) => { view.matKind = el.value; render(); },
     matUpload: (el) => { const files = Array.from(el.files || []); el.value = ''; if (files.length) uploadMany(files); },
+    codeFiles: async (el) => {
+      const files = Array.from(el.files || []);
+      el.value = '';
+      if (!files.length || !code) return;
+      const id = code.id;
+      const bad = files.filter((f) => !TEXT_EXT.test(f.name) || f.size > CODE_MAX);
+      if (bad.length) { codeSay(`⚠ コードの ファイル（.gs・.html など、5MBまで）を 選んでください：${bad.map((f) => f.name).join('、')}`); return; }
+      try {
+        const items = [];
+        for (const f of files) items.push({ name: f.name, mime: !f.type || f.type === 'application/octet-stream' ? mimeOf(f.name) : f.type, data: await readAsBase64(f) });
+        addCodeFiles(id, items);
+      } catch (err) { codeSay('⚠ ' + (err && err.message ? err.message : err)); }
+    },
+    codeJump: (el) => { codeLine(Number(el.value)); el.value = ''; },
     // ファイルを 選んだら、名前と 種類を 入れておく
     matFile: (el) => {
       const file = el.files && el.files[0];
@@ -5563,6 +5831,13 @@
     fn(el.dataset, el);
   });
   document.addEventListener('keydown', (e) => {
+    // コードの 中を さがす 欄で Enter → 次の ところへ（Shift＋Enter で 前へ）
+    if (e.key === 'Enter' && e.target.id === 'codeQ' && code) {
+      e.preventDefault();
+      clearTimeout(codeTimer);
+      if (code.q !== e.target.value || !document.querySelector('#codeSrc mark')) { code.q = e.target.value; codeFind(); } else codeGo(code.hit + (e.shiftKey ? -1 : 1));
+      return;
+    }
     if (e.key !== 'Enter' && e.key !== ' ') return;
     const el = e.target;
     if (el.matches && el.matches('[role=button][data-act]')) { e.preventDefault(); el.click(); }
@@ -5582,6 +5857,11 @@
       view.noteQ = el.value;
       const box = document.getElementById('note-list');
       if (box) box.innerHTML = noteList();
+    }
+    if (el.dataset && el.dataset.inp === 'codeQ' && code) {
+      code.q = el.value;
+      clearTimeout(codeTimer);
+      codeTimer = setTimeout(codeFind, 200);
     }
     if (el.dataset && el.dataset.inp === 'meetQ') {
       view.meetQ = el.value;

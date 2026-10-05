@@ -80,7 +80,8 @@ const TABLES = {
   materials: {
     sheet: '教材',
     cols: [['id', COL_ID], ['name', '名前'], ['subject', '教科'], ['kind', '種類'], ['url', 'URL'], ['unitId', '単元ID'], ['memo', 'メモ'],
-      ['fileId', 'ファイルID'], ['fileName', 'ファイル名'], ['mime', 'ファイルの種類'], ['size', '大きさ（バイト）', 'num'], ['savedAt', '保存した日', 'date']],
+      ['fileId', 'ファイルID'], ['fileName', 'ファイル名'], ['mime', 'ファイルの種類'], ['size', '大きさ（バイト）', 'num'], ['savedAt', '保存した日', 'date'],
+      ['files', 'コードのファイル', 'long']],
     // シートを 作った ときに 最初から 入れておく 行
     seed: [{ id: 'm-ondoku', name: 'おんどくはかせの ちょうせんじょう', subject: '国語', kind: 'アプリ', url: 'https://zku0395-ops.github.io/hori/', memo: '自作の音読アプリ。全員の記録は「音読はかせ 記録」のスプレッドシートで見られます。' }],
   },
