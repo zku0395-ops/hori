@@ -21,7 +21,7 @@
 | `/`（`index.html`, `gas/`） | 音読「おんどくはかせの ちょうせんじょう」 | フクロウのホーホーはかせ | `main`。`https://zku0395-ops.github.io/hori/` |
 | `kakudo/` | 角「ワニワニ先生の ピザやさん」 | 口の開き方で角を表すワニ／ピザやさん | `main`。`…/hori/kakudo/` |
 | `bunsu/` | 分数「モカせんせいの ケーキやさん」 | くまのパティシエ／ケーキやさん | `main`。`…/hori/bunsu/` |
-| `katakana/` | カタカナ「ロボタンと カタカナ」 | ロボット先生ロボタン | ブランチ `claude/katakana-learning-app-4rknr8`（まだ `main` に入っていません） |
+| `katakana/` | カタカナ「ロボタンと カタカナ」 | ロボット先生ロボタン | `main`。Apps Script のウェブアプリで開きます |
 | `shokuinshitsu/` | 仮想職員室（先生用） | 円卓の間と係のキャラクター | ブランチ `claude/determined-cray-ebviwr`（まだ `main` に入っていません） |
 
 - 新しいアプリは、ルートに `新しいフォルダ/` を作って置きます。
@@ -29,7 +29,7 @@
 - `index html.docx` は、ユーザーが前に作った「３年生 漢字学習アプリ」です。React と Tailwind で書かれ、Apps Script で動きます。
   - 「漢字アプリと同じ形で」と言われたら、このファイルを見ます。
   - 最初の `index.html` と同じく、ユーザーがアップロードした元の資料です。勝手に消さないでください。
-- `katakana/` と `shokuinshitsu/` を直すときは、そのブランチから始めます。
+- `shokuinshitsu/` を直すときは、そのブランチから始めます。
 
 ## 3. 子ども用アプリのしくみ
 
