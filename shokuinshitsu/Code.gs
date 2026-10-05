@@ -266,6 +266,7 @@ function apiDiag() {
   Object.keys(TABLES).forEach(function (k) { rows[k] = byName[TABLES[k].sheet] ? all.tables[k].length : -1; });
   const scriptTz = Session.getScriptTimeZone();
   const sheetTz = ss.getSpreadsheetTimeZone();
+  const code = codeApiState_();
   return JSON.stringify({
     scriptTz: scriptTz,
     scriptOffset: Utilities.formatDate(new Date(), scriptTz, 'Z'),
@@ -278,7 +279,8 @@ function apiDiag() {
     trigger: draftTriggerOn_(),
     readMs: readMs,
     batch: all.batch,
-    codeApi: codeApiState_(),
+    codeApi: code.state,
+    codeFetch: code.fetch,
     ms: Date.now() - t0,
   });
 }
@@ -438,13 +440,13 @@ function urlCode_(urls) {
   });
   return { title: title, files: files };
 }
-// 動作チェック用：この プロジェクトの コードを 読めるか（'ok'｜理由）
+// 動作チェック用：この プロジェクトの コードを 読めるか（state：'ok'｜理由、fetch：ウェブに つなぐ 許可が あるか）
 function codeApiState_() {
   try {
     const res = UrlFetchApp.fetch('https://script.googleapis.com/v1/projects/' + encodeURIComponent(ScriptApp.getScriptId()), { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true });
-    return res.getResponseCode() === 200 ? 'ok' : gasApiError_(res.getResponseCode(), res.getContentText());
+    return { fetch: true, state: res.getResponseCode() === 200 ? 'ok' : gasApiError_(res.getResponseCode(), res.getContentText()) };
   } catch (e) {
-    return 'ウェブに つなぐ 許可が まだ ありません。Apps Script の 画面で 関数「apiDiag」を「実行」して 許可してください。（' + (e && e.message ? e.message : e) + '）';
+    return { fetch: false, state: 'ウェブに つなぐ 許可が まだ ありません。Apps Script の 画面で 関数「apiDiag」を「実行」して 許可してください。（' + (e && e.message ? e.message : e) + '）' };
   }
 }
 
