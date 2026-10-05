@@ -392,11 +392,14 @@ function gasProject_(scriptId) {
 function gasApiError_(code, text) {
   let msg = '';
   try { msg = (JSON.parse(text).error || {}).message || ''; } catch (e) { msg = String(text || '').slice(0, 200); }
-  if (/has not (been used|enabled)|SERVICE_DISABLED|usersettings/i.test(msg)) return 'コードを 読む しくみ（Google Apps Script API）が オフです。https://script.google.com/home/usersettings を 開いて「Google Apps Script API」を オンに してください。（' + code + '）';
-  if (/insufficient|scope/i.test(msg)) return 'コードを 読む 許可が まだ ありません。README の「アプリから コードを 読みこむ ための 準備」の とおりに appsscript.json を 新しく して、もう一度 許可してください。（' + code + '）';
-  if (code === 404) return 'プロジェクトが 見つかりません。アドレスか スクリプト ID を 確かめてください。（' + code + '）';
-  if (code === 403) return 'この プロジェクトを 読む 権限が ありません（自分が 編集できる プロジェクトだけ 読めます）。（' + code + '）';
-  return 'コードを 読めませんでした（' + code + '）：' + msg;
+  // 原文も 短く つける（どこで 止まったかを 確かめる ため）
+  const raw = '（' + code + (msg ? '：' + msg.slice(0, 160) : '') + '）';
+  if (/User has not enabled|usersettings/i.test(msg)) return 'コードを 読む しくみ（Google Apps Script API）が オフです。学校の アカウントで https://script.google.com/home/usersettings を 開いて「Google Apps Script API」を オンに し、数分 待ってから もう一度 ためしてください。' + raw;
+  if (/has not been used in project|SERVICE_DISABLED|is disabled/i.test(msg)) return 'この Apps Script の プロジェクト（Google Cloud の 設定）では、Apps Script API が 使えません。この 職員室の コードは「ウェブの アドレス」で GitHub の Raw の アドレスから 読みこめます。' + raw;
+  if (/insufficient|scope/i.test(msg)) return 'コードを 読む 許可が まだ ありません。README の「アプリから コードを 読みこむ ための 準備」の とおりに appsscript.json を 新しく して、もう一度 許可してください。' + raw;
+  if (code === 404) return 'プロジェクトが 見つかりません。アドレスか スクリプト ID を 確かめてください。' + raw;
+  if (code === 403) return 'この プロジェクトを 読む 権限が ありません（自分が 編集できる プロジェクトだけ 読めます）。' + raw;
+  return 'コードを 読めませんでした' + raw;
 }
 // この 仮想職員室の コード。Apps Script API が まだ 使えない ときは、画面（app.html）だけ 保存する
 function selfCode_() {
