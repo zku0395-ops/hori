@@ -7,6 +7,7 @@
 > - 角の学習アプリ「ワニワニ先生の ピザやさん」：内容と使い方は [kakudo/README.md](kakudo/README.md) を見てください。
 > - 分数の学習アプリ「モカせんせいの ケーキやさん」：内容と使い方は [bunsu/README.md](bunsu/README.md) を見てください。
 > - カタカナの学習アプリ「ロボタンと カタカナ」：内容と使い方は [katakana/README.md](katakana/README.md) を見てください。
+> - 三角形・四角形の学習アプリ「トンガリはかせの ロボット けんきゅうじょ」：内容と使い方は [zukei/README.md](zukei/README.md) を見てください。
 > - 担任用の **仮想職員室**（予定・週案・単元計画などの管理）：内容と使い方は [shokuinshitsu/README.md](shokuinshitsu/README.md) を見てください。
 
 ## できること
