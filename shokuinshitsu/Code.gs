@@ -81,7 +81,7 @@ const TABLES = {
     sheet: '教材',
     cols: [['id', COL_ID], ['name', '名前'], ['subject', '教科'], ['kind', '種類'], ['url', 'URL'], ['unitId', '単元ID'], ['memo', 'メモ'],
       ['fileId', 'ファイルID'], ['fileName', 'ファイル名'], ['mime', 'ファイルの種類'], ['size', '大きさ（バイト）', 'num'], ['savedAt', '保存した日', 'date'],
-      ['files', 'コードのファイル', 'long']],
+      ['files', 'コードのファイル', 'long'], ['src', 'コードの読みこみ元', 'long']],
     // シートを 作った ときに 最初から 入れておく 行
     seed: [{ id: 'm-ondoku', name: 'おんどくはかせの ちょうせんじょう', subject: '国語', kind: 'アプリ', url: 'https://zku0395-ops.github.io/hori/', memo: '自作の音読アプリ。全員の記録は「音読はかせ 記録」のスプレッドシートで見られます。' }],
   },
@@ -278,6 +278,7 @@ function apiDiag() {
     trigger: draftTriggerOn_(),
     readMs: readMs,
     batch: all.batch,
+    codeApi: codeApiState_(),
     ms: Date.now() - t0,
   });
 }
@@ -334,6 +335,117 @@ function apiReadFile(id) {
 function apiTrashFile(id) {
   matFile_(id).setTrashed(true);
   return true;
+}
+
+/* ---------- アプリから コードを 読みこんで 教材置き場に 保存する ---------- */
+// src = { type: 'self' }（この 仮想職員室）｜{ type: 'gas', id: 編集画面の URL か スクリプト ID }｜{ type: 'url', urls: [アドレス] }
+// 読みこんだ ファイルを 教材置き場（教科の フォルダ）に 保存して、{ title, files: [{ id, name, size, mime, url }], warn } を 返す
+const CODE_FILE_MAX = 5 * 1024 * 1024; // コードの ファイルは 1つ 5MB まで（画面で 見られる 大きさ）
+function apiImportCode(json) {
+  const d = JSON.parse(json);
+  let got;
+  if (d.type === 'self') got = selfCode_();
+  else if (d.type === 'gas') got = gasProject_(scriptIdFrom_(d.id));
+  else if (d.type === 'url') got = urlCode_([].concat(d.urls || []));
+  else throw new Error('読みこむ ものの 種類が ちがいます。');
+  if (!got.files.length) throw new Error('コードの ファイルが 見つかりませんでした。');
+  got.files.forEach(function (f) { if (f.text.length > CODE_FILE_MAX) throw new Error('「' + f.name + '」は 大きすぎます（5MBまで）。'); });
+  const files = withLock_(function () {
+    const folder = matFolder_(String(d.subject || '').slice(0, 30));
+    return got.files.map(function (f) {
+      const blob = Utilities.newBlob('', f.mime, f.name).setDataFromString(f.text, 'UTF-8');
+      const file = folder.createFile(blob);
+      return { id: file.getId(), name: file.getName(), size: file.getSize(), mime: file.getMimeType(), url: file.getUrl() };
+    });
+  });
+  return JSON.stringify({ title: got.title || '', files: files, warn: got.warn || '' });
+}
+// 編集画面の アドレス（…/projects/ID/edit、…/d/ID/edit）か、スクリプト ID そのもの
+function scriptIdFrom_(s) {
+  s = String(s || '').trim();
+  if (/script\.google\.com\/(a\/[^/]+\/)?macros\/s\//.test(s)) throw new Error('これは ウェブアプリの アドレス（…/exec）です。Apps Script の 編集画面の アドレス（…/projects/…/edit）か、「プロジェクトの設定」の スクリプト ID を 入れてください。');
+  const m = /\/(?:projects|d)\/([A-Za-z0-9_-]{20,})/.exec(s) || /^([A-Za-z0-9_-]{20,})$/.exec(s);
+  if (!m) throw new Error('Apps Script の 編集画面の アドレス（…/projects/…/edit）か、スクリプト ID を 入れてください。');
+  return m[1];
+}
+// Apps Script API で プロジェクトの ファイル（.gs・.html・appsscript.json）を 読む
+function gasProject_(scriptId) {
+  const base = 'https://script.googleapis.com/v1/projects/' + encodeURIComponent(scriptId);
+  const opt = { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true };
+  const res = UrlFetchApp.fetch(base + '/content', opt);
+  if (res.getResponseCode() !== 200) throw new Error(gasApiError_(res.getResponseCode(), res.getContentText()));
+  const body = JSON.parse(res.getContentText() || '{}');
+  let title = '';
+  try {
+    const info = UrlFetchApp.fetch(base, opt);
+    if (info.getResponseCode() === 200) title = JSON.parse(info.getContentText() || '{}').title || '';
+  } catch (e) { /* 名前が 読めなくても ファイルは 保存する */ }
+  const ext = { SERVER_JS: '.gs', HTML: '.html', JSON: '.json' };
+  const mime = { SERVER_JS: 'text/plain', HTML: 'text/html', JSON: 'application/json' };
+  const files = (body.files || []).filter(function (f) { return ext[f.type]; }).map(function (f) {
+    return { name: String(f.name) + ext[f.type], text: String(f.source || ''), mime: mime[f.type] };
+  });
+  return { title: title, files: files };
+}
+function gasApiError_(code, text) {
+  let msg = '';
+  try { msg = (JSON.parse(text).error || {}).message || ''; } catch (e) { msg = String(text || '').slice(0, 200); }
+  if (/has not (been used|enabled)|SERVICE_DISABLED|usersettings/i.test(msg)) return 'コードを 読む しくみ（Google Apps Script API）が オフです。https://script.google.com/home/usersettings を 開いて「Google Apps Script API」を オンに してください。（' + code + '）';
+  if (/insufficient|scope/i.test(msg)) return 'コードを 読む 許可が まだ ありません。README の「アプリから コードを 読みこむ ための 準備」の とおりに appsscript.json を 新しく して、もう一度 許可してください。（' + code + '）';
+  if (code === 404) return 'プロジェクトが 見つかりません。アドレスか スクリプト ID を 確かめてください。（' + code + '）';
+  if (code === 403) return 'この プロジェクトを 読む 権限が ありません（自分が 編集できる プロジェクトだけ 読めます）。（' + code + '）';
+  return 'コードを 読めませんでした（' + code + '）：' + msg;
+}
+// この 仮想職員室の コード。Apps Script API が まだ 使えない ときは、画面（app.html）だけ 保存する
+function selfCode_() {
+  try {
+    const got = gasProject_(ScriptApp.getScriptId());
+    if (!got.title) got.title = APP_TITLE;
+    return got;
+  } catch (e) {
+    return {
+      title: APP_TITLE,
+      files: [{ name: 'app.html', text: HtmlService.createHtmlOutputFromFile('app').getContent(), mime: 'text/html' }],
+      warn: 'Code.gs は 読めなかったので、画面（app.html）だけ 保存しました。' + (e && e.message ? e.message : e),
+    };
+  }
+}
+// ウェブの アドレスから 読む（GitHub の ファイルの ページは、文字だけの ページ（raw）に なおす）
+function urlCode_(urls) {
+  urls = urls.map(function (u) { return String(u || '').trim(); }).filter(Boolean).slice(0, 20);
+  if (!urls.length) throw new Error('アドレスを 入れてください。');
+  let title = '';
+  const files = urls.map(function (u) {
+    const url = u.replace(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\//, 'https://raw.githubusercontent.com/$1/$2/');
+    if (!/^https:\/\/[^\s]+$/.test(url)) throw new Error('https:// で 始まる アドレスを 入れてください：' + u);
+    if (/script\.google\.com\/(a\/[^/]+\/)?macros\/s\//.test(url)) throw new Error('Apps Script の ウェブアプリは、アドレスからは コードを 読めません。「Apps Script の プロジェクト」を 選んで、編集画面の アドレスを 入れてください。');
+    const res = UrlFetchApp.fetch(url, { muteHttpExceptions: true, followRedirects: true });
+    const code = res.getResponseCode();
+    if (code !== 200) throw new Error('読みこめませんでした（' + code + '）：' + u);
+    const headers = res.getHeaders() || {};
+    const type = String(headers['Content-Type'] || headers['content-type'] || '').toLowerCase();
+    if (type && !/^text\/|javascript|json|xml/.test(type)) throw new Error('コードの ファイルでは ありません（' + type.split(';')[0] + '）：' + u);
+    const text = res.getContentText('UTF-8');
+    const path = url.replace(/[?#].*$/, '').replace(/^https:\/\/[^/]+/, '');
+    let name = path.split('/').pop() || '';
+    try { name = decodeURIComponent(name); } catch (e) { /* そのまま */ }
+    name = name || 'index.html';
+    if (!/\.[A-Za-z0-9]{1,5}$/.test(name)) name += /html/.test(type) || /^\s*</.test(text) ? '.html' : '.txt';
+    name = name.replace(/[\\/:*?"<>|]/g, '_').slice(0, 100);
+    if (!title) { const t = /<title[^>]*>([^<]{1,80})<\/title>/i.exec(text); if (t) title = t[1].trim(); }
+    const mime = /\.html?$/i.test(name) ? 'text/html' : /\.json$/i.test(name) ? 'application/json' : 'text/plain';
+    return { name: name, text: text, mime: mime };
+  });
+  return { title: title, files: files };
+}
+// 動作チェック用：この プロジェクトの コードを 読めるか（'ok'｜理由）
+function codeApiState_() {
+  try {
+    const res = UrlFetchApp.fetch('https://script.googleapis.com/v1/projects/' + encodeURIComponent(ScriptApp.getScriptId()), { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, muteHttpExceptions: true });
+    return res.getResponseCode() === 200 ? 'ok' : gasApiError_(res.getResponseCode(), res.getContentText());
+  } catch (e) {
+    return 'ウェブに つなぐ 許可が まだ ありません。Apps Script の 画面で 関数「apiDiag」を「実行」して 許可してください。（' + (e && e.message ? e.message : e) + '）';
+  }
 }
 
 // 記録を 書きこむ（同じ ID の 行が あれば 書きかえ、なければ 下に 足す）
