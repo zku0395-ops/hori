@@ -6,6 +6,7 @@
 > このリポジトリには、ほかに次のアプリも入っています。
 > - 角の学習アプリ「ワニワニ先生の ピザやさん」：内容と使い方は [kakudo/README.md](kakudo/README.md) を見てください。
 > - 分数の学習アプリ「モカせんせいの ケーキやさん」：内容と使い方は [bunsu/README.md](bunsu/README.md) を見てください。
+> - カタカナの学習アプリ「ロボタンと カタカナ」：内容と使い方は [katakana/README.md](katakana/README.md) を見てください。
 
 ## できること
 
