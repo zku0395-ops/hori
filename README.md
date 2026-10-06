@@ -9,6 +9,7 @@
 > - カタカナの学習アプリ「ロボタンと カタカナ」：内容と使い方は [katakana/README.md](katakana/README.md) を見てください。
 > - 三角形・四角形の学習アプリ「トンガリはかせの ロボット けんきゅうじょ」：内容と使い方は [zukei/README.md](zukei/README.md) を見てください。
 > - 文章の読み取りアプリ「ワンダせんせいの なぞとき たんていじむしょ」（いつ・どこで・だれが・なにを した）：内容と使い方は [nazotoki/README.md](nazotoki/README.md) を見てください。
+> - カタカナのプリント「ロボタンの カナカナパズル」（1画ずつのピースを組み合わせてカタカナを書く）：内容と使い方は [kanapuzzle/README.md](kanapuzzle/README.md) を見てください。
 > - 担任用の **仮想職員室**（予定・週案・単元計画などの管理）：内容と使い方は [shokuinshitsu/README.md](shokuinshitsu/README.md) を見てください。
 
 ## できること
