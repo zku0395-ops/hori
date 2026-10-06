@@ -41,6 +41,8 @@ function check(list, level) {
     for (const k of KEYS) {
       if (!m[k]) errors.push(`${m.id}: ${k} が ありません`);
       else if (!text.includes(m[k])) errors.push(`${m.id}: ${k}「${m[k]}」が 文章の なかに ありません`);
+      else if (m.t.filter((x) => x.includes(m[k])).length > 1 && !(m.pos && m.pos[k] != null)) errors.push(`${m.id}: ${k}「${m[k]}」が 2つ以上の文に あります（pos を 書いてください）`);
+      else if (m.pos && m.pos[k] != null && !(m.t[m.pos[k]] || '').includes(m[k])) errors.push(`${m.id}: pos.${k} の 文に「${m[k]}」が ありません`);
     }
     if (m.st <= 4 && !m.ask) errors.push(`${m.id}: ask が ありません`);
     if (m.st === 8 || m.st === 10) for (const k of KEYS) if (!(m.q && m.q[k])) errors.push(`${m.id}: q.${k} が ありません`);
@@ -79,7 +81,11 @@ function choicesFor(m, key, all) {
     shuffle(mine.flat().filter(ok), rnd).forEach(add);
     shuffle(groups.flat().filter(ok), rnd).forEach(add);
   }
-  return out;
+  // まちがいの 種類：cross＝ほかの 手がかりの 答え、trap＝文の 中の 別の ことば、near＝にている ことば
+  return out.map((w) => ({
+    t: w,
+    e: KEYS.some((k) => k !== key && m[k] === w) ? 'cross' : text.includes(plain(w)) ? 'trap' : 'near',
+  }));
 }
 
 function asks(m) { return m.st <= 4 ? [m.ask] : KEYS; }
@@ -88,12 +94,12 @@ function buildData() {
   const lv1 = L1.map((m) => {
     const qs = {};
     for (const k of asks(m)) qs[k] = { q: (m.q && m.q[k]) || DEFAULT_Q[k], a: m[k], ng: choicesFor(m, k, L1) };
-    return { id: m.id, st: m.st, t: m.t, span: Object.fromEntries(KEYS.map((k) => [k, m[k]])), qs };
+    return { id: m.id, st: m.st, t: m.t, span: Object.fromEntries(KEYS.map((k) => [k, m[k]])), pos: m.pos || {}, qs };
   });
   const lv2 = L2.map((m) => {
     const qs = {};
-    for (const k of asks(m)) qs[k] = { q: (m.q && m.q[k]) || DEFAULT_Q[k], a: m.k[k].a, f: m.k[k].f };
-    return { id: m.id, st: m.st, t: m.t, span: Object.fromEntries(KEYS.map((k) => [k, m[k]])), qs };
+    for (const k of asks(m)) qs[k] = { q: (m.q && m.q[k]) || DEFAULT_Q[k], a: m.k[k].a, f: m.k[k].f, other: KEYS.filter((x) => x !== k).map((x) => m.k[x].a) };
+    return { id: m.id, st: m.st, t: m.t, span: Object.fromEntries(KEYS.map((k) => [k, m[k]])), pos: m.pos || {}, qs };
   });
   return { lv1, lv2 };
 }
@@ -124,7 +130,7 @@ function md() {
           const q = m.qs[k];
           if (!q) return ruby(o[k]);
           let c = (m.st <= 4 ? '★' : '') + `**${ruby(o[k])}**`;
-          if (lv === 1) c += `（${q.ng.map(ruby).join('／')}）`;
+          if (lv === 1) c += `（${q.ng.map((x) => ruby(x.t)).join('／')}）`;
           else c += `<br>${ruby(box(q.f, q.a))}`;
           if (o.q && o.q[k]) c += `<br>問い：${ruby(o.q[k])}`;
           return c;
@@ -178,7 +184,7 @@ td.id{white-space:nowrap;color:#78716c;font-size:13px}td.txt{min-width:240px}rt{
           if (!q) { h += `<td class="muted">${ruby(o[k])}</td>`; continue; }
           h += `<td class="${m.st <= 4 ? 'ask' : ''}">`;
           if (o.q && o.q[k]) h += `<div class="q">${ruby(o.q[k])}</div>`;
-          if (lv === 1) h += `<div class="a">${ruby(o[k])}</div><div class="ng">${q.ng.map(ruby).join('<br>')}</div>`;
+          if (lv === 1) h += `<div class="a">${ruby(o[k])}</div><div class="ng">${q.ng.map((x) => ruby(x.t)).join('<br>')}</div>`;
           else h += `<div class="a">${box(q.f, q.a)}</div><div class="ng">こたえ：${q.a}</div>`;
           h += '</td>';
         }
@@ -190,6 +196,16 @@ td.id{white-space:nowrap;color:#78716c;font-size:13px}td.txt{min-width:240px}rt{
   h += '</body></html>';
   fs.writeFileSync(process.argv[hi + 1], h);
   console.log('HTML を 書き出しました：' + process.argv[hi + 1]);
+}
+
+// ── アプリ（index.html）に 問題データを 入れる
+if (process.argv.includes('--app')) {
+  const file = path.join(ROOT, 'index.html');
+  const src = fs.readFileSync(file, 'utf8');
+  const re = /(\/\*@@DATA\*\/)[\s\S]*?(\/\*@@END\*\/)/;
+  if (!re.test(src)) { console.error('index.html に /*@@DATA*/ … /*@@END*/ が ありません'); process.exit(1); }
+  fs.writeFileSync(file, src.replace(re, (m, a, b) => a + JSON.stringify(data) + b));
+  console.log('index.html の 問題データを 書きかえました');
 }
 
 module.exports = { buildData };
