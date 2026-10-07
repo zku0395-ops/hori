@@ -61,6 +61,10 @@
     .label { width: 15mm; text-align: center; flex-shrink: 0; }
     .yomi { font-size: 7mm; font-weight: 700; color: #475569; }
     .label small { display: block; font-size: 3.2mm; color: #64748b; }
+    .pic { width: 27mm; flex-shrink: 0; text-align: center; }
+    .pic img { display: block; margin: 0 auto; object-fit: contain; }
+    .pic .pword { font-size: 4.2mm; font-weight: 700; color: #334155; margin-top: .5mm; white-space: nowrap; }
+    .pic .pword b { color: #e53935; }
     .pieces { flex: 1; height: 100%; display: flex; flex-wrap: wrap; align-items: center; align-content: center; justify-content: center; gap: 3mm; overflow: hidden; }
     .piece { border: .5mm solid #94a3b8; border-radius: 3mm; background: #fafafa; }
     .arrow { font-size: 9mm; color: #94a3b8; flex-shrink: 0; }
@@ -402,6 +406,21 @@
         <div class="credit">書き順データ：KanjiVG（CC BY-SA 3.0）</div></div>`;
     }
 
+    // ---- ことばの 絵（Canva で 作った 絵。img/ に ある） ----
+    // [ことば, ファイル名, 色を かえる 文字の 位置]
+    const PICS = {
+      'ア': ['アイス', 'aisu', 0], 'イ': ['イルカ', 'iruka', 0], 'ウ': ['ウサギ', 'usagi', 0], 'エ': ['エプロン', 'epuron', 0], 'オ': ['オムライス', 'omuraisu', 0],
+      'カ': ['カメラ', 'kamera', 0], 'キ': ['キリン', 'kirin', 0], 'ク': ['クマ', 'kuma', 0], 'ケ': ['ケーキ', 'keki', 0], 'コ': ['コアラ', 'koara', 0],
+    };
+    // 絵の 下に ことばを 書く（その文字だけ 赤）。「みほんを 出さない」ときは 絵だけ
+    function picHTML(ch, showWord, size) {
+      const p = PICS[ch];
+      if (!p) return '<div class="pic"></div>';
+      const [w, file, at] = p, ls = [...w];
+      const word = ls.map((c, i) => i === at ? `<b>${c}</b>` : c).join('');
+      return `<div class="pic"><img src="img/${file}.webp" alt="${w}" style="width:${size}mm;height:${size}mm">${showWord ? `<div class="pword">${word}</div>` : ''}</div>`;
+    }
+
     function sheetHTML(sh, stage, showMihon) {
       if (sh.words) return wordSheetHTML(sh, stage, showMihon);
       const chars = [...sh.chars].filter(ch => STROKES[ch]);
@@ -414,6 +433,7 @@
         const order = stage === 3 ? shuffled(ch, parts.length) : parts.map((_, i) => i);
         return `<div class="prow" style="height:${rowH}mm">
           <div class="label"><div class="yomi">${yomi(ch)}</div>${stage >= 2 && showMihon ? `<div>${mihon(ch)}<small>みほん</small></div>` : ''}</div>
+          ${picHTML(ch, showMihon, n >= 5 ? 22 : 24)}
           <div class="pieces" data-u="${u}">${order.map(i => piece(parts[i], u)).join('')}</div>
           <div class="arrow">➜</div>${target(parts, stage, tgt)}</div>`;
       }).join('');
@@ -512,7 +532,12 @@
 
     render();
     // 文字の形が 決まってから もう一度 はかりなおす
-    (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => { render(); document.body.dataset.ready = '1'; });
+    (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => {
+      render();
+      // 絵が 読みこまれてから「できた」に する（PDF に 絵が 入るように）
+      const imgs = [...document.images].filter(i => !i.complete);
+      return Promise.all(imgs.map(i => new Promise(r => { i.onload = i.onerror = r; })));
+    }).then(() => { document.body.dataset.ready = '1'; });
   </script>
 </body>
 </html>
