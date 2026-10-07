@@ -65,6 +65,15 @@
     .piece { border: .5mm solid #94a3b8; border-radius: 3mm; background: #fafafa; }
     .arrow { font-size: 9mm; color: #94a3b8; flex-shrink: 0; }
     .target { flex-shrink: 0; }
+    .wrow { display: flex; justify-content: space-between; height: 222mm; margin-top: 2mm; }
+    .wcol { width: 45mm; display: flex; flex-direction: column; align-items: center; border-left: .3mm dashed #cbd5e1; }
+    .wcol:first-child { border-left: none; }
+    .wtop { height: 28mm; display: flex; align-items: flex-start; justify-content: center; gap: 3mm; }
+    .wemo { font-size: 13mm; line-height: 1; margin-top: 1mm; }
+    .wmihon { text-align: center; }
+    .wmihon small { display: block; font-size: 2.8mm; color: #64748b; }
+    .wpieces { flex: 0 0 48mm; width: 44mm; height: 48mm; gap: 1.5mm; }
+    .wsq { flex: 0 0 auto; }
     .credit { position: absolute; right: 12mm; bottom: 4mm; font-size: 2.6mm; color: #94a3b8; }
 
     @media print {
@@ -113,6 +122,19 @@
         <div class="dlrow"><span>ぜんぶ（3段階 24まい・1つのファイル）</span>
           <a class="btn small" href="pdf/カナカナパズル_てんてんまる_ぜんぶ.pdf" download="カナカナパズル_てんてんまる_ぜんぶ.pdf">⬇ ほぞん</a>
           <a class="btn small" href="pdf/カナカナパズル_てんてんまる_ぜんぶ.pdf" target="_blank">みる</a></div>
+        <h2 style="margin:12px 0 4px">のばす おと・ちいさい もじ（ことば）</h2>
+        <div class="dlrow"><span>★1 かげ（10まい）</span>
+          <a class="btn small" href="pdf/カナカナパズル_ことば_1_かげ.pdf" download="カナカナパズル_ことば_1_かげ.pdf">⬇ ほぞん</a>
+          <a class="btn small" href="pdf/カナカナパズル_ことば_1_かげ.pdf" target="_blank">みる</a></div>
+        <div class="dlrow"><span>★2 マス（10まい）</span>
+          <a class="btn small" href="pdf/カナカナパズル_ことば_2_マス.pdf" download="カナカナパズル_ことば_2_マス.pdf">⬇ ほぞん</a>
+          <a class="btn small" href="pdf/カナカナパズル_ことば_2_マス.pdf" target="_blank">みる</a></div>
+        <div class="dlrow"><span>★3 じぶんで（10まい）</span>
+          <a class="btn small" href="pdf/カナカナパズル_ことば_3_じぶんで.pdf" download="カナカナパズル_ことば_3_じぶんで.pdf">⬇ ほぞん</a>
+          <a class="btn small" href="pdf/カナカナパズル_ことば_3_じぶんで.pdf" target="_blank">みる</a></div>
+        <div class="dlrow"><span>ぜんぶ（3段階 30まい・1つのファイル）</span>
+          <a class="btn small" href="pdf/カナカナパズル_ことば_ぜんぶ.pdf" download="カナカナパズル_ことば_ぜんぶ.pdf">⬇ ほぞん</a>
+          <a class="btn small" href="pdf/カナカナパズル_ことば_ぜんぶ.pdf" target="_blank">みる</a></div>
       </div>
       <p class="note">保存した PDF は、「ダウンロード」フォルダに入ります（Chromebook は「ファイル」アプリ →「ダウンロード」）。メールの 📎（ファイルを添付）から選ぶと、ほかのパソコンに送れます。</p>
     </div>
@@ -130,11 +152,14 @@
       <div class="btns" style="margin-bottom:10px">
         <button class="btn small" id="allOn">せいおん ぜんぶ</button>
         <button class="btn small" id="dakuOn">てんてん・まる ぜんぶ</button>
+        <button class="btn small" id="wordOn">ー・ッ・ャュョ ぜんぶ</button>
         <button class="btn small" id="allOff">ぜんぶ はずす</button>
       </div>
       <div class="sheetpick" id="sheetPick"></div>
       <h2 style="margin-top:14px">てんてん（゛）・まる（゜）の プリント</h2>
       <div class="sheetpick" id="dakuPick"></div>
+      <h2 style="margin-top:14px">のばす おと（ー）・ちいさい もじ（ッ ャ ュ ョ）の プリント</h2>
+      <div class="sheetpick" id="wordPick"></div>
       <div class="row2">
         <span>じぶんで 文字を えらぶ：</span>
         <input type="text" id="custom" placeholder="れい：シツソン">
@@ -189,7 +214,24 @@
       { id: 'm2', name: 'みくらべ2', chars: 'ブプベペ', daku: true },
       { id: 'm3', name: 'みくらべ3', chars: 'ボポ', daku: true },
     ];
-    const ALL_SHEETS = [...SHEETS, ...DAKU_SHEETS];
+    // ショベルの 絵文字は 出ない 端末が あるので、自作の 絵にする
+    const SHOVEL = '<svg viewBox="0 0 40 40" width="13mm" height="13mm"><path d="M30 4 l6 6 -3 3 -6 -6 z" fill="#f59e0b" stroke="#92400e" stroke-width="1.5" stroke-linejoin="round"/><line x1="30" y1="10" x2="16" y2="24" stroke="#92400e" stroke-width="3" stroke-linecap="round"/><path d="M18 21 l3 3 -7 11 c-3 3 -9 1 -10 -2 c-1 -3 1 -7 3 -8 z" fill="#94a3b8" stroke="#334155" stroke-width="1.5" stroke-linejoin="round"/></svg>';
+    // 長音・促音・拗音：ことばを 文字の ピースで 組み立てる（たて書き）
+    const WORD_SHEETS = [
+      { id: 'w1', name: 'のばす おと1', words: [['ケーキ', '🍰'], ['ボール', '⚽'], ['ノート', '📓'], ['プール', '🏊']] },
+      { id: 'w2', name: 'のばす おと2', words: [['ゲーム', '🎮'], ['カード', '🃏'], ['スープ', '🥣'], ['ピーマン', '🫑']] },
+      { id: 'w3', name: 'のばす おと3', words: [['スキー', '⛷️'], ['ヨーヨー', '🪀'], ['ラーメン', '🍜'], ['コーン', '🌽']] },
+      { id: 'w4', name: 'ちいさい ッ1', words: [['コップ', '🥛'], ['ラッパ', '🎺'], ['ロケット', '🚀'], ['ロボット', '🤖']] },
+      { id: 'w5', name: 'ちいさい ッ2', words: [['ヨット', '⛵'], ['ネット', '🥅'], ['ソックス', '🧦'], ['ベッド', '🛏️']] },
+      { id: 'w6', name: 'ちいさい ャ', words: [['シャツ', '👕'], ['キャベツ', '🥬'], ['キャンプ', '⛺'], ['ジャム', '🍓']] },
+      { id: 'w7', name: 'ちいさい ュ', words: [['ジュース', '🧃'], ['シチュー', '🍲'], ['ニュース', '📺'], ['メニュー', '📋']] },
+      { id: 'w8', name: 'ちいさい ョ', words: [['チョコ', '🍫'], ['チョーク', '🖍️'], ['ピョン', '🐸'], ['ショベル', SHOVEL]] },
+      { id: 'w9', name: 'まとめ1', words: [['サッカー', '⚽'], ['シャワー', '🚿'], ['ジャンプ', '🦘'], ['コーヒー', '☕']] },
+      { id: 'w10', name: 'まとめ2', words: [['クッキー', '🍪'], ['キャッチ', '⚾'], ['シュート', '🥅'], ['ギョーザ', '🥟']] },
+    ];
+    WORD_SHEETS.forEach(s => { s.chars = s.words.map(w => w[0]).join('・'); });
+    const ALL_SHEETS = [...SHEETS, ...DAKU_SHEETS, ...WORD_SHEETS];
+    const SMALL = 'ッャュョァィゥェォ', SPECIAL = SMALL + 'ー';
     const BASE_COL = '#475569', MARK_COL = '#8e44ad';
     const HANDAKU = 'パピプペポ';
     // 濁音の もとの もじ（ガ → カ、パ → ハ）
@@ -294,7 +336,74 @@
         STROKES[ch].map(d => `<path d="${d}" fill="none" stroke="#334155" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>`).join('') + '</svg>';
     }
 
+    // ---- ことばの プリント（たて書き） ----
+    // たて書きの 位置に なおす：ー は たてに、小さい字は マスの 右上へ
+    function tateOf(ch) {
+      if (ch === 'ー') return { tf: 'rotate(90 54.5 54.5)', pt: ([x, y]) => [109 - y, x], box: b => ({ x: 109 - b.y - b.height, y: b.x, width: b.height, height: b.width }) };
+      if (SMALL.includes(ch)) {
+        const b0 = unionBox(STROKES[ch]), k = 0.72, dx = 98 - (b0.x + b0.width) * k, dy = 9 - b0.y * k;
+        return { tf: `translate(${dx} ${dy}) scale(${k})`, pt: ([x, y]) => [x * k + dx, y * k + dy], box: b => ({ x: b.x * k + dx, y: b.y * k + dy, width: b.width * k, height: b.height * k }) };
+      }
+      return { tf: '', pt: p => p, box: b => b };
+    }
+    const colOf = ch => SPECIAL.includes(ch) ? MARK_COL : BASE_COL;
+    function letterPiece(ch, num, u) {
+      const t = tateOf(ch), col = colOf(ch), b = t.box(unionBox(STROKES[ch])), pad = 10;
+      let vx = b.x - pad, vy = b.y - pad, vw = b.width + pad * 2, vh = b.height + pad * 2;
+      const ex = Math.max(0, 44 - vw) / 2, ey = Math.max(0, 44 - vh) / 2;
+      vx -= ex + 8; vw += ex * 2 + 8; vy -= ey + 8; vh += ey * 2 + 8;
+      return `<svg class="piece" viewBox="${vx} ${vy} ${vw} ${vh}" data-w="${vw}" data-h="${vh}" width="${vw * u}mm" height="${vh * u}mm">` +
+        `<g transform="${t.tf}">${STROKES[ch].map(d => `<path d="${d}" fill="none" stroke="${col}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>`).join('')}</g>` +
+        `${badge(vx + 9, vy + 9, num, col, 7)}</svg>`;
+    }
+    function wordSquare(ch, stage, size) {
+      const t = tateOf(ch); let g = '';
+      if (stage <= 2) g += '<line x1="54.5" y1="3" x2="54.5" y2="106" stroke="#cbd5e1" stroke-width=".8" stroke-dasharray="3 3"/><line x1="3" y1="54.5" x2="106" y2="54.5" stroke="#cbd5e1" stroke-width=".8" stroke-dasharray="3 3"/>';
+      if (stage === 2 && SMALL.includes(ch)) {
+        const b = t.box(unionBox(STROKES[ch]));
+        g += `<rect x="${b.x - 6}" y="${b.y - 6}" width="${b.width + 12}" height="${b.height + 12}" rx="4" fill="none" stroke="${MARK_COL}" stroke-width="1" stroke-dasharray="3 2"/>`;
+      }
+      if (stage === 1) {
+        g += `<g transform="${t.tf}">${STROKES[ch].map(d => `<path d="${d}" fill="none" stroke="${colOf(ch)}" stroke-opacity=".22" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>`).join('')}</g>`;
+        const [x, y] = t.pt(startPt(STROKES[ch][0])); g += `<circle cx="${x}" cy="${y}" r="2.6" fill="${colOf(ch)}"/>`;
+      }
+      return `<svg viewBox="0 0 109 109" width="${size}mm" height="${size}mm" style="display:block;margin-top:-.3mm"><rect x="1" y="1" width="107" height="107" fill="#fff" stroke="#475569" stroke-width="1.2"/>${g}</svg>`;
+    }
+    function miniWord(w) {
+      return [...w].map(ch => { const t = tateOf(ch);
+        return `<svg viewBox="0 0 109 109" width="6.5mm" height="6.5mm" style="display:block"><rect x="2" y="2" width="105" height="105" fill="#fff" stroke="#cbd5e1" stroke-width="3"/><g transform="${t.tf}">${STROKES[ch].map(d => `<path d="${d}" fill="none" stroke="#334155" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>`).join('')}</g></svg>`; }).join('');
+    }
+    const HOW_W = {
+      1: 'えを みて、ピースの もじを うえから じゅんに かこう。むらさきの もじは むらさきで。',
+      2: 'ちいさい もじは、マスの みぎうえの わくに かこう。',
+      3: 'えを みて、ピースを ならべて ことばを かこう。',
+    };
+    function wordSheetHTML(sh, stage, showMihon) {
+      const sq = 35, u = 0.2;
+      // たて書きなので、右から 1つめ、2つめ … と ならべる
+      const cols = sh.words.map(([w, emo], wi) => {
+        const ls = [...w];
+        const order = stage === 3 ? shuffled(w, ls.length) : ls.map((_, i) => i);
+        return `<div class="wcol">
+          <div class="wtop"><div class="wemo">${emo}</div>${stage >= 2 && showMihon ? `<div class="wmihon">${miniWord(w)}<small>みほん</small></div>` : ''}</div>
+          <div class="pieces wpieces" data-u="${u}">${order.map(i => letterPiece(ls[i], i + 1, u)).join('')}</div>
+          <div class="wsq">${ls.map(ch => wordSquare(ch, stage, sq)).join('')}</div></div>`;
+      }).reverse().join('');
+      return `<div class="sheet">
+        <div class="head"><div style="width:26mm;height:30mm;flex-shrink:0">${ROBO}</div>
+          <div><div class="title">ロボタンの カナカナパズル</div>
+            <span class="tag">${STAGE[stage]}</span><span class="tag">${sh.name}</span>
+            <div class="bubble">ピースを ならべて、ことばを つくろう！</div>
+            <div class="namebox"><span>　　がつ　　にち</span><span>なまえ　　　　　　　　　　　　</span></div></div>
+          <div class="stamp">できたよ<br>シールを<br>はろう</div></div>
+        <div class="howto">✏️ ${HOW_W[stage]}</div>
+        <div class="legend"><span class="chip"><i style="background:${BASE_COL}"></i>もじ（えんぴつ）</span><span class="chip"><i style="background:${MARK_COL}"></i>ー・ッ・ャ ュ ョ（むらさき）</span><span class="chip">① ② ③ … ＝ うえから かく じゅんばん</span></div>
+        <div class="wrow">${cols}</div>
+        <div class="credit">書き順データ：KanjiVG（CC BY-SA 3.0）</div></div>`;
+    }
+
     function sheetHTML(sh, stage, showMihon) {
+      if (sh.words) return wordSheetHTML(sh, stage, showMihon);
       const chars = [...sh.chars].filter(ch => STROKES[ch]);
       const n = chars.length;
       const rowH = n >= 5 ? 44 : n >= 4 ? 55 : 74, tgt = n >= 5 ? 40 : n >= 4 ? 48 : 56, u = tgt / 109;
@@ -345,7 +454,7 @@
     const q = new URLSearchParams(location.search);
     const state = {
       stage: [1, 2, 3].includes(+q.get('stage')) ? +q.get('stage') : 1,
-      picked: new Set(q.get('sheets') ? (q.get('sheets') === 'all' ? SHEETS.map(s => s.id) : q.get('sheets') === 'daku' ? DAKU_SHEETS.map(s => s.id) : q.get('sheets').split(',')) : ['r', '1']),
+      picked: new Set(q.get('sheets') ? (q.get('sheets') === 'all' ? SHEETS.map(s => s.id) : q.get('sheets') === 'daku' ? DAKU_SHEETS.map(s => s.id) : q.get('sheets') === 'word' ? WORD_SHEETS.map(s => s.id) : q.get('sheets').split(',')) : ['r', '1']),
       custom: q.get('chars') || '',
       mihon: q.get('mihon') !== '0',
     };
@@ -360,6 +469,9 @@
           <span>${s.name}<br><b>${[...s.chars].join(' ')}</b></span></label>`;
       document.getElementById('sheetPick').innerHTML = SHEETS.map(pick).join('');
       document.getElementById('dakuPick').innerHTML = DAKU_SHEETS.map(pick).join('');
+      document.getElementById('wordPick').innerHTML = WORD_SHEETS.map(s =>
+        `<label class="${state.picked.has(s.id) ? 'on' : ''}"><input type="checkbox" data-sheet="${s.id}" ${state.picked.has(s.id) ? 'checked' : ''}>
+          <span>${s.name}<br><small style="font-size:14px">${s.words.map(w => `<span style="white-space:nowrap">${w[0]}</span>`).join(' ')}</small></span></label>`).join('');
       document.getElementById('noMihon').checked = !state.mihon;
 
       const list = ALL_SHEETS.filter(s => state.picked.has(s.id));
@@ -381,6 +493,7 @@
     });
     document.getElementById('allOn').onclick = () => { SHEETS.forEach(s => state.picked.add(s.id)); render(); };
     document.getElementById('dakuOn').onclick = () => { DAKU_SHEETS.forEach(s => state.picked.add(s.id)); render(); };
+    document.getElementById('wordOn').onclick = () => { WORD_SHEETS.forEach(s => state.picked.add(s.id)); render(); };
     document.getElementById('allOff').onclick = () => { state.picked.clear(); render(); };
     document.getElementById('noMihon').onchange = e => { state.mihon = !e.target.checked; render(); };
     const custom = document.getElementById('custom');
