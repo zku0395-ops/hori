@@ -114,10 +114,13 @@
     <div class="panel">
       <h2>2．プリントを えらぶ</h2>
       <div class="btns" style="margin-bottom:10px">
-        <button class="btn small" id="allOn">ぜんぶ えらぶ</button>
+        <button class="btn small" id="allOn">せいおん ぜんぶ</button>
+        <button class="btn small" id="dakuOn">てんてん・まる ぜんぶ</button>
         <button class="btn small" id="allOff">ぜんぶ はずす</button>
       </div>
       <div class="sheetpick" id="sheetPick"></div>
+      <h2 style="margin-top:14px">てんてん（゛）・まる（゜）の プリント</h2>
+      <div class="sheetpick" id="dakuPick"></div>
       <div class="row2">
         <span>じぶんで 文字を えらぶ：</span>
         <input type="text" id="custom" placeholder="れい：シツソン">
@@ -160,12 +163,30 @@
       { id: '13', name: 'その13', chars: 'ミシツ', note: '3画' },
       { id: '14', name: 'その14', chars: 'オネホ', note: '3〜4画' },
     ];
+    // 濁音・半濁音：「もとの もじ」と「゛」「゜」の 2まいの ピースで 組み立てる
+    const DAKU_SHEETS = [
+      { id: 'd1', name: 'ガぎょう', chars: 'ガギグゲゴ', daku: true },
+      { id: 'd2', name: 'ザぎょう', chars: 'ザジズゼゾ', daku: true },
+      { id: 'd3', name: 'ダぎょう', chars: 'ダヂヅデド', daku: true },
+      { id: 'd4', name: 'バぎょう', chars: 'バビブベボ', daku: true },
+      { id: 'd5', name: 'パぎょう', chars: 'パピプペポ', daku: true },
+    ];
+    const ALL_SHEETS = [...SHEETS, ...DAKU_SHEETS];
+    const BASE_COL = '#475569', MARK_COL = '#8e44ad';
+    const HANDAKU = 'パピプペポ';
+    // 濁音の もとの もじ（ガ → カ、パ → ハ）
+    function baseOf(ch) { return String.fromCharCode(ch.charCodeAt(0) - (HANDAKU.includes(ch) ? 2 : 1)); }
     const COLORS = ['#e53935', '#1e66d0', '#2e9d4a', '#f08c00', '#8e44ad', '#8d6e63'];
     const CNAMES = ['あか', 'あお', 'みどり', 'オレンジ', 'むらさき', 'ちゃいろ'];
     const STAGE = { 1: '★1 かげ', 2: '★2 マス', 3: '★3 じぶんで' };
     const HOW = {
       1: 'ピースと おなじ いろの いろえんぴつで、かげの うえに かこう。',
       2: 'ピースと おなじ いろで、マスに かこう。●から かきはじめるよ。',
+      3: 'ピースを くみあわせて、わくに かこう。①から じゅんばんに かくよ。',
+    };
+    const HOW_D = {
+      1: 'もとの もじを えんぴつで、てんてん・まるを むらさきで、かげの うえに かこう。',
+      2: 'もとの もじを えんぴつで かいてから、てんてん・まるを むらさきで かこう。',
       3: 'ピースを くみあわせて、わくに かこう。①から じゅんばんに かくよ。',
     };
     const HOW_R = {
@@ -212,24 +233,42 @@
     }
 
     // ピース 1まい（u ＝ 1単位あたりの mm）
-    function piece(d, i, u) {
-      const b = bbox(d), pad = 12, [sx, sy] = startPt(d), col = COLORS[i];
-      const vx = b.x - pad, vy = b.y - pad, vw = b.width + pad * 2, vh = b.height + pad * 2;
+    // 1まいの ピースに なる 画の まとまり（parts）を つくる
+    function partsOf(ch, daku) {
+      const ps = STROKES[ch];
+      if (!daku) return ps.map((d, i) => ({ paths: [d], col: COLORS[i], num: i + 1 }));
+      const n = STROKES[baseOf(ch)].length;
+      return [{ paths: ps.slice(0, n), col: BASE_COL, num: 1, corner: true }, { paths: ps.slice(n), col: MARK_COL, num: 2, corner: true }];
+    }
+    function unionBox(paths) {
+      const bs = paths.map(bbox);
+      const x = Math.min(...bs.map(b => b.x)), y = Math.min(...bs.map(b => b.y));
+      return { x, y, width: Math.max(...bs.map(b => b.x + b.width)) - x, height: Math.max(...bs.map(b => b.y + b.height)) - y };
+    }
+    function piece(part, u) {
+      const b = unionBox(part.paths), pad = 12, [sx, sy] = startPt(part.paths[0]), col = part.col, i = part.num - 1;
+      let vx = b.x - pad, vy = b.y - pad, vw = b.width + pad * 2, vh = b.height + pad * 2;
+      if (part.corner) {
+        // 濁音の ピース：番号は 左上の すみに おき、小さい「゛」「゜」でも 重ならないように 広げる
+        const ex = Math.max(0, 40 - vw) / 2, ey = Math.max(0, 34 - vh) / 2;
+        vx -= ex + 6; vw += ex * 2 + 6; vy -= ey + 6; vh += ey * 2 + 6;
+      }
       // 番号は 書きはじめの 外がわに おく
       const cx = b.x + b.width / 2, cy = b.y + b.height / 2;
       const dx = sx - cx, dy = sy - cy, L = Math.hypot(dx, dy) || 1;
       const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
-      const bx = clamp(sx + dx / L * 8, vx + 6, vx + vw - 6), by = clamp(sy + dy / L * 8, vy + 6, vy + vh - 6);
+      let bx = clamp(sx + dx / L * 8, vx + 6, vx + vw - 6), by = clamp(sy + dy / L * 8, vy + 6, vy + vh - 6);
+      if (part.corner) { bx = vx + 7; by = vy + 7; }
       return `<svg class="piece" viewBox="${vx} ${vy} ${vw} ${vh}" data-w="${vw}" data-h="${vh}" width="${vw * u}mm" height="${vh * u}mm">` +
-        `<path d="${d}" fill="none" stroke="${col}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>` +
-        `<circle cx="${sx}" cy="${sy}" r="2.6" fill="#fff" stroke="${col}" stroke-width="1.2"/>${badge(bx, by, i + 1, col)}</svg>`;
+        part.paths.map(d => `<path d="${d}" fill="none" stroke="${col}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>`).join('') +
+        (part.col === MARK_COL ? '' : `<circle cx="${sx}" cy="${sy}" r="2.6" fill="#fff" stroke="${col}" stroke-width="1.2"/>`) + `${badge(bx, by, i + 1, col)}</svg>`;
     }
 
-    function target(ch, stage, size) {
-      const ps = STROKES[ch]; let g = '';
+    function target(parts, stage, size) {
+      let g = '';
       if (stage <= 2) g += '<line x1="54.5" y1="3" x2="54.5" y2="106" stroke="#cbd5e1" stroke-width=".8" stroke-dasharray="3 3"/><line x1="3" y1="54.5" x2="106" y2="54.5" stroke="#cbd5e1" stroke-width=".8" stroke-dasharray="3 3"/>';
-      if (stage === 1) ps.forEach((d, i) => { g += `<path d="${d}" fill="none" stroke="${COLORS[i]}" stroke-opacity=".22" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>`; });
-      if (stage <= 2) ps.forEach((d, i) => { const [x, y] = startPt(d); g += `<circle cx="${x}" cy="${y}" r="2.4" fill="${stage === 1 ? COLORS[i] : '#94a3b8'}"/>`; });
+      if (stage === 1) parts.forEach(p => p.paths.forEach(d => { g += `<path d="${d}" fill="none" stroke="${p.col}" stroke-opacity=".22" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>`; }));
+      if (stage <= 2) parts.forEach(p => { const [x, y] = startPt(p.paths[0]); g += `<circle cx="${x}" cy="${y}" r="2.4" fill="${stage === 1 ? p.col : '#94a3b8'}"/>`; });
       return `<svg class="target" viewBox="0 0 109 109" width="${size}mm" height="${size}mm"><rect x="1" y="1" width="107" height="107" rx="4" fill="#fff" stroke="#475569" stroke-width="1.2"/>${g}</svg>`;
     }
     function mihon(ch) {
@@ -240,26 +279,28 @@
     function sheetHTML(sh, stage, showMihon) {
       const chars = [...sh.chars].filter(ch => STROKES[ch]);
       const n = chars.length;
-      const rowH = n >= 4 ? 55 : 74, tgt = n >= 4 ? 48 : 56, u = tgt / 109;
+      const rowH = n >= 5 ? 44 : n >= 4 ? 55 : 74, tgt = n >= 5 ? 40 : n >= 4 ? 48 : 56, u = tgt / 109;
       const one = chars.every(ch => STROKES[ch].length === 1);
       const maxStroke = Math.max(...chars.map(ch => STROKES[ch].length));
       const rows = chars.map(ch => {
-        const ps = STROKES[ch];
-        const order = stage === 3 ? shuffled(ch, ps.length) : ps.map((_, i) => i);
+        const parts = partsOf(ch, sh.daku);
+        const order = stage === 3 ? shuffled(ch, parts.length) : parts.map((_, i) => i);
         return `<div class="prow" style="height:${rowH}mm">
           <div class="label"><div class="yomi">${yomi(ch)}</div>${stage >= 2 && showMihon ? `<div>${mihon(ch)}<small>みほん</small></div>` : ''}</div>
-          <div class="pieces" data-u="${u}">${order.map(i => piece(ps[i], i, u)).join('')}</div>
-          <div class="arrow">➜</div>${target(ch, stage, tgt)}</div>`;
+          <div class="pieces" data-u="${u}">${order.map(i => piece(parts[i], u)).join('')}</div>
+          <div class="arrow">➜</div>${target(parts, stage, tgt)}</div>`;
       }).join('');
-      const legend = [...Array(maxStroke).keys()].map(i => `<span class="chip"><i style="background:${COLORS[i]}"></i>${i + 1}かくめ ${CNAMES[i]}</span>`).join('');
+      const legend = sh.daku
+        ? `<span class="chip"><i style="background:${BASE_COL}"></i>1 もとの もじ（えんぴつ）</span><span class="chip"><i style="background:${MARK_COL}"></i>2 てんてん・まる（むらさき）</span>`
+        : [...Array(maxStroke).keys()].map(i => `<span class="chip"><i style="background:${COLORS[i]}"></i>${i + 1}かくめ ${CNAMES[i]}</span>`).join('');
       return `<div class="sheet">
         <div class="head"><div style="width:26mm;height:30mm;flex-shrink:0">${ROBO}</div>
           <div><div class="title">ロボタンの カナカナパズル</div>
             <span class="tag">${STAGE[stage]}</span><span class="tag">${sh.name}</span>
-            <div class="bubble">${one ? 'おなじ いろで かいてみよう！' : 'ピースを あわせて カタカナを つくろう！'}</div>
+            <div class="bubble">${sh.daku ? 'てんてん・まるを つけて、ちがう もじに へんしん！' : one ? 'おなじ いろで かいてみよう！' : 'ピースを あわせて カタカナを つくろう！'}</div>
             <div class="namebox"><span>　　がつ　　にち</span><span>なまえ　　　　　　　　　　　　</span></div></div>
           <div class="stamp">できたよ<br>シールを<br>はろう</div></div>
-        <div class="howto">✏️ ${(one ? HOW_R : HOW)[stage]}</div>
+        <div class="howto">✏️ ${(sh.daku ? HOW_D : one ? HOW_R : HOW)[stage]}</div>
         <div class="legend">${legend}</div>
         ${rows}
         <div class="credit">書き順データ：KanjiVG（CC BY-SA 3.0）</div></div>`;
@@ -286,7 +327,7 @@
     const q = new URLSearchParams(location.search);
     const state = {
       stage: [1, 2, 3].includes(+q.get('stage')) ? +q.get('stage') : 1,
-      picked: new Set(q.get('sheets') ? (q.get('sheets') === 'all' ? SHEETS.map(s => s.id) : q.get('sheets').split(',')) : ['r', '1']),
+      picked: new Set(q.get('sheets') ? (q.get('sheets') === 'all' ? SHEETS.map(s => s.id) : q.get('sheets') === 'daku' ? DAKU_SHEETS.map(s => s.id) : q.get('sheets').split(',')) : ['r', '1']),
       custom: q.get('chars') || '',
       mihon: q.get('mihon') !== '0',
     };
@@ -296,12 +337,14 @@
     function render() {
       document.getElementById('stageBtns').innerHTML = [1, 2, 3].map(s =>
         `<button class="btn ${state.stage === s ? 'on' : ''}" data-stage="${s}">${STAGE[s]}</button>`).join('');
-      document.getElementById('sheetPick').innerHTML = SHEETS.map(s =>
+      const pick = s =>
         `<label class="${state.picked.has(s.id) ? 'on' : ''}"><input type="checkbox" data-sheet="${s.id}" ${state.picked.has(s.id) ? 'checked' : ''}>
-          <span>${s.name}<br><b>${[...s.chars].join(' ')}</b></span></label>`).join('');
+          <span>${s.name}<br><b>${[...s.chars].join(' ')}</b></span></label>`;
+      document.getElementById('sheetPick').innerHTML = SHEETS.map(pick).join('');
+      document.getElementById('dakuPick').innerHTML = DAKU_SHEETS.map(pick).join('');
       document.getElementById('noMihon').checked = !state.mihon;
 
-      const list = SHEETS.filter(s => state.picked.has(s.id));
+      const list = ALL_SHEETS.filter(s => state.picked.has(s.id));
       const extra = [...state.custom].filter(ch => STROKES[ch]);
       for (let i = 0; i < extra.length; i += 3) list.push({ id: 'c' + i, name: 'えらんだ もじ', chars: extra.slice(i, i + 3).join('') });
       const pv = document.getElementById('preview');
@@ -314,11 +357,12 @@
       const sb = e.target.closest('[data-stage]');
       if (sb) { state.stage = +sb.dataset.stage; render(); }
     });
-    document.getElementById('sheetPick').addEventListener('change', e => {
+    document.getElementById('controls').addEventListener('change', e => {
       const id = e.target.dataset.sheet; if (!id) return;
       e.target.checked ? state.picked.add(id) : state.picked.delete(id); render();
     });
     document.getElementById('allOn').onclick = () => { SHEETS.forEach(s => state.picked.add(s.id)); render(); };
+    document.getElementById('dakuOn').onclick = () => { DAKU_SHEETS.forEach(s => state.picked.add(s.id)); render(); };
     document.getElementById('allOff').onclick = () => { state.picked.clear(); render(); };
     document.getElementById('noMihon').onchange = e => { state.mihon = !e.target.checked; render(); };
     const custom = document.getElementById('custom');
