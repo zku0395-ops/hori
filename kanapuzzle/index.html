@@ -37,6 +37,10 @@
     .note { font-size: 14px; color: #475569; }
     .count { font-size: 16px; font-weight: 700; color: #0369a1; }
     .preview { overflow-x: auto; padding-bottom: 20px; }
+    a.btn { display: inline-block; text-decoration: none; }
+    .dl { display: grid; gap: 8px; }
+    .dlrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 16px; }
+    .dlrow span { min-width: 260px; font-weight: 700; }
 
     /* ---- プリント ---- */
     .sheet { width: 210mm; height: 297mm; background: #fff; margin: 0 auto 8mm; padding: 10mm 12mm; position: relative; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
@@ -77,11 +81,26 @@
     <div class="panel">
       <h1><span id="roboMini"></span>ロボタンの カナカナパズル</h1>
       <p>カタカナの 1画ずつの「ピース」を見て、同じ色の色鉛筆で わくの中に書き、カタカナを組み立てるプリントです。</p>
-      <p class="note">できあがった PDF（ぜんぶの 15まい）：
-        <a href="pdf/カナカナパズル_★1かげ.pdf" target="_blank">★1 かげ</a> ／
-        <a href="pdf/カナカナパズル_★2マス.pdf" target="_blank">★2 マス</a> ／
-        <a href="pdf/カナカナパズル_★3じぶんで.pdf" target="_blank">★3 じぶんで</a><br>
-        ここでは、文字や段階を選んで印刷できます。</p>
+      <p class="note">下の「⬇ ほぞん」で、できあがった PDF をこの端末に保存できます。保存した PDF は、メールに付けてほかのパソコンに送れます。</p>
+    </div>
+
+    <div class="panel">
+      <h2>できあがった PDF を ほぞんする</h2>
+      <div class="dl">
+        <div class="dlrow"><span>★1 かげ（15まい）</span>
+          <a class="btn small" href="pdf/カナカナパズル_1_かげ.pdf" download="カナカナパズル_1_かげ.pdf">⬇ ほぞん</a>
+          <a class="btn small" href="pdf/カナカナパズル_1_かげ.pdf" target="_blank">みる</a></div>
+        <div class="dlrow"><span>★2 マス（15まい）</span>
+          <a class="btn small" href="pdf/カナカナパズル_2_マス.pdf" download="カナカナパズル_2_マス.pdf">⬇ ほぞん</a>
+          <a class="btn small" href="pdf/カナカナパズル_2_マス.pdf" target="_blank">みる</a></div>
+        <div class="dlrow"><span>★3 じぶんで（15まい）</span>
+          <a class="btn small" href="pdf/カナカナパズル_3_じぶんで.pdf" download="カナカナパズル_3_じぶんで.pdf">⬇ ほぞん</a>
+          <a class="btn small" href="pdf/カナカナパズル_3_じぶんで.pdf" target="_blank">みる</a></div>
+        <div class="dlrow"><span>ぜんぶ（3段階 45まい・1つのファイル）</span>
+          <a class="btn small" href="pdf/カナカナパズル_ぜんぶ.pdf" download="カナカナパズル_ぜんぶ.pdf">⬇ ほぞん</a>
+          <a class="btn small" href="pdf/カナカナパズル_ぜんぶ.pdf" target="_blank">みる</a></div>
+      </div>
+      <p class="note">保存した PDF は、「ダウンロード」フォルダに入ります（Chromebook は「ファイル」アプリ →「ダウンロード」）。メールの 📎（ファイルを添付）から選ぶと、ほかのパソコンに送れます。</p>
     </div>
 
     <div class="panel">
@@ -109,8 +128,10 @@
     <div class="panel">
       <div class="row2" style="margin-top:0">
         <button class="btn big" id="printBtn">🖨 いんさつ</button>
+        <button class="btn big" id="savePdfBtn" style="background:#0ea5e9;border-color:#0369a1;box-shadow:0 5px 0 #0369a1">💾 PDFで ほぞん</button>
         <span class="count" id="count"></span>
       </div>
+      <p class="note">「💾 PDFで ほぞん」を押すと、印刷の画面が開きます。「送信先」（Chromebook は「宛先」）を <b>「PDF に保存」</b> にして「保存」を押すと、えらんだプリントが PDF になります。</p>
       <p class="note">印刷の画面で「用紙サイズ：A4」「倍率：100%（または『実際のサイズ』）」「余白：なし」を選んでください。「背景のグラフィック」にチェックを入れると、色がきれいに出ます。</p>
     </div>
   </div>
@@ -304,6 +325,15 @@
     custom.value = state.custom;
     custom.oninput = () => { state.custom = custom.value; render(); };
     document.getElementById('printBtn').onclick = () => window.print();
+    // PDF に保存するときの ファイル名は、ページの題名になる
+    document.getElementById('savePdfBtn').onclick = () => {
+      const old = document.title;
+      const names = SHEETS.filter(s => state.picked.has(s.id)).map(s => s.name);
+      if (state.custom.trim()) names.push('えらんだもじ');
+      document.title = ['カナカナパズル', STAGE[state.stage].replace('★', '').replace(' ', '_'), names.length > 3 ? names[0] + 'から' + names[names.length - 1] : names.join('_')].filter(Boolean).join('_');
+      window.print();
+      setTimeout(() => { document.title = old; }, 1000);
+    };
 
     render();
     // 文字の形が 決まってから もう一度 はかりなおす

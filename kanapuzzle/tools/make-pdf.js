@@ -9,10 +9,13 @@ try { playwright = require('playwright'); } catch (e) { playwright = require('/o
 const ROOT = path.join(__dirname, '..');
 const OUT = path.join(ROOT, 'pdf');
 const FILES = {
-  1: 'カナカナパズル_★1かげ.pdf',
-  2: 'カナカナパズル_★2マス.pdf',
-  3: 'カナカナパズル_★3じぶんで.pdf',
+  1: 'カナカナパズル_1_かげ.pdf',
+  2: 'カナカナパズル_2_マス.pdf',
+  3: 'カナカナパズル_3_じぶんで.pdf',
 };
+// 3つを1つにまとめた PDF（メールで1回で送れるように）
+const ALL = 'カナカナパズル_ぜんぶ.pdf';
+// ファイル名には ★ などの記号を使わない（メールやほかのパソコンで文字化けしないように）
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -28,4 +31,14 @@ const FILES = {
     console.log('できました：', path.relative(process.cwd(), file));
   }
   await browser.close();
+
+  const { execFileSync } = require('child_process');
+  const parts = [1, 2, 3].map(s => path.join(OUT, FILES[s]));
+  const all = path.join(OUT, ALL);
+  try {
+    execFileSync('pdfunite', [...parts, all]);
+  } catch (e) {
+    execFileSync('python3', ['-c', 'import sys,pypdf\nw=pypdf.PdfWriter()\nfor f in sys.argv[2:]: w.append(f)\nw.write(sys.argv[1])', all, ...parts]);
+  }
+  console.log('できました：', path.relative(process.cwd(), all));
 })();
