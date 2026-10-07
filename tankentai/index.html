@@ -1,0 +1,1917 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ツバサせんせいの にっぽん たんけんたい</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+  <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+  <style>
+    :root {
+      --bg: #eef6ff; --ink: #1e293b; --sub: #64748b; --line: #cfe0f5;
+      --navy: #1e3a8a; --sky: #0ea5e9; --red: #e11d48; --gold: #f59e0b;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body { font-family: 'BIZ UDPGothic', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--ink); -webkit-tap-highlight-color: transparent; }
+    button { font-family: inherit; touch-action: manipulation; cursor: pointer; }
+    input, select, textarea { font-family: inherit; }
+    ruby rt { font-size: .5em; color: #57534e; font-weight: 400; }
+    .loading { display: flex; align-items: center; justify-content: center; min-height: 100vh; font-size: 28px; color: var(--navy); }
+    .emoji { font-family: 'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif; line-height: 1; }
+    .kw { word-break: keep-all; overflow-wrap: anywhere; }
+
+    /* 立体ボタン */
+    .btn3d { word-break: keep-all; border: 0; border-bottom: 6px solid rgba(0,0,0,.28); border-radius: 1.1rem; font-weight: 700; transition: transform .08s, border-bottom-width .08s, filter .15s; display: inline-flex; align-items: center; justify-content: center; gap: .4em; user-select: none; line-height: 1.25; }
+    .btn3d:active:not(:disabled) { transform: translateY(3px); border-bottom-width: 3px; }
+    .btn3d:disabled { opacity: .35; cursor: not-allowed; }
+    .btn3d:hover:not(:disabled) { filter: brightness(1.05); }
+    .c-navy { background: #2563eb; color: #fff; border-bottom-color: #1e3a8a; }
+    .c-green { background: #10b981; color: #fff; border-bottom-color: #047857; }
+    .c-amber { background: #fbbf24; color: #451a03; border-bottom-color: #d97706; }
+    .c-orange { background: #f97316; color: #fff; border-bottom-color: #c2410c; }
+    .c-red { background: #f43f5e; color: #fff; border-bottom-color: #be123c; }
+    .c-violet { background: #8b5cf6; color: #fff; border-bottom-color: #6d28d9; }
+    .c-sky { background: #0ea5e9; color: #fff; border-bottom-color: #0369a1; }
+    .c-slate { background: #475569; color: #fff; border-bottom-color: #1e293b; }
+    .c-white { background: #fff; color: #334155; border: 2px solid #c7d7ea; border-bottom: 6px solid #c7d7ea; }
+    .s-sm { padding: .45rem .8rem; font-size: 1rem; }
+    .s-md { padding: .7rem 1.2rem; font-size: 1.25rem; }
+    .s-lg { padding: .9rem 1.5rem; font-size: 1.6rem; }
+    .s-xl { padding: 1.1rem 2rem; font-size: 2rem; }
+
+    .wrap { max-width: 1280px; margin: 0 auto; padding: .75rem; }
+    .row { display: flex; align-items: center; gap: .6rem; }
+    .col { display: flex; flex-direction: column; gap: .6rem; }
+    .wrapflex { flex-wrap: wrap; }
+    .grow { flex: 1 1 auto; min-width: 0; }
+    .between { justify-content: space-between; }
+    .center { justify-content: center; }
+    .tc { text-align: center; }
+    .bold { font-weight: 700; }
+    .muted { color: var(--sub); }
+    .card { background: #fff; border: 3px solid var(--line); border-radius: 1.4rem; padding: 1rem; }
+    .pill { display: inline-flex; align-items: center; gap: .3em; padding: .2em .7em; border-radius: 999px; font-weight: 700; font-size: .95rem; }
+
+    /* ツバサせんせい */
+    .tsubasa { position: relative; flex: 0 0 auto; cursor: pointer; }
+    .tsubasa svg { display: block; width: 100%; height: auto; }
+    .tsubasa.bob svg { animation: bob 3s ease-in-out infinite; }
+    @keyframes bob { 50% { transform: translateY(-6px); } }
+    .bubble { position: relative; background: #fff; border: 3px solid #1e3a8a33; border-radius: 1.2rem; padding: .7rem 1rem; font-size: 1.35rem; line-height: 1.9; font-weight: 700; box-shadow: 0 4px 0 #1e3a8a1a; }
+    .bubble.left::before { content: ''; position: absolute; left: -14px; top: 26px; border: 10px solid transparent; border-right: 14px solid #1e3a8a33; border-left: 0; }
+    .bubble.left::after { content: ''; position: absolute; left: -9px; top: 28px; border: 8px solid transparent; border-right: 11px solid #fff; border-left: 0; }
+    .speak { border: 0; background: #e0e7ff; color: #1e3a8a; border-radius: .8rem; padding: .3rem .6rem; font-weight: 700; font-size: 1rem; }
+
+    /* ステップ */
+    .steps { display: flex; gap: .4rem; align-items: center; }
+    .step { display: inline-flex; align-items: center; gap: .3em; padding: .3rem .8rem; border-radius: 999px; background: #fff; border: 3px solid #dbe6f3; color: #94a3b8; font-weight: 700; font-size: 1.05rem; }
+    .step.on { border-color: var(--navy); color: #fff; background: var(--navy); }
+    .step.ok { border-color: #10b981; color: #047857; background: #ecfdf5; }
+    .arrow { color: #94a3b8; font-weight: 700; }
+
+    /* カード */
+    .pic { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 1.2rem; border: 4px solid #fff; box-shadow: 0 4px 14px rgba(0,0,0,.12); background: #e2e8f0; display: block; }
+    .imgnote { font-size: .8rem; color: #64748b; text-align: right; margin-top: .2rem; }
+    .ctitle { font-size: 2rem; font-weight: 700; line-height: 1.9; }
+    .ctext { font-size: 1.7rem; line-height: 2.3; letter-spacing: .02em; }
+    .ctext .sent { display: block; padding: 0 .3rem; border-radius: .6rem; transition: background .2s; }
+    .ctext .sent.reading { background: #fef3c7; }
+    .ctext mark { background: transparent; color: inherit; border-bottom: 6px solid #f59e0b; }
+    .ctext mark.glow { animation: markglow 1s ease-in-out infinite; border-radius: .3rem; }
+    @keyframes markglow { 50% { background: #fde68a; } }
+    .dots { display: flex; gap: .35rem; justify-content: center; }
+    .dot { width: 1.1rem; height: 1.1rem; border-radius: 50%; background: #e2e8f0; border: 2px solid #cbd5e1; }
+    .dot.seen { background: #93c5fd; border-color: #2563eb; }
+    .dot.now { background: #fbbf24; border-color: #d97706; transform: scale(1.25); }
+    .readgrid { display: grid; grid-template-columns: minmax(0, 48fr) minmax(0, 52fr); gap: 1.2rem; align-items: start; }
+
+    /* クイズ */
+    .qbox { border-radius: 1.2rem; padding: .6rem 1rem; color: #fff; font-weight: 700; font-size: 1.6rem; line-height: 2; background: var(--navy); }
+    .choice { width: 100%; min-height: 4.8rem; font-size: 1.7rem; line-height: 1.9; padding: .4rem .8rem; }
+    .choice.gone { visibility: hidden; }
+    .glowbtn { animation: glowbtn 1s ease-in-out infinite; }
+    @keyframes glowbtn { 50% { box-shadow: 0 0 0 7px #fde047; } }
+    .pulse { animation: pulse 1.1s ease-in-out infinite; }
+    @keyframes pulse { 50% { transform: scale(1.06); } }
+
+    /* えらぶ */
+    .pickgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .8rem; max-width: 820px; width: 100%; margin: 0 auto; }
+    .actionbar { position: sticky; bottom: 0; z-index: 5; padding: .6rem 0 .4rem; background: linear-gradient(rgba(238,246,255,0), var(--bg) 35%); }
+    .writegrid { display: grid; grid-template-columns: minmax(0, 36fr) minmax(0, 64fr); gap: 1rem; align-items: start; }
+    .pickbtn { background: #fff; border: 5px solid #dbe6f3; border-radius: 1.2rem; padding: .4rem; display: flex; flex-direction: column; gap: .3rem; align-items: stretch; font-size: 1.3rem; font-weight: 700; color: var(--ink); position: relative; }
+    .pickbtn img { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: .8rem; display: block; }
+    .pickbtn.on { border-color: #f97316; box-shadow: 0 0 0 4px #fed7aa; }
+    .pickbtn .check { position: absolute; top: -.6rem; right: -.6rem; width: 2.6rem; height: 2.6rem; border-radius: 50%; background: #f97316; color: #fff; font-size: 1.6rem; display: flex; align-items: center; justify-content: center; border: 3px solid #fff; }
+
+    /* かく */
+    .sentbox { background: #fff; border: 3px solid var(--line); border-radius: 1.2rem; padding: .7rem 1rem; }
+    .sentprev { font-size: 1.45rem; line-height: 2.2; font-weight: 700; }
+    .slot { display: inline-block; min-width: 6em; border-bottom: 4px solid #f97316; padding: 0 .2em; color: #c2410c; }
+    .slot.empty { color: #cbd5e1; }
+    .opt { font-size: 1.2rem; line-height: 1.7; padding: .3rem .8rem; text-align: left; justify-content: flex-start; }
+    .opt.on { background: #fff7ed; border-color: #f97316; color: #9a3412; }
+
+    /* 50音表 */
+    .kb { display: grid; gap: .3rem; }
+    .kcol { display: grid; grid-template-rows: repeat(5, 1fr); gap: .3rem; }
+    .key { width: 100%; min-width: 2.5rem; height: 2.7rem; font-size: 1.4rem; padding: 0; border-radius: .7rem; }
+    .key.blank { visibility: hidden; }
+    .tabs { display: flex; gap: .4rem; flex-wrap: wrap; }
+    .tab { border: 3px solid #c7d7ea; background: #fff; border-radius: .9rem; padding: .3rem .9rem; font-size: 1.15rem; font-weight: 700; color: #475569; }
+    .tab.on { background: #1e3a8a; border-color: #1e3a8a; color: #fff; }
+    .typed { min-height: 3.4rem; font-size: 1.8rem; font-weight: 700; border: 3px solid #93c5fd; border-radius: .9rem; padding: .3rem .8rem; background: #fff; display: flex; align-items: center; }
+
+    /* ごほうび */
+    .modal-bg { position: fixed; inset: 0; z-index: 50; background: rgba(15,23,42,.45); display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .modal { background: #fff; border-radius: 1.6rem; padding: 1.3rem; max-width: 900px; width: 100%; max-height: 94vh; overflow: auto; border: 5px solid #bfdbfe; }
+    .seikai { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+    .seikai span { font-size: 6rem; font-weight: 700; color: #f97316; -webkit-text-stroke: 4px #fff; paint-order: stroke fill; text-shadow: 0 6px 0 #c2410c55; animation: pop .9s ease-out both; }
+    @keyframes pop { 0% { transform: scale(.3); opacity: 0; } 40% { transform: scale(1.15); opacity: 1; } 70% { transform: scale(1); } 100% { transform: scale(1); opacity: 1; } }
+    .sticker { width: 5.2rem; height: 5.2rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 3rem; background: #fff; border: 5px solid; box-shadow: 0 3px 0 rgba(0,0,0,.12); flex: 0 0 auto; }
+    .sticker.big { width: 9rem; height: 9rem; font-size: 5.4rem; border-width: 7px; animation: spin .9s ease-out both; }
+    @keyframes spin { 0% { transform: rotateY(90deg) scale(.4); } 100% { transform: rotateY(0) scale(1); } }
+    .sticker.none { background: #f1f5f9; border-color: #cbd5e1 !important; color: #94a3b8; font-size: 2.2rem; font-weight: 700; }
+    .confetti { position: fixed; top: -20px; z-index: 55; pointer-events: none; animation: fall linear forwards; }
+    @keyframes fall { to { transform: translateY(110vh) rotate(540deg); } }
+    .stampin { animation: stampin .7s cubic-bezier(.2,1.6,.4,1) both; transform-origin: center; transform-box: fill-box; }
+    @keyframes stampin { 0% { transform: scale(3); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+    /* ホーム・地図 */
+    .sky { background: linear-gradient(#bfe3ff, #e6f4ff 60%, #fff); border-radius: 1.6rem; border: 4px solid #bcd7f2; overflow: hidden; position: relative; }
+    .jmap path.pref { fill: #d9f2e3; stroke: #fff; stroke-width: 1.6; }
+    .jmap path.pref.open { fill: #fde68a; cursor: pointer; }
+    .jmap path.pref.done { fill: #fca5a5; }
+    .jmap path.pref.here { fill: #f43f5e; }
+    .jmap .glowpin { animation: pinbob 1.4s ease-in-out infinite; }
+    @keyframes pinbob { 50% { transform: translateY(-8px); } }
+    .homegrid { display: grid; grid-template-columns: minmax(0, 55fr) minmax(0, 45fr); gap: 1rem; align-items: start; }
+    .itemgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: .8rem; }
+    .itembtn { border-radius: 1.3rem; padding: .8rem .5rem; min-height: 11rem; flex-direction: column; font-size: 1.2rem; }
+    .namegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 1rem; }
+
+    /* 先生用 */
+    .tbl { border-collapse: collapse; width: 100%; font-size: .95rem; background: #fff; }
+    .tbl th, .tbl td { border: 1px solid #e2e8f0; padding: .35rem .5rem; text-align: left; vertical-align: top; }
+    .tbl th { background: #f8fafc; }
+    .inp { font-size: 1.05rem; padding: .45rem .6rem; border: 2px solid #cbd5e1; border-radius: .6rem; }
+    .bar { height: .7rem; border-radius: 999px; background: #e2e8f0; overflow: hidden; }
+    .bar > i { display: block; height: 100%; }
+
+    /* しんぶん（B4よこ：364mm × 257mm） */
+    .sheet-outer { width: 100%; position: relative; }
+    .sheet-scale { transform-origin: top left; }
+    .sheet { width: 364mm; height: 257mm; background: #fff; color: #111827; padding: 7mm 8mm; display: flex; flex-direction: column; gap: 4mm; font-family: 'BIZ UDPGothic', sans-serif; box-shadow: 0 6px 24px rgba(0,0,0,.15); overflow: hidden; }
+    .sheet ruby rt { font-size: .5em; color: #374151; }
+    .sh-head { display: flex; align-items: stretch; gap: 5mm; height: 27mm; border-bottom: 1.6mm double #1e3a8a; padding-bottom: 2mm; }
+    .sh-title { font-size: 12.5mm; font-weight: 700; color: #1e3a8a; line-height: 1.6; display: flex; align-items: center; gap: 3mm; letter-spacing: .5mm; }
+    .sh-meta { margin-left: auto; display: flex; flex-direction: column; justify-content: center; gap: 2mm; font-size: 5mm; font-weight: 700; }
+    .sh-meta .ln { display: flex; align-items: flex-end; gap: 2mm; }
+    .sh-meta .ln span.v { display: inline-block; min-width: 55mm; border-bottom: .5mm solid #475569; padding: 0 1mm; font-size: 6mm; }
+    .sh-grid { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 4mm; min-height: 0; }
+    .sh-box { border: .8mm solid #94a3b8; border-radius: 3mm; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+    .sh-band { color: #fff; font-weight: 700; font-size: 5.2mm; padding: 1.8mm 3mm .8mm; line-height: 1.9; display: flex; align-items: center; gap: 2mm; }
+    .sh-band .ans { margin-left: auto; background: #fff; border-radius: 2mm; padding: 0 2mm; font-size: 5mm; }
+    .sh-body { flex: 1; display: grid; grid-template-columns: 52mm 1fr; gap: 3mm; padding: 2.5mm; min-height: 0; }
+    .sh-photo img { width: 52mm; height: 39mm; object-fit: cover; border-radius: 1.5mm; display: block; }
+    .sh-cap { font-size: 3.8mm; font-weight: 700; line-height: 1.8; margin-top: 1mm; text-align: center; }
+    .sh-note { font-size: 2.6mm; color: #64748b; text-align: center; }
+    .sh-text { font-size: 4.8mm; line-height: 2.2; font-weight: 700; background-image: repeating-linear-gradient(transparent, transparent calc(2.25em - .3mm), #cbd5e1 calc(2.25em - .3mm), #cbd5e1 2.25em); }
+    .sh-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 5mm; font-weight: 700; border: .6mm dashed #cbd5e1; margin: 3mm; border-radius: 2mm; }
+    .sh-mapbox { flex: 1; display: flex; gap: 2mm; padding: 2mm; align-items: center; min-height: 0; }
+    .sh-mapbox svg { height: 100%; width: auto; max-width: 62mm; }
+    .sh-mapnote { font-size: 4.6mm; font-weight: 700; line-height: 2.1; }
+
+    @page { size: 364mm 257mm; margin: 0; }
+    @media print {
+      html, body { background: #fff !important; }
+      body * { visibility: hidden !important; }
+      .print-area, .print-area * { visibility: visible !important; }
+      .print-area { position: fixed; left: 0; top: 0; background: #fff !important; display: block !important; }
+      .print-area .sheet-scale { transform: none !important; }
+      .print-area .sheet { box-shadow: none; }
+      .no-print { display: none !important; }
+    }
+
+    @media (max-width: 980px) { .readgrid, .homegrid, .writegrid { grid-template-columns: 1fr; } .itemgrid { grid-template-columns: repeat(3, 1fr); } .pickgrid { grid-template-columns: repeat(2, 1fr); } }
+    @media (prefers-reduced-motion: reduce) { .pulse, .glowbtn, .tsubasa.bob svg, mark.glow, .glowpin { animation: none !important; } }
+  </style>
+</head>
+<body>
+  <div id="root"><div class="loading">🐦 よみこみちゅう…</div></div>
+
+  <!-- 地図と 都道府県の データ（Babel を 通さないので 速く 読みこめる） -->
+  <script src="data/japan-map.js"></script>
+  <script src="data/tokyo.js"></script>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+    /* =========================================================
+       きほんの 設定
+       ========================================================= */
+    const APP_ID = 'tsubasa-tankentai';
+    const STORE_KEY = 'tsubasaTankentai.v1';
+    const MAP = window.JAPAN_MAP || { w: 1000, h: 1000, prefs: {}, inset: null };
+    const PREF_DATA = window.PREF_DATA || {};
+    // 47都道府県（コード：[なまえ, よみ]）
+    const PREF_NAMES = {
+      '01': ['北海道', 'ほっかいどう'], '02': ['青森県', 'あおもりけん'], '03': ['岩手県', 'いわてけん'], '04': ['宮城県', 'みやぎけん'], '05': ['秋田県', 'あきたけん'],
+      '06': ['山形県', 'やまがたけん'], '07': ['福島県', 'ふくしまけん'], '08': ['茨城県', 'いばらきけん'], '09': ['栃木県', 'とちぎけん'], '10': ['群馬県', 'ぐんまけん'],
+      '11': ['埼玉県', 'さいたまけん'], '12': ['千葉県', 'ちばけん'], '13': ['東京都', 'とうきょうと'], '14': ['神奈川県', 'かながわけん'], '15': ['新潟県', 'にいがたけん'],
+      '16': ['富山県', 'とやまけん'], '17': ['石川県', 'いしかわけん'], '18': ['福井県', 'ふくいけん'], '19': ['山梨県', 'やまなしけん'], '20': ['長野県', 'ながのけん'],
+      '21': ['岐阜県', 'ぎふけん'], '22': ['静岡県', 'しずおかけん'], '23': ['愛知県', 'あいちけん'], '24': ['三重県', 'みえけん'], '25': ['滋賀県', 'しがけん'],
+      '26': ['京都府', 'きょうとふ'], '27': ['大阪府', 'おおさかふ'], '28': ['兵庫県', 'ひょうごけん'], '29': ['奈良県', 'ならけん'], '30': ['和歌山県', 'わかやまけん'],
+      '31': ['鳥取県', 'とっとりけん'], '32': ['島根県', 'しまねけん'], '33': ['岡山県', 'おかやまけん'], '34': ['広島県', 'ひろしまけん'], '35': ['山口県', 'やまぐちけん'],
+      '36': ['徳島県', 'とくしまけん'], '37': ['香川県', 'かがわけん'], '38': ['愛媛県', 'えひめけん'], '39': ['高知県', 'こうちけん'], '40': ['福岡県', 'ふくおかけん'],
+      '41': ['佐賀県', 'さがけん'], '42': ['長崎県', 'ながさきけん'], '43': ['熊本県', 'くまもとけん'], '44': ['大分県', 'おおいたけん'], '45': ['宮崎県', 'みやざきけん'],
+      '46': ['鹿児島県', 'かごしまけん'], '47': ['沖縄県', 'おきなわけん'],
+    };
+    // いま たずねられる 都道府県（データの ある ところ）。コードの 順。
+    const PREFS = Object.values(PREF_DATA).sort((a, b) => a.code.localeCompare(b.code));
+    const PREF_MAP = Object.fromEntries(PREFS.map(p => [p.id, p]));
+    const PREF_BY_CODE = Object.fromEntries(PREFS.map(p => [p.code, p]));
+    const STEPS = [['read', 'よむ', '📖'], ['quiz', 'クイズ', '❓'], ['pick', 'えらぶ', '🖼️'], ['write', 'かく', '✏️']];
+
+    const DEFAULT_SETTINGS = {
+      voice: true,       // ツバサせんせいの 声
+      rate: 0.8,         // 読み上げの 速さ
+      autoRead: true,    // カードを 自動で 読み上げる
+      furigana: true,    // ふりがな
+      fontSize: 'm',
+      sfx: true,         // 効果音・ファンファーレ
+      unlockAll: false,  // すべての 項目を 開く
+    };
+    const FONT_PX = { m: 16, l: 18, xl: 20 };
+    const TITLES = [
+      { min: 0, name: 'たんけんたい みならい', icon: '🐣' },
+      { min: 1, name: 'たんけんたいいん', icon: '🎒' },
+      { min: 5, name: 'ベテラン たんけんたいいん', icon: '🧭' },
+      { min: 10, name: 'たんけん たいちょう', icon: '🏅' },
+      { min: 20, name: 'にっぽん たんけん マスター', icon: '🗾' },
+      { min: 47, name: 'にっぽん はかせ', icon: '👑' },
+    ];
+
+    /* =========================================================
+       小さな 道具
+       ========================================================= */
+    const pad2 = n => String(n).padStart(2, '0');
+    const shuffle = arr => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    function fmtDate(ts) { const d = new Date(ts); return `${d.getFullYear()}/${pad2(d.getMonth() + 1)}/${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
+    function fmtDay(ts) { const d = new Date(ts); return `${d.getFullYear()}年 ${d.getMonth() + 1}月 ${d.getDate()}日`; }
+    function ymd() { const d = new Date(); return `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}`; }
+    function fnv(str) { let h = 2166136261; for (const c of str) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16); }
+    const hashPin = pin => fnv('tankentai:' + pin);
+    const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    const CURRENT = { settings: { ...DEFAULT_SETTINGS } };
+
+    /* ---- ふりがな ----  書き方： {漢字|よみ} */
+    const MARK_RE = /\{([^|}]+)\|([^}]+)\}/g;
+    const plain = s => String(s == null ? '' : s).replace(MARK_RE, '$1');
+    const yomi = s => String(s == null ? '' : s).replace(MARK_RE, '$2');
+    function R({ t, className, style }) {
+      const s = String(t == null ? '' : t);
+      const out = []; let last = 0; let m; let k = 0;
+      const re = new RegExp(MARK_RE.source, 'g');
+      const furi = CURRENT.settings.furigana;
+      while ((m = re.exec(s))) {
+        if (m.index > last) out.push(<React.Fragment key={k++}>{s.slice(last, m.index)}</React.Fragment>);
+        out.push(furi ? <ruby key={k++}>{m[1]}<rt>{m[2]}</rt></ruby> : <React.Fragment key={k++}>{m[1]}</React.Fragment>);
+        last = re.lastIndex;
+      }
+      if (last < s.length) out.push(<React.Fragment key={k++}>{s.slice(last)}</React.Fragment>);
+      return <span className={className} style={style}>{out}</span>;
+    }
+    // 子どもが 50音表で 書いた 文字は、{ } | を ふくまない ように する
+    const cleanTyped = s => String(s || '').replace(/[{}|<>]/g, '').slice(0, 40);
+    const toKata = s => s.replace(/[ぁ-ゖ]/g, c => String.fromCharCode(c.charCodeAt(0) + 0x60));
+    const toHira = s => s.replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+    const isKata = c => /[ァ-ヺー]/.test(c);
+
+    /* ---- 文を つくる ---- */
+    const cardOf = (item, id) => item.cards.find(c => c.id === id) || null;
+    const sentence1 = (item, ip) => { const c = cardOf(item, ip.pick); return c && ip.s1 ? `${c.name || c.title}は、${ip.s1}。` : ''; };
+    const sentence2 = ip => (ip.s2 ? `${ip.s2}と おもいました。` : '');
+
+    /* =========================================================
+       ほぞん（localStorage と IndexedDB）
+       ========================================================= */
+    function normalizeState(s) {
+      s = s && typeof s === 'object' ? s : {};
+      const obj = v => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
+      return {
+        version: 1,
+        settings: { ...DEFAULT_SETTINGS, ...obj(s.settings) },
+        pin: s.pin || hashPin('1234'),
+        setupDone: !!s.setupDone,
+        roster: Array.isArray(s.roster) ? s.roster.filter(k => k && k.id && k.name) : [],
+        kids: obj(s.kids),
+        sync: obj(s.sync),
+        deviceId: s.deviceId || newId(),
+      };
+    }
+    function loadState() {
+      let s = null;
+      try { s = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { s = null; }
+      const st = normalizeState(s);
+      if (!s || !s.deviceId) saveState(st);
+      CURRENT.settings = st.settings;
+      return st;
+    }
+    function saveState(s) { try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch (e) { console.warn(e); } }
+
+    // 入口ページ（Apps Script）から開いたとき、URLの # のあとに 記録の送り先と合言葉が ついてくる
+    const REC_URL_RE = /^https:\/\/script\.google\.com\/(a\/macros\/[^/]+\/|macros\/)s\/[A-Za-z0-9_-]+\/(exec|dev)$/;
+    (function applyLinkConfig() {
+      if (!location.hash) return;
+      const h = new URLSearchParams(location.hash.slice(1));
+      const rec = h.get('rec');
+      if (!rec) return;
+      if (REC_URL_RE.test(rec)) {
+        const st = loadState();
+        if (st.sync.url !== rec || st.sync.key !== (h.get('key') || '')) {
+          saveState({ ...st, sync: { ...st.sync, url: rec, key: h.get('key') || '', lastSummary: {} } });
+        }
+      }
+      history.replaceState(null, '', location.pathname + location.search);
+    })();
+
+    const DB_NAME = 'tsubasa-tankentai';
+    let dbPromise = null;
+    function getDB() {
+      if (dbPromise) return dbPromise;
+      dbPromise = new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = () => {
+          const db = req.result;
+          if (!db.objectStoreNames.contains('history')) db.createObjectStore('history', { keyPath: 'id', autoIncrement: true });
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+      return dbPromise;
+    }
+    async function idbReq(storeName, mode, fn) {
+      const db = await getDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(storeName, mode);
+        const req = fn(tx.objectStore(storeName));
+        let result;
+        if (req) req.onsuccess = () => { result = req.result; };
+        tx.oncomplete = () => resolve(result);
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      });
+    }
+    const DB = {
+      add: (s, v) => idbReq(s, 'readwrite', st => st.add(v)),
+      put: (s, v) => idbReq(s, 'readwrite', st => st.put(v)),
+      del: (s, k) => idbReq(s, 'readwrite', st => st.delete(k)),
+      getAll: (s) => idbReq(s, 'readonly', st => st.getAll()),
+      clear: (s) => idbReq(s, 'readwrite', st => st.clear()),
+    };
+
+    function downloadFile(name, content, type) {
+      const blob = content instanceof Blob ? content : new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+    function pickFile(accept) {
+      return new Promise((resolve) => {
+        const input = document.createElement('input'); input.type = 'file'; input.accept = accept;
+        input.onchange = () => resolve(input.files && input.files[0] ? input.files[0] : null);
+        input.click();
+      });
+    }
+
+    /* =========================================================
+       読み上げ・効果音・ファンファーレ
+       ========================================================= */
+    function speechText(s) {
+      return yomi(s).replace(/＿+/g, 'なになに').replace(/[「」]/g, '、').replace(/\n/g, '　');
+    }
+    const TTS = {
+      voice: null, token: 0,
+      init() {
+        if (!('speechSynthesis' in window)) return;
+        const choose = () => {
+          const vs = speechSynthesis.getVoices().filter(v => /^ja/i.test(v.lang));
+          this.voice = vs.find(v => /google/i.test(v.name)) || vs[0] || null;
+        };
+        choose();
+        speechSynthesis.onvoiceschanged = choose;
+      },
+      speak(markup, { force = false, rate } = {}) {
+        return new Promise(resolve => {
+          if (!('speechSynthesis' in window) || !markup || (!CURRENT.settings.voice && !force)) return resolve();
+          const text = speechText(markup);
+          speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(text);
+          u.lang = 'ja-JP'; if (this.voice) u.voice = this.voice;
+          u.rate = rate || CURRENT.settings.rate || 0.8; u.pitch = 1.15;
+          let done = false;
+          const finish = () => { if (!done) { done = true; clearTimeout(timer); resolve(); } };
+          const timer = setTimeout(finish, 2500 + text.length * 450 / (u.rate || 1));
+          u.onend = finish; u.onerror = finish;
+          this.current = u; // Chrome で onend が 来なくなるのを ふせぐため 参照を のこす
+          speechSynthesis.speak(u);
+        });
+      },
+      cancel() { this.token++; if ('speechSynthesis' in window) speechSynthesis.cancel(); },
+    };
+    TTS.init();
+
+    let AUDIO = null;
+    function audioCtx() {
+      if (!CURRENT.settings.sfx) return null;
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        AUDIO = AUDIO || new AC();
+        if (AUDIO.state === 'suspended') AUDIO.resume();
+        return AUDIO;
+      } catch (e) { return null; }
+    }
+    function tone(ctx, { f, t, dur, type = 'sine', vol = 0.12, attack = 0.012, release = 0.08, dest }) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type; o.frequency.setValueAtTime(f, t);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + attack);
+      g.gain.setValueAtTime(vol, Math.max(t + attack, t + dur - release));
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(dest || ctx.destination);
+      o.start(t); o.stop(t + dur + 0.05);
+    }
+    const SFX_SEQ = {
+      tap: [[660, 0.06, 0.08]],
+      key: [[880, 0.05, 0.07]],
+      page: [[740, 0.05, 0.06], [988, 0.07, 0.06]],
+      ng: [[392, 0.16, 0.07], [330, 0.24, 0.06]],   // やさしい音（ブザーに しない）
+      hint: [[659, 0.08, 0.08], [784, 0.08, 0.08], [988, 0.12, 0.08]],
+      pick: [[523, 0.07, 0.08], [784, 0.1, 0.08]],
+      stamp: [[196, 0.12, 0.16], [98, 0.2, 0.12]],
+    };
+    function sfx(name) {
+      const ctx = audioCtx(); if (!ctx) return;
+      let t = ctx.currentTime + 0.01;
+      (SFX_SEQ[name] || []).forEach(([f, dur, vol = 0.12]) => { tone(ctx, { f, t, dur, vol }); t += dur; });
+    }
+    // ファンファーレ（この アプリの ための オリジナルの ふし）
+    const MIDI = { G4: 67, A4: 69, B4: 71, C5: 72, D5: 74, E5: 76, F5: 77, G5: 79, A5: 81, B5: 83, C6: 84, D6: 86, E6: 88, G6: 91 };
+    const FANFARE = {
+      ok: { beat: 0.1, notes: [['G4', 0, 1], ['C5', 1, 1], ['E5', 2, 1], ['G5', 3, 2], ['E5', 5, 1], [['C5', 'E5', 'G5', 'C6'], 6, 5]] },
+      item: { beat: 0.12, notes: [['C5', 0, 1], ['D5', 1, 1], ['E5', 2, 1], ['G5', 3, 2], ['E5', 5, 1], ['G5', 6, 1], ['A5', 7, 2], [['C5', 'E5', 'A5', 'C6'], 9, 8]] },
+      stamp: { beat: 0.12, notes: [['G4', 0, 1], ['C5', 1, 1], ['E5', 2, 1], ['G5', 3, 2], ['A5', 5, 1], ['G5', 6, 1], ['E5', 7, 2], ['D5', 9, 1], ['E5', 10, 1], ['G5', 11, 1], ['C6', 12, 2], ['B5', 14, 1], ['C6', 15, 1], ['E6', 16, 2], [['G5', 'C6', 'E6', 'G6'], 18, 10]] },
+    };
+    function fanfare(kind) {
+      const ctx = audioCtx(); if (!ctx) return;
+      const def = FANFARE[kind] || FANFARE.ok;
+      const t0 = ctx.currentTime + 0.03;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600; lp.connect(ctx.destination);
+      def.notes.forEach(([nm, at, len]) => {
+        const chord = Array.isArray(nm);
+        (chord ? nm : [nm]).forEach(x => {
+          const f = 440 * Math.pow(2, (MIDI[x] - 69) / 12);
+          const t = t0 + at * def.beat, dur = len * def.beat * 0.95;
+          tone(ctx, { f, t, dur, type: 'square', vol: chord ? 0.025 : 0.04, release: 0.07, dest: lp });
+          tone(ctx, { f, t, dur, type: 'triangle', vol: chord ? 0.06 : 0.1, release: 0.07 });
+        });
+      });
+    }
+    function confetti(n = 40) {
+      const colors = ['#f97316', '#2563eb', '#16a34a', '#ef4444', '#eab308', '#a855f7'];
+      for (let i = 0; i < n; i++) {
+        const el = document.createElement('div');
+        el.className = 'confetti';
+        el.style.left = Math.random() * 100 + 'vw';
+        el.style.width = el.style.height = (8 + Math.random() * 8) + 'px';
+        el.style.background = colors[Math.floor(Math.random() * colors.length)];
+        el.style.borderRadius = Math.random() < .5 ? '50%' : '2px';
+        el.style.animationDuration = (1.8 + Math.random() * 1.6) + 's';
+        el.style.animationDelay = (Math.random() * .4) + 's';
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 4000);
+      }
+    }
+
+    /* =========================================================
+       すすみぐあい
+       ========================================================= */
+    const EMPTY_ITEM = { step: 'read', seen: [], ci: 0, qi: 0, pick: null, s1: '', s1Own: false, s2: '', s2Own: false, doneAt: 0 };
+    const kidOf = (st, kid) => st.kids[kid] || { prefs: {}, stickers: {} };
+    const kidPref = (st, kid, pid) => (kidOf(st, kid).prefs || {})[pid] || { items: {}, rev: 0, sentRev: 0, stampAt: 0 };
+    const itemProg = (st, kid, pid, iid) => ({ ...EMPTY_ITEM, ...((kidPref(st, kid, pid).items || {})[iid] || {}) });
+    const isDone = (st, kid, pid, iid) => !!itemProg(st, kid, pid, iid).doneAt;
+    function isItemOpen(st, kid, pref, idx) {
+      if (st.settings.unlockAll || idx === 0) return true;
+      return isDone(st, kid, pref.id, pref.items[idx - 1].id);
+    }
+    const doneCount = (st, kid, pref) => pref.items.filter(it => isDone(st, kid, pref.id, it.id)).length;
+    const prefComplete = (st, kid, pref) => doneCount(st, kid, pref) === pref.items.length;
+    const visitedCount = (st, kid) => PREFS.filter(p => prefComplete(st, kid, p)).length;
+    function titleIndex(n) { let i = 0; TITLES.forEach((t, k) => { if (n >= t.min) i = k; }); return i; }
+    const titleOf = (st, kid) => TITLES[titleIndex(visitedCount(st, kid))];
+    const stickerId = (pref, item) => `${pref.id}-${item.id}`;
+    const ALL_STICKERS = PREFS.reduce((n, p) => n + p.items.length, 0);
+    const stickerCount = (st, kid) => Object.keys(kidOf(st, kid).stickers || {}).length;
+    function nextItem(st, kid, pref) {
+      for (let i = 0; i < pref.items.length; i++) {
+        if (isItemOpen(st, kid, pref, i) && !isDone(st, kid, pref.id, pref.items[i].id)) return pref.items[i];
+      }
+      return null;
+    }
+    // 子ども・都道府県・項目の 進み具合を 書きかえる
+    function updItem(app, kid, pid, iid, patch, { bump = false } = {}) {
+      return app.update(s => {
+        const k = kidOf(s, kid);
+        const kp = kidPref(s, kid, pid);
+        const cur = { ...EMPTY_ITEM, ...((kp.items || {})[iid] || {}) };
+        const nextIp = { ...cur, ...(typeof patch === 'function' ? patch(cur) : patch) };
+        const nkp = { ...kp, items: { ...(kp.items || {}), [iid]: nextIp }, rev: (kp.rev || 0) + (bump ? 1 : 0) };
+        return { ...s, kids: { ...s.kids, [kid]: { ...k, prefs: { ...(k.prefs || {}), [pid]: nkp } } } };
+      });
+    }
+
+    /* =========================================================
+       先生の スプレッドシートへ 記録を 送る
+       ========================================================= */
+    const SYNC_BATCH = 200;
+    function sheetPayload(st, kid, name, pref) {
+      const kp = kidPref(st, kid, pref.id);
+      return {
+        uid: `${name}|${pref.id}`, prefId: pref.id, pref: plain(pref.name), done: doneCount(st, kid, pref), total: pref.items.length,
+        updatedAt: Date.now(),
+        items: pref.items.map(it => {
+          const ip = itemProg(st, kid, pref.id, it.id);
+          const c = cardOf(it, ip.pick);
+          return { id: it.id, name: plain(it.name), done: ip.doneAt ? 1 : 0, photo: c ? plain(c.title) : '', text: ip.doneAt ? plain(sentence1(it, ip) + sentence2(ip)) : '' };
+        }),
+        rev: kp.rev || 0,
+      };
+    }
+    function syncRecord(st, h) {
+      const pref = PREF_MAP[h.pref];
+      const item = pref && pref.items.find(i => i.id === h.item);
+      return {
+        uid: `${st.deviceId}-${h.at}-${h.qid}`, at: h.at, pref: pref ? plain(pref.name) : h.pref, item: item ? plain(item.name) : h.item,
+        qid: h.qid, q: plain(h.q), correct: plain(h.correct), answers: (h.answers || []).map(plain).join(' → '),
+        result: h.result, mistakes: h.mistakes, hints: h.hints, sec: h.sec,
+      };
+    }
+    function buildSummary(st, kid, hist) {
+      let lastAt = 0, n = 0, first = 0;
+      hist.forEach(h => { lastAt = Math.max(lastAt, h.at || 0); n++; if (!h.mistakes && !h.hints) first++; });
+      PREFS.forEach(p => p.items.forEach(it => { lastAt = Math.max(lastAt, itemProg(st, kid, p.id, it.id).doneAt || 0); }));
+      const t = titleOf(st, kid);
+      const now = PREFS.map(p => ({ p, it: nextItem(st, kid, p) })).find(x => x.it && doneCount(st, kid, x.p) > 0) || PREFS.map(p => ({ p, it: nextItem(st, kid, p) })).find(x => x.it);
+      return {
+        title: `${t.icon} ${t.name}`, visited: visitedCount(st, kid), stickers: stickerCount(st, kid), allStickers: ALL_STICKERS,
+        quizN: n, quizFirst: first, lastAt,
+        current: now ? `${plain(now.p.name)}：${plain(now.it.name)}` : 'ぜんぶ おわり',
+      };
+    }
+    const SYNC_ERRORS = {
+      key: '合言葉が一致しません。入口ページから開き直すか、正しい合言葉を入力してください。',
+      'not-json': 'Apps Script から正しい返事がありません。デプロイの「アクセスできるユーザー」が「全員」になっているか確認してください。',
+      fetch: '送信できませんでした。インターネット接続と、Apps Script のデプロイ（アクセスできるユーザー「全員」）を確認してください。',
+    };
+    const syncErrorText = code => SYNC_ERRORS[code] || `送信できませんでした（${code}）。`;
+    const Sync = {
+      running: null,
+      run(app, opts = {}) {
+        if (this.running) return this.running;
+        this.running = this._run(app, opts).finally(() => { this.running = null; });
+        return this.running;
+      },
+      async _post(url, payload) {
+        let res;
+        try {
+          res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+        } catch (e) { throw new Error('fetch'); }
+        let data;
+        try { data = await res.json(); } catch (e) { throw new Error('not-json'); }
+        if (!data || !data.ok) throw new Error((data && data.error) || 'server');
+        return data;
+      },
+      async _run(app, { all = false } = {}) {
+        const st0 = app.stateRef.current;
+        const sync = st0.sync || {};
+        if (!sync.url) return { ok: false, reason: 'nourl' };
+        if (navigator.onLine === false) return { ok: false, reason: 'offline' };
+        let sent = 0;
+        try {
+          const histAll = (await DB.getAll('history')).sort((a, b) => a.at - b.at);
+          for (const k of st0.roster) {
+            const st = app.stateRef.current;
+            const hist = histAll.filter(h => h.kid === k.id);
+            const targets = hist.filter(h => all || !h.sent);
+            const sheets = PREFS.filter(p => { const kp = kidPref(st, k.id, p.id); return (kp.rev || 0) > 0 && (all || (kp.rev || 0) !== (kp.sentRev || 0)); })
+              .map(p => sheetPayload(st, k.id, k.name, p));
+            const summary = buildSummary(st, k.id, hist);
+            const sumKey = fnv(k.name + JSON.stringify(summary));
+            const last = (st.sync.lastSummary || {})[k.id];
+            if (!targets.length && !sheets.length && !all && last === sumKey) continue;
+            let i = 0;
+            do {
+              const batch = targets.slice(i, i + SYNC_BATCH);
+              await this._post(sync.url, {
+                app: APP_ID, v: 1, key: sync.key || '', deviceId: st.deviceId, name: k.name,
+                summary, sheets: i === 0 ? sheets : [], records: batch.map(h => syncRecord(st, h)),
+              });
+              for (const h of batch) if (!h.sent) await DB.put('history', { ...h, sent: true });
+              sent += batch.length;
+              i += SYNC_BATCH;
+            } while (i < targets.length);
+            sent += sheets.length;
+            app.update(s => {
+              const kk = kidOf(s, k.id);
+              const prefs = { ...(kk.prefs || {}) };
+              sheets.forEach(sh => { if (prefs[sh.prefId]) prefs[sh.prefId] = { ...prefs[sh.prefId], sentRev: sh.rev }; });
+              return { ...s, kids: { ...s.kids, [k.id]: { ...kk, prefs } }, sync: { ...s.sync, lastSummary: { ...(s.sync.lastSummary || {}), [k.id]: sumKey } } };
+            });
+          }
+          app.update(s => ({ ...s, sync: { ...s.sync, lastOkAt: Date.now(), lastError: null } }));
+          return { ok: true, sent };
+        } catch (e) {
+          const code = String((e && e.message) || e);
+          app.update(s => ({ ...s, sync: { ...s.sync, lastError: code, lastErrorAt: Date.now() } }));
+          return { ok: false, reason: code };
+        }
+      },
+    };
+
+    /* =========================================================
+       50音表（自分で 書く とき）
+       ========================================================= */
+    const KANA_COLS = [
+      ['あ', 'い', 'う', 'え', 'お'], ['か', 'き', 'く', 'け', 'こ'], ['さ', 'し', 'す', 'せ', 'そ'], ['た', 'ち', 'つ', 'て', 'と'],
+      ['な', 'に', 'ぬ', 'ね', 'の'], ['は', 'ひ', 'ふ', 'へ', 'ほ'], ['ま', 'み', 'む', 'め', 'も'], ['や', '', 'ゆ', '', 'よ'],
+      ['ら', 'り', 'る', 'れ', 'ろ'], ['わ', '', 'を', '', 'ん'],
+    ];
+    const DAKU = { か: 'が', き: 'ぎ', く: 'ぐ', け: 'げ', こ: 'ご', さ: 'ざ', し: 'じ', す: 'ず', せ: 'ぜ', そ: 'ぞ', た: 'だ', ち: 'ぢ', つ: 'づ', て: 'で', と: 'ど', は: 'ば', ひ: 'び', ふ: 'ぶ', へ: 'べ', ほ: 'ぼ' };
+    const HANDAKU = { は: 'ぱ', ひ: 'ぴ', ふ: 'ぷ', へ: 'ぺ', ほ: 'ぽ' };
+    const SMALL = { あ: 'ぁ', い: 'ぃ', う: 'ぅ', え: 'ぇ', お: 'ぉ', つ: 'っ', や: 'ゃ', ゆ: 'ゅ', よ: 'ょ', わ: 'ゎ' };
+    const invert = o => Object.fromEntries(Object.entries(o).map(([a, b]) => [b, a]));
+    const UNDAKU = invert(DAKU), UNHANDAKU = invert(HANDAKU), UNSMALL = invert(SMALL);
+    const baseOf = h => UNDAKU[h] || UNHANDAKU[h] || UNSMALL[h] || h;
+    // 「゛」「゜」「小」を 前の 字に つける（もう一度 おすと もとに もどる）
+    function applyMark(ch, mark) {
+      if (!ch) return null;
+      const kata = isKata(ch) && ch !== 'ー';
+      const h = toHira(ch);
+      const b = baseOf(h);
+      let out = null;
+      if (mark === '゛') out = DAKU[h] || (UNDAKU[h] ? UNDAKU[h] : (UNHANDAKU[h] && DAKU[UNHANDAKU[h]]) || null);
+      if (mark === '゜') out = HANDAKU[h] || (UNHANDAKU[h] ? UNHANDAKU[h] : (UNDAKU[h] && HANDAKU[UNDAKU[h]]) || null);
+      if (mark === '小') out = SMALL[h] || UNSMALL[h] || null;
+      if (!out || out === h) return b === h && !out ? null : out;
+      return kata ? toKata(out) : out;
+    }
+
+    /* =========================================================
+       見た目の 部品
+       ========================================================= */
+    function Btn({ color = 'navy', size = 'md', className = '', children, ...p }) {
+      return <button className={`btn3d c-${color} s-${size} ${className}`} {...p}>{children}</button>;
+    }
+    // ツバサせんせい（ツバメ。この アプリの ための オリジナルの 絵）
+    function TsubasaArt({ pose = 'normal' }) {
+      const happy = pose === 'happy';
+      const think = pose === 'think';
+      return (
+        <svg viewBox="0 0 200 200" aria-hidden="true">
+          {/* しっぽ（ツバメの えんび） */}
+          <path d="M70 128 L18 172 L44 132 L8 150 L60 116 Z" fill="#1e2a5a" />
+          {/* はね（うしろ） */}
+          {happy && <path d="M88 96 C70 50 40 34 22 30 C40 52 52 74 70 104 Z" fill="#1e2a5a" />}
+          {/* からだ */}
+          <ellipse cx="98" cy="118" rx="50" ry="42" fill="#1e2a5a" />
+          <ellipse cx="112" cy="128" rx="34" ry="30" fill="#fffaf0" />
+          {/* あし */}
+          <path d="M96 158 l-4 14 M110 158 l4 14" stroke="#f59e0b" strokeWidth="5" strokeLinecap="round" />
+          {/* はね（まえ） */}
+          {happy
+            ? <path d="M120 100 C140 56 170 40 192 38 C176 60 164 82 138 112 Z" fill="#26346e" />
+            : <path d="M64 104 C86 98 112 112 120 136 C100 140 76 134 58 124 Z" fill="#26346e" />}
+          {/* あたま */}
+          <circle cx="128" cy="72" r="36" fill="#1e2a5a" />
+          {/* のど と おでこの あか */}
+          <path d="M126 86 C134 104 156 106 162 88 C152 92 138 92 126 86 Z" fill="#e4572e" />
+          <ellipse cx="155" cy="64" rx="9" ry="6" fill="#e4572e" />
+          {/* ほっぺ */}
+          <circle cx="146" cy="84" r="6" fill="#fda4af" opacity=".7" />
+          {/* め */}
+          {happy
+            ? <path d="M132 70 q8 -9 16 0" stroke="#fff" strokeWidth="5" fill="none" strokeLinecap="round" />
+            : <>
+                <circle cx="140" cy="70" r="10" fill="#fff" />
+                <circle cx={think ? 138 : 143} cy={think ? 66 : 71} r="5.5" fill="#111827" />
+                <circle cx={think ? 140 : 145} cy={think ? 64 : 69} r="2" fill="#fff" />
+              </>}
+          {/* くちばし */}
+          <path d="M162 72 L182 76 L162 82 Z" fill="#374151" />
+          {/* たんけんぼうし */}
+          <ellipse cx="124" cy="42" rx="46" ry="9" fill="#c9a35c" />
+          <path d="M96 42 C98 14 152 14 152 42 Z" fill="#e0bf7a" />
+          <rect x="97" y="34" width="54" height="7" rx="2" fill="#7c4a1e" />
+          {/* スカーフ */}
+          <path d="M104 98 C118 108 146 108 156 98 L150 108 C138 116 118 116 108 108 Z" fill="#fbbf24" />
+          <path d="M112 106 L104 126 L118 112 Z" fill="#f59e0b" />
+          {think && <text x="176" y="34" fontSize="28" fill="#2563eb" fontWeight="700">?</text>}
+        </svg>
+      );
+    }
+    function Tsubasa({ pose = 'normal', size = 130, onClick, bob = true }) {
+      return (
+        <div className={`tsubasa ${bob ? 'bob' : ''}`} style={{ width: size }} onClick={onClick} data-tsubasa="1" title="もういちど きく">
+          <TsubasaArt pose={pose} />
+        </div>
+      );
+    }
+    function Say({ text, pose = 'normal', size = 110, children }) {
+      return (
+        <div className="row" style={{ alignItems: 'flex-start' }}>
+          <Tsubasa pose={pose} size={size} onClick={() => TTS.speak(text, { force: true })} />
+          <div className="bubble left grow kw" data-say="1">
+            <R t={text} />
+            {children}
+            <div style={{ marginTop: '.2rem' }}><button className="speak" onClick={() => TTS.speak(text, { force: true })}>🔊 もういちど</button></div>
+          </div>
+        </div>
+      );
+    }
+    function Sticker({ item, big, none, size }) {
+      if (none || !item) return <span className="sticker none" style={size ? { width: size, height: size } : null}>？</span>;
+      return <span className={`sticker emoji ${big ? 'big' : ''}`} style={{ borderColor: item.color, ...(size ? { width: size, height: size, fontSize: size * .58 } : {}) }} title={plain(item.name)}>{item.icon}</span>;
+    }
+    function Modal({ children, onClose, wide }) {
+      return <div className="modal-bg" onClick={e => { if (e.target === e.currentTarget && onClose) onClose(); }}><div className="modal" style={wide ? { maxWidth: 1200 } : null}>{children}</div></div>;
+    }
+    function TopBar({ left, title, right }) {
+      return (
+        <div className="row between no-print" style={{ marginBottom: '.6rem' }}>
+          <div className="row">{left}</div>
+          <div className="bold kw tc" style={{ fontSize: '1.4rem', color: 'var(--navy)' }}>{title}</div>
+          <div className="row">{right}</div>
+        </div>
+      );
+    }
+    // はんこ（都道府県の スタンプ）
+    function Stamp({ x, y, r = 58, label, anim }) {
+      return (
+        <g transform={`translate(${x} ${y}) rotate(-12)`} data-stamp="1">
+          <g className={anim ? 'stampin' : ''}>
+            <circle r={r} fill="#fff" fillOpacity=".75" stroke="#dc2626" strokeWidth={r * .1} />
+            <circle r={r * .78} fill="none" stroke="#dc2626" strokeWidth={r * .04} />
+            <text y={-r * .18} textAnchor="middle" fontSize={r * .3} fontWeight="700" fill="#dc2626">たんけん</text>
+            <text y={r * .32} textAnchor="middle" fontSize={r * (label.length > 3 ? .3 : .38)} fontWeight="700" fill="#dc2626">{label}</text>
+          </g>
+        </g>
+      );
+    }
+    // 日本地図
+    function JapanMap({ st, kid, onTap, focus, height = 460, showPins = true, stampAnim }) {
+      const inset = MAP.inset;
+      return (
+        <svg className="jmap" viewBox={`0 0 ${MAP.w} ${MAP.h}`} style={{ height, width: 'auto', maxWidth: '100%', display: 'block', margin: '0 auto' }} data-map="1">
+          {inset && <rect x={inset.x - 6} y={inset.y - 6} width={inset.w + 12} height={inset.h + 12} rx="10" fill="none" stroke="#94a3b8" strokeWidth="3" strokeDasharray="10 6" />}
+          {Object.entries(MAP.prefs).map(([code, p]) => {
+            const pref = PREF_BY_CODE[code];
+            const done = pref && kid && prefComplete(st, kid, pref);
+            const cls = `pref ${pref ? 'open' : ''} ${done ? 'done' : ''} ${focus === code ? 'here' : ''}`;
+            return <path key={code} d={p.d} className={cls} onClick={() => onTap && onTap(code)} data-pref={code}><title>{PREF_NAMES[code][0]}</title></path>;
+          })}
+          {showPins && PREFS.map(pref => {
+            const p = MAP.prefs[pref.code]; if (!p) return null;
+            const done = kid && prefComplete(st, kid, pref);
+            if (done) return <Stamp key={pref.id} x={p.cx + 70} y={p.cy + 10} label={plain(pref.name)} anim={stampAnim === pref.id} />;
+            return (
+              <g key={pref.id} onClick={() => onTap && onTap(pref.code)} style={{ cursor: 'pointer' }} data-pin={pref.id}>
+                <circle cx={p.cx} cy={p.cy} r="44" fill="transparent" />
+                <g className="glowpin">
+                  <path d={`M${p.cx} ${p.cy} l-16 -34 a18 18 0 1 1 32 0 z`} fill="#e11d48" stroke="#fff" strokeWidth="4" />
+                  <circle cx={p.cx} cy={p.cy - 44} r="7" fill="#fff" />
+                </g>
+                <rect x={p.cx + 18} y={p.cy - 70} width="150" height="50" rx="12" fill="#fff" stroke="#e11d48" strokeWidth="4" />
+                <text x={p.cx + 93} y={p.cy - 34} textAnchor="middle" fontSize="30" fontWeight="700" fill="#be123c">{plain(pref.name)}</text>
+              </g>
+            );
+          })}
+        </svg>
+      );
+    }
+
+    /* =========================================================
+       さいしょの 準備（先生が 名簿を 入れる）
+       ========================================================= */
+    function RosterEditor({ app }) {
+      const st = app.state;
+      const [name, setName] = useState('');
+      const [msg, setMsg] = useState('');
+      const add = () => {
+        const n = name.trim().slice(0, 12);
+        if (!n) return setMsg('名前を入れてください。');
+        if (st.roster.some(k => k.name === n)) return setMsg('同じ名前がもうあります。ちがう名前にしてください。');
+        if (st.roster.length >= 20) return setMsg('20人までです。');
+        app.update(s => ({ ...s, roster: [...s.roster, { id: newId(), name: n }] }));
+        setName(''); setMsg('');
+      };
+      const rename = (k) => {
+        const n = (prompt('新しい名前（ひらがな）', k.name) || '').trim().slice(0, 12);
+        if (!n || n === k.name) return;
+        if (st.roster.some(x => x.name === n)) return alert('同じ名前がもうあります。');
+        app.update(s => ({ ...s, roster: s.roster.map(x => (x.id === k.id ? { ...x, name: n } : x)) }));
+      };
+      const remove = async (k) => {
+        if (!confirm(`「${k.name}」を名簿から消します。この子の記録もこの端末から消えます。よろしいですか？`)) return;
+        try { const h = await DB.getAll('history'); for (const x of h) if (x.kid === k.id) await DB.del('history', x.id); } catch (e) { console.warn(e); }
+        app.update(s => { const kids = { ...s.kids }; delete kids[k.id]; return { ...s, roster: s.roster.filter(x => x.id !== k.id), kids }; });
+      };
+      const move = (i, d) => app.update(s => { const r = [...s.roster]; const j = i + d; if (j < 0 || j >= r.length) return s; [r[i], r[j]] = [r[j], r[i]]; return { ...s, roster: r }; });
+      return (
+        <div className="col">
+          <div className="row wrapflex">
+            <input className="inp" style={{ width: '16rem' }} value={name} onChange={e => setName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') add(); }} placeholder="例：ゆうと" data-roster-name="1" />
+            <Btn color="green" size="sm" onClick={add} data-roster-add="1">＋ 名簿に入れる</Btn>
+          </div>
+          {msg && <div className="bold" style={{ color: '#be123c' }}>{msg}</div>}
+          <table className="tbl">
+            <thead><tr><th>じゅん</th><th>名前</th><th></th></tr></thead>
+            <tbody>
+              {st.roster.map((k, i) => (
+                <tr key={k.id}><td>{i + 1}</td><td className="bold" style={{ fontSize: '1.15rem' }}>{k.name}</td>
+                  <td><div className="row wrapflex">
+                    <Btn color="white" size="sm" onClick={() => move(i, -1)} disabled={i === 0}>▲</Btn>
+                    <Btn color="white" size="sm" onClick={() => move(i, 1)} disabled={i === st.roster.length - 1}>▼</Btn>
+                    <Btn color="white" size="sm" onClick={() => rename(k)}>名前を変える</Btn>
+                    <Btn color="red" size="sm" onClick={() => remove(k)}>消す</Btn>
+                  </div></td></tr>
+              ))}
+              {!st.roster.length && <tr><td colSpan="3" className="muted">まだ だれも いません。</td></tr>}
+            </tbody>
+          </table>
+          <div className="muted" style={{ fontSize: '.9rem' }}>名前は、呼び名かイニシャル（ひらがな）にしてください。同じ名前は使えません。</div>
+        </div>
+      );
+    }
+    function Setup({ app }) {
+      return (
+        <div className="wrap" style={{ maxWidth: 820 }}>
+          <div className="card col" style={{ marginTop: '1rem' }}>
+            <div className="row"><Tsubasa size={120} /><div className="bold" style={{ fontSize: '1.6rem', color: 'var(--navy)' }}>ツバサせんせいの<br />にっぽん たんけんたい</div></div>
+            <div className="bold" style={{ fontSize: '1.2rem' }}>先生へ：はじめに、子どもの名前を名簿に入れてください（この端末で1回だけ）。</div>
+            <RosterEditor app={app} />
+            <div className="row wrapflex"><Btn color="white" size="sm" onClick={() => { fanfare('ok'); TTS.speak('ツバサせんせいだよ。いっしょに にっぽんを たんけん しよう！', { force: true }); }} data-setup="test">🔊 声と音を確かめる</Btn><span className="muted" style={{ fontSize: '.9rem' }}>ツバサせんせいの声とファンファーレが聞こえるか確かめます</span></div>
+            <div className="muted" style={{ fontSize: '.95rem', lineHeight: 1.8 }}>
+              ・先生用画面の暗証番号は、はじめは <b>1234</b> です。先生用画面の「設定」で変えられます。<br />
+              ・記録はこの端末のブラウザの中に保存されます。名簿はあとから先生用画面の「名簿」で直せます。
+            </div>
+            <div className="tc"><Btn color="green" size="lg" disabled={!app.state.roster.length} onClick={() => app.update(s => ({ ...s, setupDone: true }))} data-setup="ok">はじめる</Btn></div>
+          </div>
+        </div>
+      );
+    }
+
+    /* =========================================================
+       なまえを えらぶ
+       ========================================================= */
+    function PickName({ app, onPick, go }) {
+      const st = app.state;
+      const text = 'こんにちは！ ツバサせんせいだよ。じぶんの なまえを おしてね。';
+      useEffect(() => { const id = setTimeout(() => TTS.speak(text), 400); return () => { clearTimeout(id); TTS.cancel(); }; }, []);
+      return (
+        <div className="wrap">
+          <TopBar title="ツバサせんせいの にっぽん たんけんたい" right={<button className="speak" onClick={() => go({ name: 'teacher' })} data-open-teacher="1">⚙️ せんせい</button>} />
+          <Say text={text} size={140} />
+          <div className="namegrid" style={{ marginTop: '1.2rem' }}>
+            {st.roster.map(k => {
+              const t = titleOf(st, k.id);
+              return (
+                <Btn key={k.id} color="white" size="lg" onClick={() => { sfx('tap'); onPick(k.id); }} style={{ minHeight: '6.5rem', flexDirection: 'column' }} data-kid={k.name}>
+                  <span style={{ fontSize: '2rem' }}>{k.name}</span>
+                  <span className="muted" style={{ fontSize: '.95rem' }}><span className="emoji">{t.icon}</span> {t.name}</span>
+                </Btn>
+              );
+            })}
+          </div>
+          {!st.roster.length && <div className="card" style={{ marginTop: '1rem' }}>名簿に名前がありません。先生用画面の「名簿」で名前を入れてください。</div>}
+        </div>
+      );
+    }
+
+    /* =========================================================
+       ホーム（日本地図）
+       ========================================================= */
+    function Home({ app, kid, go }) {
+      const st = app.state;
+      const k = st.roster.find(x => x.id === kid);
+      const t = titleOf(st, kid);
+      const n = visitedCount(st, kid);
+      const nt = TITLES[titleIndex(n) + 1];
+      const greet = `${k.name}たいいん、こんにちは！ ツバサせんせいだよ。きょうは どこを たんけん しようかな。ひかって いる ところを おしてね。`;
+      const [msg, setMsg] = useState(null);
+      useEffect(() => { const id = setTimeout(() => TTS.speak(greet), 400); return () => { clearTimeout(id); TTS.cancel(); }; }, []);
+      const tap = (code) => {
+        const pref = PREF_BY_CODE[code];
+        if (pref) { sfx('tap'); go({ name: 'pref', pid: pref.id }); return; }
+        const nm = PREF_NAMES[code];
+        const m = `そこは「{${nm[0]}|${nm[1]}}」だよ。まだ じゅんび ちゅう なんだ。`;
+        setMsg(m); TTS.speak(m);
+      };
+      return (
+        <div className="wrap">
+          <TopBar
+            left={<Btn color="white" size="sm" onClick={() => go({ name: 'names' })} data-change-kid="1">👤 なまえを かえる</Btn>}
+            title={<span><span className="emoji">{t.icon}</span> {k.name}たいいん（{t.name}）</span>}
+            right={<button className="speak" onClick={() => go({ name: 'teacher' })} data-open-teacher="1">⚙️ せんせい</button>}
+          />
+          <div className="homegrid">
+            <div className="sky" style={{ padding: '.6rem' }}>
+              <JapanMap st={st} kid={kid} onTap={tap} height="min(68vh, 560px)" />
+            </div>
+            <div className="col">
+              <Say text={msg || greet} pose={msg ? 'think' : 'normal'} size={120}>
+                {nt && <div className="muted" style={{ fontSize: '1rem', fontWeight: 400 }}>つぎの しょうごう「{nt.name}」まで あと {nt.min - n}けん</div>}
+              </Say>
+              {PREFS.map(p => {
+                const d = doneCount(st, kid, p);
+                return (
+                  <Btn key={p.id} color={d === p.items.length ? 'green' : 'orange'} size="xl" className={d < p.items.length ? 'pulse' : ''} onClick={() => go({ name: 'pref', pid: p.id })} data-go-pref={p.id}>
+                    <span className="emoji">🗾</span> <R t={p.name} />を たずねる
+                    <span style={{ fontSize: '1.1rem' }}>（{d} / {p.items.length}）</span>
+                  </Btn>
+                );
+              })}
+              <div className="row wrapflex center">
+                <Btn color="amber" size="lg" onClick={() => go({ name: 'book' })} data-book="1">📔 たんけん てちょう</Btn>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* =========================================================
+       都道府県の ページ（5つの 項目）
+       ========================================================= */
+    function PrefPage({ app, kid, pid, go }) {
+      const st = app.state;
+      const pref = PREF_MAP[pid];
+      const next = nextItem(st, kid, pref);
+      const d = doneCount(st, kid, pref);
+      const complete = d === pref.items.length;
+      const text = complete
+        ? `${pref.name}の たんけんは ぜんぶ おわったよ！ しんぶんを みて みよう。`
+        : d === 0 ? `${pref.greet} じゅんばんに しらべて、しんぶんを つくろう。` : `つづきから しらべよう。あと ${pref.items.length - d}つで しんぶんが できるよ。`;
+      useEffect(() => { const id = setTimeout(() => TTS.speak(text), 300); return () => { clearTimeout(id); TTS.cancel(); }; }, []);
+      return (
+        <div className="wrap">
+          <TopBar left={<Btn color="white" size="sm" onClick={() => go({ name: 'home' })}>🗾 ちずに もどる</Btn>} title={<R t={`${pref.name}を たんけん`} />} />
+          <Say text={text} size={110} />
+          <div className="itemgrid" style={{ marginTop: '1rem' }}>
+            {pref.items.map((it, i) => {
+              const open = isItemOpen(st, kid, pref, i);
+              const ip = itemProg(st, kid, pref.id, it.id);
+              const done = !!ip.doneAt;
+              return (
+                <button key={it.id} className="btn3d itembtn c-white" disabled={!open} style={{ borderColor: open ? it.color : undefined, background: done ? '#f0fdf4' : '#fff' }} onClick={() => go({ name: 'item', pid, iid: it.id })} data-item={it.id}>
+                  <span style={{ fontSize: '1rem', color: '#64748b' }}>{i + 1}</span>
+                  {done ? <Sticker item={it} size={64} /> : <span className="emoji" style={{ fontSize: '3rem' }}>{open ? it.icon : '🔒'}</span>}
+                  <span className="kw" style={{ fontSize: '1.3rem', color: it.color }}><R t={it.name} /></span>
+                  <span style={{ fontSize: '1rem' }}>{done ? '✅ できた' : open ? (ip.step !== 'read' || ip.seen.length ? '▶ つづき' : '▶ はじめる') : 'まえを おえると ひらくよ'}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="row wrapflex center" style={{ marginTop: '1.2rem', gap: '1rem' }}>
+            {complete && !kidPref(st, kid, pid).stampAt && <Btn color="orange" size="xl" className="pulse" onClick={() => go({ name: 'stamp', pid })} data-get-stamp="1">🔴 スタンプを もらう</Btn>}
+            {next && <Btn color="green" size="xl" className="pulse" onClick={() => go({ name: 'item', pid, iid: next.id })} data-continue="1">▶ {d || itemProg(st, kid, pid, next.id).seen.length ? 'つづきから' : 'はじめる'}</Btn>}
+            <Btn color="sky" size="lg" onClick={() => go({ name: 'sheet', pid, kid })} data-open-sheet="1">📰 しんぶんを みる（{d} / {pref.items.length}）</Btn>
+          </div>
+        </div>
+      );
+    }
+
+    /* =========================================================
+       1つの 項目（よむ → クイズ → えらぶ → かく）
+       ========================================================= */
+    function Steps({ step }) {
+      const idx = STEPS.findIndex(s => s[0] === step);
+      return (
+        <div className="steps wrapflex" data-steps={step}>
+          {STEPS.map(([k, n, ic], i) => (
+            <React.Fragment key={k}>
+              {i > 0 && <span className="arrow">→</span>}
+              <span className={`step ${i === idx ? 'on' : i < idx || step === 'done' ? 'ok' : ''}`}><span className="emoji">{i < idx || step === 'done' ? '✅' : ic}</span> {n}</span>
+            </React.Fragment>
+          ))}
+        </div>
+      );
+    }
+    // 説明カード（読んでいる 文を 光らせる・ヒントの 線）
+    function CardText({ card, reading = -1, mark, glow }) {
+      return (
+        <div className="ctext kw" data-ctext={card.id}>
+          {card.text.map((s, i) => {
+            if (mark && s.includes(mark)) {
+              const at = s.indexOf(mark);
+              return <span key={i} className={`sent ${reading === i ? 'reading' : ''}`}><R t={s.slice(0, at)} /><mark className={glow ? 'glow' : ''} data-mark="1"><R t={mark} /></mark><R t={s.slice(at + mark.length)} /></span>;
+            }
+            return <span key={i} className={`sent ${reading === i ? 'reading' : ''}`}><R t={s} /></span>;
+          })}
+        </div>
+      );
+    }
+    const imgOf = (pref, card) => `img/${pref.id}/${card.id}.webp`;
+    function Photo({ pref, card, style }) {
+      return (
+        <div style={style}>
+          <img className="pic" src={imgOf(pref, card)} alt={plain(card.title)} />
+          <div className="imgnote">※しゃしんは イメージです</div>
+        </div>
+      );
+    }
+
+    function ReadStep({ app, kid, pref, item, ip, onNext }) {
+      const [ci, setCi] = useState(() => Math.min(Math.max(0, ip.ci || 0), item.cards.length - 1)); // よんで いた カードから
+      const [reading, setReading] = useState(-1);
+      const card = item.cards[ci];
+      const seen = new Set([...ip.seen, card.id]);
+      const allSeen = item.cards.every(c => seen.has(c.id));
+      const tokRef = useRef(0);
+      const readCard = async (withIntro) => {
+        const tok = ++tokRef.current;
+        if (withIntro) { await TTS.speak(item.intro); if (tokRef.current !== tok) return; await sleep(200); }
+        await TTS.speak(card.title); if (tokRef.current !== tok) return;
+        for (let i = 0; i < card.text.length; i++) {
+          if (tokRef.current !== tok) return;
+          setReading(i);
+          await TTS.speak(card.text[i]);
+        }
+        if (tokRef.current === tok) setReading(-1);
+      };
+      useEffect(() => {
+        updItem(app, kid, pref.id, item.id, cur => ({ ci, seen: cur.seen.includes(card.id) ? cur.seen : [...cur.seen, card.id] }));
+        // つぎの 写真を 先に よんでおく
+        const nx = item.cards[ci + 1]; if (nx) { const im = new Image(); im.src = imgOf(pref, nx); }
+        if (app.state.settings.autoRead) readCard(ci === 0 && ip.seen.length === 0);
+        return () => { tokRef.current++; TTS.cancel(); setReading(-1); };
+      }, [ci]);
+      const goCard = d => { const n = ci + d; if (n < 0 || n >= item.cards.length) return; sfx('page'); setCi(n); };
+      return (
+        <div className="col">
+          <Say text={ci === 0 ? item.intro : `${ci + 1}まいめの カードだよ。よんで みよう。`} size={90} />
+          <div className="readgrid">
+            <Photo pref={pref} card={card} />
+            <div className="col" style={{ gap: '.3rem' }}>
+              <div className="row between">
+                <div className="ctitle kw" style={{ color: item.color }} data-card-title="1"><R t={card.title} /></div>
+                <button className="speak" style={{ fontSize: '1.2rem' }} onClick={() => readCard(false)} data-read="1">🔊 よむ</button>
+              </div>
+              <CardText card={card} reading={reading} />
+            </div>
+          </div>
+          <div className="row between actionbar">
+            <Btn color="white" size="lg" onClick={() => goCard(-1)} disabled={ci === 0} data-prev="1">◀ まえ</Btn>
+            <div className="col" style={{ alignItems: 'center', gap: '.3rem' }}>
+              <div className="dots">{item.cards.map((c, i) => <span key={c.id} className={`dot ${i === ci ? 'now' : seen.has(c.id) ? 'seen' : ''}`} onClick={() => setCi(i)} />)}</div>
+              <div className="muted bold">{ci + 1} / {item.cards.length}まい</div>
+            </div>
+            {ci < item.cards.length - 1
+              ? <Btn color="navy" size="lg" onClick={() => goCard(1)} data-next="1">つぎ ▶</Btn>
+              : <Btn color="green" size="lg" className={allSeen ? 'pulse' : ''} disabled={!allSeen} onClick={onNext} data-to-quiz="1">クイズへ ▶</Btn>}
+          </div>
+          {ci === item.cards.length - 1 && !allSeen && <div className="tc muted bold">まだ よんで いない カードが あるよ（●が しろい ところ）</div>}
+        </div>
+      );
+    }
+
+    function CardsModal({ pref, item, onClose }) {
+      const [ci, setCi] = useState(0);
+      const card = item.cards[ci];
+      return (
+        <Modal onClose={onClose} wide>
+          <div className="readgrid">
+            <Photo pref={pref} card={card} />
+            <div className="col">
+              <div className="ctitle kw" style={{ color: item.color }}><R t={card.title} /></div>
+              <CardText card={card} />
+            </div>
+          </div>
+          <div className="row between" style={{ marginTop: '.6rem' }}>
+            <Btn color="white" size="md" onClick={() => setCi(Math.max(0, ci - 1))} disabled={ci === 0}>◀ まえ</Btn>
+            <Btn color="slate" size="md" onClick={onClose} data-close-cards="1">とじる</Btn>
+            <Btn color="white" size="md" onClick={() => setCi(Math.min(item.cards.length - 1, ci + 1))} disabled={ci === item.cards.length - 1}>つぎ ▶</Btn>
+          </div>
+        </Modal>
+      );
+    }
+
+    function QuizStep({ app, kid, pref, item, ip, onNext }) {
+      const qi = Math.min(ip.qi || 0, item.quiz.length - 1);
+      const Q = item.quiz[qi];
+      const answer = Q.choices[0];
+      const order = useMemo(() => shuffle(Q.choices), [Q.id]);
+      const [gone, setGone] = useState({});
+      const [mistakes, setMistakes] = useState(0);
+      const [hint, setHint] = useState(0);
+      const [msg, setMsg] = useState(null);
+      const [pose, setPose] = useState('normal');
+      const [flash, setFlash] = useState(false);
+      const [busy, setBusy] = useState(false);
+      const [cards, setCards] = useState(false);
+      const answers = useRef([]);
+      const t0 = useRef(Date.now());
+      const hc = cardOf(item, Q.card);
+      const qText = `もんだい ${qi + 1}。${Q.q}`;
+      useEffect(() => {
+        setGone({}); setMistakes(0); setHint(0); setMsg(null); setPose('normal'); setBusy(false);
+        answers.current = []; t0.current = Date.now();
+        const id = setTimeout(() => TTS.speak(qText), 300);
+        return () => { clearTimeout(id); TTS.cancel(); };
+      }, [Q.id]);
+      const say = (t, p = 'think') => { setMsg(t); setPose(p); TTS.speak(t); };
+      const showHint = (lvl) => {
+        const h = Math.max(hint, lvl);
+        setHint(h); sfx('hint');
+        if (h === 1) say(Q.hint);
+        if (h === 2) say(`「${hc.title}」の カードの、きいろい せんの ところを よんで みよう。`);
+        if (h >= 3) say(`ひかって いる こたえを おして みよう。`);
+      };
+      const record = async (result, mis) => {
+        try {
+          await DB.add('history', {
+            at: Date.now(), kid, pref: pref.id, item: item.id, qid: Q.id, q: Q.q, correct: answer,
+            answers: answers.current, result, mistakes: mis, hints: hint, sec: Math.round((Date.now() - t0.current) / 1000), sent: false,
+          });
+        } catch (e) { console.warn(e); }
+      };
+      const choose = async (c) => {
+        if (busy || gone[c]) return;
+        answers.current = [...answers.current, c];
+        if (c === answer) {
+          setBusy(true); TTS.cancel();
+          await record(hint ? 'ヒントで せいかい' : 'せいかい', mistakes);
+          setFlash(true); fanfare('ok'); setPose('happy'); setMsg(null);
+          await TTS.speak('せいかい！');
+          await sleep(700);
+          setFlash(false);
+          if (qi + 1 < item.quiz.length) updItem(app, kid, pref.id, item.id, { qi: qi + 1 });
+          else onNext();
+          return;
+        }
+        sfx('ng');
+        const m = mistakes + 1;
+        setMistakes(m);
+        setGone(g => ({ ...g, [c]: true }));
+        if (m >= 3) { showHint(3); return; }
+        say(m === 1 ? `おしい！「${c}」では ないよ。もう いちど かんがえて みよう。` : `ざんねん。ヒントの ボタンを おして みよう。`);
+      };
+      return (
+        <div className="col">
+          <Say text={msg || qText} pose={pose} size={90} />
+          <div className="readgrid">
+            <div className="col">
+              <div className="qbox kw" data-q={Q.id}><R t={`Q${qi + 1}. ${Q.q}`} /></div>
+              {order.map(c => (
+                <Btn key={c} color="white" size="lg" className={`choice ${gone[c] ? 'gone' : ''} ${hint >= 3 && c === answer ? 'glowbtn' : ''}`} onClick={() => choose(c)} data-choice={plain(c)}>
+                  <R t={c} />
+                </Btn>
+              ))}
+              <div className="row wrapflex">
+                <Btn color="amber" size="md" className={mistakes >= 2 && hint < 3 ? 'glowbtn' : ''} onClick={() => showHint(Math.min(3, hint + 1))} disabled={hint >= 3} data-hint="1">💡 ヒント{hint ? `（${hint}）` : ''}</Btn>
+                <Btn color="white" size="md" onClick={() => setCards(true)} data-show-cards="1">📖 カードを みる</Btn>
+                <span className="muted bold" style={{ marginLeft: 'auto' }}>{qi + 1} / {item.quiz.length}もん</span>
+              </div>
+            </div>
+            <div>
+              {hint >= 2 && hc ? (
+                <div className="card col" style={{ gap: '.3rem' }} data-hint-card="1">
+                  <img className="pic" src={imgOf(pref, hc)} alt="" style={{ maxHeight: '13rem', objectFit: 'cover' }} />
+                  <div className="ctitle kw" style={{ color: item.color, fontSize: '1.5rem' }}><R t={hc.title} /></div>
+                  <div style={{ fontSize: '.85em' }}><CardText card={hc} mark={Q.mark} glow={hint >= 3} /></div>
+                </div>
+              ) : (
+                <div className="card tc" style={{ borderStyle: 'dashed' }}>
+                  <div className="muted bold" style={{ fontSize: '1.2rem', lineHeight: 2 }}>わからない ときは<br />「💡 ヒント」を おしてね</div>
+                </div>
+              )}
+            </div>
+          </div>
+          {flash && <div className="seikai"><span>せいかい！</span></div>}
+          {cards && <CardsModal pref={pref} item={item} onClose={() => setCards(false)} />}
+        </div>
+      );
+    }
+
+    function PickStep({ app, kid, pref, item, ip, onNext }) {
+      const text = 'しんぶんに はる しゃしんを 1まい えらぼう。いちばん つたえたい ものは どれかな。';
+      useEffect(() => { const id = setTimeout(() => TTS.speak(text), 300); return () => { clearTimeout(id); TTS.cancel(); }; }, []);
+      const pick = (c) => {
+        sfx('pick');
+        updItem(app, kid, pref.id, item.id, cur => ({ pick: c.id, s1: cur.pick === c.id ? cur.s1 : '', s1Own: cur.pick === c.id ? cur.s1Own : false }));
+        TTS.speak(c.title);
+      };
+      return (
+        <div className="col">
+          <Say text={text} size={90} />
+          <div className="pickgrid">
+            {item.cards.map(c => (
+              <button key={c.id} className={`pickbtn ${ip.pick === c.id ? 'on' : ''}`} onClick={() => pick(c)} data-pick={c.id}>
+                <img src={imgOf(pref, c)} alt={plain(c.title)} />
+                <span className="kw tc"><R t={c.title} /></span>
+                {ip.pick === c.id && <span className="check">✓</span>}
+              </button>
+            ))}
+          </div>
+          <div className="tc actionbar"><Btn color="green" size="xl" disabled={!ip.pick} className={ip.pick ? 'pulse' : ''} onClick={onNext} data-pick-ok="1">これに する ▶</Btn></div>
+        </div>
+      );
+    }
+
+    function KanaPad({ title, initial = '', onOk, onCancel }) {
+      const [v, setV] = useState(initial);
+      const [kata, setKata] = useState(false);
+      const cols = KANA_COLS.map(c => c.map(x => (x && kata ? toKata(x) : x)));
+      const push = ch => { sfx('key'); setV(s => cleanTyped(s + ch)); };
+      const mark = m => setV(s => { const A = [...s]; const last = A[A.length - 1]; const r = applyMark(last, m); if (!r) return s; A[A.length - 1] = r; return A.join(''); });
+      return (
+        <Modal onClose={onCancel} wide>
+          <div className="col">
+            <div className="bold" style={{ fontSize: '1.3rem' }}><R t={title} /></div>
+            <div className="typed kw" data-typed="1">{v || <span className="muted" style={{ fontSize: '1.2rem' }}>ここに もじが でるよ</span>}</div>
+            <div className="tabs">
+              <button className={`tab ${!kata ? 'on' : ''}`} onClick={() => setKata(false)}>ひらがな</button>
+              <button className={`tab ${kata ? 'on' : ''}`} onClick={() => setKata(true)}>カタカナ</button>
+            </div>
+            <div className="kb" style={{ gridTemplateColumns: `repeat(${cols.length + 1}, 1fr)` }}>
+              {cols.map((c, i) => (
+                <div key={i} className="kcol">
+                  {c.map((k, j) => k ? <Btn key={j} color="white" className="key" onClick={() => push(k)} data-key={k}>{k}</Btn> : <span key={j} className="key blank" />)}
+                </div>
+              ))}
+              <div className="kcol">
+                {['゛', '゜', '小'].map(m => <Btn key={m} color="amber" className="key" onClick={() => mark(m)} data-key={m}>{m === '小' ? <span style={{ fontSize: '1rem' }}>小さく</span> : m}</Btn>)}
+                <Btn color="amber" className="key" onClick={() => push('ー')}>ー</Btn>
+                <Btn color="amber" className="key" onClick={() => push('　')}><span style={{ fontSize: '.9rem' }}>あける</span></Btn>
+              </div>
+            </div>
+            <div className="row wrapflex between">
+              <div className="row">
+                <Btn color="red" size="md" onClick={() => setV(s => [...s].slice(0, -1).join(''))} data-key="del">1字けす</Btn>
+                <Btn color="white" size="md" onClick={() => setV('')}>ぜんぶ けす</Btn>
+              </div>
+              <div className="row">
+                <Btn color="white" size="md" onClick={onCancel}>やめる</Btn>
+                <Btn color="green" size="lg" disabled={!v.trim()} onClick={() => onOk(v.trim())} data-kana-ok="1">これで いい</Btn>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      );
+    }
+
+    function WriteStep({ app, kid, pref, item, ip, onNext }) {
+      const card = cardOf(item, ip.pick) || item.cards[0];
+      const [pad, setPad] = useState(null);
+      const subj = card.name || card.title;
+      const text = 'しらべた ことと、じぶんの きもちを かこう。ことばを えらんでね。じぶんで かいても いいよ。';
+      useEffect(() => { const id = setTimeout(() => TTS.speak(text), 300); return () => { clearTimeout(id); TTS.cancel(); }; }, []);
+      const set = (patch) => { sfx('tap'); updItem(app, kid, pref.id, item.id, patch); };
+      const s1 = sentence1(item, ip), s2 = sentence2(ip);
+      return (
+        <div className="col">
+          <Say text={text} size={80} />
+          <div className="writegrid">
+            <div className="col">
+              <Photo pref={pref} card={card} />
+              <div className="ctitle tc kw" style={{ color: item.color, fontSize: '1.5rem' }}><R t={card.title} /></div>
+              <Btn color="white" size="sm" onClick={() => updItem(app, kid, pref.id, item.id, { step: 'pick' })}>🖼️ しゃしんを えらびなおす</Btn>
+            </div>
+            <div className="col">
+              <div className="sentbox col" data-s1="1">
+                <div className="bold muted">① しらべた こと</div>
+                <div className="sentprev kw"><R t={subj} />は、<span className={`slot ${ip.s1 ? '' : 'empty'}`}>{ip.s1 ? <R t={ip.s1} /> : '？？？'}</span>。</div>
+                {card.facts.map(f => (
+                  <Btn key={f} color="white" size="md" className={`opt ${ip.s1 === f && !ip.s1Own ? 'on' : ''}`} onClick={() => { set({ s1: f, s1Own: false }); TTS.speak(`${subj}は、${f}。`); }} data-fact="1"><R t={f} /></Btn>
+                ))}
+                <Btn color="white" size="sm" className={ip.s1Own ? 'opt on' : 'opt'} onClick={() => setPad('s1')} data-own="s1">✏️ じぶんで かく{ip.s1Own ? `：${ip.s1}` : ''}</Btn>
+              </div>
+              <div className="sentbox col" data-s2="1">
+                <div className="bold muted">② じぶんの きもち</div>
+                <div className="sentprev kw"><span className={`slot ${ip.s2 ? '' : 'empty'}`}>{ip.s2 || '？？？'}</span>と おもいました。</div>
+                <div className="row wrapflex">
+                  {item.feels.map(f => (
+                    <Btn key={f} color="white" size="md" className={`opt ${ip.s2 === f && !ip.s2Own ? 'on' : ''}`} onClick={() => { set({ s2: f, s2Own: false }); TTS.speak(`${f}と おもいました。`); }} data-feel={f}>{f}</Btn>
+                  ))}
+                </div>
+                <Btn color="white" size="sm" className={ip.s2Own ? 'opt on' : 'opt'} onClick={() => setPad('s2')} data-own="s2">✏️ じぶんで かく{ip.s2Own ? `：${ip.s2}` : ''}</Btn>
+              </div>
+            </div>
+          </div>
+          <div className="row center wrapflex actionbar" style={{ gap: '1rem' }}>
+            <button className="speak" style={{ fontSize: '1.2rem' }} disabled={!s1 || !s2} onClick={() => TTS.speak(s1 + s2, { force: true })}>🔊 ぶんを よむ</button>
+            <Btn color="green" size="xl" disabled={!ip.s1 || !ip.s2} className={ip.s1 && ip.s2 ? 'pulse' : ''} onClick={onNext} data-write-ok="1">できた！</Btn>
+          </div>
+          {pad && <KanaPad
+            title={pad === 's1' ? `${subj}は、＿＿＿。` : '＿＿＿と おもいました。'}
+            initial={pad === 's1' ? (ip.s1Own ? ip.s1 : '') : (ip.s2Own ? ip.s2 : '')}
+            onCancel={() => setPad(null)}
+            onOk={v => { const c = cleanTyped(v); updItem(app, kid, pref.id, item.id, pad === 's1' ? { s1: c, s1Own: true } : { s2: c, s2Own: true }); setPad(null); }} />}
+        </div>
+      );
+    }
+
+    function DoneStep({ app, kid, pref, item, ip, go, fresh }) {
+      const st = app.state;
+      const idx = pref.items.findIndex(i => i.id === item.id);
+      const nx = pref.items[idx + 1];
+      const complete = prefComplete(st, kid, pref);
+      const text = fresh
+        ? (complete ? `やったね！ ${pref.name}の しんぶんが できたよ！` : `できたね！ シールを 1まい あげるよ。`)
+        : `「${item.name}」は できて いるよ。`;
+      useEffect(() => {
+        if (fresh) { fanfare('item'); confetti(50); }
+        const id = setTimeout(() => TTS.speak(text), fresh ? 900 : 300);
+        return () => { clearTimeout(id); TTS.cancel(); };
+      }, []);
+      return (
+        <div className="col" style={{ alignItems: 'center' }}>
+          <Say text={text} pose="happy" size={100} />
+          <div className="row wrapflex center" style={{ gap: '1.5rem', marginTop: '.5rem' }}>
+            <div className="col" style={{ alignItems: 'center' }}>
+              <Sticker item={item} big={fresh} size={fresh ? null : 110} />
+              <div className="bold kw" style={{ color: item.color, fontSize: '1.3rem' }}><R t={item.name} />の シール</div>
+            </div>
+            <div style={{ width: 'min(560px, 90vw)' }}><SheetBox pref={pref} item={item} ip={ip} preview /></div>
+          </div>
+          <div className="row wrapflex center" style={{ gap: '1rem', marginTop: '.8rem' }}>
+            {!fresh && <Btn color="white" size="md" onClick={() => updItem(app, kid, pref.id, item.id, { step: 'pick', doneAt: ip.doneAt })} data-redo="1">✏️ しゃしんと ぶんを なおす</Btn>}
+            <Btn color="sky" size="lg" onClick={() => go({ name: 'sheet', pid: pref.id, kid })} data-open-sheet="1">📰 しんぶんを みる</Btn>
+            {complete && fresh
+              ? <Btn color="orange" size="xl" className="pulse" onClick={() => go({ name: 'stamp', pid: pref.id })} data-get-stamp="1">🔴 スタンプを もらう</Btn>
+              : nx && isItemOpen(st, kid, pref, idx + 1) && !isDone(st, kid, pref.id, nx.id)
+                ? <Btn color="green" size="xl" className="pulse" onClick={() => go({ name: 'item', pid: pref.id, iid: nx.id })} data-next-item="1">つぎ：<R t={nx.name} /> ▶</Btn>
+                : <Btn color="green" size="lg" onClick={() => go({ name: 'pref', pid: pref.id })}>もどる</Btn>}
+          </div>
+        </div>
+      );
+    }
+
+    function ItemPage({ app, kid, pid, iid, go }) {
+      const st = app.state;
+      const pref = PREF_MAP[pid];
+      const item = pref.items.find(i => i.id === iid);
+      const ip = itemProg(st, kid, pid, iid);
+      const [fresh, setFresh] = useState(false);
+      const step = ip.doneAt && (ip.step === 'done' || ip.step === 'read' || ip.step === 'quiz') ? 'done' : ip.step;
+      const setStep = s => updItem(app, kid, pid, iid, { step: s });
+      const finish = () => {
+        const first = !ip.doneAt;
+        app.update(s => {
+          const k = kidOf(s, kid);
+          const sid = stickerId(pref, item);
+          return { ...s, kids: { ...s.kids, [kid]: { ...k, stickers: { ...(k.stickers || {}), [sid]: (k.stickers || {})[sid] || Date.now() } } } };
+        });
+        updItem(app, kid, pid, iid, { step: 'done', doneAt: ip.doneAt || Date.now() }, { bump: true });
+        setFresh(first);
+        setTimeout(() => Sync.run(app), 800);
+      };
+      return (
+        <div className="wrap">
+          <TopBar
+            left={<Btn color="white" size="sm" onClick={() => go({ name: 'pref', pid })} data-back-pref="1">◀ もどる</Btn>}
+            title={<span style={{ color: item.color }}><span className="emoji">{item.icon}</span> <R t={item.name} /></span>}
+            right={<Steps step={step} />}
+          />
+          {step === 'read' && <ReadStep key="read" app={app} kid={kid} pref={pref} item={item} ip={ip} onNext={() => setStep('quiz')} />}
+          {step === 'quiz' && <QuizStep key="quiz" app={app} kid={kid} pref={pref} item={item} ip={ip} onNext={() => updItem(app, kid, pid, iid, { step: 'pick', qi: 0 })} />}
+          {step === 'pick' && <PickStep key="pick" app={app} kid={kid} pref={pref} item={item} ip={ip} onNext={() => setStep('write')} />}
+          {step === 'write' && <WriteStep key="write" app={app} kid={kid} pref={pref} item={item} ip={ip} onNext={finish} />}
+          {step === 'done' && <DoneStep key={'done' + fresh} app={app} kid={kid} pref={pref} item={item} ip={ip} go={go} fresh={fresh} />}
+        </div>
+      );
+    }
+
+    /* =========================================================
+       スタンプ（都道府県が ぜんぶ できた とき）
+       ========================================================= */
+    function StampPage({ app, kid, pid, go }) {
+      const st = app.state;
+      const pref = PREF_MAP[pid];
+      const t = titleOf(st, kid);
+      const text = `${pref.name}の たんけん、おつかれさま！ たんけん てちょうに スタンプを おしたよ。いまの しょうごうは「${t.name}」だよ。`;
+      useEffect(() => {
+        sfx('stamp'); setTimeout(() => { fanfare('stamp'); confetti(70); }, 500);
+        const id = setTimeout(() => TTS.speak(text), 1500);
+        if (!kidPref(st, kid, pid).stampAt) app.update(s => {
+          const k = kidOf(s, kid); const kp = kidPref(s, kid, pid);
+          return { ...s, kids: { ...s.kids, [kid]: { ...k, prefs: { ...(k.prefs || {}), [pid]: { ...kp, stampAt: Date.now() } } } } };
+        });
+        return () => { clearTimeout(id); TTS.cancel(); };
+      }, []);
+      return (
+        <div className="wrap">
+          <Say text={text} pose="happy" size={110} />
+          <div className="homegrid" style={{ marginTop: '.8rem' }}>
+            <div className="sky" style={{ padding: '.6rem' }}><JapanMap st={st} kid={kid} height="min(62vh, 520px)" stampAnim={pid} /></div>
+            <div className="col" style={{ alignItems: 'center', justifyContent: 'center' }}>
+              <div className="card tc col" style={{ alignItems: 'center' }}>
+                <div className="emoji" style={{ fontSize: '4rem' }}>{t.icon}</div>
+                <div className="bold" style={{ fontSize: '1.8rem', color: 'var(--navy)' }}>{t.name}</div>
+              </div>
+              <Btn color="sky" size="lg" onClick={() => go({ name: 'sheet', pid, kid })} data-open-sheet="1">📰 しんぶんを みる</Btn>
+              <Btn color="green" size="lg" onClick={() => go({ name: 'home' })} data-go-home="1">🗾 ちずに もどる</Btn>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* =========================================================
+       しんぶん（B4よこ）
+       ========================================================= */
+    function SheetBox({ pref, item, ip, preview }) {
+      const card = cardOf(item, ip.pick);
+      const done = !!ip.doneAt && card;
+      const box = (
+        <div className="sh-box" style={{ borderColor: item.color, height: preview ? '100%' : undefined }} data-sheet-box={item.id}>
+          <div className="sh-band" style={{ background: item.color }}>
+            <span className="emoji">{item.icon}</span><R t={item.name} />
+            {item.answer && <span className="ans" style={{ color: item.color }}><R t={item.answer} /></span>}
+          </div>
+          {done ? (
+            <div className="sh-body">
+              <div className="sh-photo">
+                <img src={imgOf(pref, card)} alt="" />
+                <div className="sh-cap kw"><R t={card.title} /></div>
+                <div className="sh-note">※しゃしんは イメージです</div>
+              </div>
+              <div className="sh-text kw"><div><R t={sentence1(item, ip)} /></div><div><R t={sentence2(ip)} /></div></div>
+            </div>
+          ) : <div className="sh-empty">まだ しらべて いないよ</div>}
+        </div>
+      );
+      if (!preview) return box;
+      // 画面で 見る とき：B4の 大きさの 1わくを 小さくして 見せる
+      return <ScaledBox w={112} h={102}>{box}</ScaledBox>;
+    }
+    // mm で 作った ものを、入れものの はばに あわせて 小さく する
+    const MM = 96 / 25.4;
+    function ScaledBox({ w, h, children }) {
+      const ref = useRef(null);
+      const [sc, setSc] = useState(0.5);
+      useEffect(() => {
+        const fit = () => { if (ref.current) setSc(ref.current.clientWidth / (w * MM)); };
+        fit(); window.addEventListener('resize', fit);
+        return () => window.removeEventListener('resize', fit);
+      }, []);
+      return (
+        <div ref={ref} className="sheet-outer" style={{ height: h * MM * sc }}>
+          <div className="sheet-scale" style={{ width: `${w}mm`, height: `${h}mm`, transform: `scale(${sc})`, background: '#fff' }}>{children}</div>
+        </div>
+      );
+    }
+    function MiniMap({ pref }) {
+      const p = MAP.prefs[pref.code];
+      return (
+        <svg viewBox={`0 0 ${MAP.w} ${MAP.h}`} aria-hidden="true">
+          {Object.entries(MAP.prefs).map(([code, q]) => <path key={code} d={q.d} fill={code === pref.code ? '#e11d48' : '#dbeafe'} stroke="#fff" strokeWidth="2" />)}
+          {p && <>
+            <circle cx={p.cx} cy={p.cy} r="40" fill="none" stroke="#e11d48" strokeWidth="8" />
+            <path d={`M${p.cx + 40} ${p.cy + 30} L${p.cx + 140} ${p.cy + 150}`} stroke="#e11d48" strokeWidth="8" />
+          </>}
+        </svg>
+      );
+    }
+    function Sheet({ st, kid, pref }) {
+      const k = st.roster.find(x => x.id === kid) || { name: '' };
+      const dates = pref.items.map(it => itemProg(st, kid, pref.id, it.id).doneAt).filter(Boolean);
+      const day = dates.length ? Math.max(...dates) : 0;
+      return (
+        <div className="sheet" data-sheet="1">
+          <div className="sh-head">
+            <div className="sh-title"><span className="emoji">📰</span><R t={pref.sheetTitle} /></div>
+            <div style={{ width: '24mm', alignSelf: 'center' }}><TsubasaArt pose="happy" /></div>
+            <div className="sh-meta">
+              <div className="ln">なまえ <span className="v">{k.name}</span></div>
+              <div className="ln">ひにち <span className="v">{day ? fmtDay(day) : ''}</span></div>
+            </div>
+          </div>
+          <div className="sh-grid">
+            <div className="sh-box" style={{ borderColor: '#e11d48' }}>
+              <div className="sh-band" style={{ background: '#e11d48' }}><span className="emoji">📍</span><R t={pref.name} />は ここ！</div>
+              <div className="sh-mapbox">
+                <MiniMap pref={pref} />
+                <div className="sh-mapnote kw">
+                  <R t={pref.name} />は、<br /><R t="{日本|にっぽん}の" /> ここに あるよ。<br />
+                  <span style={{ fontSize: '3.6mm', color: '#475569' }}><R t="{赤|あか}い ところが " /><R t={pref.name} /></span>
+                </div>
+              </div>
+            </div>
+            {pref.items.map(it => <SheetBox key={it.id} pref={pref} item={it} ip={itemProg(st, kid, pref.id, it.id)} />)}
+          </div>
+        </div>
+      );
+    }
+    function SheetPage({ app, kid, pid, go, back }) {
+      const st = app.state;
+      const pref = PREF_MAP[pid];
+      const ref = useRef(null);
+      const outer = useRef(null);
+      const [sc, setSc] = useState(0.6);
+      useEffect(() => {
+        const fit = () => {
+          if (document.fullscreenElement) setSc(Math.min(window.innerWidth / (364 * MM), window.innerHeight / (257 * MM)));
+          else if (outer.current) setSc(Math.min(outer.current.clientWidth / (364 * MM), 1.4));
+        };
+        fit(); window.addEventListener('resize', fit); document.addEventListener('fullscreenchange', fit);
+        return () => { window.removeEventListener('resize', fit); document.removeEventListener('fullscreenchange', fit); };
+      }, []);
+      const big = () => { const el = ref.current; if (!el) return; if (document.fullscreenElement) document.exitFullscreen(); else if (el.requestFullscreen) el.requestFullscreen(); };
+      const text = 'しんぶんだよ。「いんさつ」で かみに できるよ。「おおきく」で がめんに おおきく だせるよ。';
+      useEffect(() => { const id = setTimeout(() => TTS.speak(text), 300); return () => { clearTimeout(id); TTS.cancel(); }; }, []);
+      return (
+        <div className="wrap" style={{ maxWidth: 1500 }}>
+          <TopBar
+            left={<Btn color="white" size="sm" onClick={back}>◀ もどる</Btn>}
+            title={<span>📰 <R t={pref.sheetTitle} /></span>}
+            right={<>
+              <Btn color="violet" size="sm" onClick={big} data-big="1">🔍 おおきく</Btn>
+              <Btn color="navy" size="sm" onClick={() => window.print()} data-print="1">🖨️ いんさつ</Btn>
+            </>}
+          />
+          <div className="muted no-print" style={{ fontSize: '.9rem', marginBottom: '.4rem' }}>先生へ：いんさつの画面で、用紙サイズを「B4」、向きを「横」にしてください。余白は「なし」がおすすめです。</div>
+          <div ref={outer}>
+            <div ref={ref} className="print-area" style={{ background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100%' }}>
+              <div style={{ width: 364 * MM * sc, height: 257 * MM * sc }}>
+                <div className="sheet-scale" style={{ transform: `scale(${sc})`, width: '364mm' }}>
+                  <Sheet st={st} kid={kid} pref={pref} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* =========================================================
+       たんけん てちょう（スタンプ・シール・しょうごう）
+       ========================================================= */
+    function Book({ app, kid, go }) {
+      const st = app.state;
+      const n = visitedCount(st, kid);
+      const ti = titleIndex(n);
+      const text = `たんけん てちょうだよ。スタンプは ${n}こ、シールは ${stickerCount(st, kid)}まい あつまったよ。`;
+      useEffect(() => { const id = setTimeout(() => TTS.speak(text), 300); return () => { clearTimeout(id); TTS.cancel(); }; }, []);
+      return (
+        <div className="wrap">
+          <TopBar left={<Btn color="white" size="sm" onClick={() => go({ name: 'home' })}>🗾 ちずに もどる</Btn>} title="📔 たんけん てちょう" />
+          <Say text={text} size={100} />
+          <div className="homegrid" style={{ marginTop: '.8rem' }}>
+            <div className="sky" style={{ padding: '.6rem' }}><JapanMap st={st} kid={kid} height="min(60vh, 500px)" showPins /></div>
+            <div className="col">
+              <div className="card col">
+                <div className="bold" style={{ fontSize: '1.3rem' }}>⭐ シール（{stickerCount(st, kid)} / {ALL_STICKERS}）</div>
+                {PREFS.map(p => (
+                  <div key={p.id} className="col" style={{ gap: '.3rem' }}>
+                    <div className="bold"><R t={p.name} /></div>
+                    <div className="row wrapflex">{p.items.map(it => <div key={it.id} className="col" style={{ alignItems: 'center', gap: '.2rem', width: '6.2rem' }}>
+                      <Sticker item={it} none={!(kidOf(st, kid).stickers || {})[stickerId(p, it)]} size={70} />
+                      <span className="kw tc" style={{ fontSize: '.85rem' }}><R t={it.name} /></span>
+                    </div>)}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="card col">
+                <div className="bold" style={{ fontSize: '1.3rem' }}>🏅 しょうごう</div>
+                {TITLES.map((t, i) => (
+                  <div key={t.name} className="row" style={{ opacity: i <= ti ? 1 : .4, fontSize: '1.15rem' }}>
+                    <span className="emoji" style={{ fontSize: '1.6rem' }}>{i <= ti ? t.icon : '🔒'}</span>
+                    <span className="bold" style={{ color: i === ti ? 'var(--red)' : undefined }}>{t.name}</span>
+                    <span className="muted" style={{ fontSize: '.9rem' }}>（{t.min}けん）</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* =========================================================
+       先生用画面
+       ========================================================= */
+    function PinPad({ onOk, onCancel, check }) {
+      const [v, setV] = useState('');
+      const [err, setErr] = useState(false);
+      const press = d => {
+        const nv = (v + d).slice(0, 4); setV(nv); setErr(false);
+        if (nv.length === 4) { if (check(nv)) onOk(); else { setErr(true); setTimeout(() => setV(''), 400); } }
+      };
+      return (
+        <Modal onClose={onCancel}>
+          <div className="col" style={{ alignItems: 'center' }}>
+            <div className="bold" style={{ fontSize: '1.3rem' }}>先生用画面：暗証番号（4けた）</div>
+            <div style={{ fontSize: '2rem', letterSpacing: '.5em', minHeight: '2.4rem' }}>{'●'.repeat(v.length)}{'○'.repeat(4 - v.length)}</div>
+            {err && <div style={{ color: '#be123c' }} className="bold">番号がちがいます</div>}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 4.5rem)', gap: '.5rem' }}>
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(d => <Btn key={d} color="white" size="lg" onClick={() => press(d)} data-pin={d}>{d}</Btn>)}
+              <Btn color="white" size="md" onClick={() => setV('')}>けす</Btn>
+              <Btn color="white" size="lg" onClick={() => press('0')} data-pin="0">0</Btn>
+              <Btn color="white" size="md" onClick={onCancel}>やめる</Btn>
+            </div>
+          </div>
+        </Modal>
+      );
+    }
+    function pct(a, b) { return b ? Math.round(a / b * 100) : 0; }
+    function RecordsTab({ app, go }) {
+      const st = app.state;
+      const [hist, setHist] = useState(null);
+      const [sel, setSel] = useState('all');
+      useEffect(() => { DB.getAll('history').then(h => setHist(h.sort((a, b) => b.at - a.at))).catch(() => setHist([])); }, []);
+      if (!hist) return <div>よみこみちゅう…</div>;
+      const nameOf = id => (st.roster.find(k => k.id === id) || { name: '（消した子）' }).name;
+      // 問題ごとの ようす（全員）
+      const byQ = {};
+      hist.forEach(h => {
+        const x = byQ[h.qid] || (byQ[h.qid] = { ...h, n: 0, first: 0, mis: 0, hints: 0, wrong: {}, kids: new Set() });
+        x.n++; if (!h.mistakes && !h.hints) x.first++; x.mis += h.mistakes || 0; if (h.hints) x.hints++; x.kids.add(h.kid);
+        (h.answers || []).filter(a => a !== h.correct).forEach(a => { x.wrong[a] = (x.wrong[a] || 0) + 1; });
+      });
+      const qRows = Object.values(byQ).sort((a, b) => b.mis - a.mis || b.hints - a.hints);
+      const kids = sel === 'all' ? st.roster : st.roster.filter(k => k.id === sel);
+      return (
+        <div className="col">
+          <div className="card">
+            <div className="bold">一人ずつの すすみぐあい</div>
+            <table className="tbl" style={{ marginTop: '.4rem' }} data-progress-table="1">
+              <thead><tr><th>なまえ</th><th>しょうごう</th>{PREFS.map(p => <th key={p.id}>{plain(p.name)}</th>)}<th>クイズ（1回で正解）</th><th></th></tr></thead>
+              <tbody>{st.roster.map(k => {
+                const hs = hist.filter(h => h.kid === k.id);
+                const f = hs.filter(h => !h.mistakes && !h.hints).length;
+                return (
+                  <tr key={k.id}><td className="bold">{k.name}</td><td>{titleOf(st, k.id).name}</td>
+                    {PREFS.map(p => <td key={p.id}>{p.items.map(it => (isDone(st, k.id, p.id, it.id) ? '◎' : itemProg(st, k.id, p.id, it.id).seen.length ? '△' : '・')).join(' ')}<br /><span className="muted" style={{ fontSize: '.8rem' }}>{doneCount(st, k.id, p)} / {p.items.length}</span></td>)}
+                    <td>{hs.length ? `${pct(f, hs.length)}%（${f} / ${hs.length}問）` : '－'}</td>
+                    <td><Btn color="white" size="sm" onClick={() => setSel(k.id)}>くわしく</Btn></td></tr>
+                );
+              })}</tbody>
+            </table>
+            <div className="muted" style={{ fontSize: '.85rem', marginTop: '.3rem' }}>◎＝できた、△＝とちゅう、・＝まだ（左から「{PREFS[0] ? PREFS[0].items.map(i => plain(i.name)).join('・') : ''}」）</div>
+          </div>
+          <div className="card">
+            <div className="bold">つまずいた クイズ（全員。まちがいが多い順）</div>
+            {qRows.length ? (
+              <table className="tbl" style={{ marginTop: '.4rem' }} data-hard="1">
+                <thead><tr><th>項目</th><th>問い</th><th>正しい答え</th><th>答えた数</th><th>1回で正解</th><th>まちがい</th><th>ヒント</th><th>選んだ まちがい</th></tr></thead>
+                <tbody>{qRows.map(x => {
+                  const pref = PREF_MAP[x.pref]; const it = pref && pref.items.find(i => i.id === x.item);
+                  return (
+                    <tr key={x.qid}><td>{pref ? plain(pref.name) : ''}<br />{it ? plain(it.name) : ''}</td><td>{plain(x.q)}</td><td>{plain(x.correct)}</td><td>{x.n}</td>
+                      <td><div className="row"><div className="bar grow" style={{ minWidth: '4rem' }}><i style={{ width: pct(x.first, x.n) + '%', background: '#10b981' }} /></div><span>{pct(x.first, x.n)}%</span></div></td>
+                      <td>{x.mis}</td><td>{x.hints}</td><td>{Object.entries(x.wrong).map(([a, c]) => `${plain(a)}（${c}）`).join('、')}</td></tr>
+                  );
+                })}</tbody>
+              </table>
+            ) : <div className="muted">まだ ありません。</div>}
+          </div>
+          <div className="card col">
+            <div className="row wrapflex">
+              <span className="bold">書いたシート：</span>
+              <button className={`tab ${sel === 'all' ? 'on' : ''}`} onClick={() => setSel('all')}>全員</button>
+              {st.roster.map(k => <button key={k.id} className={`tab ${sel === k.id ? 'on' : ''}`} onClick={() => setSel(k.id)} data-sel-kid={k.name}>{k.name}</button>)}
+            </div>
+            {kids.map(k => PREFS.map(p => (
+              <div key={k.id + p.id} className="col" style={{ gap: '.3rem', borderTop: '1px solid #e2e8f0', paddingTop: '.5rem' }}>
+                <div className="row wrapflex"><span className="bold" style={{ fontSize: '1.1rem' }}>{k.name}：{plain(p.name)}</span>
+                  <Btn color="sky" size="sm" onClick={() => go({ name: 'sheet', pid: p.id, kid: k.id, from: 'teacher' })} data-teacher-sheet={k.name}>📰 しんぶんを見る・印刷</Btn></div>
+                <table className="tbl">
+                  <thead><tr><th>項目</th><th>写真</th><th>書いた文</th><th>クイズ</th><th>できた日</th></tr></thead>
+                  <tbody>{p.items.map(it => {
+                    const ip = itemProg(st, k.id, p.id, it.id); const c = cardOf(it, ip.pick);
+                    const hs = hist.filter(h => h.kid === k.id && h.item === it.id && h.pref === p.id);
+                    return <tr key={it.id}><td>{plain(it.name)}</td><td>{c && ip.doneAt ? plain(c.title) : ''}</td><td>{ip.doneAt ? plain(sentence1(it, ip) + sentence2(ip)) : ''}{ip.s1Own || ip.s2Own ? <span className="pill" style={{ background: '#fff7ed', color: '#9a3412', marginLeft: '.3rem' }}>自分で書いた</span> : null}</td>
+                      <td>{hs.length ? hs.map(h => (h.mistakes ? `まちがい${h.mistakes}` : '◎') + (h.hints ? `・ヒント${h.hints}` : '')).join(' / ') : ''}</td><td>{ip.doneAt ? fmtDate(ip.doneAt) : ''}</td></tr>;
+                  })}</tbody>
+                </table>
+              </div>
+            )))}
+          </div>
+        </div>
+      );
+    }
+    function SettingsTab({ app }) {
+      const st = app.state; const s = st.settings;
+      const set = (k, v) => app.update(x => ({ ...x, settings: { ...x.settings, [k]: v } }));
+      const Opt = ({ k, label, opts }) => (
+        <div className="row wrapflex" style={{ padding: '.4rem 0', borderBottom: '1px solid #f1f5f9' }}>
+          <div className="bold" style={{ width: '14rem' }}>{label}</div>
+          {opts.map(([v, t]) => <button key={String(v)} className={`tab ${s[k] === v ? 'on' : ''}`} onClick={() => set(k, v)} data-set={`${k}:${v}`}>{t}</button>)}
+        </div>
+      );
+      const [pin, setPin] = useState(''); const [pin2, setPin2] = useState(''); const [msg, setMsg] = useState('');
+      return (
+        <div className="col">
+          <div className="card">
+            <Opt k="voice" label="ツバサせんせいの声" opts={[[true, 'あり'], [false, 'なし']]} />
+            <Opt k="rate" label="読み上げの速さ" opts={[[0.6, 'とても ゆっくり'], [0.7, 'ゆっくり'], [0.8, '少し ゆっくり'], [0.9, 'ふつう'], [1.0, 'はやめ']]} />
+            <Opt k="autoRead" label="カードの自動読み上げ" opts={[[true, 'する'], [false, 'しない（🔊ボタンで読む）']]} />
+            <Opt k="furigana" label="ふりがな" opts={[[true, 'つける'], [false, 'つけない']]} />
+            <Opt k="fontSize" label="文字の大きさ" opts={[['m', 'ふつう'], ['l', '大きい'], ['xl', 'とても大きい']]} />
+            <Opt k="sfx" label="効果音・ファンファーレ" opts={[[true, 'あり'], [false, 'なし']]} />
+            <Opt k="unlockAll" label="項目" opts={[[false, '順番に開く'], [true, 'すべて開く']]} />
+            <div className="row" style={{ marginTop: '.5rem' }}><Btn color="white" size="sm" onClick={() => TTS.speak('{東京都庁|とうきょうとちょう}は、{新宿区|しんじゅくく}に あります。', { force: true })}>🔊 読み上げを ためす</Btn></div>
+          </div>
+          <div className="card col">
+            <div className="bold">暗証番号の変更（はじめは 1234）</div>
+            <div className="row wrapflex">
+              <input className="inp" style={{ width: 120 }} type="password" inputMode="numeric" maxLength={4} placeholder="新しい番号" value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, ''))} />
+              <input className="inp" style={{ width: 120 }} type="password" inputMode="numeric" maxLength={4} placeholder="確認" value={pin2} onChange={e => setPin2(e.target.value.replace(/\D/g, ''))} />
+              <Btn color="navy" size="sm" onClick={() => {
+                if (!/^\d{4}$/.test(pin)) return setMsg('暗証番号は4けたの数字にしてください。');
+                if (pin !== pin2) return setMsg('確認用の番号が一致しません。');
+                app.update(x => ({ ...x, pin: hashPin(pin) })); setPin(''); setPin2(''); setMsg('暗証番号を変更しました。');
+              }}>変更</Btn>
+            </div>
+            {msg && <div className="bold" style={{ color: '#047857' }}>{msg}</div>}
+          </div>
+        </div>
+      );
+    }
+    function DataTab({ app }) {
+      const st = app.state;
+      const [url, setUrl] = useState(st.sync.url || '');
+      const [key, setKey] = useState(st.sync.key || '');
+      const [msg, setMsg] = useState('');
+      const [pending, setPending] = useState(null);
+      const refresh = () => DB.getAll('history').then(h => setPending(h.filter(x => !x.sent).length)).catch(() => setPending(0));
+      useEffect(() => { refresh(); }, []);
+      const sheetPending = st.roster.reduce((n, k) => n + PREFS.filter(p => { const kp = kidPref(st, k.id, p.id); return (kp.rev || 0) !== (kp.sentRev || 0); }).length, 0);
+      const saveSync = () => {
+        const u = url.trim();
+        if (u && !REC_URL_RE.test(u)) { setMsg('URLの形がちがいます。「https://script.google.com/macros/s/…/exec」の形のURLを入れてください。'); return; }
+        app.update(s => ({ ...s, sync: { ...s.sync, url: u, key: key.trim(), lastSummary: {} } }));
+        setMsg('送り先を保存しました。');
+      };
+      const send = async (all) => {
+        setMsg('送信しています…');
+        const r = await Sync.run(app, { all });
+        refresh();
+        setMsg(r.ok ? `送信しました（${r.sent}件）。` : r.reason === 'nourl' ? '送り先が設定されていません。' : r.reason === 'offline' ? 'インターネットにつながっていません。' : syncErrorText(r.reason));
+      };
+      const q = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+      const nameOf = id => (st.roster.find(k => k.id === id) || { name: '' }).name;
+      const csvQuiz = async () => {
+        const hist = (await DB.getAll('history')).sort((a, b) => a.at - b.at);
+        const head = ['日時', 'なまえ', '都道府県', '項目', '問い', '正しい答え', '答えた内容', '結果', 'まちがえた回数', 'ヒントの段階', 'かかった時間(秒)'];
+        const rows = hist.map(h => { const r = syncRecord(st, h); return [fmtDate(h.at), nameOf(h.kid), r.pref, r.item, r.q, r.correct, r.answers, r.result, r.mistakes, r.hints, r.sec]; });
+        downloadFile(`たんけんたい_クイズ_${ymd()}.csv`, '﻿' + [head, ...rows].map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
+      };
+      const csvSheet = () => {
+        const head = ['なまえ', '都道府県', 'できた項目'];
+        const maxItems = Math.max(...PREFS.map(p => p.items.length));
+        for (let i = 1; i <= maxItems; i++) head.push(`${i} 項目`, `${i} 写真`, `${i} 書いた文`);
+        const rows = [];
+        st.roster.forEach(k => PREFS.forEach(p => {
+          const sp = sheetPayload(st, k.id, k.name, p);
+          const r = [k.name, sp.pref, `${sp.done} / ${sp.total}`];
+          sp.items.forEach(it => r.push(it.name, it.photo && it.done ? it.photo : '', it.text));
+          rows.push(r);
+        }));
+        downloadFile(`たんけんたい_しんぶん_${ymd()}.csv`, '﻿' + [head, ...rows].map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
+      };
+      const backup = async () => {
+        const hist = await DB.getAll('history');
+        downloadFile(`たんけんたい_バックアップ_${ymd()}.json`, JSON.stringify({ app: APP_ID, at: Date.now(), state: st, history: hist }), 'application/json');
+      };
+      const restore = async () => {
+        const f = await pickFile('application/json,.json');
+        if (!f) return;
+        try {
+          const d = JSON.parse(await f.text());
+          if (d.app !== APP_ID || !d.state) throw new Error('bad');
+          if (!confirm('今の記録を消して、バックアップから戻します。よろしいですか？')) return;
+          await DB.clear('history');
+          for (const h of d.history || []) { const { id, ...rest } = h; await DB.add('history', rest); }
+          app.replace(normalizeState(d.state));
+          setMsg('バックアップから戻しました。');
+        } catch (e) { setMsg('このファイルは読み込めませんでした。'); }
+      };
+      const wipe = async () => {
+        if (!confirm('この端末の記録（全員の すすみぐあい・シール・書いたシート・クイズの記録）をすべて消します。名簿と設定は残ります。よろしいですか？')) return;
+        if (!confirm('本当に消しますか？ 元にはもどせません。')) return;
+        await DB.clear('history');
+        app.update(s => ({ ...s, kids: {} }));
+        refresh(); setMsg('記録を消しました。');
+      };
+      const stat = (a, b) => <div className="card grow" style={{ padding: '.6rem' }}><div className="muted" style={{ fontSize: '.9rem' }}>{a}</div><div className="bold" style={{ fontSize: '1.1rem' }}>{b}</div></div>;
+      return (
+        <div className="col">
+          <div className="card col">
+            <div className="bold">先生のスプレッドシートへの送信</div>
+            <div className="row wrapflex">
+              {stat('まだ送っていないクイズの記録', pending == null ? '…' : `${pending}件`)}
+              {stat('まだ送っていないシート', `${sheetPending}まい`)}
+              {stat('さいごに送れた日時', st.sync.lastOkAt ? fmtDate(st.sync.lastOkAt) : '－')}
+              {stat('送り先', st.sync.url ? '設定ずみ' : 'なし')}
+            </div>
+            {st.sync.lastError && <div style={{ color: '#be123c' }}>前回のエラー：{syncErrorText(st.sync.lastError)}</div>}
+            <label><div className="bold" style={{ fontSize: '.9rem' }}>送り先のURL（…/exec）</div><input className="inp" style={{ width: '100%' }} value={url} onChange={e => setUrl(e.target.value)} placeholder="https://script.google.com/macros/s/……/exec" data-sync-url="1" /></label>
+            <label><div className="bold" style={{ fontSize: '.9rem' }}>合言葉</div><input className="inp" value={key} onChange={e => setKey(e.target.value)} data-sync-key="1" /></label>
+            <div className="muted" style={{ fontSize: '.85rem' }}>入口ページから開けば、URLと合言葉は自動で入ります。</div>
+            <div className="row wrapflex">
+              <Btn color="navy" size="sm" onClick={saveSync}>送り先を保存</Btn>
+              <Btn color="green" size="sm" onClick={() => send(false)} data-send="1">今すぐ送る</Btn>
+              <Btn color="white" size="sm" onClick={() => send(true)}>全部を送り直す</Btn>
+            </div>
+          </div>
+          <div className="card col">
+            <div className="bold">ファイル</div>
+            <div className="row wrapflex">
+              <Btn color="white" size="sm" onClick={csvSheet} data-csv-sheet="1">📄 シートをCSVで書き出す</Btn>
+              <Btn color="white" size="sm" onClick={csvQuiz} data-csv-quiz="1">📄 クイズの記録をCSVで書き出す</Btn>
+              <Btn color="white" size="sm" onClick={backup}>💾 バックアップ</Btn>
+              <Btn color="white" size="sm" onClick={restore}>📂 バックアップから戻す</Btn>
+              <Btn color="red" size="sm" onClick={wipe}>🗑️ 記録を消す</Btn>
+            </div>
+          </div>
+          {msg && <div className="bold" style={{ color: '#1e3a8a' }} data-data-msg="1">{msg}</div>}
+        </div>
+      );
+    }
+    function Teacher({ app, go, tab, setTab, back }) {
+      return (
+        <div className="wrap">
+          <TopBar left={<Btn color="white" size="sm" onClick={back}>◀ もどる</Btn>} title="⚙️ 先生用画面" />
+          <div className="row wrapflex" style={{ marginBottom: '.8rem' }}>
+            {[['rec', '📊 記録'], ['roster', '👥 名簿'], ['set', '🛠️ 設定'], ['data', '💾 データ']].map(([k, t]) => <button key={k} className={`tab ${tab === k ? 'on' : ''}`} onClick={() => setTab(k)} data-ttab={k}>{t}</button>)}
+          </div>
+          {tab === 'rec' && <RecordsTab app={app} go={go} />}
+          {tab === 'roster' && <div className="card"><RosterEditor app={app} /></div>}
+          {tab === 'set' && <SettingsTab app={app} />}
+          {tab === 'data' && <DataTab app={app} />}
+        </div>
+      );
+    }
+
+    /* =========================================================
+       アプリ全体
+       ========================================================= */
+    function App() {
+      const [state, setState] = useState(loadState);
+      const stateRef = useRef(state);
+      const [view, setView] = useState({ name: 'names' });
+      const [kid, setKid] = useState(null);
+      const [pinOpen, setPinOpen] = useState(false);
+      const [ttab, setTtab] = useState('rec');
+      // すぐに 計算して 保存する（ごほうびの 結果を その場で 使うため）
+      const update = useCallback(fn => {
+        const next = fn(stateRef.current); stateRef.current = next; CURRENT.settings = next.settings; saveState(next); setState(next);
+        return next;
+      }, []);
+      const replace = useCallback(next => { stateRef.current = next; CURRENT.settings = next.settings; saveState(next); setState(next); }, []);
+      const app = { state, stateRef, update, replace };
+      CURRENT.settings = state.settings;
+      useEffect(() => { document.documentElement.style.fontSize = (FONT_PX[state.settings.fontSize] || 16) + 'px'; }, [state.settings.fontSize]);
+      useEffect(() => {
+        const trySync = () => Sync.run({ stateRef, update });
+        const id = setTimeout(trySync, 1500);
+        window.addEventListener('online', trySync);
+        return () => { clearTimeout(id); window.removeEventListener('online', trySync); };
+      }, []);
+      const go = v => {
+        TTS.cancel();
+        if (v.name === 'teacher') { setPinOpen(true); return; }
+        if (v.name === 'sheet' && !v.ret) v = { ...v, ret: view };
+        setView(v); window.scrollTo(0, 0);
+      };
+      if (!state.setupDone) return <Setup app={app} />;
+      const validKid = kid && state.roster.some(k => k.id === kid);
+      let body;
+      if (view.name === 'teacher') body = <Teacher app={app} go={go} tab={ttab} setTab={setTtab} back={() => go(validKid ? { name: 'home' } : { name: 'names' })} />;
+      else if (view.name === 'sheet') body = <SheetPage app={app} kid={view.kid || kid} pid={view.pid} go={go} back={() => { TTS.cancel(); if (document.fullscreenElement) document.exitFullscreen(); setView(view.ret || { name: 'home' }); window.scrollTo(0, 0); }} />;
+      else if (!validKid || view.name === 'names') body = <PickName app={app} go={go} onPick={id => { setKid(id); setView({ name: 'home' }); }} />;
+      else if (view.name === 'pref') body = <PrefPage app={app} kid={kid} pid={view.pid} go={go} />;
+      else if (view.name === 'item') body = <ItemPage key={view.iid} app={app} kid={kid} pid={view.pid} iid={view.iid} go={go} />;
+      else if (view.name === 'stamp') body = <StampPage app={app} kid={kid} pid={view.pid} go={go} />;
+      else if (view.name === 'book') body = <Book app={app} kid={kid} go={go} />;
+      else body = <Home app={app} kid={kid} go={go} />;
+      return (
+        <>
+          {body}
+          {pinOpen && <PinPad check={v => hashPin(v) === state.pin} onOk={() => { setPinOpen(false); setView({ name: 'teacher' }); }} onCancel={() => setPinOpen(false)} />}
+        </>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
