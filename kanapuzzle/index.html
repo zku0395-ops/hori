@@ -91,6 +91,11 @@
 </head>
 <body>
   <div class="controls" id="controls">
+    <div class="panel" id="frameNote" style="display:none;background:#fef3c7;box-shadow:0 2px 0 #f59e0b">
+      <p style="margin:0 0 8px;font-weight:700">Googleサイトの 中では、「いんさつ」「PDFで ほぞん」「⬇ ほぞん」が うまく 動きません。</p>
+      <p style="margin:0 0 10px">下の ボタンで、あたらしいタブで ひらいてから 使ってください。「いんさつ」「PDFで ほぞん」を おしたときも、あたらしいタブが ひらきます。</p>
+      <a class="btn big" id="frameOpen" href="https://zku0395-ops.github.io/hori/kanapuzzle/" target="_blank" rel="noopener">▶ あたらしいタブで ひらく</a>
+    </div>
     <div class="panel">
       <h1><span id="roboMini"></span>ロボタンの カナカナパズル</h1>
       <p>カタカナの 1画ずつの「ピース」を見て、同じ色の色鉛筆で わくの中に書き、カタカナを組み立てるプリントです。</p>
@@ -530,16 +535,41 @@
     const custom = document.getElementById('custom');
     custom.value = state.custom;
     custom.oninput = () => { state.custom = custom.value; render(); };
-    document.getElementById('printBtn').onclick = () => window.print();
+    // Googleサイトなどの 枠（iframe）の 中では、印刷や 保存が 止められるので、新しいタブで 開きなおす
+    const inFrame = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
+    function pageUrl(go) {
+      const u = new URL(location.href.split('#')[0]);
+      u.search = '';
+      u.searchParams.set('stage', state.stage);
+      u.searchParams.set('sheets', [...state.picked].join(','));
+      if (state.custom) u.searchParams.set('chars', state.custom);
+      if (!state.mihon) u.searchParams.set('mihon', '0');
+      if (go) u.searchParams.set('go', go);
+      return u.toString();
+    }
+    function openTab(go) {
+      const w = window.open(pageUrl(go), '_blank');
+      if (!w) alert('あたらしいタブが ひらけませんでした。上の「▶ あたらしいタブで ひらく」を おしてください。');
+    }
+    function doPrint() { window.print(); }
     // PDF に保存するときの ファイル名は、ページの題名になる
-    document.getElementById('savePdfBtn').onclick = () => {
+    function doSavePdf() {
       const old = document.title;
-      const names = SHEETS.filter(s => state.picked.has(s.id)).map(s => s.name);
+      const names = ALL_SHEETS.filter(s => state.picked.has(s.id)).map(s => s.name);
       if (state.custom.trim()) names.push('えらんだもじ');
       document.title = ['カナカナパズル', STAGE[state.stage].replace('★', '').replace(' ', '_'), names.length > 3 ? names[0] + 'から' + names[names.length - 1] : names.join('_')].filter(Boolean).join('_');
       window.print();
       setTimeout(() => { document.title = old; }, 1000);
-    };
+    }
+    document.getElementById('printBtn').onclick = () => inFrame ? openTab('print') : doPrint();
+    document.getElementById('savePdfBtn').onclick = () => inFrame ? openTab('pdf') : doSavePdf();
+    if (inFrame) {
+      const bar = document.getElementById('frameNote');
+      bar.style.display = 'block';
+      document.getElementById('frameOpen').onclick = e => { e.preventDefault(); openTab(''); };
+      // 枠の 中では ダウンロードが 止められるので、PDF は 新しいタブで 開く
+      document.querySelectorAll('a[download]').forEach(a => { a.removeAttribute('download'); a.target = '_blank'; a.rel = 'noopener'; });
+    }
 
     render();
     // 文字の形が 決まってから もう一度 はかりなおす
@@ -548,7 +578,12 @@
       // 絵が 読みこまれてから「できた」に する（PDF に 絵が 入るように）
       const imgs = [...document.images].filter(i => !i.complete);
       return Promise.all(imgs.map(i => new Promise(r => { i.onload = i.onerror = r; })));
-    }).then(() => { document.body.dataset.ready = '1'; });
+    }).then(() => {
+      document.body.dataset.ready = '1';
+      // 枠の 中から 開いたときは、自動で 印刷の 画面を 出す
+      const go = q.get('go');
+      if (go && !inFrame) setTimeout(() => { go === 'pdf' ? doSavePdf() : doPrint(); }, 400);
+    });
   </script>
 </body>
 </html>
