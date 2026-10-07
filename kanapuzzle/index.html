@@ -61,6 +61,10 @@
     .label { width: 15mm; text-align: center; flex-shrink: 0; }
     .yomi { font-size: 7mm; font-weight: 700; color: #475569; }
     .label small { display: block; font-size: 3.2mm; color: #64748b; }
+    .pic { width: 27mm; flex-shrink: 0; text-align: center; }
+    .pic img { display: block; margin: 0 auto; object-fit: contain; }
+    .pic .pword { font-size: 4.2mm; font-weight: 700; color: #334155; margin-top: .5mm; white-space: nowrap; }
+    .pic .pword b { color: #e53935; }
     .pieces { flex: 1; height: 100%; display: flex; flex-wrap: wrap; align-items: center; align-content: center; justify-content: center; gap: 3mm; overflow: hidden; }
     .piece { border: .5mm solid #94a3b8; border-radius: 3mm; background: #fafafa; }
     .arrow { font-size: 9mm; color: #94a3b8; flex-shrink: 0; }
@@ -69,7 +73,7 @@
     .wcol { width: 45mm; display: flex; flex-direction: column; align-items: center; border-left: .3mm dashed #cbd5e1; }
     .wcol:first-child { border-left: none; }
     .wtop { height: 28mm; display: flex; align-items: flex-start; justify-content: center; gap: 3mm; }
-    .wemo { font-size: 13mm; line-height: 1; margin-top: 1mm; }
+    .wemo img { width: 22mm; height: 22mm; display: block; }
     .wmihon { text-align: center; }
     .wmihon small { display: block; font-size: 2.8mm; color: #64748b; }
     .wpieces { flex: 0 0 48mm; width: 44mm; height: 48mm; gap: 1.5mm; }
@@ -214,20 +218,18 @@
       { id: 'm2', name: 'みくらべ2', chars: 'ブプベペ', daku: true },
       { id: 'm3', name: 'みくらべ3', chars: 'ボポ', daku: true },
     ];
-    // ショベルの 絵文字は 出ない 端末が あるので、自作の 絵にする
-    const SHOVEL = '<svg viewBox="0 0 40 40" width="13mm" height="13mm"><path d="M30 4 l6 6 -3 3 -6 -6 z" fill="#f59e0b" stroke="#92400e" stroke-width="1.5" stroke-linejoin="round"/><line x1="30" y1="10" x2="16" y2="24" stroke="#92400e" stroke-width="3" stroke-linecap="round"/><path d="M18 21 l3 3 -7 11 c-3 3 -9 1 -10 -2 c-1 -3 1 -7 3 -8 z" fill="#94a3b8" stroke="#334155" stroke-width="1.5" stroke-linejoin="round"/></svg>';
     // 長音・促音・拗音：ことばを 文字の ピースで 組み立てる（たて書き）
     const WORD_SHEETS = [
-      { id: 'w1', name: 'のばす おと1', words: [['ケーキ', '🍰'], ['ボール', '⚽'], ['ノート', '📓'], ['プール', '🏊']] },
-      { id: 'w2', name: 'のばす おと2', words: [['ゲーム', '🎮'], ['カード', '🃏'], ['スープ', '🥣'], ['ピーマン', '🫑']] },
-      { id: 'w3', name: 'のばす おと3', words: [['スキー', '⛷️'], ['ヨーヨー', '🪀'], ['ラーメン', '🍜'], ['コーン', '🌽']] },
-      { id: 'w4', name: 'ちいさい ッ1', words: [['コップ', '🥛'], ['ラッパ', '🎺'], ['ロケット', '🚀'], ['ロボット', '🤖']] },
-      { id: 'w5', name: 'ちいさい ッ2', words: [['ヨット', '⛵'], ['ネット', '🥅'], ['ソックス', '🧦'], ['ベッド', '🛏️']] },
-      { id: 'w6', name: 'ちいさい ャ', words: [['シャツ', '👕'], ['キャベツ', '🥬'], ['キャンプ', '⛺'], ['ジャム', '🍓']] },
-      { id: 'w7', name: 'ちいさい ュ', words: [['ジュース', '🧃'], ['シチュー', '🍲'], ['ニュース', '📺'], ['メニュー', '📋']] },
-      { id: 'w8', name: 'ちいさい ョ', words: [['チョコ', '🍫'], ['チョーク', '🖍️'], ['ピョン', '🐸'], ['ショベル', SHOVEL]] },
-      { id: 'w9', name: 'まとめ1', words: [['サッカー', '⚽'], ['シャワー', '🚿'], ['ジャンプ', '🦘'], ['コーヒー', '☕']] },
-      { id: 'w10', name: 'まとめ2', words: [['クッキー', '🍪'], ['キャッチ', '⚾'], ['シュート', '🥅'], ['ギョーザ', '🥟']] },
+      { id: 'w1', name: 'のばす おと1', words: [['ケーキ', 'keki'], ['ボール', 'boru'], ['ノート', 'noto'], ['プール', 'puru']] },
+      { id: 'w2', name: 'のばす おと2', words: [['ゲーム', 'gemu'], ['カード', 'kado'], ['スープ', 'supu'], ['ピーマン', 'piman']] },
+      { id: 'w3', name: 'のばす おと3', words: [['スキー', 'suki'], ['ヨーヨー', 'yoyo'], ['ラーメン', 'ramen'], ['コーン', 'kon']] },
+      { id: 'w4', name: 'ちいさい ッ1', words: [['コップ', 'koppu'], ['ラッパ', 'rappa'], ['ロケット', 'roketto'], ['ロボット', 'robotto']] },
+      { id: 'w5', name: 'ちいさい ッ2', words: [['ヨット', 'yotto'], ['ネット', 'netto'], ['ソックス', 'sokkusu'], ['ベッド', 'beddo']] },
+      { id: 'w6', name: 'ちいさい ャ', words: [['シャツ', 'shatsu'], ['キャベツ', 'kyabetsu'], ['キャンプ', 'kyanpu'], ['ジャム', 'jamu']] },
+      { id: 'w7', name: 'ちいさい ュ', words: [['ジュース', 'jusu'], ['シチュー', 'shichu'], ['ニュース', 'nyusu'], ['メニュー', 'menyu']] },
+      { id: 'w8', name: 'ちいさい ョ', words: [['チョコ', 'choko'], ['チョーク', 'choku'], ['ピョン', 'pyon'], ['ショベル', 'shoberu']] },
+      { id: 'w9', name: 'まとめ1', words: [['サッカー', 'sakka'], ['シャワー', 'shawa'], ['ジャンプ', 'janpu'], ['コーヒー', 'kohi']] },
+      { id: 'w10', name: 'まとめ2', words: [['クッキー', 'kukki'], ['キャッチ', 'kyatchi'], ['シュート', 'shuto'], ['ギョーザ', 'gyoza']] },
     ];
     WORD_SHEETS.forEach(s => { s.chars = s.words.map(w => w[0]).join('・'); });
     const ALL_SHEETS = [...SHEETS, ...DAKU_SHEETS, ...WORD_SHEETS];
@@ -385,7 +387,7 @@
         const ls = [...w];
         const order = stage === 3 ? shuffled(w, ls.length) : ls.map((_, i) => i);
         return `<div class="wcol">
-          <div class="wtop"><div class="wemo">${emo}</div>${stage >= 2 && showMihon ? `<div class="wmihon">${miniWord(w)}<small>みほん</small></div>` : ''}</div>
+          <div class="wtop"><div class="wemo"><img src="img/${emo}.jpg" alt="${w}"></div>${stage >= 2 && showMihon ? `<div class="wmihon">${miniWord(w)}<small>みほん</small></div>` : ''}</div>
           <div class="pieces wpieces" data-u="${u}">${order.map(i => letterPiece(ls[i], i + 1, u)).join('')}</div>
           <div class="wsq">${ls.map(ch => wordSquare(ch, stage, sq)).join('')}</div></div>`;
       }).reverse().join('');
@@ -402,6 +404,34 @@
         <div class="credit">書き順データ：KanjiVG（CC BY-SA 3.0）</div></div>`;
     }
 
+    // ---- ことばの 絵（Canva で 作った 絵。img/ に ある） ----
+    // [ことば, ファイル名, 色を かえる 文字の 位置]
+    // ヲ・ヂ・ヅ は、はじめの 文字に なる ことばが ないので 絵を 入れない。ン は ことばの 終わり
+    const PICS = {
+      'ア': ['アイス', 'aisu', 0], 'イ': ['イルカ', 'iruka', 0], 'ウ': ['ウサギ', 'usagi', 0], 'エ': ['エプロン', 'epuron', 0], 'オ': ['オムライス', 'omuraisu', 0],
+      'カ': ['カメラ', 'kamera', 0], 'キ': ['キリン', 'kirin', 0], 'ク': ['クマ', 'kuma', 0], 'ケ': ['ケーキ', 'keki', 0], 'コ': ['コアラ', 'koara', 0],
+      'サ': ['サル', 'saru', 0], 'シ': ['シマウマ', 'shimauma', 0], 'ス': ['スプーン', 'supun', 0], 'セ': ['セミ', 'semi', 0], 'ソ': ['ソーセージ', 'soseji', 0],
+      'タ': ['タヌキ', 'tanuki', 0], 'チ': ['チーズ', 'chizu', 0], 'ツ': ['ツル', 'tsuru', 0], 'テ': ['テレビ', 'terebi', 0], 'ト': ['トマト', 'tomato', 0],
+      'ナ': ['ナス', 'nasu', 0], 'ニ': ['ニンジン', 'ninjin', 0], 'ヌ': ['ヌー', 'nu', 0], 'ネ': ['ネコ', 'neko', 0], 'ノ': ['ノート', 'noto', 0],
+      'ハ': ['ハチ', 'hachi', 0], 'ヒ': ['ヒヨコ', 'hiyoko', 0], 'フ': ['フクロウ', 'fukuro', 0], 'ヘ': ['ヘリコプター', 'heri', 0], 'ホ': ['ホットケーキ', 'hottokeki', 0],
+      'マ': ['マフラー', 'mafura', 0], 'ミ': ['ミルク', 'miruku', 0], 'ム': ['ムササビ', 'musasabi', 0], 'メ': ['メロン', 'meron', 0], 'モ': ['モグラ', 'mogura', 0],
+      'ヤ': ['ヤギ', 'yagi', 0], 'ユ': ['ユニコーン', 'yunikon', 0], 'ヨ': ['ヨーグルト', 'yoguruto', 0], 'ラ': ['ライオン', 'raion', 0], 'リ': ['リボン', 'ribon', 0],
+      'ル': ['ルビー', 'rubi', 0], 'レ': ['レモン', 'remon', 0], 'ロ': ['ロバ', 'roba', 0], 'ワ': ['ワニ', 'wani', 0], 'ン': ['ピーマン', 'piman', 3],
+      'ガ': ['ガム', 'gamu', 0], 'ギ': ['ギター', 'gita', 0], 'グ': ['グローブ', 'gurobu', 0], 'ゲ': ['ゲーム', 'gemu', 0], 'ゴ': ['ゴリラ', 'gorira', 0],
+      'ザ': ['ザリガニ', 'zarigani', 0], 'ジ': ['ジュース', 'jusu', 0], 'ズ': ['ズボン', 'zubon', 0], 'ゼ': ['ゼリー', 'zeri', 0], 'ゾ': ['ゾウ', 'zou', 0],
+      'ダ': ['ダチョウ', 'dacho', 0], 'デ': ['デザート', 'dezato', 0], 'ド': ['ドーナツ', 'donatsu', 0], 'バ': ['バナナ', 'banana', 0], 'ビ': ['ビスケット', 'bisuketto', 0],
+      'ブ': ['ブランコ', 'buranko', 0], 'ベ': ['ベル', 'beru', 0], 'ボ': ['ボタン', 'botan', 0], 'パ': ['パン', 'pan', 0], 'ピ': ['ピアノ', 'piano', 0],
+      'プ': ['プリン', 'purin', 0], 'ペ': ['ペンギン', 'pengin', 0], 'ポ': ['ポスト', 'posuto', 0],
+    };
+    // 絵の 下に ことばを 書く（その文字だけ 赤）。「みほんを 出さない」ときは 絵だけ
+    function picHTML(ch, showWord, size) {
+      const p = PICS[ch];
+      if (!p) return '<div class="pic"></div>';
+      const [w, file, at] = p, ls = [...w];
+      const word = ls.map((c, i) => i === at ? `<b>${c}</b>` : c).join('');
+      return `<div class="pic"><img src="img/${file}.jpg" alt="${w}" style="width:${size}mm;height:${size}mm">${showWord ? `<div class="pword">${word}</div>` : ''}</div>`;
+    }
+
     function sheetHTML(sh, stage, showMihon) {
       if (sh.words) return wordSheetHTML(sh, stage, showMihon);
       const chars = [...sh.chars].filter(ch => STROKES[ch]);
@@ -414,6 +444,7 @@
         const order = stage === 3 ? shuffled(ch, parts.length) : parts.map((_, i) => i);
         return `<div class="prow" style="height:${rowH}mm">
           <div class="label"><div class="yomi">${yomi(ch)}</div>${stage >= 2 && showMihon ? `<div>${mihon(ch)}<small>みほん</small></div>` : ''}</div>
+          ${picHTML(ch, showMihon, n >= 5 ? 22 : 24)}
           <div class="pieces" data-u="${u}">${order.map(i => piece(parts[i], u)).join('')}</div>
           <div class="arrow">➜</div>${target(parts, stage, tgt)}</div>`;
       }).join('');
@@ -512,7 +543,12 @@
 
     render();
     // 文字の形が 決まってから もう一度 はかりなおす
-    (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => { render(); document.body.dataset.ready = '1'; });
+    (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => {
+      render();
+      // 絵が 読みこまれてから「できた」に する（PDF に 絵が 入るように）
+      const imgs = [...document.images].filter(i => !i.complete);
+      return Promise.all(imgs.map(i => new Promise(r => { i.onload = i.onerror = r; })));
+    }).then(() => { document.body.dataset.ready = '1'; });
   </script>
 </body>
 </html>
