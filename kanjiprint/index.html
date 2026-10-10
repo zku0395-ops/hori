@@ -76,6 +76,8 @@
     .q .no { position: absolute; top: 0; left: 50%; transform: translateX(-50%); font-size: 3.6mm; font-weight: 700; writing-mode: horizontal-tb; }
     .q .s { line-height: 1.15; white-space: nowrap; }
     .q ruby rt { font-family: 'BIZ UDPGothic', sans-serif; font-weight: 400; }
+    .rb { position: relative; }
+    .rt2 { position: absolute; left: 100%; top: 50%; transform: translateY(-50%); writing-mode: vertical-rl; white-space: nowrap; line-height: 1; font-family: 'BIZ UDPGothic', sans-serif; font-weight: 400; }
     .tg { border-left: .8mm solid #e11d48; position: relative; display: inline-block; }
     .tg .ansbox { position: absolute; top: 0; }
     .kb { position: relative; display: inline-block; }
@@ -206,19 +208,23 @@
       let last = 0, m;
       const rt = (t) => `<rt style="font-size:${(fs * 0.42).toFixed(2)}mm">${esc(t)}</rt>`;
       // よみの わくが のびて いる ところ（mm）。そこに ふりがなの ある 字が くるときは、わくの したまで 字を さげる
-      let reach = 0;
-      const pass = (t) => { for (const c of t) reach -= c === ' ' ? fs * .2 : fs; };
+      let reach = 0, tail = 0; // tail：まえの 字の ふりがなが したに はみ出して いる ながさ（mm）
+      const pass = (t) => { for (const c of t) { const d = c === ' ' ? fs * .2 : fs; reach -= d; tail -= d; } };
       while ((m = re.exec(ex.s))) {
         const before = ex.s.slice(last, m.index);
         out.push(esc(before)); pass(before);
         if (m[2]) {
           if (reach > 0) { out.push(`<span style="display:inline-block;height:${(reach + 1).toFixed(2)}mm"></span>`); reach = 0; }
-          out.push(`<ruby>${esc(m[2])}${rt(m[3])}</ruby>`); pass(m[2]);
+          // ふりがなは 行の 幅を ふやさないよう、字の みぎに 重ねて おく（ruby だと 字が 左に ずれて、となりの 列の わくに ちかづく）
+          out.push(`<span class="rb">${esc(m[2])}<span class="rt2" style="font-size:${(fs * 0.42).toFixed(2)}mm">${esc(m[3])}</span></span>`); pass(m[2]);
+          tail = Math.max(0, ([...m[3]].length * fs * 0.42 - fs * [...m[2]].length) / 2);
         }
         else if (mode === 'yomi') {
           // 字の みぎに、よみを 書く わく
           const n = Math.max(2, [...ex.y].length) * [...m[1]].length;
           const yb = B.yb || fs * 1.1, bw = yb, h = n * yb + fs * 0.3;
+          // まえの 字の ふりがなが わくに かからないよう、すこし あける
+          if (tail > 0) out.push(`<span style="display:inline-block;height:${(tail + .8).toFixed(2)}mm"></span>`);
           out.push(`<span class="tg">${esc(m[1])}<span class="ansbox" style="left:calc(100% + .9mm);width:${bw.toFixed(2)}mm;height:${h.toFixed(2)}mm"></span></span>`);
           reach = h; pass(m[1]);
         } else if (mode === 'kaku') {
@@ -301,10 +307,10 @@
       const steps = ps.map((_, i) => stepKanji(k, i + 1)).join('');
       const sz = ps.length > 10 ? 7.2 : ps.length > 6 ? 8 : 9;
       const yomiCol = (cls, lab, t) => t ? `<div class="one"><span class="chip ${cls}">${lab}</span><span class="txt">${red(t)}</span></div>` : '';
-      const fs = 7, w = 20.5, B = { yb: 11, kb: 16 };
+      const fs = 7, w = 20.5, wy = 22, B = { yb: 11, kb: 16 };
       const L = P.learn[k];
       const qs = [
-        question('①', L.yomi[0], 'yomi', fs, w, B), question('②', L.yomi[1], 'yomi', fs, w, B),
+        question('①', L.yomi[0], 'yomi', fs, wy, B), question('②', L.yomi[1], 'yomi', fs, wy, B),
         question('③', L.kaku[0], 'kaku', fs, w, B), question('④', L.kaku[1], 'kaku', fs, w, B),
       ];
       return `<div class="half ${side}">
@@ -332,8 +338,8 @@
 
     // ふくしゅう（半分）：ステージの 5字
     function reviewHalf(st, P) {
-      const fs = 4.6, w = 13.3, B = { yb: 6.8, kb: 10 };
-      const ys = P.review.yomi.map((ex, i) => question(CIRCLED[i], ex, 'yomi', fs, w, B)).join('');
+      const fs = 4.6, w = 12.6, wy = 14.2, B = { yb: 6.8, kb: 9.6 };
+      const ys = P.review.yomi.map((ex, i) => question(CIRCLED[i], ex, 'yomi', fs, wy, B)).join('');
       const ks = P.review.kaku.map((ex, i) => question(CIRCLED[i + 5], ex, 'kaku', fs, w, B)).join('');
       return `<div class="half l">
         <div style="position:absolute;right:0;top:0;font-size:4.4mm;font-weight:700;background:#fef3c7;border:.6mm solid #f59e0b;border-radius:3mm;padding:1mm 4mm">ふくしゅう　<span class="kyo">${st.kanji.join('・')}</span></div>
