@@ -1369,7 +1369,7 @@
   ];
 
   // なりたちの絵がある漢字（img/n/<コード>.webp）
-  const PIC = '皿豆歯鼻指羊島橋駅港湖畑箱笛筆柱氷坂';
+  const PIC = '皿豆歯鼻指羊島橋駅港湖畑箱笛筆柱氷坂波岸庭球宮薬葉根炭';
 
   window.KANJI_DATA = { KANJI, STAGES, HATTEN, PIC: [...PIC], PREV, BU };
 })();
