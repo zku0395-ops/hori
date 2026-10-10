@@ -205,14 +205,22 @@
       const re = /\[(.+?)\]|\{(.+?)\|(.+?)\}/g;
       let last = 0, m;
       const rt = (t) => `<rt style="font-size:${(fs * 0.42).toFixed(2)}mm">${esc(t)}</rt>`;
+      // よみの わくが のびて いる ところ（mm）。そこに ふりがなの ある 字が くるときは、わくの したまで 字を さげる
+      let reach = 0;
+      const pass = (t) => { for (const c of t) reach -= c === ' ' ? fs * .2 : fs; };
       while ((m = re.exec(ex.s))) {
-        out.push(esc(ex.s.slice(last, m.index)));
-        if (m[2]) out.push(`<ruby>${esc(m[2])}${rt(m[3])}</ruby>`);
+        const before = ex.s.slice(last, m.index);
+        out.push(esc(before)); pass(before);
+        if (m[2]) {
+          if (reach > 0) { out.push(`<span style="display:inline-block;height:${(reach + 1).toFixed(2)}mm"></span>`); reach = 0; }
+          out.push(`<ruby>${esc(m[2])}${rt(m[3])}</ruby>`); pass(m[2]);
+        }
         else if (mode === 'yomi') {
           // 字の みぎに、よみを 書く わく
           const n = Math.max(2, [...ex.y].length) * [...m[1]].length;
           const yb = B.yb || fs * 1.1, bw = yb, h = n * yb + fs * 0.3;
           out.push(`<span class="tg">${esc(m[1])}<span class="ansbox" style="left:calc(100% + .9mm);width:${bw.toFixed(2)}mm;height:${h.toFixed(2)}mm"></span></span>`);
+          reach = h; pass(m[1]);
         } else if (mode === 'kaku') {
           // 漢字を 書く ます（よみは みぎに 小さく）
           const b = B.kb || fs * 1.75, n = [...m[1]].length;
