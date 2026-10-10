@@ -208,11 +208,11 @@
         else if (mode === 'yomi') {
           // 字の みぎに、よみを 書く わく
           const n = Math.max(2, [...ex.y].length) * [...m[1]].length;
-          const bw = fs * .82, h = n * fs * 0.82 + fs * 0.25;
+          const bw = fs * 1.1, h = n * fs * 1.1 + fs * 0.3;
           out.push(`<span class="tg">${esc(m[1])}<span class="ansbox" style="left:calc(100% + .9mm);width:${bw.toFixed(2)}mm;height:${h.toFixed(2)}mm"></span></span>`);
         } else if (mode === 'kaku') {
           // 漢字を 書く ます（よみは みぎに 小さく）
-          const b = fs * 1.4, n = [...m[1]].length;
+          const b = fs * 1.75, n = [...m[1]].length;
           out.push(`<span class="kb" style="margin:${(fs * .15).toFixed(2)}mm 0"><span class="kbox" style="width:${b.toFixed(2)}mm;height:${(b * n).toFixed(2)}mm"></span><span class="yo" style="left:calc(100% + .5mm);font-size:${(fs * .42).toFixed(2)}mm;line-height:1">${esc(ex.y)}</span></span>`);
         } else out.push(`<ruby class="ans-red">${esc(m[1])}${rt(ex.y)}</ruby>`);
         last = re.lastIndex;
@@ -222,7 +222,7 @@
     }
     const question = (no, ex, mode, fs, width) => {
       // 字の みぎに わく（よみ）や よみがな（かく）が 出るので、その ぶん あける
-      const pad = mode === 'yomi' ? fs * .82 + 1.2 : fs * .45 + .8;
+      const pad = mode === 'yomi' ? fs * 1.1 + 1.2 : fs * .45 + .8;
       return `<div class="q kyo" style="font-size:${fs}mm;width:${width}mm"><span class="no">${no}</span><div class="s" style="margin-right:${pad.toFixed(2)}mm">${sentence(ex, mode, fs)}</div></div>`;
     };
     const plainEx = (s) => s.replace(/\[(.+?)\]/g, '$1').replace(/\{(.+?)\|(.+?)\}/g, '$1');
@@ -287,7 +287,7 @@
       const steps = ps.map((_, i) => stepKanji(k, i + 1)).join('');
       const sz = ps.length > 10 ? 7.6 : ps.length > 8 ? 8.6 : 10;
       const yomiCol = (cls, lab, t) => t ? `<div class="one"><span class="chip ${cls}">${lab}</span><span class="txt">${red(t)}</span></div>` : '';
-      const fs = 7.6, w = 16.6;
+      const fs = 7.2, w = 16.8;
       const L = P.learn[k];
       const qs = [
         question('①', L.yomi[0], 'yomi', fs, w), question('②', L.yomi[1], 'yomi', fs, w),
@@ -320,7 +320,7 @@
 
     // ふくしゅう（半分）：ステージの 5字
     function reviewHalf(st, P) {
-      const fs = 5.2, w = 11.2;
+      const fs = 4.6, w = 11.4;
       const ys = P.review.yomi.map((ex, i) => question(CIRCLED[i], ex, 'yomi', fs, w)).join('');
       const ks = P.review.kaku.map((ex, i) => question(CIRCLED[i + 5], ex, 'kaku', fs, w)).join('');
       return `<div class="half l">
