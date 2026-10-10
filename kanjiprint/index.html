@@ -342,7 +342,7 @@
         if (hasBoth(k)) {
           const y1 = pick(k, false), y2 = pick(k, true);
           learn[k] = { yomi: [y1, y2], kaku: [pick(k, false, [y1]), pick(k, true, [y2])] };
-        } else learn[k] = { yomi: [e[0], e[1]], kaku: [e[2], e[0]] };
+        } else learn[k] = { yomi: [e[0], e[1 % e.length]], kaku: [e[2 % e.length], e[0]] };
       });
       // ふくしゅうと テストは 1字1問ずつ。音・訓を まぜて、ふくしゅうと テストで ちがう 文に する
       const review = { yomi: [], kaku: [] }, test = { yomi: [], kaku: [] };
@@ -535,8 +535,8 @@
     }
     function hattenSheets() {
       const sp = specialWords(), ok = HATTEN.find(h => h.type === 'okuri');
-      const B = { yb: 10, kb: 14 };
-      const spQs = sp.map((x, i) => question(CIRCLED[i] || String(i + 1), { s: x.s, y: x.y, e: x.e }, 'yomi', 6.6, 18.5, B)).join('');
+      const B = { yb: 9, kb: 13 };
+      const spQs = sp.map((x, i) => question(CIRCLED[i] || String(i + 1), { s: x.s, y: x.y, e: x.e }, 'yomi', 6.2, 18.8, B)).join('');
       const tag = { color: '#a16207' };
       const s1 = `<div class="sheet">
         ${header(tag, 'とくべつな よみかた', { tag: 'はってん①' })}

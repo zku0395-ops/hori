@@ -6,20 +6,10 @@
 // FONT_CSS に フォントの CSS の 場所を 入れると、Google Fonts の かわりに それを 使います（ネットに つながらない ところで 作るとき）。
 const path = require('path');
 const fs = require('fs');
-const { execFileSync } = require('child_process');
 let playwright;
 try { playwright = require('playwright'); } catch (e) { playwright = require('/opt/node-tools/node_modules/playwright'); }
 
 const ROOT = path.join(__dirname, '..');
-
-// いくつかの PDF を 1つに まとめる
-function unite(parts, out) {
-  try {
-    execFileSync('pdfunite', [...parts, out]);
-  } catch (e) {
-    execFileSync('python3', ['-c', 'import sys,pypdf\nw=pypdf.PdfWriter()\nfor f in sys.argv[2:]: w.append(f)\nw.write(sys.argv[1])', out, ...parts]);
-  }
-}
 
 (async () => {
   const [ga, only] = process.argv.slice(2);
@@ -36,7 +26,7 @@ function unite(parts, out) {
   for (const g of grades) {
     const open = async (stage) => {
       await page.goto('file://' + path.join(ROOT, 'index.html') + `?print=1&g=${g}&stage=${stage}`);
-      await page.waitForSelector('body[data-ready="1"]', { timeout: 60000 });
+      await page.waitForSelector('body[data-ready="1"]', { timeout: stage === 'all' ? 900000 : 60000 });
       await page.waitForTimeout(500);
       await page.emulateMedia({ media: 'print' });
     };
@@ -44,18 +34,18 @@ function unite(parts, out) {
     const info = await page.evaluate(() => ({ files: window.KANJIPRINT_FILES, dir: window.KANJIPRINT_DIR, all: window.KANJIPRINT_ALL }));
     const OUT = path.join(ROOT, info.dir);
     fs.mkdirSync(OUT, { recursive: true });
-    const parts = [];
     for (const f of info.files) {
       if (only && f.id !== only) continue;
       await open(f.id);
       const file = path.join(OUT, f.file);
       await page.pdf({ path: file, format: 'A4', landscape: true, printBackground: true, preferCSSPageSize: true });
-      parts.push(file);
       console.log('できました：', path.relative(process.cwd(), file));
     }
     if (only) continue;
+    // ぜんぶ は 1回で 作ります（つなぎあわせると フォントが かさなって 大きく なるため）
+    await open('all');
     const all = path.join(OUT, info.all);
-    unite(parts, all);
+    await page.pdf({ path: all, format: 'A4', landscape: true, printBackground: true, preferCSSPageSize: true });
     console.log('できました：', path.relative(process.cwd(), all));
   }
   await browser.close();
