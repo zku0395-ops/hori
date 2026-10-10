@@ -41,9 +41,9 @@
     .divider { position: absolute; left: 148.5mm; top: 24mm; bottom: 10mm; border-left: .5mm dashed #a8a29e; }
 
     /* 見本の カード */
-    .rcol { position: absolute; right: 0; top: 0; width: 50mm; display: flex; flex-direction: column; gap: 2.5mm; }
-    .card { width: 50mm; border: .9mm solid #d6d3d1; border-radius: 4mm; background: #fafaf9; padding: 1.5mm; }
-    .big { width: 46mm; height: 46mm; background: #fff; border: .7mm solid #e11d48; position: relative; }
+    .rcol { position: absolute; right: 0; top: 0; width: 44mm; display: flex; flex-direction: column; gap: 2.5mm; }
+    .card { width: 44mm; border: .9mm solid #d6d3d1; border-radius: 4mm; background: #fafaf9; padding: 1.5mm; }
+    .big { width: 40mm; height: 40mm; background: #fff; border: .7mm solid #e11d48; position: relative; }
     .big svg { width: 100%; height: 100%; display: block; }
     .info { display: flex; gap: 1.5mm; margin-top: 2mm; min-height: 44mm; }
     .info .col { background: #fff; border-radius: 2mm; flex: 1; padding: 1.5mm 1mm; display: flex; flex-direction: column; align-items: center; }
@@ -60,18 +60,21 @@
     .yomi .ok { color: #e11d48; }
 
     /* なぞりがき */
-    .trace { display: grid; grid-template-columns: 21mm 21mm; gap: 1mm 3mm; justify-content: center; direction: rtl; }
+    .trace { display: grid; grid-template-columns: 19mm 19mm; gap: 1mm 3mm; justify-content: center; direction: rtl; }
     .trace > * { direction: ltr; }
     .trace .lab { font-size: 3mm; font-weight: 700; white-space: nowrap; text-align: center; }
-    .cell { width: 21mm; height: 21mm; border: .45mm solid #0ea5e9; position: relative; background: #fff; }
+    .cell { width: 19mm; height: 19mm; border: .45mm solid #0ea5e9; position: relative; background: #fff; }
     .cell svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 
     /* もんだい */
-    .qs { position: absolute; left: 0; top: 0; bottom: 0; display: flex; flex-direction: row-reverse; gap: 1mm; }
+    .qs { position: absolute; left: 0; top: 0; bottom: 0; display: flex; flex-direction: row-reverse; gap: 3mm; }
     .qhead { writing-mode: vertical-rl; font-size: 3.2mm; font-weight: 700; color: #fff; border-radius: 2mm; padding: 2mm .6mm; align-self: flex-start; }
-    .q { writing-mode: vertical-rl; position: relative; padding-top: 7mm; }
+    .grp { display: flex; flex-direction: column; align-items: stretch; }
+    .ghead { font-size: 3.6mm; font-weight: 700; color: #fff; border-radius: 2mm; padding: .8mm 2mm; text-align: center; white-space: nowrap; margin-bottom: 1.5mm; }
+    .gcols { display: flex; flex-direction: row-reverse; }
+    .q { writing-mode: vertical-rl; position: relative; padding-top: 7mm; flex-shrink: 0; }
     .q .no { position: absolute; top: 0; left: 50%; transform: translateX(-50%); font-size: 3.6mm; font-weight: 700; writing-mode: horizontal-tb; }
-    .q .s { line-height: 1.5; white-space: nowrap; }
+    .q .s { line-height: 1.15; white-space: nowrap; }
     .q ruby rt { font-family: 'BIZ UDPGothic', sans-serif; font-weight: 400; }
     .tg { border-left: .8mm solid #e11d48; position: relative; display: inline-block; }
     .tg .ansbox { position: absolute; top: 0; }
@@ -197,7 +200,7 @@
     // 例文（たて書き）
     // ---------------------------------------------------------------
     // mode：'yomi'（読みを 書く）／'kaku'（漢字を 書く）／'answer'（こたえ）
-    function sentence(ex, mode, fs) {
+    function sentence(ex, mode, fs, B = {}) {
       const out = [];
       const re = /\[(.+?)\]|\{(.+?)\|(.+?)\}/g;
       let last = 0, m;
@@ -208,11 +211,11 @@
         else if (mode === 'yomi') {
           // 字の みぎに、よみを 書く わく
           const n = Math.max(2, [...ex.y].length) * [...m[1]].length;
-          const bw = fs * 1.1, h = n * fs * 1.1 + fs * 0.3;
+          const yb = B.yb || fs * 1.1, bw = yb, h = n * yb + fs * 0.3;
           out.push(`<span class="tg">${esc(m[1])}<span class="ansbox" style="left:calc(100% + .9mm);width:${bw.toFixed(2)}mm;height:${h.toFixed(2)}mm"></span></span>`);
         } else if (mode === 'kaku') {
           // 漢字を 書く ます（よみは みぎに 小さく）
-          const b = fs * 1.75, n = [...m[1]].length;
+          const b = B.kb || fs * 1.75, n = [...m[1]].length;
           out.push(`<span class="kb" style="margin:${(fs * .15).toFixed(2)}mm 0"><span class="kbox" style="width:${b.toFixed(2)}mm;height:${(b * n).toFixed(2)}mm"></span><span class="yo" style="left:calc(100% + .5mm);font-size:${(fs * .42).toFixed(2)}mm;line-height:1">${esc(ex.y)}</span></span>`);
         } else out.push(`<ruby class="ans-red">${esc(m[1])}${rt(ex.y)}</ruby>`);
         last = re.lastIndex;
@@ -220,11 +223,14 @@
       out.push(esc(ex.s.slice(last)));
       return out.join('');
     }
-    const question = (no, ex, mode, fs, width) => {
+    // B：わくの 大きさ（yb＝よみの わく 1字ぶん、kb＝漢字の マス。mm）
+    const question = (no, ex, mode, fs, width, B = {}) => {
       // 字の みぎに わく（よみ）や よみがな（かく）が 出るので、その ぶん あける
-      const pad = mode === 'yomi' ? fs * 1.1 + 1.2 : fs * .45 + .8;
-      return `<div class="q kyo" style="font-size:${fs}mm;width:${width}mm"><span class="no">${no}</span><div class="s" style="margin-right:${pad.toFixed(2)}mm">${sentence(ex, mode, fs)}</div></div>`;
+      const pad = mode === 'yomi' ? (B.yb || fs * 1.1) + 1.2 : fs * .45 + .8;
+      return `<div class="q kyo" style="font-size:${fs}mm;width:${width}mm"><span class="no">${no}</span><div class="s" style="margin-right:${pad.toFixed(2)}mm">${sentence(ex, mode, fs, B)}</div></div>`;
     };
+    // 「よみを かこう」「かんじを かこう」の まとまり（見出しは 上に よこ書き）
+    const group = (title, color, cols) => `<div class="grp"><div class="ghead" style="background:${color}">${title}</div><div class="gcols">${cols}</div></div>`;
     const plainEx = (s) => s.replace(/\[(.+?)\]/g, '$1').replace(/\{(.+?)\|(.+?)\}/g, '$1');
     const ansText = (ex, kind) => {
       const t = esc(ex.s).replace(/\[(.+?)\]/, (_, k) => `<span class="a">${kind === 'yomi' ? `${k}（${esc(ex.y)}）` : `${k}`}</span>`).replace(/\{(.+?)\|(.+?)\}/g, '$1');
@@ -285,13 +291,13 @@
       const [on, kun] = YOMI[k] || ['', ''];
       const red = (t) => esc(t).replace(/\((.+?)\)/g, '<span class="ok">$1</span>');
       const steps = ps.map((_, i) => stepKanji(k, i + 1)).join('');
-      const sz = ps.length > 10 ? 7.6 : ps.length > 8 ? 8.6 : 10;
+      const sz = ps.length > 10 ? 7.2 : ps.length > 6 ? 8 : 9;
       const yomiCol = (cls, lab, t) => t ? `<div class="one"><span class="chip ${cls}">${lab}</span><span class="txt">${red(t)}</span></div>` : '';
-      const fs = 7.2, w = 16.8;
+      const fs = 7, w = 20.5, B = { yb: 11, kb: 16 };
       const L = P.learn[k];
       const qs = [
-        question('①', L.yomi[0], 'yomi', fs, w), question('②', L.yomi[1], 'yomi', fs, w),
-        question('③', L.kaku[0], 'kaku', fs, w), question('④', L.kaku[1], 'kaku', fs, w),
+        question('①', L.yomi[0], 'yomi', fs, w, B), question('②', L.yomi[1], 'yomi', fs, w, B),
+        question('③', L.kaku[0], 'kaku', fs, w, B), question('④', L.kaku[1], 'kaku', fs, w, B),
       ];
       return `<div class="half ${side}">
         <div class="rcol">
@@ -309,25 +315,23 @@
           ${traceCell(k, '#ece9e6')}<div class="cell"><svg viewBox="0 0 109 109">${guides('#bae6fd')}</svg></div>
         </div>
         </div>
-        <div class="qs" style="right:53mm">
-          <span class="qhead" style="background:${color}">よみを かこう</span>
-          ${qs[0]}${qs[1]}
-          <span class="qhead" style="background:#0ea5e9;margin-right:3mm">かんじを かこう</span>
-          ${qs[2]}${qs[3]}
+        <div class="qs" style="right:47mm">
+          ${group('よみを かこう', color, qs[0] + qs[1])}
+          ${group('かんじを かこう', '#0ea5e9', qs[2] + qs[3])}
         </div>
       </div>`;
     }
 
     // ふくしゅう（半分）：ステージの 5字
     function reviewHalf(st, P) {
-      const fs = 4.6, w = 11.4;
-      const ys = P.review.yomi.map((ex, i) => question(CIRCLED[i], ex, 'yomi', fs, w)).join('');
-      const ks = P.review.kaku.map((ex, i) => question(CIRCLED[i + 5], ex, 'kaku', fs, w)).join('');
+      const fs = 4.6, w = 13.3, B = { yb: 6.8, kb: 10 };
+      const ys = P.review.yomi.map((ex, i) => question(CIRCLED[i], ex, 'yomi', fs, w, B)).join('');
+      const ks = P.review.kaku.map((ex, i) => question(CIRCLED[i + 5], ex, 'kaku', fs, w, B)).join('');
       return `<div class="half l">
         <div style="position:absolute;right:0;top:0;font-size:4.4mm;font-weight:700;background:#fef3c7;border:.6mm solid #f59e0b;border-radius:3mm;padding:1mm 4mm">ふくしゅう　<span class="kyo">${st.kanji.join('・')}</span></div>
         <div class="qs" style="right:0;left:auto;top:10mm">
-          <span class="qhead" style="background:${st.color}">よみを かこう</span>${ys}
-          <span class="qhead" style="background:#0ea5e9;margin-right:3mm">かんじを かこう</span>${ks}
+          ${group('よみを かこう', st.color, ys)}
+          ${group('かんじを かこう', '#0ea5e9', ks)}
         </div>
       </div>`;
     }
@@ -345,14 +349,14 @@
     }
 
     function testSheet(st) {
-      const fs = 8.4, w = 24, P = plan(st);
-      const ys = P.test.yomi.map((ex, i) => question(CIRCLED[i], ex, 'yomi', fs, w)).join('');
-      const ks = P.test.kaku.map((ex, i) => question(CIRCLED[i + 5], ex, 'kaku', fs, w)).join('');
+      const fs = 8.4, w = 26.5, P = plan(st), B = { yb: 13, kb: 19 };
+      const ys = P.test.yomi.map((ex, i) => question(CIRCLED[i], ex, 'yomi', fs, w, B)).join('');
+      const ks = P.test.kaku.map((ex, i) => question(CIRCLED[i + 5], ex, 'kaku', fs, w, B)).join('');
       return `<div class="sheet">
         ${header(st, 'まとめテスト', { score: true })}
-        <div class="half r"><div class="qs" style="right:0;left:auto"><span class="qhead" style="background:${st.color}">よみを かこう（1もん 10てん）</span>${ys}</div></div>
+        <div class="half r"><div class="qs" style="right:0;left:auto">${group('よみを かこう（1もん 10てん）', st.color, ys)}</div></div>
         <div class="divider"></div>
-        <div class="half l"><div class="qs" style="right:0;left:auto"><span class="qhead" style="background:#0ea5e9">かんじを かこう（1もん 10てん）</span>${ks}</div></div>
+        <div class="half l"><div class="qs" style="right:0;left:auto">${group('かんじを かこう（1もん 10てん）', '#0ea5e9', ks)}</div></div>
         <div class="foot">ポンタせんせいの かんじ プリント　ステージ${stageNo(st)}　まとめテスト</div>
       </div>`;
     }
