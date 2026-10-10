@@ -1,0 +1,2031 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ポンタせんせいの かんじ ショッピングモール</title>
+
+  <script crossorigin="anonymous" src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+  <script crossorigin="anonymous" src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Klee+One:wght@600&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'BIZ UDPGothic', sans-serif; background: #fff8ec; margin: 0; color: #3f2d1d;
+      -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+    /* 教科書体に近い書体で 漢字と ひらがなを 見せる */
+    .kyo { font-family: 'Klee One', 'BIZ UDPGothic', serif; font-weight: 600; }
+    ruby rt { font-size: 0.45em; font-family: 'BIZ UDPGothic', sans-serif; font-weight: 700; color: #6b4f33; }
+    .btn3d { border-bottom-width: 6px; transition: transform .08s, border-bottom-width .08s; }
+    .btn3d:active:not(:disabled) { transform: translateY(4px); border-bottom-width: 2px; }
+    .pop { animation: pop .45s cubic-bezier(.17,.89,.32,1.28) both; }
+    @keyframes pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .floaty { animation: floaty 3s ease-in-out infinite; }
+    @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    .shake { animation: shake .45s; }
+    @keyframes shake { 0%,100% { transform: translateX(0); } 25%,75% { transform: translateX(-8px); } 50% { transform: translateX(8px); } }
+    .glow { animation: glow 1.1s ease-in-out infinite; }
+    @keyframes glow { 0%,100% { box-shadow: 0 0 0 0 rgba(250,204,21,.95); } 50% { box-shadow: 0 0 0 14px rgba(250,204,21,0); } }
+    .coinfly { animation: coinfly 1.1s ease-out forwards; }
+    @keyframes coinfly { 0% { transform: translateY(0) scale(.6); opacity: 0; } 20% { opacity: 1; transform: translateY(-10px) scale(1.2); } 100% { transform: translateY(-70px) scale(1); opacity: 0; } }
+    .bump { animation: bump .5s; }
+    @keyframes bump { 0%,100% { transform: scale(1); } 40% { transform: scale(1.35); } }
+    .draw-stroke { animation: drawStroke var(--dur, .8s) linear forwards; }
+    @keyframes drawStroke { to { stroke-dashoffset: 0; } }
+    .fadeout { animation: fadeout 1.2s ease forwards; }
+    @keyframes fadeout { to { opacity: .18; } }
+    .ponta-img { mix-blend-mode: multiply; }
+    .bubble:after { content: ''; position: absolute; left: -14px; top: 26px; border: 8px solid transparent; border-right: 8px solid #fff; }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div style="padding:60px;text-align:center;font-size:28px;color:#92400e;font-weight:bold;">じゅんび ちゅう…</div>
+  </div>
+
+  <!-- 問題のデータ・書き順データ・絵は GitHub Pages から読みこみます（このファイルを短くするため） -->
+  <script>
+    (function () {
+      var h = location.hostname;
+      var local = location.protocol === 'file:' || /github\.io$/.test(h) || h === 'localhost' || h === '127.0.0.1';
+      window.KANJI3_BASE = local ? '' : 'https://zku0395-ops.github.io/hori/kanji3/';
+      var V = '1';
+      window.KANJI3_READY = Promise.all(['data/mondai.js', 'data/strokes.js'].map(function (p) {
+        return new Promise(function (ok, ng) {
+          var s = document.createElement('script');
+          s.src = window.KANJI3_BASE + p + '?v=' + V;
+          s.onload = ok; s.onerror = function () { ng(new Error(p)); };
+          document.head.appendChild(s);
+        });
+      }));
+    })();
+  </script>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext } = React;
+    const APP_VERSION = '1.0.0';
+    const BASE = window.KANJI3_BASE;
+    const IMG = BASE + 'img/';
+
+    // =====================================================================
+    //  1. 小さな道具
+    // =====================================================================
+    const shuffle = (a) => { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+    const pickOne = (a) => a[Math.floor(Math.random() * a.length)];
+    const uniq = (a) => [...new Set(a)];
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+    const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    const nowStr = () => {
+      const d = new Date(), p = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    };
+    const safeStore = {
+      get(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
+      set(k, v) { try { window.localStorage.setItem(k, v); } catch (e) {} },
+      del(k) { try { window.localStorage.removeItem(k); } catch (e) {} },
+    };
+    const downloadText = (name, text, type) => {
+      const blob = new Blob([text], { type: type || 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = name; document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
+    };
+
+    // =====================================================================
+    //  2. こえ と おと
+    // =====================================================================
+    const Speech = {
+      rate: 0.8, pitch: 1.1, voice: null,
+      ok: typeof window !== 'undefined' && 'speechSynthesis' in window,
+      pickVoice() {
+        if (!this.ok) return;
+        const vs = window.speechSynthesis.getVoices().filter(v => (v.lang || '').toLowerCase().replace('_', '-').startsWith('ja'));
+        this.voice = vs.find(v => /google/i.test(v.name)) || vs[0] || null;
+      },
+      say(text, onEnd) {
+        if (!this.ok || !text) { if (onEnd) setTimeout(onEnd, 200); return; }
+        try {
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(text);
+          u.lang = 'ja-JP'; if (this.voice) u.voice = this.voice;
+          u.rate = this.rate; u.pitch = this.pitch;
+          let done = false;
+          const end = () => { if (!done) { done = true; onEnd && onEnd(); } };
+          u.onend = end; u.onerror = end;
+          // 声が出ない端末でも先へ進めるように、長さに合わせて待つ
+          setTimeout(end, 1500 + text.length * 260 / this.rate);
+          // Chrome は cancel の すぐ あとの speak を おとすことが あるので すこし まつ
+          setTimeout(() => window.speechSynthesis.speak(u), 60);
+        } catch (e) { if (onEnd) setTimeout(onEnd, 200); }
+      },
+      stop() { try { this.ok && window.speechSynthesis.cancel(); } catch (e) {} },
+    };
+    if (Speech.ok) { Speech.pickVoice(); window.speechSynthesis.onvoiceschanged = () => Speech.pickVoice(); }
+
+    const Sound = {
+      on: true, ctx: null,
+      get() {
+        if (!this.ctx) { const C = window.AudioContext || window.webkitAudioContext; if (C) this.ctx = new C(); }
+        if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+        return this.ctx;
+      },
+      tone(freq, at, dur, type = 'triangle', vol = 0.16) {
+        const c = this.get(); if (!c || !this.on) return;
+        const o = c.createOscillator(), g = c.createGain(), t = c.currentTime + at;
+        o.type = type; o.frequency.value = freq;
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.05);
+      },
+      // せいかいの ファンファーレ（このアプリのための オリジナル）
+      fanfare() {
+        [[523, 0], [659, .12], [784, .24]].forEach(([f, t]) => this.tone(f, t, .16, 'triangle', .18));
+        [523, 659, 784, 1046].forEach(f => this.tone(f, .4, .7, 'triangle', .12));
+        this.tone(1318, .4, .7, 'sine', .08);
+      },
+      big() { // ステージ クリア
+        [[523, 0], [523, .15], [523, .3], [659, .45], [784, .75], [659, 1.0], [784, 1.15]].forEach(([f, t]) => this.tone(f, t, .2, 'triangle', .18));
+        [523, 659, 784, 1046].forEach(f => this.tone(f, 1.35, 1.1, 'triangle', .12));
+      },
+      retry() { this.tone(330, 0, .16, 'sine', .07); this.tone(294, .14, .22, 'sine', .07); }, // まちがえたとき（小さな音）
+      tick() { this.tone(880, 0, .08, 'triangle', .1); },
+      tap() { this.tone(660, 0, .06, 'sine', .07); },
+      coin() { this.tone(988, 0, .08, 'square', .06); this.tone(1319, .08, .25, 'square', .06); },
+      buy() { [784, 988, 1175, 1568].forEach((f, i) => this.tone(f, i * .07, .18, 'square', .05)); },
+    };
+
+    // =====================================================================
+    //  3. データ（問題・ショップ）
+    // =====================================================================
+    let KANJI = {}, STAGES = [], HATTEN = [], PIC = new Set(), STROKES = {}, PARTS = {}, PREV = {}, BU = {}, ALL_STAGES = [];
+    const STEP = {
+      meet: { label: 'であう', num: '⓪', icon: '👀', kind: '' },
+      yomiSel: { label: 'よみを えらぶ', num: '①', icon: '🔍', kind: 'よみを えらぶ' },
+      kanjiSel: { label: 'かんじを えらぶ', num: '③', icon: '🧩', kind: 'かんじを えらぶ' },
+      yomiWrite: { label: 'よみを かく', num: '②', icon: '✏️', kind: 'よみを かく' },
+      kanjiWrite: { label: 'かんじを かく', num: '④', icon: '📝', kind: 'かんじを かく' },
+      okuriSel: { label: 'おくりがなを えらぶ', num: '🖋', icon: '🖋️', kind: 'おくりがな' },
+      hantaiSel: { label: 'はんたいの ことばを えらぶ', num: '↔', icon: '↔️', kind: 'はんたい' },
+      review: { label: 'まとめ ふくしゅう', num: '★', icon: '🏅', kind: '' },
+    };
+    const KIND_ORDER = ['よみを えらぶ', 'かんじを えらぶ', 'よみを かく', 'かんじを かく', 'おくりがな', 'はんたい'];
+    const KIND_NUM = { 'よみを えらぶ': '①', 'かんじを えらぶ': '③', 'よみを かく': '②', 'かんじを かく': '④', 'おくりがな': '🖋', 'はんたい': '↔' };
+    const isHatten = (st) => st.type === 'hatten' || st.type === 'okuri' || st.type === 'hantai';
+    const stepsOf = (st) => st.type === 'kanji' ? ['meet', 'yomiSel', 'kanjiSel', 'yomiWrite', 'kanjiWrite']
+      : st.type === 'hatten' ? ['meet', 'yomiSel', 'kanjiSel'] : st.type === 'okuri' ? ['meet', 'okuriSel']
+      : st.type === 'hantai' ? ['meet', 'hantaiSel'] : ['review'];
+    // 部首（へん・つくり など）：[形, なまえ]（ないときは null）
+    const buOf = (k) => BU[k] || null;
+    const stageById = (id) => ALL_STAGES.find(s => s.id === id);
+    const hex = (k) => k.codePointAt(0).toString(16).padStart(4, '0');
+    const picUrl = (k) => PIC.has(k) ? `${IMG}n/${hex(k)}.webp` : null;
+
+    // 部品の色（10画以上の字を 部品ごとに 色分けして 見せる）
+    const PART_COLORS = [
+      { c: '#e11d48', light: '#fecdd3', name: 'あか' }, { c: '#2563eb', light: '#bfdbfe', name: 'あお' },
+      { c: '#16a34a', light: '#bbf7d0', name: 'みどり' }, { c: '#9333ea', light: '#e9d5ff', name: 'むらさき' },
+    ];
+    // 子どもが 知って いる 部品は、名前で 知らせる
+    const PART_NAME = { 日: 'ひ', 月: 'つき', 木: 'き', 口: 'くち', 目: 'め', 田: 'た', 土: 'つち', 力: 'ちから', 女: 'おんな', 子: 'こ',
+      人: 'ひと', 山: 'やま', 川: 'かわ', 水: 'みず', 火: 'ひ', 石: 'いし', 王: 'おう', 糸: 'いと', 貝: 'かい', 白: 'しろ', 立: 'たつ',
+      耳: 'みみ', 竹: 'たけ', 雨: 'あめ', 門: 'もん', 言: 'いう', 見: 'みる', 米: 'こめ', 羽: 'はね', 鳥: 'とり', 合: 'あう', 会: 'あう',
+      売: 'うる', 寺: 'てら', 首: 'くび', 豆: 'まめ', 弓: 'ゆみ', 虫: 'むし', 早: 'はやい', 小: 'ちいさい', 青: 'あお', 里: 'さと', 舌: 'した',
+      金: 'かね', 車: 'くるま', 馬: 'うま', 音: 'おと', 心: 'こころ', 長: 'ながい', 黄: 'き', 重: 'おもい', 直: 'なおす', 何: 'なに',
+      正: 'ただしい', 冬: 'ふゆ', 者: 'もの', 東: 'ひがし', 自: 'じぶん', 羊: 'ひつじ', 火: 'ひ', 方: 'ほう', 足: 'あし', 走: 'はしる',
+      氵: 'さんずい', 扌: 'てへん', 亻: 'にんべん', 艹: 'くさかんむり', 宀: 'うかんむり', '⻌': 'しんにょう', '⻖': 'こざとへん', '⻏': 'おおざと',
+      飠: 'しょくへん', 疒: 'やまいだれ', 广: 'まだれ', 礻: 'しめすへん', 癶: 'はつがしら', 隹: 'ふるとり', 頁: 'おおがい', 攵: 'のぶん',
+      巾: 'はば', 酉: 'とり', 示: 'しめす', 門: 'もんがまえ' };
+    // 部品の じょうほう：[{ el, ids, color }]（ないときは null）
+    let PARTS_ON = true; // 先生用画面の せってい
+    const partsOf = (ch) => {
+      if (!PARTS_ON) return null;
+      const p = PARTS[ch];
+      if (!p || p.length < 2) return null;
+      return [...p].sort((a, b) => a[1][0] - b[1][0]).map(([el, ids], i) => ({ el, ids, color: PART_COLORS[i % PART_COLORS.length] }));
+    };
+    const partOfStroke = (parts, i) => parts ? parts.findIndex(p => p.ids.includes(i)) : -1;
+    const partsSpeech = (ch, parts) => `「${ch}」は ${parts.length}つの ぶぶんで できて いるよ。` +
+      parts.map(p => `${p.color.name}${PART_NAME[p.el] ? `の「${PART_NAME[p.el]}」` : 'の ぶぶん'}`).join('、') + 'の じゅんに かくよ。';
+
+    // おみせ：ショッピングモールの おみせ（10の なかま × 10しゅるい）
+    const ITEM_CATS = [
+      { id: 'norimono', name: 'のりもの', icon: '🚲', title: 'のりもの はかせ', color: '#2563eb', items: [
+        ['🛴', 'キックボード'], ['🚲', 'じてんしゃ'], ['🚌', 'バス'], ['🚒', 'しょうぼうしゃ'], ['🚤', 'ボート'], ['🚡', 'ロープウェイ'], ['🚂', 'きかんしゃ'], ['🛩️', 'ひこうき'], ['🏎️', 'レーシングカー'], ['🚀', 'ロケット']] },
+      { id: 'tabemono', name: 'たべもの', icon: '🍙', title: 'たべもの はかせ', color: '#ea580c', items: [
+        ['🍙', 'おにぎり'], ['🍳', 'めだまやき'], ['🍟', 'ポテト'], ['🥐', 'クロワッサン'], ['🍔', 'ハンバーガー'], ['🍜', 'ラーメン'], ['🍛', 'カレーライス'], ['🍗', 'フライドチキン'], ['🍕', 'ピザ'], ['🍣', 'おすし']] },
+      { id: 'kudamono', name: 'くだもの', icon: '🍎', title: 'くだもの はかせ', color: '#dc2626', items: [
+        ['🍊', 'みかん'], ['🍌', 'バナナ'], ['🍎', 'りんご'], ['🍏', 'あおりんご'], ['🍑', 'もも'], ['🍇', 'ぶどう'], ['🍓', 'いちご'], ['🍍', 'パイナップル'], ['🍉', 'すいか'], ['🍈', 'メロン']] },
+      { id: 'yasai', name: 'やさい', icon: '🥕', title: 'やさい はかせ', color: '#16a34a', items: [
+        ['🥕', 'にんじん'], ['🥒', 'きゅうり'], ['🍅', 'トマト'], ['🥔', 'じゃがいも'], ['🍆', 'なす'], ['🥬', 'キャベツ'], ['🫛', 'えだまめ'], ['🥦', 'ブロッコリー'], ['🌽', 'とうもろこし'], ['🎃', 'かぼちゃ']] },
+      { id: 'bunbougu', name: 'ぶんぼうぐ', icon: '✏️', title: 'ぶんぼうぐ はかせ', color: '#0891b2', items: [
+        ['📎', 'クリップ'], ['✏️', 'えんぴつ'], ['📏', 'じょうぎ'], ['📓', 'ノート'], ['🖍️', 'クレヨン'], ['✂️', 'はさみ'], ['🗒️', 'メモちょう'], ['📐', 'さんかくじょうぎ'], ['🖌️', 'ふで'], ['📔', 'にっきちょう']] },
+      { id: 'dezaato', name: 'デザート', icon: '🍰', title: 'デザート はかせ', color: '#db2777', items: [
+        ['🍪', 'クッキー'], ['🍡', 'だんご'], ['🍩', 'ドーナツ'], ['🍮', 'プリン'], ['🍦', 'ソフトクリーム'], ['🧁', 'カップケーキ'], ['🍫', 'チョコレート'], ['🍰', 'ショートケーキ'], ['🥧', 'アップルパイ'], ['🎂', 'バースデーケーキ']] },
+      { id: 'doubutsu', name: 'どうぶつ', icon: '🐼', title: 'どうぶつ はかせ', color: '#a16207', items: [
+        ['🐹', 'ハムスター'], ['🐰', 'うさぎ'], ['🐱', 'ねこ'], ['🐶', 'いぬ'], ['🦘', 'カンガルー'], ['🐯', 'とら'], ['🦁', 'ライオン'], ['🦒', 'きりん'], ['🐘', 'ぞう'], ['🐼', 'パンダ']] },
+      { id: 'umi', name: 'うみの いきもの', icon: '🐬', title: 'うみの いきもの はかせ', color: '#0284c7', items: [
+        ['🦀', 'かに'], ['🐙', 'たこ'], ['🦑', 'いか'], ['🐠', 'ねったいぎょ'], ['🐡', 'ふぐ'], ['🐢', 'うみがめ'], ['🦭', 'あざらし'], ['🐬', 'いるか'], ['🦈', 'さめ'], ['🐳', 'くじら']] },
+      { id: 'hana', name: 'はな', icon: '🌷', title: 'はな はかせ', color: '#e11d48', items: [
+        ['🍀', 'よつばの クローバー'], ['🌼', 'デイジー'], ['🌷', 'チューリップ'], ['🌸', 'さくら'], ['🌻', 'ひまわり'], ['🪻', 'ヒヤシンス'], ['🌹', 'ばら'], ['🌺', 'ハイビスカス'], ['🪷', 'はす'], ['💐', 'はなたば']] },
+      { id: 'gakki', name: 'がっき', icon: '🎹', title: 'がっき はかせ', color: '#7c3aed', items: [
+        ['🔔', 'すず'], ['🪇', 'マラカス'], ['🥁', 'たいこ'], ['🪕', 'バンジョー'], ['🎸', 'ギター'], ['🪗', 'アコーディオン'], ['🎺', 'トランペット'], ['🎷', 'サックス'], ['🎻', 'バイオリン'], ['🎹', 'ピアノ']] },
+    ].map(c => ({ ...c, items: c.items.map(([e, n], i) => ({ id: `${c.id}${i + 1}`, e, n, p: [3, 4, 5, 6, 8, 10, 12, 14, 17, 20][i], cat: c.id })) }));
+    const ALL_ITEMS = ITEM_CATS.flatMap(c => c.items);
+    const titlesOf = (items) => {
+      const own = new Set(items);
+      const t = ITEM_CATS.filter(c => c.items.every(it => own.has(it.id))).map(c => c.title);
+      if (t.length === ITEM_CATS.length) t.push('モール めいじん');
+      return t;
+    };
+
+    // =====================================================================
+    //  4. 例文
+    //   [山] … 問題の字  {川|かわ} … ほかの字（ふりがな つき）
+    // =====================================================================
+    function parseSentence(s) {
+      const out = [];
+      const re = /\[(.+?)\]|\{(.+?)\|(.+?)\}/g;
+      let last = 0, m;
+      while ((m = re.exec(s))) {
+        if (m.index > last) out.push({ t: 'text', v: s.slice(last, m.index) });
+        if (m[1]) out.push({ t: 'target', v: m[1] });
+        else out.push({ t: 'ruby', k: m[2], r: m[3] });
+        last = re.lastIndex;
+      }
+      if (last < s.length) out.push({ t: 'text', v: s.slice(last) });
+      return out;
+    }
+    // よみあげ用（漢字は よみに なおす）
+    const speakText = (s, y) => parseSentence(s).map(p => p.t === 'text' ? p.v : p.t === 'ruby' ? p.r : y).join('').replace(/\s+/g, ' ');
+
+    // mode: 'hide'（ふりがな なしで 色を つける）/ 'blank'（□ に ふりがな）/ 'answer'（こたえ つき）
+    function Sentence({ s, y, mode, answer, size = 'text-4xl' }) {
+      const parts = parseSentence(s);
+      return (
+        <div className={`kyo ${size} leading-[2.3] text-center break-keep`} style={{ wordBreak: 'keep-all' }}>
+          {parts.map((p, i) => {
+            if (p.t === 'text') return <span key={i} className="whitespace-pre-wrap">{p.v}</span>;
+            if (p.t === 'ruby') return <ruby key={i}>{p.k}<rt>{p.r}</rt></ruby>;
+            if (mode === 'hide') return <span key={i} className="text-rose-600 bg-rose-50 rounded-lg px-1 border-b-4 border-rose-400">{p.v}</span>;
+            if (mode === 'blank') {
+              return answer
+                ? <ruby key={i} className="text-emerald-700 bg-emerald-50 rounded-lg px-1 pop">{answer}<rt>{y}</rt></ruby>
+                : <ruby key={i}><span className="inline-block align-middle border-4 border-dashed border-amber-400 rounded-xl bg-amber-50 text-amber-400 mx-1" style={{ minWidth: `${Math.max(1, p.v.length) * 1.15}em`, lineHeight: '1.15em' }}>？</span><rt>{y}</rt></ruby>;
+            }
+            return <ruby key={i} className="text-emerald-700 bg-emerald-50 rounded-lg px-1">{p.v}<rt>{y}</rt></ruby>;
+          })}
+        </div>
+      );
+    }
+
+    // =====================================================================
+    //  5. 問題を つくる
+    // =====================================================================
+    const otherReadings = (k, y) => (KANJI[k] ? KANJI[k].yomi.filter(r => r !== y) : []);
+    const lookOf = (k) => (KANJI[k] ? KANJI[k].look : []);
+    // にている字の よみ（1・2年生の字も つかう）
+    const readingOf = (c) => KANJI[c] ? pickOne(KANJI[c].ex.filter(x => !isWordEx(x))).y : PREV[c] ? PREV[c][0] : '';
+    // てんてん・まるを とった よみ（「ほし」と「ぼし」は まちがいの せんたくしに しない）
+    const plainKana = (r) => r.normalize('NFD').replace(/[゙゚]/g, '');
+    const targetOf = (ex) => (ex.s.match(/\[(.+?)\]/) || [])[1] || '';
+    // 「今日」「明日」のような とくべつな よみの ことば
+    const isWordEx = (ex) => targetOf(ex).length > 1;
+    // 例文を えらぶ（かんじの もんだいでは 1字の 例文だけ）
+    const exFor = (k, off, single) => {
+      const all = KANJI[k].ex, list = single ? all.filter(x => !isWordEx(x)) : all;
+      return list[(off + Math.floor(Math.random() * list.length)) % list.length];
+    };
+
+    function makeYomiSel(k, ex, stageKanji) {
+      const picked = [];
+      const add = (r) => { if (r && r !== ex.y && plainKana(r) !== plainKana(ex.y) && !picked.includes(r) && picked.length < 3) picked.push(r); };
+      const why = {};
+      if (isWordEx(ex)) {
+        // ことばの もんだい：ひとつずつ よんだ よみを まちがいの せんたくしに
+        (ex.ng || []).forEach(r => { add(r); why[r] = { type: 'naive' }; });
+        return { kind: 'yomiSel', k, ex, answer: ex.y, options: shuffle([ex.y, ...picked]), why, wordEx: true };
+      }
+      const same = shuffle(otherReadings(k, ex.y));
+      const looks = lookOf(k).map(l => ({ r: readingOf(l), from: l })).filter(o => o.r);
+      const others = shuffle(stageKanji.filter(x => x !== k)).map(l => ({ r: readingOf(l), from: l }));
+      if (same[0]) add(same[0]);
+      if (looks[0]) add(looks[0].r);
+      others.forEach(o => add(o.r));
+      same.forEach(add); looks.forEach(o => add(o.r));
+      Object.values(KANJI).forEach(d => picked.length < 3 && add(d.ex[0].y));
+      same.forEach(r => { why[r] = { type: 'same' }; });
+      [...looks, ...others].forEach(o => { if (!why[o.r]) why[o.r] = { type: o.from && lookOf(k).includes(o.from) ? 'look' : 'other', from: o.from }; });
+      return { kind: 'yomiSel', k, ex, answer: ex.y, options: shuffle([ex.y, ...picked]), why };
+    }
+    function makeKanjiSel(k, ex, stageKanji) {
+      const picked = [];
+      const add = (c) => { if (c && c !== k && !picked.includes(c) && picked.length < 3) picked.push(c); };
+      const looks = lookOf(k);
+      looks.slice(0, 2).forEach(add);
+      shuffle(stageKanji).forEach(add);
+      looks.forEach(add);
+      shuffle(Object.keys(KANJI)).forEach(add);
+      return { kind: 'kanjiSel', k, ex, answer: k, options: shuffle([k, ...picked]) };
+    }
+    // はってん（ことば）。かなは そのまま、漢字は はじめの よみで よむ
+    const naiveReading = (w) => [...w].map(c => (KANJI[c] ? KANJI[c].yomi[0] : PREV[c] ? PREV[c][0] : c)).join('');
+    // はってん②：おくりがなを えらぶ
+    function makeOkuriSel(word) {
+      const ex = { s: word.s, y: word.y, e: word.e };
+      return { kind: 'okuriSel', k: word.w, ex, answer: word.w, options: shuffle([word.w, ...shuffle(word.ng).slice(0, 3)]), word: true, okuri: true };
+    }
+    function makeWordSel(word, group, kind) {
+      const ex = { s: word.s, y: word.y, e: word.e };
+      if (kind === 'yomiSel') {
+        const picked = [];
+        const add = (r) => { if (r && r !== word.y && !picked.includes(r) && picked.length < 3) picked.push(r); };
+        add(naiveReading(word.w));
+        shuffle(group.filter(x => x !== word)).forEach(x => add(x.y));
+        return { kind, k: word.w, ex, answer: word.y, options: shuffle([word.y, ...picked]), why: { [naiveReading(word.w)]: { type: 'naive' } }, word: true };
+      }
+      const picked = [];
+      shuffle(group.filter(x => x !== word)).forEach(x => { if (picked.length < 3 && !picked.includes(x.w)) picked.push(x.w); });
+      return { kind, k: word.w, ex, answer: word.w, options: shuffle([word.w, ...picked]), word: true };
+    }
+    // はってん③：はんたいの いみの ことばを えらぶ。おなじ ことば（まちがいやすい）と、ほかの ことばを まぜる
+    function makeHantaiSel(word, group) {
+      const ex = { s: word.s, y: word.y, e: word.e };
+      const yomi = {};
+      group.forEach(x => { yomi[x.w] = x.y; yomi[x.a] = x.ay; });
+      const picked = [word.w];
+      shuffle(group.filter(x => x !== word)).forEach(x => { if (picked.length < 3) picked.push(pickOne([x.a, x.w])); });
+      return { kind: 'hantaiSel', k: word.w, ex, answer: word.a, options: shuffle([word.a, ...picked]), word: true, hantai: true, yomi, pair: word };
+    }
+
+    // =====================================================================
+    //  6. しんちょく（進み具合）
+    // =====================================================================
+    const newProgress = () => ({ v: 1, t: 0, coins: 0, earned: 0, items: [], done: {}, cleared: {}, miss: {}, part: null, unlockAll: false, hatten: false });
+    function parseProgress(s) {
+      let p = null;
+      try { p = typeof s === 'string' ? (s ? JSON.parse(s) : null) : s; } catch (e) { p = null; }
+      return { ...newProgress(), ...(p || {}) };
+    }
+    const stepDone = (p, st, step) => (p.done[st.id] || []).includes(step);
+    const stageIndex = (st) => STAGES.findIndex(s => s.id === st.id);
+    const stageOpen = (p, st) => {
+      if (isHatten(st)) return p.unlockAll || p.hatten;
+      if (p.unlockAll) return true;
+      const i = stageIndex(st);
+      return i <= 0 || !!p.cleared[STAGES[i - 1].id];
+    };
+    const stepOpen = (p, st, i) => p.unlockAll || p.cleared[st.id] || i === 0 || stepDone(p, st, stepsOf(st)[i - 1]);
+    const nextStep = (p, st) => { const s = stepsOf(st); const n = s.find(x => !stepDone(p, st, x)); return n || s[s.length - 1]; };
+    // つづきから：はじめの まだ クリアして いない ステージ
+    const currentStage = (p) => STAGES.find(st => stageOpen(p, st) && !p.cleared[st.id]) || STAGES[STAGES.length - 1];
+
+    // =====================================================================
+    //  7. データの ほぞん（スプレッドシート／おためしモード）
+    // =====================================================================
+    const HAS_GAS = typeof google !== 'undefined' && google.script && google.script.run;
+    const gas = (fn, ...args) => new Promise((resolve, reject) => {
+      google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
+    });
+    const LOG_HEADER = ['日時', 'なまえ', 'ステージ', 'だんかい', 'かんじ', 'もんだい', 'しゅるい', 'みほん', 'けっか', 'かいすう', 'まちがえた こたえ', 'ID'];
+    const DEFAULT_SETTINGS = { rate: 0.8, pitch: 1.1, font: 1, sound: true, judge: 'やさしい', flow: '3', parts: true };
+
+    // まとめ（先生用）— コード.gs の aggregate_ と おなじ しくみ
+    const addStat = (map, key, kind, ok) => {
+      const m = map[key] || (map[key] = {});
+      const k = m[kind] || (m[kind] = [0, 0]);
+      k[0]++; k[1] += ok;
+    };
+    function aggregate(rows) {
+      const students = {}, classKanji = {}, classWrong = {};
+      rows.forEach(r => {
+        const name = String(r[1] || '').trim(); if (!name) return;
+        const k = String(r[4] || ''), kind = String(r[6] || ''), ok = r[8] === '○' ? 1 : 0, wrong = String(r[10] || '');
+        const s = students[name] || (students[name] = { count: 0, ok: 0, last: '', kanji: {}, wrong: {} });
+        s.count++; s.ok += ok;
+        const day = String(r[0] instanceof Date ? r[0].toISOString() : r[0]).slice(0, 10).replace(/-/g, '/');
+        if (day > s.last) s.last = day;
+        if (k) {
+          addStat(s.kanji, k, kind, ok); addStat(classKanji, k, kind, ok);
+          if (wrong) wrong.split('・').forEach(w => {
+            if (!w) return;
+            const a = s.wrong[k] || (s.wrong[k] = {}); a[w] = (a[w] || 0) + 1;
+            const b = classWrong[k] || (classWrong[k] = {}); b[w] = (b[w] || 0) + 1;
+          });
+        }
+      });
+      return { students, classKanji, classWrong };
+    }
+
+    const Local = {
+      key: 'ponta_kanji3_local_v1', mem: null,
+      data() {
+        if (this.mem) return this.mem;
+        let d = null; try { d = JSON.parse(safeStore.get(this.key)); } catch (e) {}
+        this.mem = d || { roster: ['たろう', 'はなこ', 'ゆうき'], progress: {}, log: [], pin: '1234', settings: { ...DEFAULT_SETTINGS } };
+        return this.mem;
+      },
+      save() { safeStore.set(this.key, JSON.stringify(this.mem)); },
+    };
+
+    const PENDING_KEY = 'ponta_kanji3_pending_v1';
+    const COPY_KEY = (name) => 'ponta_kanji3_copy_' + name;
+    const api = {
+      async init() {
+        if (HAS_GAS) return gas('getInitData');
+        const d = Local.data();
+        return { students: d.roster, settings: { ...DEFAULT_SETTINGS, ...d.settings }, demo: true };
+      },
+      async student(name) {
+        if (HAS_GAS) return gas('getStudent', name);
+        return Local.data().progress[name] || '';
+      },
+      async sendOne(p) {
+        if (HAS_GAS) return gas('saveResult', p);
+        const d = Local.data();
+        const old = parseProgress(d.progress[p.name]);
+        const neu = parseProgress(p.progress);
+        if (neu.t >= old.t) d.progress[p.name] = p.progress;
+        const ids = new Set(d.log.map(r => r[11]));
+        p.records.forEach(r => { if (!ids.has(r.id)) d.log.push([p.stamp, p.name, r.stage, r.step, r.k, r.problem, r.kind, r.mihon, r.result, r.tries, r.wrong, r.id]); });
+        Local.save();
+        return { ok: true };
+      },
+      // とどかなかった きろくは たまっておき、つぎの ときに おくりなおす
+      readQueue() { try { return JSON.parse(safeStore.get(PENDING_KEY)) || []; } catch (e) { return []; } },
+      async save(payload) {
+        // おなじ子の しんちょくだけの おくりものは まとめる
+        const queue = api.readQueue().filter(q => !(q.name === payload.name && !q.records.length));
+        queue.push({ ...payload, qid: uid() });
+        safeStore.set(PENDING_KEY, JSON.stringify(queue));
+        return api.flush();
+      },
+      pending() { return api.readQueue().length; },
+      flushing: false,
+      async flush() {
+        if (api.flushing) return;
+        api.flushing = true;
+        try {
+          // おくって いる あいだに ふえた ぶんも つづけて おくる
+          for (let q = api.readQueue()[0]; q; q = api.readQueue()[0]) {
+            await api.sendOne(q);
+            safeStore.set(PENDING_KEY, JSON.stringify(api.readQueue().filter(x => x.qid !== q.qid)));
+          }
+        } catch (e) { console.warn('きろくを おくれませんでした。あとで おくりなおします。', e); }
+        finally { api.flushing = false; }
+      },
+      async teacher(pin) {
+        if (HAS_GAS) return gas('getTeacherData', pin);
+        const d = Local.data();
+        if (String(pin) !== String(d.pin)) return { ok: false };
+        const agg = aggregate(d.log);
+        return {
+          ok: true, isDefaultPin: d.pin === '1234', demo: true, settings: { ...DEFAULT_SETTINGS, ...d.settings },
+          students: d.roster.map(n => ({ name: n, progress: d.progress[n] || '', ...(agg.students[n] || { count: 0, ok: 0, last: '', kanji: {}, wrong: {} }) })),
+          classKanji: agg.classKanji, classWrong: agg.classWrong,
+        };
+      },
+      async setFlag(pin, name, key, val) {
+        if (HAS_GAS) return gas('setFlag', pin, name, key, val);
+        const d = Local.data(); const p = parseProgress(d.progress[name]); p[key] = !!val; p.t = Date.now(); p.flagT = Date.now();
+        d.progress[name] = JSON.stringify(p); Local.save(); return { ok: true, progress: d.progress[name] };
+      },
+      async addCoins(pin, name, delta) {
+        if (HAS_GAS) return gas('addCoins', pin, name, delta);
+        const d = Local.data(); const p = parseProgress(d.progress[name]); p.coins = Math.max(0, p.coins + delta); p.t = Date.now();
+        d.progress[name] = JSON.stringify(p); Local.save(); return { ok: true, progress: d.progress[name] };
+      },
+      async saveSettings(pin, s) {
+        if (HAS_GAS) return gas('saveSettings', pin, s);
+        const d = Local.data(); const { newPin, ...rest } = s;
+        d.settings = { ...d.settings, ...rest }; if (newPin) d.pin = newPin; Local.save(); return { ok: true };
+      },
+      async logRows(pin) {
+        if (HAS_GAS) return gas('getLogRows', pin);
+        return { ok: true, rows: [LOG_HEADER, ...Local.data().log] };
+      },
+      async backup(pin) {
+        if (HAS_GAS) return gas('getBackup', pin);
+        const d = Local.data(); return { ok: true, data: { app: 'kanji3', roster: d.roster.map(n => [n, d.progress[n] || '']), settings: d.settings } };
+      },
+      async restore(pin, data) {
+        if (HAS_GAS) return gas('restoreBackup', pin, data);
+        const d = Local.data(); (data.roster || []).forEach(([n, p]) => { if (!d.roster.includes(n)) d.roster.push(n); d.progress[n] = p; }); Local.save(); return { ok: true };
+      },
+      async clear(pin, name) {
+        if (HAS_GAS) return gas('clearRecords', pin, name);
+        const d = Local.data();
+        d.log = d.log.filter(r => name && r[1] !== name);
+        (name ? [name] : d.roster).forEach(n => { delete d.progress[n]; safeStore.del(COPY_KEY(n)); });
+        Local.save(); return { ok: true };
+      },
+    };
+
+    // =====================================================================
+    //  8. ポンタせんせい と ふきだし
+    // =====================================================================
+    const PontaCtx = createContext(null);
+    const usePonta = () => useContext(PontaCtx);
+
+    function Ponta({ mood = 'normal', size = 150, className = '' }) {
+      const [err, setErr] = useState(false);
+      const src = IMG + (mood === 'happy' ? 'ponta_happy.webp' : mood === 'think' ? 'ponta_think.webp' : 'ponta.webp');
+      if (err) return <div className={`flex items-center justify-center rounded-full bg-amber-100 ${className}`} style={{ width: size, height: size, fontSize: size * 0.55 }}>🦝</div>;
+      return <img src={src} alt="ポンタせんせい" onError={() => setErr(true)} className={`ponta-img select-none ${className}`} style={{ width: size, height: size, objectFit: 'contain' }} draggable={false} />;
+    }
+
+    function PontaBar({ size = 110, compact = false }) {
+      const ponta = usePonta();
+      return (
+        <div className="flex items-center gap-2 w-full max-w-3xl">
+          <button onClick={() => ponta.repeat()} className="shrink-0 active:scale-95 transition" aria-label="もういちど きく">
+            <Ponta mood={ponta.mood} size={size} className={ponta.talking ? 'floaty' : ''} />
+          </button>
+          <div className={`relative bubble bg-white rounded-3xl shadow px-5 ${compact ? 'py-2 text-xl min-h-[52px]' : 'py-3 text-2xl min-h-[64px]'} font-bold leading-relaxed flex-1 border-2 border-amber-200`}>
+            {ponta.text || '　'}
+          </div>
+          <button onClick={() => ponta.repeat()} className={`btn3d shrink-0 bg-sky-100 border-2 border-sky-500 text-sky-700 rounded-2xl px-3 ${compact ? 'py-1 text-base' : 'py-2 text-lg'} font-bold`}>🔊<br />もういちど</button>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    //  9. 小さな部品
+    // =====================================================================
+    function Btn({ children, onClick, color = '#f59e0b', light = '#fef3c7', className = '', disabled, style }) {
+      return (
+        <button onClick={onClick} disabled={disabled}
+          className={`btn3d rounded-2xl font-bold px-5 py-3 text-2xl border-2 ${disabled ? 'opacity-40' : ''} ${className}`}
+          style={{ background: light, borderColor: color, color: '#3f2d1d', ...style }}>
+          {children}
+        </button>
+      );
+    }
+    function Dots({ total, current }) {
+      return (
+        <div className="flex gap-2 justify-center">
+          {Array.from({ length: total }).map((_, i) => (
+            <div key={i} className={`w-4 h-4 rounded-full ${i < current ? 'bg-amber-500' : i === current ? 'bg-amber-300 ring-4 ring-amber-200' : 'bg-stone-200'}`} />
+          ))}
+        </div>
+      );
+    }
+    function CoinFly({ show }) {
+      if (!show) return null;
+      return <div key={show} className="coinfly pointer-events-none absolute right-6 top-2 text-4xl font-bold text-amber-500 z-40">+1 🪙</div>;
+    }
+    function PicOrEmoji({ k, size = 200, className = '' }) {
+      const url = picUrl(k);
+      const [err, setErr] = useState(false);
+      const d = KANJI[k];
+      if (url && !err) return <img src={url} alt="" onError={() => setErr(true)} className={`rounded-3xl object-cover ${className}`} style={{ width: size, height: size }} draggable={false} />;
+      const fs = (r) => typeof size === 'number' ? size * r : `calc(${size} * ${r})`;
+      return (
+        <div className={`rounded-3xl bg-white border-4 border-amber-100 flex flex-wrap items-center justify-center content-center gap-1 ${className}`} style={{ width: size, height: size, fontSize: fs(0.5) }}>
+          {d ? d.ex[0].e : '❔'}
+        </div>
+      );
+    }
+
+    // かきじゅんの 絵（KanjiVG）を すこし ずつ かく
+    function StrokeChar({ ch, size = 200, animate = false, color = '#3f2d1d', width = 6, onDone, delay = 300, parts = null }) {
+      const colorAt = (i) => { const pi = partOfStroke(parts, i); return pi >= 0 ? parts[pi].color.c : color; };
+      const paths = STROKES[ch] || [];
+      const refs = useRef([]);
+      const [lens, setLens] = useState(null);
+      const [idx, setIdx] = useState(animate ? -1 : paths.length);
+      useEffect(() => { setLens(paths.map((_, i) => refs.current[i] ? refs.current[i].getTotalLength() : 50)); }, [ch]);
+      useEffect(() => {
+        if (!animate || !lens) return;
+        setIdx(-1);
+        const timers = []; let t = delay;
+        paths.forEach((_, i) => { timers.push(setTimeout(() => setIdx(i), t)); t += Math.max(500, lens[i] * 11) + 250; });
+        timers.push(setTimeout(() => { setIdx(paths.length); onDone && onDone(); }, t));
+        return () => timers.forEach(clearTimeout);
+      }, [lens, animate, ch]);
+      return (
+        <svg viewBox="0 0 109 109" style={{ width: size, height: size }}>
+          {paths.map((d, i) => <path key={`m${i}`} ref={el => refs.current[i] = el} d={d} fill="none" stroke="none" />)}
+          {lens && paths.map((d, i) => i > idx ? null : (
+            <path key={`${ch}${i}`} d={d} fill="none" stroke={colorAt(i)} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round"
+              className={i === idx && animate ? 'draw-stroke' : ''}
+              style={i === idx && animate ? { strokeDasharray: lens[i], strokeDashoffset: lens[i], '--dur': `${Math.max(500, lens[i] * 11)}ms` } : undefined} />
+          ))}
+        </svg>
+      );
+    }
+
+    // 部品を 1つずつ 見せる（「日」＋「羽」＋「隹」）
+    function PartChips({ ch, parts, size = 64, vertical = false }) {
+      const paths = STROKES[ch] || [];
+      return (
+        <div className={`flex items-center justify-center gap-1 ${vertical ? 'flex-col' : 'flex-wrap'}`}>
+          {parts.map((p, i) => (
+            <React.Fragment key={i}>
+              {i > 0 && <span className={`${vertical ? 'text-lg leading-none' : 'text-2xl'} font-bold text-stone-400`}>＋</span>}
+              <div className="bg-white rounded-xl border-2 flex flex-col items-center px-1" style={{ borderColor: p.color.c }}>
+                <svg viewBox="0 0 109 109" style={{ width: size, height: size }}>
+                  {paths.map((d, j) => <path key={j} d={d} fill="none" stroke={p.ids.includes(j) ? p.color.c : '#ece7df'} strokeWidth={p.ids.includes(j) ? 7 : 5} strokeLinecap="round" strokeLinejoin="round" />)}
+                </svg>
+                <span className="text-sm font-bold" style={{ color: p.color.c }}>{i + 1}. {p.color.name}</span>
+              </div>
+            </React.Fragment>
+          ))}
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 10. がくしゅう：⓪ であう
+    // =====================================================================
+    function MeetStep({ items, onFinish }) {
+      const ponta = usePonta();
+      const [i, setI] = useState(0);
+      const [phase, setPhase] = useState('pic');
+      const [replay, setReplay] = useState(0);
+      const it = items[i];
+      const isWord = !!it.word;
+      const d = isWord ? null : KANJI[it.k];
+      const parts = isWord ? null : partsOf(it.k);
+      const okuriKana = it.okuri ? it.word.w.replace(/[一-鿿]/g, '') : '';
+      const bu = isWord ? null : buOf(it.k);
+      const turn = useRef(0);
+      const talk = async () => {
+        const my = ++turn.current;
+        if (it.hantai) return ponta.say(`「${it.word.w}」の はんたいは「${it.word.a}」だよ。`, { speech: `${it.word.y}。はんたいは、${it.word.ay}。` });
+        if (it.okuri) return ponta.say(`「${it.word.y}」は「${it.word.w}」と かくよ。おくりがなは「${okuriKana}」だよ。`, { speech: `${it.word.y}。おくりがなは、${okuriKana}。${speakText(it.word.s, it.word.y)}` });
+        if (isWord) return ponta.say(`「${it.word.w}」は「${it.word.y}」と よむよ。とくべつな よみかた だね。`, { speech: `${it.word.y}。とくべつな よみかた だね。${speakText(it.word.s, it.word.y)}` });
+        const first = d.ex[0];
+        await ponta.say(`${d.story}`, { speech: `${first.y}。${d.story.replace(/[「」]/g, '')} よみかたは、${d.yomi.slice(0, 2).join('、')}。` });
+        // 部首の なまえ（3ねんせいの こくごで ならう「へんと つくり」）
+        if (bu && turn.current === my) await ponta.say(`ぶしゅは「${bu[1]}（${bu[0]}）」だよ。`, { speech: `ぶしゅは、${bu[1]}。` });
+        if (parts && turn.current === my) await ponta.say(partsSpeech(it.k, parts));
+      };
+      useEffect(() => {
+        setPhase('pic');
+        talk();
+        const t = setTimeout(() => setPhase('draw'), isWord ? 300 : 1800);
+        return () => { clearTimeout(t); turn.current++; };
+      }, [i, replay]);
+      const next = () => { Sound.tap(); if (i + 1 < items.length) setI(i + 1); else onFinish(); };
+      return (
+        <div className="flex flex-col items-center gap-4 w-full">
+          <Dots total={items.length} current={i} />
+          {it.hantai ? (
+            <div className="bg-white rounded-3xl shadow p-6 flex flex-col items-center gap-3 pop" key={i}>
+              <div className="flex items-center gap-6">
+                <div className="flex flex-col items-center gap-2"><div className="text-8xl">{it.word.e}</div><ruby className="kyo text-7xl">{it.word.w}<rt className="text-3xl">{it.word.y}</rt></ruby></div>
+                <div className="text-6xl font-bold text-rose-500">⇔</div>
+                <div className="flex flex-col items-center gap-2"><div className="text-8xl">{it.word.ae}</div><ruby className="kyo text-7xl text-sky-700">{it.word.a}<rt className="text-3xl">{it.word.ay}</rt></ruby></div>
+              </div>
+              <div className="text-2xl font-bold">はんたいの いみの ことば だよ</div>
+              <div className="mt-2"><Sentence s={it.word.s} y={it.word.y} mode="answer" size="text-3xl" /></div>
+            </div>
+          ) : isWord ? (
+            <div className="bg-white rounded-3xl shadow p-6 flex flex-col items-center gap-3 pop" key={i}>
+              <div className="text-8xl">{it.word.e}</div>
+              <ruby className="kyo text-8xl">{it.okuri ? <>{[...it.word.w].map((c, j) => /[一-鿿]/.test(c) ? <span key={j}>{c}</span> : <span key={j} className="text-rose-600">{c}</span>)}</> : it.word.w}<rt className="text-4xl">{it.word.y}</rt></ruby>
+              {it.okuri && <div className="text-2xl font-bold">おくりがなは「<span className="text-rose-600">{okuriKana}</span>」</div>}
+              <div className="mt-2"><Sentence s={it.word.s} y={it.word.y} mode="answer" size="text-3xl" /></div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center justify-center gap-6" key={i}>
+              <div className="relative" style={{ width: 'min(36vh, 40vw, 300px)', height: 'min(36vh, 40vw, 300px)' }}>
+                <div className={phase === 'draw' ? 'fadeout' : ''}><PicOrEmoji k={it.k} size="min(36vh, 40vw, 300px)" className="shadow" /></div>
+                {phase === 'draw' && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <StrokeChar ch={it.k} size="90%" animate color="#b45309" width={7} parts={parts} />
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col items-center gap-3">
+                <div className="bg-white rounded-3xl border-4 border-amber-200 shadow flex items-center justify-center" style={{ width: 'min(30vh, 34vw, 240px)', height: 'min(30vh, 34vw, 240px)' }}>
+                  <span className="kyo" style={{ fontSize: 'min(24vh, 27vw, 190px)', lineHeight: 1 }}>{it.k}</span>
+                </div>
+                <div className="flex flex-wrap gap-2 justify-center max-w-xs">
+                  {d.yomi.slice(0, 3).map(r => <span key={r} className="bg-amber-100 border-2 border-amber-300 rounded-full px-3 py-1 text-2xl font-bold">{r}</span>)}
+                </div>
+                {bu && <div className="bg-sky-50 border-2 border-sky-300 rounded-2xl px-3 py-1 text-xl font-bold">ぶしゅ：<span className="kyo text-3xl text-sky-700 align-middle">{bu[0]}</span> {bu[1]}</div>}
+                {parts && <PartChips ch={it.k} parts={parts} size={56} />}
+              </div>
+              <div className="w-full flex justify-center bg-white/80 rounded-2xl px-4">
+                <span className="text-4xl mr-2 self-center">{d.ex[0].e}</span>
+                <Sentence s={d.ex[0].s} y={d.ex[0].y} mode="answer" size="text-3xl" />
+              </div>
+            </div>
+          )}
+          <div className="flex gap-3 flex-wrap justify-center">
+            {!isWord && <Btn onClick={() => setReplay(r => r + 1)} color="#0284c7" light="#e0f2fe">✍️ かきじゅん</Btn>}
+            <Btn onClick={next} color="#16a34a" light="#dcfce7" className="px-10">つぎへ ▶</Btn>
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 11. がくしゅう：① よみを えらぶ ／ ③ かんじを えらぶ
+    // =====================================================================
+    function ChoiceQuiz({ questions, onRecord, onCoin, onFinish }) {
+      const ponta = usePonta();
+      const [qi, setQi] = useState(0);
+      const [removed, setRemoved] = useState([]);
+      const [wrongs, setWrongs] = useState([]);
+      const [hint, setHint] = useState(0);
+      const [solved, setSolved] = useState(false);
+      const [shakeKey, setShakeKey] = useState(0);
+      const usedHint = useRef(false);
+      const first = useRef(0);
+      const q = questions[qi];
+      const isYomi = q.kind === 'yomiSel';
+      const d = q.word ? null : KANJI[q.k];
+
+      const okuriKana = q.okuri ? q.answer.replace(/[一-鿿]/g, '') : '';
+      const bu = q.word ? null : buOf(q.k);
+      const ask = () => {
+        if (q.hantai) return ponta.say(`「${q.ex.y}」の はんたいの いみの ことばは どれかな？`, { speech: `${speakText(q.ex.s, q.ex.y)}。${q.ex.y}の、はんたいの いみの ことばは どれかな？` });
+        if (q.okuri) return ponta.say('□に はいる ことばは どれかな？ おくりがなに きを つけよう。', { speech: `${speakText(q.ex.s, q.ex.y)}。しかくに はいる ことばは どれかな？ おくりがなに きを つけよう。` });
+        if (q.wordEx) return ponta.say('あかい ことばの よみかたは どれかな？', { mood: 'normal' });
+        if (isYomi) return ponta.say('あかい じの よみかたは どれかな？', { mood: 'normal' });
+        return ponta.say('□に はいる かんじは どれかな？', { speech: `${speakText(q.ex.s, q.ex.y)}。しかくに はいる かんじは どれかな？` });
+      };
+      useEffect(() => { setRemoved([]); setWrongs([]); setHint(0); setSolved(false); usedHint.current = false; ask(); }, [qi]);
+
+      const showHint = (lv) => {
+        usedHint.current = true;
+        setHint(lv);
+        if (lv === 1) {
+          if (q.hantai) return ponta.say(`「${q.ex.y}」と ぎゃくの ようすを かんがえて みよう。`, { mood: 'think' });
+          if (q.okuri) return ponta.say(`「${q.ex.y}」の おわりの ほうを よく きいてね。`, { mood: 'think', speech: `${q.ex.y}。おわりの ほうを よく きいてね。` });
+          if (q.wordEx) return ponta.say('とくべつな よみかたを する ことばだよ。1じずつ よむのでは ないよ。', { mood: 'think' });
+          if (q.word) return ponta.say(isYomi ? 'とくべつな よみかただよ。ふつうの よみかたとは ちがうよ。' : `「${q.ex.y}」の ことばを さがそう。`, { mood: 'think' });
+          return ponta.say(`${d.story}${bu ? ` ぶしゅは「${bu[1]}」だよ。` : ''}`, { mood: 'think' });
+        }
+        if (lv === 2) {
+          if (q.hantai) return ponta.say(`えを みてね。さいしょの もじは「${q.pair.ay[0]}」だよ。`, { mood: 'think' });
+          if (q.okuri) return ponta.say(`おくりがなは ${okuriKana.length}もじ だよ。`, { mood: 'think' });
+          if (isYomi) return ponta.say(`えを みてね。さいしょの もじは「${q.answer[0]}」だよ。`, { mood: 'think' });
+          return ponta.say('えを みてね。この えから できた かんじだよ。', { mood: 'think' });
+        }
+        return ponta.say('ひかって いる こたえを おして みよう。', { mood: 'think' });
+      };
+
+      const choose = async (opt) => {
+        if (solved || removed.includes(opt)) return;
+        if (opt === q.answer) {
+          setSolved(true);
+          const ok = wrongs.length === 0 && !usedHint.current;
+          if (ok) first.current++;
+          onRecord({ k: q.k, problem: q.ex.s.replace(/[\[\]]/g, '').replace(/\{(.+?)\|.+?\}/g, '$1'), kind: STEP[q.kind].kind, mihon: '', result: ok ? '○' : '△', tries: wrongs.length + 1, wrong: wrongs.join('・') });
+          Sound.fanfare(); onCoin();
+          await ponta.say('せいかい！', { mood: 'happy' });
+          await sleep(700);
+          if (qi + 1 < questions.length) setQi(qi + 1);
+          else onFinish({ firstOk: first.current, total: questions.length });
+          return;
+        }
+        const nw = [...wrongs, opt];
+        setWrongs(nw); setRemoved(r => [...r, opt]); setShakeKey(k => k + 1);
+        Sound.retry();
+        let msg = 'おしい！ もういちど よく みてね。';
+        if (q.hantai) msg = opt === q.k ? 'それは おなじ ことばだよ。はんたいの いみの ことばを えらぼう。' : `「${opt}」は「${q.yomi[opt]}」。はんたいの いみでは ないよ。`;
+        else if (q.okuri) msg = `「${opt}」は おくりがなが ちがうよ。「${q.ex.y}」と よめるかな？`;
+        else if (isYomi) {
+          const w = q.why && q.why[opt];
+          if (w && w.type === 'same') msg = `「${opt}」とも よむけれど、この ぶんでは ちがう よみかただよ。`;
+          else if (w && w.type === 'look') msg = `「${opt}」は「${w.from}」の よみかただよ。かたちが にて いるね。`;
+          else if (w && w.type === 'naive') msg = 'ひとつずつ よむと そうなるね。でも とくべつな よみかたが あるよ。';
+        } else if (!q.word && lookOf(q.k).includes(opt)) msg = `「${opt}」は かたちが にて いるね。よく くらべて みよう。`;
+        else if (!q.word) msg = `「${opt}」は ちがう かんじだよ。`;
+        if (nw.length >= 3) { await ponta.say(msg, { mood: 'think' }); showHint(3); }
+        else ponta.say(msg, { mood: 'think' });
+      };
+
+      const glowHint = wrongs.length >= 2 && hint < 3;
+      return (
+        <div className="flex flex-col items-center gap-3 w-full">
+          <Dots total={questions.length} current={qi} />
+          <div className="bg-white rounded-3xl shadow-sm border-4 border-amber-100 px-6 py-2 w-full max-w-3xl flex items-center gap-3">
+            <span className="text-5xl shrink-0">{q.ex.e}</span>
+            <div className="flex-1">
+              <Sentence s={q.ex.s} y={q.ex.y} mode={q.hantai ? 'answer' : isYomi ? (solved ? 'answer' : 'hide') : 'blank'} answer={!isYomi && solved ? q.answer : null} />
+            </div>
+          </div>
+          {hint >= 2 && (
+            <div className="flex items-center gap-4 bg-amber-50 border-2 border-amber-300 rounded-2xl px-4 py-1 pop">
+              {q.hantai ? <span className="text-6xl">{q.pair.ae}</span> : q.word ? <span className="text-6xl">{q.ex.e}</span> : <PicOrEmoji k={q.k} size={84} />}
+              <span className="text-4xl">→</span>
+              {q.hantai ? <span className="text-3xl font-bold">さいしょは「<span className="text-rose-600">{q.pair.ay[0]}</span>」</span>
+                : q.okuri ? <span className="text-3xl font-bold">おくりがなは <span className="text-rose-600">{okuriKana.length}</span>もじ</span>
+                : isYomi ? <span className="text-3xl font-bold">さいしょは「<span className="text-rose-600">{q.answer[0]}</span>」</span>
+                : <span className="text-2xl font-bold">この えの じは どれかな？</span>}
+            </div>
+          )}
+          <div className="flex items-center gap-4 w-full max-w-3xl">
+          <div key={shakeKey} className={`grid grid-cols-2 gap-4 flex-1 ${wrongs.length && !solved ? 'shake' : ''}`}>
+            {q.options.map(opt => {
+              const gone = removed.includes(opt);
+              const right = solved && opt === q.answer;
+              return (
+                <button key={opt} onClick={() => choose(opt)} disabled={gone || solved}
+                  className={`btn3d rounded-3xl border-4 py-2 ${isYomi ? 'text-5xl' : q.hantai ? 'text-5xl kyo leading-[1.9]' : q.okuri ? 'text-5xl kyo' : 'text-6xl kyo'} font-bold transition
+                    ${gone ? 'opacity-20 bg-stone-100 border-stone-200' : right ? 'bg-emerald-100 border-emerald-500' : 'bg-white border-amber-400'}
+                    ${hint >= 3 && opt === q.answer && !solved ? 'glow' : ''}`}>
+                  {gone ? '　' : q.hantai ? <ruby>{opt}<rt>{q.yomi[opt]}</rt></ruby> : opt}
+                </button>
+              );
+            })}
+          </div>
+            <Btn onClick={() => !solved && showHint(Math.min(3, hint + 1))} color="#eab308" light="#fef9c3" className={`shrink-0 ${glowHint ? 'glow' : ''}`}>💡<br />ヒント</Btn>
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 12. がくしゅう：かく（なぞる・うすい みほん・みほん なし）
+    // =====================================================================
+    const VB = 109;
+    const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+    const segDist = (p, a, b) => {
+      const dx = b.x - a.x, dy = b.y - a.y, l = dx * dx + dy * dy;
+      if (!l) return dist(p, a);
+      const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / l));
+      return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+    };
+    const distToLine = (p, pts) => {
+      if (pts.length === 1) return dist(p, pts[0]);
+      let m = Infinity;
+      for (let i = 0; i < pts.length - 1; i++) m = Math.min(m, segDist(p, pts[i], pts[i + 1]));
+      return m;
+    };
+    // ひとかくを しらべる：'ok' | 'reverse' | 'start' | 'miss'
+    function judgeStroke(trace, g, tol) {
+      const s = g.pts[0], e = g.pts[g.pts.length - 1];
+      const t0 = trace[0], t1 = trace[trace.length - 1];
+      if (g.len < 18) return trace.some(p => distToLine(p, g.pts) <= tol) ? 'ok' : 'start';
+      const dS = dist(t0, s), dE = dist(t1, e);
+      if (dS > tol * 1.25) return (dist(t0, e) < tol && dist(t1, s) < tol) ? 'reverse' : 'start';
+      const onPath = trace.filter(p => distToLine(p, g.pts) <= tol).length / trace.length;
+      const covered = g.pts.filter(q => distToLine(q, trace) <= tol).length / g.pts.length;
+      return (dE <= tol * 1.35 && onPath >= 0.68 && covered >= 0.68) ? 'ok' : 'miss';
+    }
+    // 1かくの むきを ことばに する（ヒント①）
+    const dirName = (a, b) => {
+      const ang = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+      if (ang > -30 && ang < 30) return 'よこ';
+      if (ang >= 60 && ang <= 120) return 'たて';
+      if (ang > 120 && ang < 170) return 'ひだりへ はらう';
+      if (ang >= 30 && ang < 60) return 'みぎへ はらう';
+      if (ang <= -30 && ang > -90) return 'みぎうえへ はねる';
+      return 'ななめ';
+    };
+    function strokeWord(g) {
+      if (g.len < 16) return 'てん';
+      const n = g.pts.length, a = g.pts[0], b = g.pts[Math.floor(n * 0.35)], c = g.pts[Math.floor(n * 0.65)], e = g.pts[n - 1];
+      const d1 = dirName(a, b), d2 = dirName(c, e);
+      if (d1 !== d2 && dist(a, e) < g.len * 0.85) return `${d1}に かいて、${d2.replace('へ はらう', '').replace('へ はねる', '')}へ まがる`;
+      return d1;
+    }
+
+    function Writer({ ch, mode, tol, onDone, small = false, autoDemo }) {
+      const ponta = usePonta();
+      const paths = STROKES[ch] || [];
+      const parts = useMemo(() => partsOf(ch), [ch]);
+      // なぞる ときは、部品ごとに 色を つける
+      const tint = (i, base) => { const pi = partOfStroke(parts, i); return pi >= 0 ? parts[pi].color.light : base; };
+      const dark = (i, base) => { const pi = partOfStroke(parts, i); return pi >= 0 ? parts[pi].color.c : base; };
+      const [geo, setGeo] = useState(null);
+      const [phase, setPhase] = useState('draw');
+      const [demoIdx, setDemoIdx] = useState(-1);
+      const [si, setSi] = useState(0);
+      const [line, setLine] = useState([]);
+      const [fails, setFails] = useState(0);       // いまの 1かくで まちがえた かず
+      const [total, setTotal] = useState(0);       // この 字で まちがえた かず
+      const [hintKey, setHintKey] = useState(0);
+      const [showNext, setShowNext] = useState(false);
+      const [forceTrace, setForceTrace] = useState(false);
+      const [done, setDone] = useState(false);
+      const usedHint = useRef(false);
+      const drawing = useRef(null);
+      const pathRefs = useRef([]);
+      const timers = useRef([]);
+      const svgRef = useRef(null);
+      const m = forceTrace ? 'trace' : mode;
+      const clearTimers = () => { timers.current.forEach(clearTimeout); timers.current = []; };
+      useEffect(() => clearTimers, []);
+
+      useEffect(() => {
+        const g = paths.map((d, i) => {
+          const el = pathRefs.current[i];
+          const len = el.getTotalLength();
+          const n = 24, pts = [];
+          for (let k = 0; k <= n; k++) { const p = el.getPointAtLength((len * k) / n); pts.push({ x: p.x, y: p.y }); }
+          return { len, pts };
+        });
+        setGeo(g); setSi(0); setFails(0); setTotal(0); setDone(false); setForceTrace(false); setShowNext(false); usedHint.current = false;
+      }, [ch, mode]);
+
+      const runDemo = (after) => {
+        if (!geo) return;
+        clearTimers();
+        setPhase('demo'); setSi(0); setLine([]); setDemoIdx(-1);
+        let t = 400;
+        paths.forEach((_, i) => {
+          timers.current.push(setTimeout(() => setDemoIdx(i), t));
+          t += Math.max(550, geo[i].len * 11) + 300;
+        });
+        timers.current.push(setTimeout(() => { setDemoIdx(-1); setPhase('draw'); after && after(); }, t + 150));
+      };
+      useEffect(() => { if (geo && (autoDemo ?? m === 'trace')) runDemo(); }, [geo]);
+
+      const toPt = (e) => {
+        const svg = svgRef.current, pt = svg.createSVGPoint();
+        pt.x = e.clientX; pt.y = e.clientY;
+        const mtx = svg.getScreenCTM();
+        if (mtx) { const r = pt.matrixTransform(mtx.inverse()); return { x: r.x, y: r.y }; }
+        const rect = svg.getBoundingClientRect();
+        return { x: ((e.clientX - rect.left) / rect.width) * VB, y: ((e.clientY - rect.top) / rect.height) * VB };
+      };
+      const down = (e) => {
+        if (phase !== 'draw' || done || !geo) return;
+        e.preventDefault();
+        try { svgRef.current.setPointerCapture(e.pointerId); } catch (err) {}
+        drawing.current = [toPt(e)];
+        setLine(drawing.current);
+      };
+      const move = (e) => {
+        if (!drawing.current) return;
+        const p = toPt(e), last = drawing.current[drawing.current.length - 1];
+        if (dist(p, last) < 0.8) return;
+        drawing.current = [...drawing.current, p];
+        setLine(drawing.current);
+      };
+      const hintSay = (lv) => {
+        usedHint.current = true;
+        const g = geo[si];
+        if (lv === 1) { ponta.say(`${si + 1}かくめは「${strokeWord(g)}」だよ。`, { mood: 'think' }); setShowNext(false); }
+        else if (lv === 2) { setShowNext(true); setHintKey(k => k + 1); ponta.say(`${si + 1}かくめは こう かくよ。`, { mood: 'think' }); }
+        else { ponta.say('かきじゅんを みてから、なぞって みよう。', { mood: 'think' }); setForceTrace(true); runDemo(); }
+      };
+      const up = () => {
+        if (!drawing.current) return;
+        const tr = drawing.current; drawing.current = null; setLine([]);
+        if (tr.length < 2 && geo[si].len >= 18) return;
+        const res = judgeStroke(tr, geo[si], tol);
+        if (res === 'ok') {
+          Sound.tick();
+          const ns = si + 1;
+          setSi(ns); setFails(0); setShowNext(false);
+          if (ns >= paths.length) {
+            setDone(true);
+            const r = { fails: total, hint: usedHint.current };
+            setTimeout(() => onDone(r), small ? 250 : 500);
+          } else if (parts && m !== 'none') {
+            // つぎの 画から べつの 部品に なるとき、声で しらせる
+            const pa = partOfStroke(parts, si), pb = partOfStroke(parts, ns);
+            if (pb >= 0 && pa !== pb) {
+              const p = parts[pb];
+              ponta.say(`つぎは ${p.color.name}の ぶぶん${PART_NAME[p.el] ? `（${PART_NAME[p.el]}）` : ''}だよ。`);
+            }
+          }
+          return;
+        }
+        const f = fails + 1, tt = total + 1;
+        setFails(f); setTotal(tt); setHintKey(k => k + 1);
+        Sound.retry();
+        let text = 'おしい！ もういちど かいて みよう。';
+        if (res === 'reverse') text = 'むきが ぎゃくだよ。みどりの まるから かこう。';
+        else if (res === 'start') {
+          const other = geo.findIndex((g, i) => i > si && dist(tr[0], g.pts[0]) < tol);
+          text = other >= 0 ? 'かく じゅんばんが ちがうよ。みどりの まるから かこう。' : 'みどりの まるから かいて みよう。';
+        }
+        if (tt >= 3 && !forceTrace) { hintSay(3); return; }
+        ponta.say(text, { mood: 'think' });
+      };
+
+      const showDot = phase === 'draw' && !done && si < paths.length && (m === 'trace' || fails >= 1);
+      const showCurGhost = m === 'trace' || fails >= 2 || showNext;
+      const g = geo && geo[si];
+      let arrow = null;
+      if (showDot && g) {
+        const a = g.pts[0], b = g.pts[Math.min(3, g.pts.length - 1)];
+        const ang = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
+        arrow = <g transform={`translate(${a.x} ${a.y}) rotate(${ang})`}><path d="M10 -4 L17 0 L10 4 Z" fill="#16a34a" /></g>;
+      }
+      const boxSize = small ? 'max(220px, min(calc(100vh - 330px), 56vw, 360px))' : 'max(240px, min(calc(100vh - 300px), 62vw, 420px))';
+      return (
+        <div className="flex items-center gap-3">
+          <div className="relative bg-white rounded-3xl border-4 border-amber-300 shadow-sm" style={{ width: boxSize, height: boxSize }}>
+            <svg ref={svgRef} viewBox={`0 0 ${VB} ${VB}`} className="w-full h-full touch-none"
+              onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
+              <line x1={VB / 2} y1="4" x2={VB / 2} y2={VB - 4} stroke="#e7d7c1" strokeWidth="0.7" strokeDasharray="3 3" />
+              <line x1="4" y1={VB / 2} x2={VB - 4} y2={VB / 2} stroke="#e7d7c1" strokeWidth="0.7" strokeDasharray="3 3" />
+              {paths.map((d, i) => <path key={`m${ch}-${i}`} ref={el => pathRefs.current[i] = el} d={d} fill="none" stroke="none" />)}
+              {m === 'trace' && paths.map((d, i) => <path key={`b${i}`} d={d} fill="none" stroke={tint(i, '#e7e1d8')} strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />)}
+              {m === 'ghost' && paths.map((d, i) => <path key={`g${i}`} d={d} fill="none" stroke="#f1ece4" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />)}
+              {phase === 'draw' && !done && showCurGhost && paths[si] && <path d={paths[si]} fill="none" stroke={m === 'trace' ? '#fde68a' : '#fef3c7'} strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />}
+              {phase === 'demo' && geo && paths.map((d, i) => i > demoIdx ? null : (
+                <path key={`d${i}`} d={d} fill="none" stroke={parts ? dark(i, '#0284c7') : '#0284c7'} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round"
+                  className={i === demoIdx ? 'draw-stroke' : ''}
+                  style={i === demoIdx ? { strokeDasharray: geo[i].len, strokeDashoffset: geo[i].len, '--dur': `${Math.max(550, geo[i].len * 11)}ms` } : undefined} />
+              ))}
+              {phase === 'draw' && !done && (fails > 0 || showNext) && g && (
+                <path key={`h${hintKey}`} d={paths[si]} fill="none" stroke="#fb923c" strokeWidth="4" strokeLinecap="round" opacity=".85"
+                  className="draw-stroke" style={{ strokeDasharray: g.len, strokeDashoffset: g.len, '--dur': `${Math.max(600, g.len * 12)}ms` }} />
+              )}
+              {phase === 'draw' && paths.map((d, i) => i < si ? <path key={`k${i}`} d={d} fill="none" stroke={m === 'trace' ? dark(i, '#3f2d1d') : '#3f2d1d'} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" /> : null)}
+              {showDot && g && (
+                <g>
+                  <circle cx={g.pts[0].x} cy={g.pts[0].y} r="5.5" fill="#22c55e" stroke="#fff" strokeWidth="1.2" />
+                  <text x={g.pts[0].x} y={g.pts[0].y + 2.2} textAnchor="middle" fontSize="6.5" fontWeight="bold" fill="#fff">{si + 1}</text>
+                  {arrow}
+                </g>
+              )}
+              {line.length > 0 && <polyline points={line.map(p => `${p.x},${p.y}`).join(' ')} fill="none" stroke="#ef4444" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" opacity=".75" />}
+            </svg>
+            {done && <div className="absolute inset-0 flex items-center justify-center text-[9rem] text-rose-400/70 pop pointer-events-none">◎</div>}
+          </div>
+          <div className="flex flex-col gap-3">
+            <Btn onClick={() => { if (!done) { ponta.say('よく みてね。'); runDemo(); } }} color="#0284c7" light="#e0f2fe">👀 おてほん</Btn>
+            <Btn onClick={() => { if (!done && phase === 'draw' && geo) hintSay(Math.min(3, (showNext ? 2 : usedHint.current ? 1 : 0) + 1)); }} color="#eab308" light="#fef9c3" className={total >= 2 && !forceTrace ? 'glow' : ''}>💡 ヒント</Btn>
+            <Btn onClick={() => { if (!done && phase === 'draw') { setSi(0); setFails(0); setShowNext(false); } }} color="#78716c" light="#f5f5f4">🧽 けす</Btn>
+          </div>
+        </div>
+      );
+    }
+
+    const MODE_LABEL = { trace: 'なぞる', ghost: 'うすい みほん', none: 'みほん なし' };
+    const MODE_MIHON = { trace: 'なぞる', ghost: 'うすい', none: 'なし' };
+
+    // ② よみを かく：よみの ひらがなを 1もじずつ
+    function YomiWrite({ questions, modes, tol, onRecord, onCoin, onFinish }) {
+      const ponta = usePonta();
+      const [qi, setQi] = useState(0);
+      const [ci, setCi] = useState(0);
+      const [solved, setSolved] = useState(false);
+      const fails = useRef(0), hinted = useRef(false), first = useRef(0);
+      const q = questions[qi];
+      const chars = [...q.ex.y];
+      const mode = modes[qi] || 'none';
+      useEffect(() => {
+        setCi(0); setSolved(false); fails.current = 0; hinted.current = false;
+        ponta.say(`あかい じの よみかたを ひらがなで かこう。${MODE_LABEL[mode]}で かくよ。`, { speech: `あかい じの よみかたを、ひらがなで かこう。` });
+      }, [qi]);
+      const charDone = async (r) => {
+        fails.current += r.fails; if (r.hint) hinted.current = true;
+        if (ci + 1 < chars.length) { setCi(ci + 1); return; }
+        setSolved(true);
+        const ok = fails.current === 0 && !hinted.current;
+        if (ok) first.current++;
+        onRecord({ k: q.k, problem: q.ex.s.replace(/[\[\]]/g, '').replace(/\{(.+?)\|.+?\}/g, '$1'), kind: 'よみを かく', mihon: MODE_MIHON[mode], result: ok ? '○' : '△', tries: fails.current + 1, wrong: '' });
+        Sound.fanfare(); onCoin();
+        await ponta.say('せいかい！', { mood: 'happy', speech: `せいかい！ ${q.ex.y}。` });
+        await sleep(600);
+        if (qi + 1 < questions.length) setQi(qi + 1); else onFinish({ firstOk: first.current, total: questions.length });
+      };
+      return (
+        <div className="flex flex-col items-center gap-3 w-full">
+          <Dots total={questions.length} current={qi} />
+          <div className="bg-white rounded-3xl shadow-sm border-4 border-amber-100 px-6 py-2 w-full max-w-3xl flex items-center gap-3">
+            <span className="text-5xl shrink-0">{q.ex.e}</span>
+            <div className="flex-1"><Sentence s={q.ex.s} y={q.ex.y} mode={solved ? 'answer' : 'hide'} size="text-3xl" /></div>
+          </div>
+          <div className="flex items-center gap-4 justify-center">
+            <div className="flex flex-col items-center gap-2">
+              <span className="bg-sky-100 text-sky-800 rounded-full px-4 py-1 text-xl font-bold">{MODE_LABEL[mode]}</span>
+              <div className="flex flex-col gap-2">
+                {chars.map((c, i) => (
+                  <div key={i} className={`w-20 h-20 rounded-2xl border-4 bg-white flex items-center justify-center ${i === ci && !solved ? 'border-rose-400' : 'border-stone-200'}`}>
+                    {(i < ci || solved) ? <StrokeChar ch={c} size={64} /> : <span className="text-stone-300 text-4xl">{i === ci ? '✏️' : ''}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+            {!solved && <Writer key={`${qi}-${ci}`} ch={chars[ci]} mode={mode} tol={tol} onDone={charDone} small />}
+          </div>
+        </div>
+      );
+    }
+
+    // ④ かんじを かく：なぞる → うすい みほん → みほん なし
+    function KanjiWrite({ questions, phases, tol, onRecord, onCoin, onFinish }) {
+      const ponta = usePonta();
+      const [qi, setQi] = useState(0);
+      const [pi, setPi] = useState(0);
+      const [solved, setSolved] = useState(false);
+      const first = useRef(0);
+      const q = questions[qi];
+      const mode = phases[pi];
+      const parts = partsOf(q.k);
+      useEffect(() => {
+        setSolved(false);
+        const lead = pi === 0 ? `${speakText(q.ex.s, q.ex.y)}。` : '';
+        // 画数の 多い字は、なぞる ときに 部品の じゅんばんを 知らせる
+        const tail = parts && mode === 'trace' ? partsSpeech(q.k, parts) : '';
+        ponta.say(pi === 0 ? '□に はいる かんじを かこう。' : `こんどは ${MODE_LABEL[mode]}で かこう。`, { speech: `${lead}${pi === 0 ? 'しかくに はいる かんじを かこう。' : `こんどは、${MODE_LABEL[mode]}で かこう。`}${tail}` });
+      }, [qi, pi]);
+      const done = async (r) => {
+        const ok = r.fails === 0 && !r.hint;
+        if (ok && pi === phases.length - 1) first.current++;
+        onRecord({ k: q.k, problem: q.ex.s.replace(/[\[\]]/g, '').replace(/\{(.+?)\|.+?\}/g, '$1'), kind: 'かんじを かく', mihon: MODE_MIHON[mode], result: ok ? '○' : '△', tries: r.fails + 1, wrong: '' });
+        Sound.fanfare(); onCoin();
+        if (pi + 1 < phases.length) {
+          await ponta.say('せいかい！', { mood: 'happy' });
+          setPi(pi + 1); return;
+        }
+        setSolved(true);
+        await ponta.say('せいかい！', { mood: 'happy', speech: `せいかい！ ${speakText(q.ex.s, q.ex.y)}` });
+        await sleep(700);
+        if (qi + 1 < questions.length) { setPi(0); setQi(qi + 1); } else onFinish({ firstOk: first.current, total: questions.length });
+      };
+      return (
+        <div className="flex flex-col items-center gap-3 w-full">
+          <Dots total={questions.length} current={qi} />
+          <div className="bg-white rounded-3xl shadow-sm border-4 border-amber-100 px-6 py-2 w-full max-w-3xl flex items-center gap-3">
+            <span className="text-5xl shrink-0">{q.ex.e}</span>
+            <div className="flex-1"><Sentence s={q.ex.s} y={q.ex.y} mode="blank" answer={solved ? q.k : null} size="text-3xl" /></div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-2">
+              {phases.map((p, i) => (
+                <span key={p} className={`rounded-full px-4 py-1 text-xl font-bold border-2 text-center ${i === pi ? 'bg-rose-100 border-rose-400 text-rose-700' : i < pi ? 'bg-emerald-100 border-emerald-400 text-emerald-700' : 'bg-white border-stone-200 text-stone-400'}`}>
+                  {i < pi ? '✓ ' : ''}{MODE_LABEL[p]}
+                </span>
+              ))}
+              {parts && mode !== 'none' && !solved && <div className="flex flex-col items-center gap-1 mt-1"><span className="text-base font-bold">ぶぶんの じゅん</span><PartChips ch={q.k} parts={parts} size={44} vertical /></div>}
+            </div>
+            {!solved ? <Writer key={`${qi}-${pi}`} ch={q.k} mode={mode} tol={tol} onDone={done} /> :
+              <div className="bg-white rounded-3xl border-4 border-emerald-300 flex items-center justify-center pop" style={{ width: 'max(240px, min(calc(100vh - 300px), 62vw, 420px))', height: 'max(240px, min(calc(100vh - 300px), 62vw, 420px))' }}><StrokeChar ch={q.k} size="85%" color="#047857" /></div>}
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 13. がくしゅうの がめん（ステップ）
+    // =====================================================================
+    const FLOW = { '3': { yomi: ['trace', 'trace', 'ghost', 'ghost', 'none'], kanji: ['trace', 'ghost', 'none'] },
+                   '2': { yomi: ['ghost', 'ghost', 'ghost', 'none', 'none'], kanji: ['ghost', 'none'] },
+                   '1': { yomi: ['none', 'none', 'none', 'none', 'none'], kanji: ['none'] } };
+
+    function buildStep(st, step, progress, settings, resumeLeft) {
+      const flow = FLOW[settings.flow] || FLOW['3'];
+      if (isHatten(st)) {
+        const ws = shuffle(st.words).slice(0, 5);
+        if (step === 'meet') return { type: 'meet', items: st.words.map(w => ({ k: w.w, word: w, okuri: st.type === 'okuri', hantai: st.type === 'hantai' })) };
+        if (step === 'okuriSel') return { type: 'choice', questions: ws.map(makeOkuriSel) };
+        if (step === 'hantaiSel') return { type: 'choice', questions: ws.map(w => makeHantaiSel(w, st.words)) };
+        return { type: 'choice', questions: ws.map(w => makeWordSel(w, st.words, step)) };
+      }
+      if (st.type === 'review') {
+        const pool = st.from.flatMap(id => stageById(id).kanji);
+        const weight = (k) => 1 + (progress.miss[k] || 0) * 3;
+        const picked = [];
+        const bag = [...pool];
+        while (picked.length < Math.min(8, pool.length)) {
+          const tot = bag.reduce((a, k) => a + weight(k), 0);
+          let r = Math.random() * tot, idx = 0;
+          for (; idx < bag.length; idx++) { r -= weight(bag[idx]); if (r <= 0) break; }
+          picked.push(bag.splice(Math.min(idx, bag.length - 1), 1)[0]);
+        }
+        const choice = picked.map((k, i) => {
+          return i % 2 === 0 ? makeYomiSel(k, exFor(k, 0, false), pool) : makeKanjiSel(k, exFor(k, 0, true), pool);
+        });
+        const worst = [...pool].sort((a, b) => (progress.miss[b] || 0) - (progress.miss[a] || 0) || Math.random() - .5).slice(0, 2);
+        return { type: 'review', questions: choice, writes: worst.map(k => ({ k, ex: exFor(k, 0, true) })) };
+      }
+      const ks = shuffle(st.kanji);
+      const left = (arr) => resumeLeft ? arr.slice(arr.length - resumeLeft) : arr;
+      if (step === 'meet') return { type: 'meet', items: st.kanji.map(k => ({ k })) };
+      if (step === 'yomiSel') return { type: 'choice', questions: left(ks.map(k => makeYomiSel(k, exFor(k, 0, false), st.kanji))) };
+      if (step === 'kanjiSel') return { type: 'choice', questions: left(ks.map(k => makeKanjiSel(k, exFor(k, 1, true), st.kanji))) };
+      if (step === 'yomiWrite') {
+        const qs = ks.map(k => ({ k, ex: exFor(k, 2, false) }));
+        const ms = flow.yomi;
+        return { type: 'yomiWrite', questions: left(qs), modes: left(ms) };
+      }
+      return { type: 'kanjiWrite', questions: left(ks.map(k => ({ k, ex: exFor(k, 0, true) }))), phases: flow.kanji };
+    }
+
+    function Activity({ st, step, progress, settings, onRecord, onCoin, onPartial, onFinish, onQuit }) {
+      const resume = progress.part && progress.part.sid === st.id && progress.part.step === step ? progress.part.left : 0;
+      const [data] = useState(() => buildStep(st, step, progress, settings, resume));
+      const [reviewPart, setReviewPart] = useState('choice');
+      const tol = settings.judge === 'ふつう' ? 17 : 21;
+      const count = useRef(0);
+      const total = data.questions ? data.questions.length : 0;
+      const rec = (r) => {
+        onRecord({ ...r, stage: st.name, step: STEP[step].label });
+        count.current++;
+        if (data.type !== 'review' && data.type !== 'meet') onPartial({ sid: st.id, step, left: Math.max(0, total - countQ()) });
+      };
+      // ④は 1つの字で 3かい きろくするので、もんだいの かずで かぞえる
+      const countQ = () => data.type === 'kanjiWrite' ? Math.floor(count.current / data.phases.length) : count.current;
+      const info = STEP[step];
+      return (
+        <div className="flex flex-col items-center gap-2 w-full">
+          <div className="flex items-center gap-3 w-full max-w-5xl">
+            <button onClick={onQuit} className="btn3d shrink-0 bg-white border-2 border-stone-300 rounded-2xl px-3 py-1 text-xl font-bold">◀ やめる</button>
+            <div className="shrink-0 text-center leading-tight">
+              <div className="text-base font-bold rounded-full px-3 text-white" style={{ background: st.color }}>{st.name}</div>
+              <div className="text-xl font-bold">{info.num} {info.label}</div>
+            </div>
+            <PontaBar size={72} compact />
+          </div>
+          {data.type === 'meet' && <MeetStep items={data.items} onFinish={() => onFinish({ firstOk: 0, total: 0 })} />}
+          {data.type === 'choice' && <ChoiceQuiz questions={data.questions} onRecord={rec} onCoin={onCoin} onFinish={onFinish} />}
+          {data.type === 'yomiWrite' && <YomiWrite questions={data.questions} modes={data.modes} tol={tol} onRecord={rec} onCoin={onCoin} onFinish={onFinish} />}
+          {data.type === 'kanjiWrite' && <KanjiWrite questions={data.questions} phases={data.phases} tol={tol} onRecord={rec} onCoin={onCoin} onFinish={onFinish} />}
+          {data.type === 'review' && reviewPart === 'choice' && <ChoiceQuiz questions={data.questions} onRecord={rec} onCoin={onCoin} onFinish={() => setReviewPart('write')} />}
+          {data.type === 'review' && reviewPart === 'write' && <KanjiWrite questions={data.writes} phases={['none']} tol={tol} onRecord={rec} onCoin={onCoin} onFinish={() => onFinish({ firstOk: 0, total: 0 })} />}
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 14. がめん：けっか
+    // =====================================================================
+    function ResultScreen({ result, onNext, onStage, onShop, coins }) {
+      const ponta = usePonta();
+      useEffect(() => {
+        if (result.stageClear) { Sound.big(); ponta.say(`ステージ クリア！ ボーナスで コインを ${result.bonus}まい プレゼント！`, { mood: 'happy' }); }
+        else { Sound.fanfare(); ponta.say(result.earned ? `よく できました！ コインを ${result.earned}まい もらったよ。` : 'よく できました！', { mood: 'happy' }); }
+      }, []);
+      return (
+        <div className="flex flex-col items-center gap-5 pt-4">
+          <div className="text-6xl font-bold text-amber-600 pop">{result.stageClear ? '🎉 ステージ クリア！ 🎉' : '⭐ よく できました！ ⭐'}</div>
+          <Ponta mood="happy" size={220} className="floaty" />
+          <div className="bg-white rounded-3xl shadow px-10 py-5 text-center">
+            <div className="text-3xl font-bold">もらった コイン <span className="text-amber-500 text-5xl">{result.earned + (result.bonus || 0)}</span> まい</div>
+            {result.bonus ? <div className="text-2xl mt-1">（ボーナス {result.bonus}まい つき）</div> : null}
+            <div className="text-2xl mt-2">いま もっている コイン：🪙 {coins}</div>
+          </div>
+          <div className="flex gap-4 flex-wrap justify-center">
+            {onNext && <Btn onClick={onNext} color="#16a34a" light="#dcfce7" className="text-3xl px-10">つぎへ ▶</Btn>}
+            <Btn onClick={onStage} color="#0284c7" light="#e0f2fe">📖 ステージへ</Btn>
+            <Btn onClick={onShop} color="#e11d48" light="#ffe4e6">🛒 おみせへ</Btn>
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 15. がめん：ログイン・ホーム・ステージ
+    // =====================================================================
+    function LoginScreen({ students, onSelect, onTeacher, demo }) {
+      return (
+        <div className="min-h-screen flex flex-col items-center gap-5 p-6" style={{ background: `linear-gradient(#fff8ecdd, #fff8ecdd), url(${IMG}bg_home.webp) center/cover` }}>
+          <div className="flex items-center gap-4 mt-2">
+            <Ponta size={170} className="floaty" />
+            <div>
+              <div className="text-2xl font-bold text-amber-700">ポンタせんせいの</div>
+              <div className="text-5xl font-bold text-amber-900">かんじ ショッピングモール</div>
+              <div className="text-xl mt-1">3ねんせいの かんじ 200じ（3ごうてん）</div>
+            </div>
+          </div>
+          {demo && <div className="bg-yellow-100 border-2 border-yellow-400 rounded-xl px-4 py-2 text-lg">おためしモード（スプレッドシートに つながって いません。きろくは この たんまつだけに のこります）</div>}
+          <div className="text-3xl font-bold">じぶんの なまえを おしてね</div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full max-w-3xl">
+            {students.map(n => (
+              <button key={n} onClick={() => onSelect(n)} className="btn3d bg-white border-4 border-amber-400 rounded-3xl py-6 text-4xl font-bold">{n}</button>
+            ))}
+          </div>
+          {!students.length && <div className="text-2xl bg-white rounded-xl p-4">「名簿」シートに なまえを いれてください。</div>}
+          <button onClick={onTeacher} className="fixed right-3 bottom-3 bg-white/90 border-2 border-stone-300 rounded-xl px-3 py-2 text-lg font-bold">🔒 せんせい</button>
+          <div className="fixed left-3 bottom-2 text-xs text-stone-500">ver {APP_VERSION}</div>
+        </div>
+      );
+    }
+
+    function TopBar({ name, coins, bump, onHome, onLogout, onTeacher, soundOn, onSound }) {
+      return (
+        <div className="w-full flex items-center gap-2 px-3 py-2 bg-white/90 border-b-2 border-amber-200 sticky top-0 z-30">
+          {onHome && <button onClick={onHome} className="btn3d bg-amber-50 border-2 border-amber-400 rounded-2xl px-3 py-1 text-xl font-bold">🏠 ホーム</button>}
+          <div className="text-2xl font-bold ml-1">{name} さん</div>
+          <div className="flex-1" />
+          <div key={bump} className={`flex items-center gap-1 bg-amber-100 border-2 border-amber-400 rounded-full px-4 py-1 text-2xl font-bold ${bump ? 'bump' : ''}`}>🪙 {coins}</div>
+          <button onClick={onSound} className="text-3xl px-2" aria-label="おと">{soundOn ? '🔊' : '🔇'}</button>
+          <button onClick={onTeacher} className="text-lg px-2 border-2 border-stone-300 rounded-xl bg-white">🔒</button>
+          <button onClick={onLogout} className="text-lg px-3 py-1 border-2 border-stone-300 rounded-xl bg-white font-bold">おわる</button>
+        </div>
+      );
+    }
+
+    function HomeScreen({ name, progress, onStudy, onContinue, onShop, onZukan, onWelcome }) {
+      const ponta = usePonta();
+      const cur = currentStage(progress);
+      const titles = titlesOf(progress.items);
+      const first = !progress.welcome;
+      useEffect(() => {
+        if (first) ponta.say(`${name}さん、かんじ ショッピングモールの 3ごうてんへ ようこそ！ マーケット、デパートの つぎは、おみせが 10けん ならぶ ショッピングモールだよ。3ねんせいの かんじを べんきょうして、コインで おかいものを しよう。`, { mood: 'happy' });
+        else ponta.say(`${name}さん、いらっしゃいませ！ かんじを べんきょうして コインを あつめよう。`);
+      }, [first]);
+      return (
+        <div className="relative w-full flex-1 flex flex-col items-center gap-4 p-4" style={{ background: `url(${IMG}bg_home.webp) center/cover` }}>
+          {first && (
+            <div className="fixed inset-0 bg-black/40 z-40 flex items-center justify-center p-4">
+              <div className="bg-white rounded-3xl p-6 flex flex-col items-center gap-3 pop max-w-xl text-center">
+                <div className="text-3xl font-bold text-amber-700">🎉 3ごうてん オープン！ 🎉</div>
+                <Ponta mood="happy" size={200} className="floaty" />
+                <div className="text-2xl font-bold leading-relaxed">かんじ ショッピングモールへ<br />ようこそ！</div>
+                <div className="text-xl" style={{ wordBreak: 'keep-all' }}>のりもの・たべもの・がっき など、おみせが 10けん あるよ。モールの ちずから すきな おみせに はいろう。</div>
+                <Btn onClick={onWelcome} color="#16a34a" light="#dcfce7" className="text-3xl px-10">はいる ▶</Btn>
+              </div>
+            </div>
+          )}
+          <div className="bg-white/85 rounded-3xl p-3 w-full max-w-3xl"><PontaBar size={120} /></div>
+          {titles.length > 0 && <div className="bg-white/90 rounded-2xl px-4 py-2 text-xl font-bold">🏆 {titles.join('・')}</div>}
+          <button onClick={onContinue} className="btn3d glow bg-emerald-100 border-4 border-emerald-500 rounded-3xl px-10 py-5 text-4xl font-bold mt-2">
+            ▶ つづきから<div className="text-2xl mt-1">{cur.name}（{stepsOf(cur).map(s => STEP[s].num).join('')}）</div>
+          </button>
+          <div className="grid grid-cols-3 gap-4 w-full max-w-3xl mt-2">
+            <button onClick={onStudy} className="btn3d bg-sky-50 border-4 border-sky-500 rounded-3xl py-6 text-3xl font-bold">📖<br />べんきょう</button>
+            <button onClick={onShop} className="btn3d bg-rose-50 border-4 border-rose-500 rounded-3xl py-6 text-3xl font-bold">🏬<br />おみせ</button>
+            <button onClick={onZukan} className="btn3d bg-violet-50 border-4 border-violet-500 rounded-3xl py-6 text-3xl font-bold">📚<br />ずかん</button>
+          </div>
+        </div>
+      );
+    }
+
+    function StageMap({ progress, onStage }) {
+      const list = [...STAGES, ...HATTEN];
+      return (
+        <div className="w-full max-w-5xl p-4">
+          <div className="text-3xl font-bold text-center mb-4">📖 ステージを えらんでね</div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {list.map(st => {
+              const open = stageOpen(progress, st);
+              const steps = stepsOf(st);
+              const n = steps.filter(s => stepDone(progress, st, s)).length;
+              const clear = !!progress.cleared[st.id];
+              if (isHatten(st) && !open) return (
+                <div key={st.id} className="rounded-3xl border-4 border-dashed border-stone-300 p-3 text-center text-stone-400 bg-white/60">
+                  <div className="text-3xl">🔒</div><div className="text-lg font-bold">{st.name}</div><div className="text-sm">せんせいが ひらくと できるよ</div>
+                </div>
+              );
+              return (
+                <button key={st.id} disabled={!open} onClick={() => onStage(st)}
+                  className={`btn3d rounded-3xl border-4 p-3 text-center bg-white ${open ? '' : 'opacity-40'}`} style={{ borderColor: st.color }}>
+                  <div className="text-lg font-bold rounded-full text-white px-2" style={{ background: st.color }}>{st.icon} {st.name}</div>
+                  <div className="kyo text-4xl my-2 tracking-wider">{st.type === 'kanji' ? st.kanji.join('') : st.type === 'review' ? 'ふくしゅう' : st.type === 'hantai' ? `${st.words[0].w}⇔${st.words[0].a}` : st.words.slice(0, 3).map(w => w.w).join(' ')}</div>
+                  <div className="flex justify-center gap-1">
+                    {steps.map(s => <span key={s} className={`w-6 h-6 rounded-full text-sm flex items-center justify-center ${stepDone(progress, st, s) ? 'bg-amber-400 text-white' : 'bg-stone-200 text-stone-500'}`}>{STEP[s].num}</span>)}
+                  </div>
+                  <div className="text-xl mt-1 h-7">{!open ? '🔒' : clear ? '⭐ クリア' : n ? `${n} / ${steps.length}` : ''}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    function StageScreen({ st, progress, onStep, onBack }) {
+      const ponta = usePonta();
+      const steps = stepsOf(st);
+      const nxt = nextStep(progress, st);
+      useEffect(() => { ponta.say(progress.cleared[st.id] ? 'クリアした ステージだよ。なんかいでも れんしゅう できるよ。' : 'ひかって いる ボタンを おしてね。'); }, []);
+      return (
+        <div className="w-full max-w-4xl p-4 flex flex-col items-center gap-4">
+          <div className="flex items-center gap-3 w-full">
+            <button onClick={onBack} className="btn3d bg-white border-2 border-stone-300 rounded-2xl px-4 py-2 text-xl font-bold">◀ もどる</button>
+            <div className="flex-1 text-center text-3xl font-bold rounded-full text-white py-2" style={{ background: st.color }}>{st.icon} {st.name}</div>
+          </div>
+          <PontaBar size={100} />
+          {st.type === 'kanji' && <div className="kyo text-7xl tracking-[0.3em] bg-white rounded-3xl px-6 py-2 shadow">{st.kanji.join('')}</div>}
+          <div className="flex flex-col gap-3 w-full max-w-xl">
+            {steps.map((s, i) => {
+              const open = stepOpen(progress, st, i);
+              const done = stepDone(progress, st, s);
+              return (
+                <button key={s} disabled={!open} onClick={() => onStep(s)}
+                  className={`btn3d flex items-center gap-4 rounded-3xl border-4 px-5 py-3 text-3xl font-bold text-left ${open ? 'bg-white' : 'bg-stone-100 opacity-50'} ${s === nxt && open && !progress.cleared[st.id] ? 'glow border-emerald-500' : 'border-amber-300'}`}>
+                  <span className="text-4xl">{STEP[s].icon}</span>
+                  <span className="flex-1">{STEP[s].num} {STEP[s].label}</span>
+                  <span>{done ? '⭐' : open ? '' : '🔒'}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 16. がめん：おみせ・ずかん
+    // =====================================================================
+    function ShopScreen({ progress, onBuy }) {
+      const ponta = usePonta();
+      const [cat, setCat] = useState(null);       // null：モールの ちず
+      const [confirm, setConfirm] = useState(null);
+      const [award, setAward] = useState(null);
+      const own = new Set(progress.items);
+      const c = cat && ITEM_CATS.find(x => x.id === cat);
+      useEffect(() => { ponta.say('ショッピングモールへ ようこそ！ どの おみせに はいる？'); }, []);
+      // おみせに はいる・ちずに もどる
+      const enter = (id) => {
+        Sound.tap(); setCat(id);
+        const cc = ITEM_CATS.find(x => x.id === id);
+        ponta.say(`いらっしゃいませ！ ${cc.name}の おみせです。`);
+      };
+      const leave = () => { Sound.tap(); setCat(null); ponta.say('つぎは どの おみせに はいる？'); };
+      const tap = (it) => {
+        Sound.tap();
+        if (own.has(it.id)) { ponta.say(`${it.n}は もう ずかんに あるよ。`); return; }
+        if (progress.coins < it.p) { ponta.say(`${it.n}は コイン ${it.p}まい。あと ${it.p - progress.coins}まい あつめよう！`, { mood: 'think' }); return; }
+        ponta.say(`${it.n}を かいますか？`);
+        setConfirm(it);
+      };
+      const buy = () => {
+        const it = confirm; setConfirm(null);
+        const before = titlesOf(progress.items);
+        const after = titlesOf([...progress.items, it.id]);
+        onBuy(it);
+        Sound.buy();
+        const newT = after.find(t => !before.includes(t));
+        if (newT) { setAward(newT); Sound.big(); ponta.say(`おめでとう！「${newT}」に なったよ！`, { mood: 'happy' }); }
+        else ponta.say(`まいど ありがとう ございます！ ${it.n}を ずかんに いれたよ。`, { mood: 'happy' });
+      };
+      // おみせの のき（しまもようの ひさし）
+      const awning = (color) => ({ background: `repeating-linear-gradient(90deg, ${color} 0 22px, #ffffff 22px 44px)` });
+      return (
+        <div className="relative w-full flex-1 flex flex-col items-center gap-3 p-3" style={{ background: `url(${IMG}bg_shop.webp) center/cover` }}>
+          <div className="bg-white/85 rounded-3xl p-2 w-full max-w-5xl"><PontaBar size={100} /></div>
+          {!c && (
+            <div className="w-full max-w-5xl flex flex-col items-center gap-3">
+              <div className="bg-white/90 rounded-full px-6 py-1 text-2xl font-bold">🏬 モールの ちず　<span className="text-lg">おみせを おしてね</span></div>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 w-full">
+                {ITEM_CATS.map(x => {
+                  const n = x.items.filter(it => own.has(it.id)).length;
+                  return (
+                    <button key={x.id} onClick={() => enter(x.id)} className="btn3d rounded-2xl border-4 bg-white overflow-hidden flex flex-col items-stretch" style={{ borderColor: x.color }}>
+                      <div className="h-4" style={awning(x.color)} />
+                      <div className="flex flex-col items-center py-2 px-1">
+                        <span className="text-6xl">{x.icon}</span>
+                        <span className="text-lg font-bold leading-tight mt-1" style={{ wordBreak: 'keep-all' }}>{x.name}</span>
+                        <span className="text-sm font-bold rounded-full px-2 mt-1" style={{ background: n === x.items.length ? '#fef3c7' : '#f5f5f4' }}>{n === x.items.length ? '🏆 ' : ''}{n} / {x.items.length}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {c && (
+            <div className="w-full max-w-5xl flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <button onClick={leave} className="btn3d shrink-0 bg-white border-2 border-stone-300 rounded-2xl px-4 py-2 text-xl font-bold">◀ ちずへ</button>
+                <div className="flex-1 rounded-2xl overflow-hidden border-4 bg-white" style={{ borderColor: c.color }}>
+                  <div className="h-5" style={awning(c.color)} />
+                  <div className="text-center text-3xl font-bold py-1">{c.icon} {c.name}の おみせ</div>
+                </div>
+              </div>
+              <div className="bg-white/90 rounded-3xl p-3">
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                  {c.items.map(it => {
+                    const have = own.has(it.id), can = progress.coins >= it.p;
+                    return (
+                      <button key={it.id} onClick={() => tap(it)} className={`btn3d rounded-2xl border-4 p-1 flex flex-col items-center bg-white ${have ? 'border-emerald-400' : can ? 'border-amber-400' : 'border-stone-200'}`}>
+                        <span className={`text-6xl ${have || can ? '' : 'opacity-60'}`}>{it.e}</span>
+                        <span className="text-base font-bold mt-1 leading-tight h-10 flex items-center text-center">{it.n}</span>
+                        <span className={`text-xl font-bold rounded-full px-2 ${have ? 'bg-emerald-100 text-emerald-700' : can ? 'bg-amber-100' : 'bg-stone-100 text-stone-400'}`}>{have ? '✓' : `🪙 ${it.p}`}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+          {confirm && (
+            <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-3xl p-6 flex flex-col items-center gap-3 pop">
+                <div className="text-8xl">{confirm.e}</div>
+                <div className="text-3xl font-bold">{confirm.n}を かいますか？</div>
+                <div className="text-2xl">🪙 {confirm.p}まい（のこり {progress.coins - confirm.p}まい）</div>
+                <div className="flex gap-4 mt-2">
+                  <Btn onClick={buy} color="#16a34a" light="#dcfce7" className="text-3xl px-10">かう</Btn>
+                  <Btn onClick={() => setConfirm(null)} color="#78716c" light="#f5f5f4">やめる</Btn>
+                </div>
+              </div>
+            </div>
+          )}
+          {award && (
+            <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setAward(null)}>
+              <div className="bg-white rounded-3xl p-8 flex flex-col items-center gap-3 pop">
+                <div className="text-7xl">🏆</div>
+                <div className="text-4xl font-bold text-amber-600">「{award}」</div>
+                <div className="text-2xl">に なったよ！ おめでとう！</div>
+                <Btn onClick={() => setAward(null)} color="#16a34a" light="#dcfce7">やったね！</Btn>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function ZukanScreen({ progress }) {
+      const ponta = usePonta();
+      const own = new Set(progress.items);
+      const titles = titlesOf(progress.items);
+      useEffect(() => { ponta.say(`ずかんだよ。ぜんぶで ${ALL_ITEMS.length}こ。いま ${progress.items.length}こ あつまったよ。`); }, []);
+      return (
+        <div className="w-full max-w-5xl p-4 flex flex-col items-center gap-3">
+          <PontaBar size={100} />
+          <div className="text-2xl font-bold">あつめた もの：{progress.items.length} / {ALL_ITEMS.length}</div>
+          {titles.length > 0 && <div className="flex flex-wrap gap-2 justify-center">{titles.map(t => <span key={t} className="bg-amber-100 border-2 border-amber-400 rounded-full px-4 py-1 text-xl font-bold">🏆 {t}</span>)}</div>}
+          {ITEM_CATS.map(c => {
+            const n = c.items.filter(it => own.has(it.id)).length;
+            return (
+              <div key={c.id} className="w-full bg-white rounded-3xl shadow-sm p-3">
+                <div className="text-2xl font-bold mb-2">{c.icon} {c.name} <span className="text-lg text-stone-500">{n} / {c.items.length}</span> {n === c.items.length && <span className="text-amber-600">🏆 {c.title}</span>}</div>
+                <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+                  {c.items.map(it => (
+                    <button key={it.id} onClick={() => own.has(it.id) ? ponta.say(it.n) : ponta.say('まだ もって いないよ。おみせで かえるよ。')}
+                      className={`rounded-2xl border-2 aspect-square flex flex-col items-center justify-center ${own.has(it.id) ? 'bg-amber-50 border-amber-300' : 'bg-stone-100 border-stone-200'}`}>
+                      <span className="text-5xl" style={own.has(it.id) ? {} : { filter: 'grayscale(1) brightness(0.3)', opacity: .25 }}>{it.e}</span>
+                      <span className="text-sm font-bold">{own.has(it.id) ? it.n : '？'}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 17. 先生用画面
+    // =====================================================================
+    function PinPad({ onSubmit, onClose, error }) {
+      const [v, setV] = useState('');
+      const press = (d) => { const n = (v + d).slice(0, 4); setV(n); if (n.length === 4) { onSubmit(n); setTimeout(() => setV(''), 300); } };
+      return (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-3xl p-6 w-80 flex flex-col items-center gap-3">
+            <div className="text-2xl font-bold">🔒 せんせい用</div>
+            <div className="text-base">暗証番号（4けた）を入れてください</div>
+            <div className="flex gap-2">{[0, 1, 2, 3].map(i => <div key={i} className="w-10 h-12 border-2 rounded-lg flex items-center justify-center text-2xl">{v[i] ? '●' : ''}</div>)}</div>
+            {error > 0 && <div className="text-rose-600 font-bold">番号がちがいます</div>}
+            <div className="grid grid-cols-3 gap-2">
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].map((d, i) => d === '' ? <div key={i} /> :
+                <button key={i} onClick={() => d === '⌫' ? setV(v.slice(0, -1)) : press(d)} className="btn3d w-16 h-14 rounded-xl bg-stone-100 border-2 border-stone-300 text-2xl font-bold">{d}</button>)}
+            </div>
+            <button onClick={onClose} className="text-lg underline mt-1">とじる</button>
+          </div>
+        </div>
+      );
+    }
+
+    const statOf = (t) => { let n = 0, o = 0; if (t) Object.values(t).forEach(([a, b]) => { n += a; o += b; }); return [n, o]; };
+    const rateColor = (n, o) => !n ? '#f5f5f4' : o / n >= 0.8 ? '#bbf7d0' : o / n >= 0.6 ? '#fef08a' : '#fecaca';
+    const pct = (n, o) => n ? `${Math.round((o / n) * 100)}%` : '－';
+    const weakList = (kanji) => Object.entries(kanji || {}).map(([k, t]) => { const [n, o] = statOf(t); return { k, n, o, r: n ? o / n : 1 }; })
+      .filter(x => x.n >= 2 && x.r < 0.8).sort((a, b) => a.r - b.r);
+    const weakKind = (t) => {
+      let worst = null;
+      KIND_ORDER.forEach(kd => { if (t && t[kd]) { const r = t[kd][1] / t[kd][0]; if (!worst || r < worst.r) worst = { kd, r }; } });
+      return worst ? `${KIND_NUM[worst.kd]}${worst.kd}` : '';
+    };
+
+    function KanjiGrid({ kanji, onPick, picked }) {
+      return (
+        <div className="flex flex-col gap-1">
+          {STAGES.filter(s => s.type === 'kanji').map(st => (
+            <div key={st.id} className="flex items-center gap-1">
+              <span className="w-36 text-sm text-stone-500 truncate">{st.name}</span>
+              {st.kanji.map(k => {
+                const [n, o] = statOf(kanji && kanji[k]);
+                return <button key={k} onClick={() => onPick(k)} className={`kyo w-12 h-12 rounded-lg text-2xl border-2 ${picked === k ? 'border-sky-600' : 'border-transparent'}`} style={{ background: rateColor(n, o) }}>{k}</button>;
+              })}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    function Legend() {
+      return <div className="flex gap-3 text-sm flex-wrap">
+        <span><span className="inline-block w-4 h-4 align-middle rounded" style={{ background: '#fecaca' }} /> 60%未満</span>
+        <span><span className="inline-block w-4 h-4 align-middle rounded" style={{ background: '#fef08a' }} /> 60〜79%</span>
+        <span><span className="inline-block w-4 h-4 align-middle rounded" style={{ background: '#bbf7d0' }} /> 80%以上</span>
+        <span><span className="inline-block w-4 h-4 align-middle rounded" style={{ background: '#f5f5f4' }} /> まだ</span>
+        <span>（1回目で、ヒントなしで正解した割合）</span>
+      </div>;
+    }
+
+    function TeacherView({ data, pin, onClose, onChanged, onSettings }) {
+      const [tab, setTab] = useState('class');
+      const [sel, setSel] = useState(data.students[0] ? data.students[0].name : null);
+      const [picked, setPicked] = useState(null);
+      const [s, setS] = useState({ ...DEFAULT_SETTINGS, ...data.settings });
+      const [newPin, setNewPin] = useState('');
+      const [msg, setMsg] = useState('');
+      const [pending, setPending] = useState(api.pending());
+      const student = data.students.find(x => x.name === sel);
+      const prog = student ? parseProgress(student.progress) : null;
+      const cleared = (p) => STAGES.filter(st => p.cleared[st.id]).length;
+      const flash = (t) => { setMsg(t); setTimeout(() => setMsg(''), 3500); };
+
+      const act = async (fn, okText) => {
+        try { const r = await fn(); if (r && r.ok === false) flash('うまく いきませんでした'); else { flash(okText); onChanged(); } }
+        catch (e) { flash('うまく いきませんでした：' + e.message); }
+      };
+      const saveSettings = async () => {
+        if (newPin && !/^\d{4}$/.test(newPin)) { flash('暗証番号は4けたの数字にしてください'); return; }
+        await act(() => api.saveSettings(pin, { ...s, newPin: newPin || '' }), '設定を保存しました');
+        onSettings(s); setNewPin('');
+      };
+      const csv = async () => {
+        const r = await api.logRows(pin);
+        if (!r || !r.ok) { flash('うまく いきませんでした'); return; }
+        const text = '﻿' + r.rows.map(row => row.map(v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+        downloadText(`かんじモール_きろく_${nowStr().slice(0, 10).replace(/\//g, '')}.csv`, text, 'text/csv');
+        flash('CSVを書き出しました（ダウンロードフォルダ）');
+      };
+      const backup = async () => {
+        const r = await api.backup(pin);
+        if (!r || !r.ok) { flash('うまく いきませんでした'); return; }
+        downloadText(`かんじモール_バックアップ_${nowStr().slice(0, 10).replace(/\//g, '')}.json`, JSON.stringify(r.data), 'application/json');
+        flash('バックアップを保存しました（ダウンロードフォルダ）');
+      };
+      const restore = (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        const rd = new FileReader();
+        rd.onload = async () => {
+          let d = null; try { d = JSON.parse(rd.result); } catch (err) {}
+          if (!d || d.app !== 'kanji3') { flash('このアプリのバックアップではありません'); return; }
+          if (!confirm('バックアップから、子どもの進み具合・コインを元にもどします。よろしいですか？')) return;
+          await act(() => api.restore(pin, d), 'バックアップから元にもどしました');
+        };
+        rd.readAsText(f);
+      };
+
+      return (
+        <div className="fixed inset-0 bg-stone-50 z-50 overflow-auto">
+          <div className="max-w-6xl mx-auto p-4 text-base">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="text-2xl font-bold flex-1">🔒 先生用画面 <span className="text-sm text-stone-500">ver {APP_VERSION}{data.demo ? '（おためしモード）' : ''}</span></div>
+              <button onClick={onClose} className="btn3d bg-white border-2 border-stone-400 rounded-xl px-4 py-2 font-bold">とじる</button>
+            </div>
+            {data.isDefaultPin && <div className="bg-rose-100 border-2 border-rose-400 rounded-xl p-2 mb-2">暗証番号が はじめの「1234」のままです。「せってい」で変えてください。</div>}
+            {msg && <div className="fixed top-3 left-1/2 -translate-x-1/2 bg-sky-700 text-white rounded-xl px-4 py-2 z-50">{msg}</div>}
+            <div className="flex gap-2 mb-3">
+              {[['class', 'クラス全体'], ['child', '子どもごと'], ['settings', 'せってい'], ['data', 'データ']].map(([id, t]) => (
+                <button key={id} onClick={() => setTab(id)} className={`rounded-xl px-4 py-2 font-bold border-2 ${tab === id ? 'bg-amber-200 border-amber-500' : 'bg-white border-stone-300'}`}>{t}</button>
+              ))}
+            </div>
+
+            {tab === 'class' && (
+              <div className="flex flex-col gap-4">
+                <table className="w-full bg-white rounded-xl overflow-hidden text-left">
+                  <thead className="bg-amber-100"><tr><th className="p-2">なまえ</th><th>クリア</th><th>コイン</th><th>かった数</th><th>解いた数</th><th>1回目正解</th><th>さいご</th><th>つまずいている字</th></tr></thead>
+                  <tbody>
+                    {data.students.map(st => {
+                      const p = parseProgress(st.progress);
+                      const w = weakList(st.kanji).slice(0, 5);
+                      return (
+                        <tr key={st.name} className="border-t cursor-pointer hover:bg-amber-50" onClick={() => { setSel(st.name); setTab('child'); }}>
+                          <td className="p-2 font-bold">{st.name}</td>
+                          <td>{cleared(p)} / {STAGES.length}</td>
+                          <td>🪙 {p.coins}</td>
+                          <td>{p.items.length}</td>
+                          <td>{st.count}</td>
+                          <td>{pct(st.count, st.ok)}</td>
+                          <td>{st.last || '－'}</td>
+                          <td className="kyo text-xl">{w.map(x => x.k).join(' ') || '－'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                <div className="bg-white rounded-xl p-3">
+                  <div className="font-bold mb-2">クラス全体の字ごとの結果</div>
+                  <Legend />
+                  <div className="mt-2"><KanjiGrid kanji={data.classKanji} onPick={setPicked} picked={picked} /></div>
+                  {picked && <KanjiDetail k={picked} t={data.classKanji[picked]} wrong={data.classWrong && data.classWrong[picked]} />}
+                </div>
+              </div>
+            )}
+
+            {tab === 'child' && (
+              <div className="flex flex-col gap-3">
+                <div className="flex gap-2 flex-wrap">
+                  {data.students.map(st => <button key={st.name} onClick={() => { setSel(st.name); setPicked(null); }} className={`rounded-xl px-4 py-2 font-bold border-2 ${sel === st.name ? 'bg-sky-200 border-sky-500' : 'bg-white border-stone-300'}`}>{st.name}</button>)}
+                </div>
+                {student && prog && (
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <div className="bg-white rounded-xl p-3">
+                      <div className="font-bold text-xl mb-1">{student.name}</div>
+                      <div>クリア：{cleared(prog)} / {STAGES.length}　コイン：🪙 {prog.coins}（これまでに {prog.earned}まい）　かった数：{prog.items.length}</div>
+                      <div>解いた数：{student.count}　1回目正解：{pct(student.count, student.ok)}　さいご：{student.last || '－'}</div>
+                      <div className="mt-2 font-bold">つまずいている字</div>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {weakList(student.kanji).slice(0, 12).map(x => (
+                          <button key={x.k} onClick={() => setPicked(x.k)} className="rounded-lg px-2 py-1 border" style={{ background: rateColor(x.n, x.o) }}>
+                            <span className="kyo text-2xl">{x.k}</span> {pct(x.n, x.o)} <span className="text-xs">{weakKind(student.kanji[x.k])}</span>
+                          </button>
+                        ))}
+                        {!weakList(student.kanji).length && <span className="text-stone-500">いまは ありません</span>}
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button onClick={() => act(() => api.setFlag(pin, student.name, 'unlockAll', !prog.unlockAll), prog.unlockAll ? 'ステージの開放をやめました' : 'すべてのステージを開きました')} className="rounded-xl px-3 py-2 border-2 bg-white font-bold">{prog.unlockAll ? '🔓 全部開く：オン' : '🔒 全部開く：オフ'}</button>
+                        <button onClick={() => act(() => api.setFlag(pin, student.name, 'hatten', !prog.hatten), prog.hatten ? 'はってんを閉じました' : 'はってんを開きました')} className="rounded-xl px-3 py-2 border-2 bg-white font-bold">{prog.hatten ? '✨ はってん：開いている' : '✨ はってん：閉じている'}</button>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2 items-center">
+                        <span className="font-bold">コイン：</span>
+                        {[-5, -1, 1, 5, 10].map(dv => <button key={dv} onClick={() => act(() => api.addCoins(pin, student.name, dv), `コインを ${dv > 0 ? '+' : ''}${dv} しました`)} className="rounded-lg px-3 py-1 border-2 bg-white font-bold">{dv > 0 ? '+' : ''}{dv}</button>)}
+                      </div>
+                      <div className="mt-3">
+                        <button onClick={() => { if (confirm(`${student.name} さんの記録・進み具合・コイン・買ったものを、すべて消します。元にはもどせません。よろしいですか？`)) act(() => api.clear(pin, student.name), `${student.name} さんの記録を消しました`); }} className="rounded-xl px-3 py-2 border-2 border-rose-400 bg-rose-50 font-bold">🗑 この子の記録を消す</button>
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-xl p-3">
+                      <Legend />
+                      <div className="mt-2"><KanjiGrid kanji={student.kanji} onPick={setPicked} picked={picked} /></div>
+                      {picked && <KanjiDetail k={picked} t={student.kanji[picked]} wrong={student.wrong && student.wrong[picked]} />}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {tab === 'settings' && (
+              <div className="bg-white rounded-xl p-4 flex flex-col gap-4 max-w-2xl">
+                <label className="flex items-center gap-3">よみあげの はやさ：<input type="range" min="0.5" max="1.2" step="0.05" value={s.rate} onChange={e => setS({ ...s, rate: Number(e.target.value) })} /> {s.rate}倍
+                  <button className="border rounded px-2" onClick={() => { Speech.rate = s.rate; Speech.say('ポンタせんせいの かんじ ショッピングモールだよ。'); }}>ためす</button></label>
+                <div>もじの おおきさ：{[[0.9, 'ちいさめ'], [1, 'ふつう'], [1.15, 'おおきめ'], [1.3, 'とても おおきい']].map(([v, t]) =>
+                  <button key={v} onClick={() => setS({ ...s, font: v })} className={`ml-2 rounded-lg px-3 py-1 border-2 ${s.font === v ? 'bg-amber-200 border-amber-500' : 'bg-white'}`}>{t}</button>)}</div>
+                <div>こうかおん（ファンファーレなど）：{[[true, 'ならす'], [false, 'ならさない']].map(([v, t]) =>
+                  <button key={t} onClick={() => setS({ ...s, sound: v })} className={`ml-2 rounded-lg px-3 py-1 border-2 ${s.sound === v ? 'bg-amber-200 border-amber-500' : 'bg-white'}`}>{t}</button>)}</div>
+                <div>かく はんていの きびしさ：{['やさしい', 'ふつう'].map(v =>
+                  <button key={v} onClick={() => setS({ ...s, judge: v })} className={`ml-2 rounded-lg px-3 py-1 border-2 ${s.judge === v ? 'bg-amber-200 border-amber-500' : 'bg-white'}`}>{v}</button>)}</div>
+                <div>ぶひんの いろわけ（10画いじょうの字）：{[[true, 'つかう'], [false, 'つかわない']].map(([v, t]) =>
+                  <button key={t} onClick={() => setS({ ...s, parts: v })} className={`ml-2 rounded-lg px-3 py-1 border-2 ${s.parts === v ? 'bg-amber-200 border-amber-500' : 'bg-white'}`}>{t}</button>)}</div>
+                <div>かく れんしゅうの すすめかた：
+                  {[['3', 'なぞる → うすい → みほんなし'], ['2', 'うすい → みほんなし'], ['1', 'みほんなし だけ']].map(([v, t]) =>
+                    <button key={v} onClick={() => setS({ ...s, flow: v })} className={`ml-2 mt-1 rounded-lg px-3 py-1 border-2 ${s.flow === v ? 'bg-amber-200 border-amber-500' : 'bg-white'}`}>{t}</button>)}</div>
+                <label>暗証番号を変える（4けた）：<input value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))} className="border-2 rounded px-2 py-1 w-24 ml-2" inputMode="numeric" placeholder="----" /></label>
+                <div><button onClick={saveSettings} className="btn3d rounded-xl px-6 py-2 border-2 border-emerald-500 bg-emerald-100 font-bold text-xl">保存する</button>
+                  <span className="text-sm text-stone-500 ml-2">（全員の画面に反映されます。子どもの画面は開き直すと変わります）</span></div>
+              </div>
+            )}
+
+            {tab === 'data' && (
+              <div className="bg-white rounded-xl p-4 flex flex-col gap-3 max-w-2xl">
+                <div>この端末に たまっている、まだ送れていない記録：<b>{pending}</b> 件
+                  <button onClick={async () => { await api.flush(); setPending(api.pending()); flash(api.pending() ? 'まだ送れていません。ネットのつながりを確かめてください' : '送りました'); onChanged(); }} className="ml-2 rounded-xl px-3 py-1 border-2 bg-white font-bold">📤 スプレッドシートへ送る</button></div>
+                <div><button onClick={csv} className="rounded-xl px-3 py-2 border-2 bg-white font-bold">📄 記録をCSVで書き出す</button>
+                  <div className="text-sm text-stone-500">ダウンロードできないときは、スプレッドシートの「きろく」シートを開き、ファイル → ダウンロード → CSV を選んでください。</div></div>
+                <div className="flex gap-2 flex-wrap items-center">
+                  <button onClick={backup} className="rounded-xl px-3 py-2 border-2 bg-white font-bold">💾 バックアップを保存</button>
+                  <label className="rounded-xl px-3 py-2 border-2 bg-white font-bold cursor-pointer">📂 バックアップから元にもどす<input type="file" accept=".json" className="hidden" onChange={restore} /></label>
+                </div>
+                <div><button onClick={() => { if (confirm('全員の記録・進み具合・コイン・買ったものを、すべて消します。元にはもどせません。よろしいですか？') && confirm('ほんとうに全員の記録を消しますか？')) act(() => api.clear(pin, ''), '全員の記録を消しました'); }} className="rounded-xl px-3 py-2 border-2 border-rose-400 bg-rose-50 font-bold">🗑 全員の記録を消す</button></div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    function KanjiDetail({ k, t, wrong }) {
+      const d = KANJI[k];
+      const ws = Object.entries(wrong || {}).sort((a, b) => b[1] - a[1]).slice(0, 6);
+      return (
+        <div className="mt-3 border-t pt-3 flex gap-4 items-start flex-wrap">
+          <div className="kyo text-6xl">{k}</div>
+          <table className="text-left">
+            <thead><tr><th className="pr-3">だんかい</th><th className="pr-3">回数</th><th>1回目正解</th></tr></thead>
+            <tbody>{KIND_ORDER.filter(kd => (kd !== 'おくりがな' && kd !== 'はんたい') || (t && t[kd])).map(kd => { const v = t && t[kd]; return <tr key={kd}><td className="pr-3">{KIND_NUM[kd]} {kd}</td><td>{v ? v[0] : 0}</td><td style={{ background: rateColor(v ? v[0] : 0, v ? v[1] : 0) }} className="px-2">{v ? pct(v[0], v[1]) : '－'}</td></tr>; })}</tbody>
+          </table>
+          <div>
+            <div className="font-bold">よく選んだ まちがい</div>
+            {ws.length ? ws.map(([w, n]) => <div key={w}><span className="kyo text-xl">{w}</span> … {n}回</div>) : <div className="text-stone-500">なし</div>}
+            {d && <div className="text-sm text-stone-500 mt-1">よみ：{d.yomi.join('・')}</div>}
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 18. アプリ
+    // =====================================================================
+    function App() {
+      const [boot, setBoot] = useState(null);
+      const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+      const [name, setName] = useState(null);
+      const [progress, setProgress] = useState(newProgress());
+      const [view, setView] = useState({ v: 'login' });
+      const [pin, setPin] = useState(null);
+      const [pinOpen, setPinOpen] = useState(false);
+      const [pinError, setPinError] = useState(0);
+      const [teacher, setTeacher] = useState(null);
+      const [ponta, setPonta] = useState({ text: '', mood: 'normal', talking: false });
+      const [coinFx, setCoinFx] = useState(0);
+      const [soundOn, setSoundOn] = useState(true);
+      const [busy, setBusy] = useState(false);
+      const lastSay = useRef(null);
+      const sayId = useRef(0);
+      const records = useRef([]);
+      const earnedNow = useRef(0);
+      const progRef = useRef(progress);
+      progRef.current = progress;
+
+      const pontaApi = useMemo(() => {
+        const run = (text, opts = {}) => new Promise(resolve => {
+          const id = ++sayId.current;
+          lastSay.current = { text, opts };
+          setPonta({ text, mood: opts.mood || 'normal', talking: true });
+          Speech.say(opts.speech || text, () => { if (sayId.current === id) setPonta(p => ({ ...p, talking: false })); resolve(); });
+        });
+        return { say: run, repeat: () => lastSay.current && run(lastSay.current.text, lastSay.current.opts), stop: () => Speech.stop() };
+      }, []);
+      const pontaCtx = { ...pontaApi, ...ponta };
+
+      const applySettings = (s) => {
+        const v = { ...DEFAULT_SETTINGS, ...s };
+        setSettings(v);
+        Speech.rate = Number(v.rate) || 0.8; Speech.pitch = Number(v.pitch) || 1.1;
+        Sound.on = v.sound !== false && v.sound !== 'false'; setSoundOn(Sound.on);
+        PARTS_ON = v.parts !== false && v.parts !== 'false';
+        document.documentElement.style.fontSize = `${16 * (Number(v.font) || 1)}px`;
+      };
+
+      useEffect(() => {
+        api.init().then(d => { applySettings(d.settings || {}); setBoot(d); api.flush(); })
+          .catch(e => setBoot({ error: String(e && e.message || e) }));
+        const on = () => api.flush();
+        window.addEventListener('online', on);
+        return () => window.removeEventListener('online', on);
+      }, []);
+
+      // しんちょくを ほぞんする（この たんまつ ＋ スプレッドシート）
+      const persist = (p, recs) => {
+        p = { ...p, t: Date.now() };
+        progRef.current = p;
+        setProgress(p);
+        const json = JSON.stringify(p);
+        safeStore.set(COPY_KEY(name), json);
+        api.save({ name, progress: json, records: recs || [], stamp: nowStr(), time: Date.now() });
+        return p;
+      };
+
+      const login = async (n) => {
+        Sound.get(); Speech.say('');
+        setBusy(true);
+        let server = '';
+        try { server = await api.student(n); } catch (e) {}
+        const a = parseProgress(server), b = parseProgress(safeStore.get(COPY_KEY(n)));
+        // あたらしい ほうを つかう。先生が変えた フラグ（全部開く・はってん）は スプレッドシートの ほうを つかう
+        let p = b.t > a.t ? b : a;
+        if ((a.flagT || 0) > (p.flagT || 0)) p = { ...p, unlockAll: !!a.unlockAll, hatten: !!a.hatten, flagT: a.flagT };
+        progRef.current = p;
+        setProgress(p); setName(n); setBusy(false);
+        setView({ v: 'home' });
+      };
+      const logout = () => { pontaApi.stop(); setName(null); setView({ v: 'login' }); };
+
+      const startStep = (st, step) => { records.current = []; earnedNow.current = 0; setView({ v: 'act', st, step, key: uid() }); };
+      const updateProg = (fn) => { progRef.current = fn(progRef.current); setProgress(progRef.current); return progRef.current; };
+      const onRecord = (r) => {
+        const rec = { ...r, id: uid() };
+        records.current.push(rec);
+        // まちがえた字を おぼえておく（ふくしゅうで 多めに 出す）
+        updateProg(p => {
+          const miss = { ...p.miss };
+          if (r.result !== '○') miss[r.k] = (miss[r.k] || 0) + 1;
+          else if (miss[r.k]) miss[r.k] = Math.max(0, miss[r.k] - 1);
+          return { ...p, miss };
+        });
+      };
+      const onCoin = () => {
+        earnedNow.current++;
+        updateProg(p => ({ ...p, coins: p.coins + 1, earned: p.earned + 1 }));
+        setCoinFx(x => x + 1); Sound.coin();
+      };
+      // とちゅうで やめても つづきから できるように、5もん ごとではなく 1もん ごとに ほぞん
+      const onPartial = (part) => {
+        const p = { ...progRef.current, part: part.left > 0 ? part : null };
+        progRef.current = p;
+        const recs = records.current; records.current = [];
+        persist(p, recs);
+      };
+      const finishStep = (st, step) => {
+        let p = { ...progRef.current, part: null };
+        const done = uniq([...(p.done[st.id] || []), step]);
+        p.done = { ...p.done, [st.id]: done };
+        let bonus = 0, stageClear = false;
+        if (!p.cleared[st.id] && stepsOf(st).every(s => done.includes(s))) {
+          p.cleared = { ...p.cleared, [st.id]: 1 };
+          bonus = 5; stageClear = true;
+          p.coins += bonus; p.earned += bonus;
+        }
+        const recs = records.current; records.current = [];
+        p = persist(p, recs);
+        const steps = stepsOf(st);
+        const ni = steps.indexOf(step) + 1;
+        let next = null;
+        if (ni < steps.length) next = () => startStep(st, steps[ni]);
+        else {
+          const all = [...STAGES, ...HATTEN];
+          const nst = all[all.findIndex(s => s.id === st.id) + 1];
+          if (nst && stageOpen(p, nst)) next = () => setView({ v: 'stage', st: nst });
+        }
+        setView({ v: 'result', st, result: { earned: earnedNow.current, bonus, stageClear }, next });
+      };
+      const quitStep = (st) => {
+        const recs = records.current; records.current = [];
+        persist(progRef.current, recs);
+        pontaApi.stop();
+        setView({ v: 'stage', st });
+      };
+      const buy = (it) => {
+        const p = progRef.current;
+        if (p.coins < it.p || p.items.includes(it.id)) return;
+        persist({ ...p, coins: p.coins - it.p, items: [...p.items, it.id] }, []);
+      };
+
+      const openTeacher = () => { setPinError(0); setPinOpen(true); };
+      const submitPin = async (v) => {
+        try {
+          await api.flush();
+          const d = await api.teacher(v);
+          if (!d || !d.ok) { setPinError(e => e + 1); return; }
+          setPin(v); setTeacher(d); setPinOpen(false);
+        } catch (e) { setPinError(e => e + 1); }
+      };
+      const reloadTeacher = async () => {
+        await api.flush();
+        const d = await api.teacher(pin);
+        if (d && d.ok) {
+          setTeacher(d);
+          if (name) {
+            const me = d.students.find(x => x.name === name);
+            if (me) {
+              const sp = parseProgress(me.progress);
+              const p = { ...progRef.current, unlockAll: !!sp.unlockAll, hatten: !!sp.hatten, flagT: sp.flagT, coins: sp.coins || 0, t: sp.t || Date.now() };
+              if (!me.progress) Object.assign(p, newProgress());
+              progRef.current = p; setProgress(p); safeStore.set(COPY_KEY(name), JSON.stringify(p));
+            }
+          }
+        }
+      };
+
+      if (!boot) return <div className="p-16 text-center text-3xl font-bold text-amber-800">じゅんび ちゅう…</div>;
+      if (boot.error) return <div className="p-10 text-2xl">ひらけませんでした。ページを よみこみなおして ください。<div className="text-base text-stone-500 mt-2">{boot.error}</div></div>;
+
+      const bar = (home = true) => (
+        <TopBar name={name} coins={progress.coins} bump={coinFx} onHome={home ? () => { pontaApi.stop(); setView({ v: 'home' }); } : null}
+          onLogout={logout} onTeacher={openTeacher} soundOn={soundOn} onSound={() => { Sound.on = !Sound.on; setSoundOn(Sound.on); }} />
+      );
+
+      let body = null;
+      if (!name || view.v === 'login') {
+        body = <LoginScreen students={boot.students || []} onSelect={login} onTeacher={openTeacher} demo={boot.demo} />;
+      } else if (view.v === 'home') {
+        body = <div className="min-h-screen flex flex-col">{bar(false)}
+          <HomeScreen name={name} progress={progress} onStudy={() => setView({ v: 'map' })}
+            onContinue={() => { const st = currentStage(progress); startStep(st, nextStep(progress, st)); }}
+            onShop={() => setView({ v: 'shop' })} onZukan={() => setView({ v: 'zukan' })}
+            onWelcome={() => { Sound.buy(); persist({ ...progRef.current, welcome: 1 }, []); }} /></div>;
+      } else if (view.v === 'map') {
+        body = <div className="min-h-screen flex flex-col items-center">{bar()}<StageMap progress={progress} onStage={(st) => setView({ v: 'stage', st })} /></div>;
+      } else if (view.v === 'stage') {
+        body = <div className="min-h-screen flex flex-col items-center">{bar()}<StageScreen key={view.st.id} st={view.st} progress={progress} onStep={(s) => startStep(view.st, s)} onBack={() => setView({ v: 'map' })} /></div>;
+      } else if (view.v === 'act') {
+        body = <div className="min-h-screen flex flex-col items-center relative">{bar()}<CoinFly show={coinFx} />
+          <div className="w-full flex justify-center p-3"><Activity key={view.key} st={view.st} step={view.step} progress={progress} settings={settings}
+            onRecord={onRecord} onCoin={onCoin} onPartial={onPartial}
+            onFinish={() => finishStep(view.st, view.step)} onQuit={() => quitStep(view.st)} /></div></div>;
+      } else if (view.v === 'result') {
+        body = <div className="min-h-screen flex flex-col items-center">{bar()}<ResultScreen result={view.result} coins={progress.coins}
+          onNext={view.next} onStage={() => setView({ v: 'stage', st: view.st })} onShop={() => setView({ v: 'shop' })} /></div>;
+      } else if (view.v === 'shop') {
+        body = <div className="min-h-screen flex flex-col">{bar()}<ShopScreen progress={progress} onBuy={buy} /></div>;
+      } else if (view.v === 'zukan') {
+        body = <div className="min-h-screen flex flex-col items-center">{bar()}<ZukanScreen progress={progress} /></div>;
+      }
+
+      return (
+        <PontaCtx.Provider value={pontaCtx}>
+          {body}
+          {busy && <div className="fixed inset-0 bg-white/60 z-40 flex items-center justify-center text-3xl font-bold">よみこみ ちゅう…</div>}
+          {pinOpen && <PinPad onSubmit={submitPin} onClose={() => setPinOpen(false)} error={pinError} />}
+          {teacher && <TeacherView data={teacher} pin={pin} onClose={() => setTeacher(null)} onChanged={reloadTeacher} onSettings={applySettings} />}
+        </PontaCtx.Provider>
+      );
+    }
+
+    window.KANJI3_READY.then(() => {
+      const D = window.KANJI_DATA;
+      KANJI = D.KANJI; STAGES = D.STAGES; HATTEN = D.HATTEN; PIC = new Set(D.PIC); PREV = D.PREV || {}; BU = D.BU || {};
+      STROKES = window.KANJI_STROKES; PARTS = window.KANJI_PARTS || {};
+      ALL_STAGES = [...STAGES, ...HATTEN];
+      ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    }).catch(e => {
+      document.getElementById('root').innerHTML = '<div style="padding:40px;font-size:24px;line-height:1.8">もんだいの データを よみこめませんでした。<br>ネットに つながって いるか たしかめて、ページを よみこみなおして ください。<div style="font-size:14px;color:#888">' + e.message + '</div></div>';
+    });
+  </script>
+</body>
+</html>
