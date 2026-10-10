@@ -41,15 +41,16 @@
     .divider { position: absolute; left: 148.5mm; top: 24mm; bottom: 10mm; border-left: .5mm dashed #a8a29e; }
 
     /* 見本の カード */
-    .card { position: absolute; right: 0; top: 0; width: 50mm; border: .9mm solid #d6d3d1; border-radius: 4mm; background: #fafaf9; padding: 1.5mm; }
+    .rcol { position: absolute; right: 0; top: 0; width: 50mm; display: flex; flex-direction: column; gap: 2.5mm; }
+    .card { width: 50mm; border: .9mm solid #d6d3d1; border-radius: 4mm; background: #fafaf9; padding: 1.5mm; }
     .big { width: 46mm; height: 46mm; background: #fff; border: .7mm solid #e11d48; position: relative; }
     .big svg { width: 100%; height: 100%; display: block; }
-    .info { display: flex; gap: 1.5mm; margin-top: 2mm; min-height: 62mm; }
+    .info { display: flex; gap: 1.5mm; margin-top: 2mm; min-height: 44mm; }
     .info .col { background: #fff; border-radius: 2mm; flex: 1; padding: 1.5mm 1mm; display: flex; flex-direction: column; align-items: center; }
     .info .lab { font-size: 3mm; font-weight: 700; margin-bottom: 1mm; white-space: nowrap; }
     .info .kaku { font-size: 3.4mm; background: #bae6fd; border-radius: 2mm; padding: .3mm 2mm; font-weight: 700; margin-bottom: 1.5mm; white-space: nowrap; }
-    .steps { display: grid; grid-template-columns: repeat(2, 10mm); gap: .8mm; justify-content: center; }
-    .steps svg { width: 10mm; height: 10mm; display: block; }
+    .steps { display: grid; grid-template-columns: repeat(2, var(--sz, 10mm)); gap: .8mm; justify-content: center; }
+    .steps svg { width: var(--sz, 10mm); height: var(--sz, 10mm); display: block; }
     .yomi { display: flex; flex-direction: row-reverse; gap: 2mm; justify-content: center; }
     .yomi .one { display: flex; flex-direction: column; align-items: center; gap: 1mm; }
     .yomi .chip { font-size: 2.8mm; font-weight: 700; border-radius: 1.5mm; padding: .6mm .5mm; writing-mode: vertical-rl; }
@@ -59,8 +60,9 @@
     .yomi .ok { color: #e11d48; }
 
     /* なぞりがき */
-    .trace { position: absolute; right: 52mm; top: 0; width: 22mm; display: flex; flex-direction: column; align-items: center; gap: 1.6mm; }
-    .trace .lab { font-size: 3mm; font-weight: 700; writing-mode: horizontal-tb; white-space: nowrap; }
+    .trace { display: grid; grid-template-columns: 21mm 21mm; gap: 1mm 3mm; justify-content: center; direction: rtl; }
+    .trace > * { direction: ltr; }
+    .trace .lab { font-size: 3mm; font-weight: 700; white-space: nowrap; text-align: center; }
     .cell { width: 21mm; height: 21mm; border: .45mm solid #0ea5e9; position: relative; background: #fff; }
     .cell svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 
@@ -239,75 +241,113 @@
         <span class="tag" style="background:${st.color}">ステージ${stageNo(st)}　${esc(st.name)}</span>
         <span class="sp"></span>
         <span class="nm"><span class="ln" style="width:9mm"></span>がつ<span class="ln" style="width:9mm"></span>にち　なまえ<span class="ln" style="width:44mm"></span></span>
-        ${opts.score ? `<span class="score">　　　　てん</span>` : ''}
+        ${opts.score ? `<span class="score">　　　　／100てん</span>` : ''}
       </div>`;
     }
 
+    // ---------------------------------------------------------------
+    // 問題の えらびかた：音読みと 訓読みの 両方が ある字は、両方を 入れる
+    // ---------------------------------------------------------------
+    const { ON, ONLY_ON, EXTRA } = window.KANJI_PRINT;
+    const allEx = (k) => [...KANJI[k].ex, ...((EXTRA[k] || []).map(([s, y, e]) => ({ s, y, e })))];
+    const isOn = (k, ex) => ONLY_ON.includes(k) || (ON[k] || '').split(' ').includes(ex.y);
+    const hasBoth = (k) => { const e = allEx(k); return e.some(x => isOn(k, x)) && e.some(x => !isOn(k, x)); };
+    // want：true＝音読み／false＝訓読み。avoid の 文は できるだけ さける
+    function pick(k, want, avoid = []) {
+      const e = allEx(k);
+      const pool = hasBoth(k) ? e.filter(x => isOn(k, x) === want) : e;
+      return pool.find(x => !avoid.includes(x)) || pool[0];
+    }
+    // ステージ ぜんたいの 問題（プリント・テスト・こたえで 同じものを つかう）
+    function plan(st) {
+      const learn = {};
+      st.kanji.forEach(k => {
+        const e = allEx(k);
+        if (hasBoth(k)) {
+          const y1 = pick(k, false), y2 = pick(k, true);
+          learn[k] = { yomi: [y1, y2], kaku: [pick(k, false, [y1]), pick(k, true, [y2])] };
+        } else learn[k] = { yomi: [e[0], e[1]], kaku: [e[2], e[0]] };
+      });
+      // ふくしゅうと テストは 1字1問ずつ。音・訓を まぜて、ふくしゅうと テストで ちがう 文に する
+      const review = { yomi: [], kaku: [] }, test = { yomi: [], kaku: [] };
+      st.kanji.forEach((k, i) => {
+        const on = i % 2 === 1;
+        const ry = pick(k, on, [...learn[k].yomi]), rk = pick(k, !on, [...learn[k].kaku, ry]);
+        const ty = pick(k, !on, [ry, ...learn[k].yomi]), tk = pick(k, on, [rk, ty, ...learn[k].kaku]);
+        review.yomi.push(ry); review.kaku.push(rk); test.yomi.push(ty); test.kaku.push(tk);
+      });
+      return { learn, review, test };
+    }
+
     // 1字ぶん（半分）
-    function kanjiHalf(k, side, color) {
+    function kanjiHalf(k, side, color, P) {
       const d = KANJI[k], ps = STROKES[k] || [];
       const [on, kun] = YOMI[k] || ['', ''];
       const red = (t) => esc(t).replace(/\((.+?)\)/g, '<span class="ok">$1</span>');
       const steps = ps.map((_, i) => stepKanji(k, i + 1)).join('');
+      const sz = ps.length > 10 ? 7.6 : ps.length > 8 ? 8.6 : 10;
       const yomiCol = (cls, lab, t) => t ? `<div class="one"><span class="chip ${cls}">${lab}</span><span class="txt">${red(t)}</span></div>` : '';
-      const fs = 6.0, w = 12.1;
+      const fs = 7.6, w = 16.6;
+      const L = P.learn[k];
       const qs = [
-        question('①', d.ex[0], 'yomi', fs, w), question('②', d.ex[1], 'yomi', fs, w),
-        question('③', d.ex[2], 'kaku', fs, w), question('④', d.ex[0], 'kaku', fs, w),
+        question('①', L.yomi[0], 'yomi', fs, w), question('②', L.yomi[1], 'yomi', fs, w),
+        question('③', L.kaku[0], 'kaku', fs, w), question('④', L.kaku[1], 'kaku', fs, w),
       ];
       return `<div class="half ${side}">
+        <div class="rcol">
         <div class="card">
           <div class="big">${bigKanji(k)}</div>
           <div class="info">
-            <div class="col"><span class="lab">かきじゅん</span><span class="kaku">${ps.length} かく</span><div class="steps">${steps}</div></div>
+            <div class="col"><span class="lab">かきじゅん</span><span class="kaku">${ps.length} かく</span><div class="steps" style="--sz:${sz}mm">${steps}</div></div>
             <div class="col"><span class="lab">よみかた</span><div class="yomi">${yomiCol('on', 'おん', on)}${yomiCol('kun', 'くん', kun)}</div></div>
           </div>
         </div>
         <div class="trace">
-          <span class="lab">なぞろう</span>
-          ${traceCell(k, '#a8a29e', true)}${traceCell(k, '#d6d3d1')}${traceCell(k, '#ece9e6')}
-          <span class="lab" style="margin-top:1mm">かいて みよう</span>
-          <div class="cell"><svg viewBox="0 0 109 109">${guides('#bae6fd')}</svg></div>
+          <span class="lab">なぞろう</span><span class="lab">なぞろう</span>
+          ${traceCell(k, '#a8a29e', true)}${traceCell(k, '#d6d3d1')}
+          <span class="lab">なぞろう</span><span class="lab">かいて みよう</span>
+          ${traceCell(k, '#ece9e6')}<div class="cell"><svg viewBox="0 0 109 109">${guides('#bae6fd')}</svg></div>
         </div>
-        <div class="qs" style="right:74mm">
+        </div>
+        <div class="qs" style="right:53mm">
           <span class="qhead" style="background:${color}">よみを かこう</span>
           ${qs[0]}${qs[1]}
-          <span class="qhead" style="background:#0ea5e9;margin-right:1mm">かんじを かこう</span>
+          <span class="qhead" style="background:#0ea5e9;margin-right:3mm">かんじを かこう</span>
           ${qs[2]}${qs[3]}
         </div>
       </div>`;
     }
 
     // ふくしゅう（半分）：ステージの 5字
-    function reviewHalf(st) {
-      const fs = 5.2, w = 11.5;
-      const ys = st.kanji.map((k, i) => question(CIRCLED[i], KANJI[k].ex[2], 'yomi', fs, w)).join('');
-      const ks = st.kanji.map((k, i) => question(CIRCLED[i + 5], KANJI[k].ex[1], 'kaku', fs, w)).join('');
+    function reviewHalf(st, P) {
+      const fs = 5.2, w = 11.2;
+      const ys = P.review.yomi.map((ex, i) => question(CIRCLED[i], ex, 'yomi', fs, w)).join('');
+      const ks = P.review.kaku.map((ex, i) => question(CIRCLED[i + 5], ex, 'kaku', fs, w)).join('');
       return `<div class="half l">
         <div style="position:absolute;right:0;top:0;font-size:4.4mm;font-weight:700;background:#fef3c7;border:.6mm solid #f59e0b;border-radius:3mm;padding:1mm 4mm">ふくしゅう　<span class="kyo">${st.kanji.join('・')}</span></div>
         <div class="qs" style="right:0;left:auto;top:10mm">
           <span class="qhead" style="background:${st.color}">よみを かこう</span>${ys}
-          <span class="qhead" style="background:#0ea5e9;margin-right:1mm">かんじを かこう</span>${ks}
+          <span class="qhead" style="background:#0ea5e9;margin-right:3mm">かんじを かこう</span>${ks}
         </div>
       </div>`;
     }
 
     function learnSheets(st) {
-      const ks = st.kanji, n = stageNo(st);
+      const ks = st.kanji, n = stageNo(st), P = plan(st);
       const pages = [[ks[0], ks[1]], [ks[2], ks[3]], [ks[4]]];
       return pages.map((pair, i) => `<div class="sheet">
         ${header(st, `かんじ プリント ${i + 1}`)}
-        ${kanjiHalf(pair[0], 'r', st.color)}
+        ${kanjiHalf(pair[0], 'r', st.color, P)}
         <div class="divider"></div>
-        ${pair[1] ? kanjiHalf(pair[1], 'l', st.color) : reviewHalf(st)}
+        ${pair[1] ? kanjiHalf(pair[1], 'l', st.color, P) : reviewHalf(st, P)}
         <div class="foot">ポンタせんせいの かんじ プリント　ステージ${n}－${i + 1}</div>
       </div>`).join('');
     }
 
     function testSheet(st) {
-      const fs = 8.4, w = 24;
-      const ys = st.kanji.map((k, i) => question(CIRCLED[i], KANJI[k].ex[1], 'yomi', fs, w)).join('');
-      const ks = st.kanji.map((k, i) => question(CIRCLED[i + 5], KANJI[k].ex[2], 'kaku', fs, w)).join('');
+      const fs = 8.4, w = 24, P = plan(st);
+      const ys = P.test.yomi.map((ex, i) => question(CIRCLED[i], ex, 'yomi', fs, w)).join('');
+      const ks = P.test.kaku.map((ex, i) => question(CIRCLED[i + 5], ex, 'kaku', fs, w)).join('');
       return `<div class="sheet">
         ${header(st, 'まとめテスト', { score: true })}
         <div class="half r"><div class="qs" style="right:0;left:auto"><span class="qhead" style="background:${st.color}">よみを かこう（1もん 10てん）</span>${ys}</div></div>
@@ -320,13 +360,14 @@
     function answerSheet(st) {
       const ks = st.kanji;
       const block = (title, items) => `<h3>${title}</h3>` + items.map(([no, ex, kind]) => `<div class="ln kyo">${no} ${ansText(ex, kind)}</div>`).join('');
-      const half = (k) => [['①', KANJI[k].ex[0], 'yomi'], ['②', KANJI[k].ex[1], 'yomi'], ['③', KANJI[k].ex[2], 'kaku'], ['④', KANJI[k].ex[0], 'kaku']];
+      const P = plan(st);
+      const half = (k) => { const L = P.learn[k]; return [['①', L.yomi[0], 'yomi'], ['②', L.yomi[1], 'yomi'], ['③', L.kaku[0], 'kaku'], ['④', L.kaku[1], 'kaku']]; };
       let h = '';
       h += block(`プリント1（${ks[0]}）`, half(ks[0])) + block(`プリント1（${ks[1]}）`, half(ks[1]));
       h += block(`プリント2（${ks[2]}）`, half(ks[2])) + block(`プリント2（${ks[3]}）`, half(ks[3]));
       h += block(`プリント3（${ks[4]}）`, half(ks[4]));
-      h += block('プリント3（ふくしゅう）', [...ks.map((k, i) => [CIRCLED[i], KANJI[k].ex[2], 'yomi']), ...ks.map((k, i) => [CIRCLED[i + 5], KANJI[k].ex[1], 'kaku'])]);
-      h += block('まとめテスト', [...ks.map((k, i) => [CIRCLED[i], KANJI[k].ex[1], 'yomi']), ...ks.map((k, i) => [CIRCLED[i + 5], KANJI[k].ex[2], 'kaku'])]);
+      h += block('プリント3（ふくしゅう）', [...P.review.yomi.map((ex, i) => [CIRCLED[i], ex, 'yomi']), ...P.review.kaku.map((ex, i) => [CIRCLED[i + 5], ex, 'kaku'])]);
+      h += block('まとめテスト', [...P.test.yomi.map((ex, i) => [CIRCLED[i], ex, 'yomi']), ...P.test.kaku.map((ex, i) => [CIRCLED[i + 5], ex, 'kaku'])]);
       return `<div class="sheet">
         ${header(st, 'こたえ')}
         <div class="anspage">${h}</div>
