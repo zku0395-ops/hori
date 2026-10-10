@@ -1,8 +1,8 @@
 // かんじプリントの PDF を作ります。
-// つかいかた：node kanjiprint/tools/make-pdf.js        … 1年生と 2年生の 両方
-//             node kanjiprint/tools/make-pdf.js 2      … 2年生だけ（1 なら 1年生だけ）
+// つかいかた：node kanjiprint/tools/make-pdf.js        … 1年生・2年生・3年生の 全部
+//             node kanjiprint/tools/make-pdf.js 2      … 2年生だけ（1 なら 1年生だけ、3 なら 3年生だけ）
 //             node kanjiprint/tools/make-pdf.js 2 s1   … 2年生の ステージ1だけ（ためしに 作るとき。ぜんぶ は 作りません）
-// （Playwright と Chromium が いります。できた PDF は 1年生が kanjiprint/pdf/、2年生が kanjiprint/pdf/2nen/ に入ります）
+// （Playwright と Chromium が いります。できた PDF は 1年生が kanjiprint/pdf/、2年生が kanjiprint/pdf/2nen/、3年生が kanjiprint/pdf/3nen/ に入ります）
 // FONT_CSS に フォントの CSS の 場所を 入れると、Google Fonts の かわりに それを 使います（ネットに つながらない ところで 作るとき）。
 const path = require('path');
 const fs = require('fs');
@@ -13,7 +13,7 @@ const ROOT = path.join(__dirname, '..');
 
 (async () => {
   const [ga, only] = process.argv.slice(2);
-  const grades = ga ? [Number(ga)] : [1, 2];
+  const grades = ga ? [Number(ga)] : [1, 2, 3];
   const launch = {};
   if (fs.existsSync('/opt/pw-browsers/chromium-1194/chrome-linux/chrome') && !process.env.PLAYWRIGHT_CHROMIUM) launch.executablePath = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
   const browser = await playwright.chromium.launch(launch).catch(() => playwright.chromium.launch());
