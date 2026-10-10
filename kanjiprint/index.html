@@ -59,6 +59,23 @@
     .yomi .txt { writing-mode: vertical-rl; font-size: 3.8mm; line-height: 1.25; max-height: 86mm; }
     .yomi .ok { color: #e11d48; }
 
+    /* 2年生の 見本カード */
+    .lab2 { font-size: 3mm; font-weight: 700; white-space: nowrap; }
+    .parts2 { display: flex; align-items: center; justify-content: center; gap: .6mm; margin-top: 1.5mm; }
+    .parts2 .lab2 { margin-right: .8mm; }
+    .parts2 .pc { position: relative; width: 8.2mm; height: 8.2mm; border: .45mm solid; border-radius: 1.2mm; background: #fff; }
+    .parts2 .pc svg { width: 100%; height: 100%; display: block; }
+    .parts2 .pc b { position: absolute; left: -1.4mm; top: -1.4mm; width: 3.2mm; height: 3.2mm; border-radius: 50%; color: #fff; font-size: 2.3mm; line-height: 3.2mm; text-align: center; }
+    .parts2 .plus { font-size: 3mm; color: #78716c; font-weight: 700; }
+    .kj2 { display: flex; align-items: center; justify-content: center; gap: 2mm; margin-top: 1.5mm; }
+    .kj2 .kaku { margin: 0; }
+    .steps2 { display: grid; gap: .5mm; justify-content: center; margin-top: 1mm; }
+    .steps2 svg { display: block; }
+    .yomi2 { margin-top: 1.5mm; background: #fff; border-radius: 2mm; padding: 1mm 1.2mm; display: flex; flex-direction: column; gap: .8mm; }
+    .yomi2 .yl { display: flex; align-items: flex-start; gap: 1mm; font-size: 3.3mm; line-height: 1.35; font-weight: 700; }
+    .yomi2 .chip2 { flex-shrink: 0; font-size: 2.6mm; border-radius: 1.2mm; padding: .2mm .8mm; margin-top: .3mm; }
+    .yomi2 .on { background: #d9f99d; } .yomi2 .kun { background: #fde68a; } .yomi2 .ok { color: #e11d48; }
+
     /* なぞりがき */
     .trace { display: grid; grid-template-columns: 19mm 19mm; gap: 1mm 3mm; justify-content: center; direction: rtl; }
     .trace > * { direction: ltr; }
@@ -90,6 +107,16 @@
     .kbox:after { top: 50%; left: 0; right: 0; border-top-width: .25mm; }
     .ans-red { color: #e11d48; }
 
+    /* はってん */
+    .memo { position: absolute; inset: 0; display: flex; flex-direction: column; }
+    .memo .mh { font-size: 4.4mm; font-weight: 700; background: #fef3c7; border: .6mm solid #f59e0b; border-radius: 3mm; padding: 1mm 4mm; align-self: flex-end; }
+    .memo .ok, .memo .ww .ok { color: #e11d48; }
+    .wcs { display: flex; flex-direction: row-reverse; justify-content: space-around; margin-top: 4mm; flex: 1; }
+    .wc { display: flex; flex-direction: column; align-items: center; gap: 2mm; }
+    .wc .we { font-size: 7mm; }
+    .wc .ww { writing-mode: vertical-rl; line-height: 1.2; }
+    .wc .ww rt { font-family: 'BIZ UDPGothic', sans-serif; font-weight: 400; }
+
     /* こたえ */
     .anspage { position: absolute; left: 9mm; right: 9mm; top: 23mm; bottom: 9mm; columns: 2; column-gap: 8mm; font-size: 3.5mm; line-height: 1.75; }
     .anspage h3 { font-size: 4mm; margin: 1.5mm 0 .5mm; break-after: avoid; }
@@ -105,9 +132,10 @@
 </head>
 <body>
   <div class="panel" id="panel">
-    <h1><img src="../kanji1/img/ponta.webp" alt="">ポンタせんせいの かんじ プリント</h1>
-    <div class="note">1年生の漢字80字の、学習プリント（1まいに2字）・まとめテスト・こたえです。A4よこで印刷します。</div>
+    <h1><img id="ponta" src="../kanji1/img/ponta.webp" alt="">ポンタせんせいの かんじ プリント</h1>
+    <div class="note" id="about">1年生の漢字80字の、学習プリント（1まいに2字）・まとめテスト・こたえです。A4よこで印刷します。</div>
     <div class="row">
+      <label>がくねん：<select id="grade"><option value="1">1ねん（80じ）</option><option value="2">2ねん（160じ）</option></select></label>
       <label>ステージ：<select id="stage"></select></label>
       <button class="big" onclick="window.print()">🖨 いんさつ</button>
     </div>
@@ -117,16 +145,26 @@
   <div id="mm" style="position:absolute;width:10mm;height:0;visibility:hidden"></div>
   <div id="sheets"></div>
 
-  <script src="../kanji1/data/mondai.js"></script>
-  <script src="../kanji1/data/strokes.js"></script>
-  <script src="data/print.js"></script>
   <script>
-    const { KANJI, STAGES } = window.KANJI_DATA;
+    // 学年（?g=2 で 2年生）。学年ごとの データを よみこむ
+    window.GRADE = new URLSearchParams(location.search).get('g') === '2' ? 2 : 1;
+    (function () {
+      const d = window.GRADE === 2 ? '../kanji2/data/' : '../kanji1/data/';
+      [d + 'mondai.js', d + 'strokes.js', window.GRADE === 2 ? 'data/print2.js' : 'data/print.js'].forEach(src => document.write('<script src="' + src + '"><\/script>'));
+    })();
+  </script>
+  <script>
+    const G = window.GRADE;
+    const { KANJI, STAGES, HATTEN = [] } = window.KANJI_DATA;
     const STROKES = window.KANJI_STROKES;
-    const { YOMI, MARK } = window.KANJI_PRINT;
+    const KP = G === 2 ? window.KANJI_PRINT2 : window.KANJI_PRINT;
+    const { YOMI, MARK } = KP;
     const KSTAGES = STAGES.filter(s => s.type === 'kanji');
-    const PONTA = '../kanji1/img/ponta.webp';
-    const CIRCLED = '①②③④⑤⑥⑦⑧⑨⑩';
+    const RSTAGES = STAGES.filter(s => s.type === 'review');
+    const PONTA = G === 2 ? '../kanji2/img/ponta.webp' : '../kanji1/img/ponta.webp';
+    const PNAME = G === 2 ? 'ポンタせんせいの かんじ プリント（2ねん）' : 'ポンタせんせいの かんじ プリント';
+    document.getElementById('ponta').src = PONTA;
+    const CIRCLED = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫';
     const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const plainName = (st) => st.name;
     const stageNo = (st) => KSTAGES.indexOf(st) + 1;
@@ -152,11 +190,19 @@
     const pathEl = (d, color, w, extra = '') => `<path d="${d}" fill="none" stroke="${color}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" ${extra}/>`;
     const guides = (c = '#d6d3d1') => `<line x1="54.5" y1="2" x2="54.5" y2="107" stroke="${c}" stroke-width=".6" stroke-dasharray="2.5 2.5"/><line x1="2" y1="54.5" x2="107" y2="54.5" stroke="${c}" stroke-width=".6" stroke-dasharray="2.5 2.5"/>`;
 
+    // 部品（2年生：10画以上の字を 部品ごとに 色分け。アプリと 同じ 色と じゅんばん）
+    const PART_COLORS = ['#e11d48', '#2563eb', '#16a34a', '#9333ea'];
+    const partsOf = (k) => {
+      const p = (window.KANJI_PARTS || {})[k];
+      if (G !== 2 || !p || p.length < 2) return null;
+      return [...p].sort((a, b) => a[1][0] - b[1][0]).map(([el, ids], i) => ({ el, ids, color: PART_COLORS[i % PART_COLORS.length] }));
+    };
+    const partColor = (parts, i, base) => { const p = parts && parts.find(x => x.ids.includes(i)); return p ? p.color : base; };
     // 大きな 見本：画の番号・書きはじめの矢印・とめはねはらい
     function bigKanji(k) {
-      const ps = STROKES[k] || [];
+      const ps = STROKES[k] || [], parts = partsOf(k);
       let s = `<svg viewBox="0 0 109 109">${guides('#fda4af')}`;
-      ps.forEach(d => { s += pathEl(d, '#292524', 5); });
+      ps.forEach((d, i) => { s += pathEl(d, partColor(parts, i, '#292524'), 5); });
       // とめ・はね・はらい
       (MARK[k] || []).forEach(([n, type]) => {
         const g = measure(ps[n - 1]);
@@ -229,7 +275,8 @@
         }
         else if (mode === 'yomi') {
           // 字の みぎに、よみを 書く わく
-          const n = Math.max(2, [...ex.y].length) * [...m[1]].length;
+          // ことば（今日 など）は よみの 字数だけ。1字の 問題は 1年生と 同じ
+          const n = [...m[1]].length > 1 ? [...ex.y].length + 1 : Math.max(2, [...ex.y].length) * [...m[1]].length;
           const yb = B.yb || fs * 1.1, bw = yb, h = n * yb + fs * 0.3;
           // まえの 字の ふりがなが わくに かからないよう、すこし あける
           if (tail > 0) out.push(`<span style="display:inline-block;height:${(tail + .8).toFixed(2)}mm"></span>`);
@@ -267,7 +314,7 @@
       return `<div class="head">
         <img src="${PONTA}" alt="">
         <span class="ttl">${title}</span>
-        <span class="tag" style="background:${st.color}">ステージ${stageNo(st)}　${esc(st.name)}</span>
+        <span class="tag" style="background:${st.color}">${opts.tag || `ステージ${stageNo(st)}　${esc(st.name)}`}</span>
         <span class="sp"></span>
         <span class="nm"><span class="ln" style="width:9mm"></span>がつ<span class="ln" style="width:9mm"></span>にち　なまえ<span class="ln" style="width:44mm"></span></span>
         ${opts.score ? `<span class="score">　　　　／100てん</span>` : ''}
@@ -277,8 +324,8 @@
     // ---------------------------------------------------------------
     // 問題の えらびかた：音読みと 訓読みの 両方が ある字は、両方を 入れる
     // ---------------------------------------------------------------
-    const { ON, ONLY_ON, EXTRA } = window.KANJI_PRINT;
-    const allEx = (k) => [...KANJI[k].ex, ...((EXTRA[k] || []).map(([s, y, e]) => ({ s, y, e })))];
+    const { ON, ONLY_ON, EXTRA } = KP;
+    const allEx = (k) => [...KANJI[k].ex, ...((EXTRA[k] || []).map(([s, y, e]) => ({ s, y, e })))].filter(x => x.s.match(/\[(.+?)\]/)[1].length === 1);
     const isOn = (k, ex) => ONLY_ON.includes(k) || (ON[k] || '').split(' ').includes(ex.y);
     const hasBoth = (k) => { const e = allEx(k); return e.some(x => isOn(k, x)) && e.some(x => !isOn(k, x)); };
     // want：true＝音読み／false＝訓読み。avoid の 文は できるだけ さける
@@ -322,15 +369,16 @@
         question('①', L.yomi[0], 'yomi', fs, wy, B), question('②', L.yomi[1], 'yomi', fs, wy, B),
         question('③', L.kaku[0], 'kaku', fs, w, B), question('④', L.kaku[1], 'kaku', fs, w, B),
       ];
-      return `<div class="half ${side}">
-        <div class="rcol">
-        <div class="card">
+      const card = G === 2 ? card2(k) : `<div class="card">
           <div class="big">${bigKanji(k)}</div>
           <div class="info">
             <div class="col"><span class="lab">かきじゅん</span><span class="kaku">${ps.length} かく</span><div class="steps" style="--sz:${sz}mm">${steps}</div></div>
             <div class="col"><span class="lab">よみかた</span><div class="yomi">${yomiCol('on', 'おん', on)}${yomiCol('kun', 'くん', kun)}</div></div>
           </div>
-        </div>
+        </div>`;
+      return `<div class="half ${side}">
+        <div class="rcol">
+        ${card}
         <div class="trace">
           <span class="lab">なぞろう</span><span class="lab">なぞろう</span>
           ${traceCell(k, '#a8a29e', true)}${traceCell(k, '#d6d3d1')}
@@ -343,6 +391,25 @@
           ${group('かんじを かこう', '#0ea5e9', qs[2] + qs[3])}
         </div>
       </div>`;
+    }
+
+    // 2年生の 見本カード：かきじゅんは マスを 折り返して 全部の 画を 出す。画数の 多い字は「ぶぶん」を 付ける。よみかたは よこ書き
+    function card2(k) {
+      const ps = STROKES[k] || [], n = ps.length, parts = partsOf(k);
+      const [on, kun] = YOMI[k] || ['', ''];
+      const red = (t) => esc(t).replace(/\((.+?)\)/g, '<span class="ok">$1</span>');
+      const cols = n <= 8 ? 4 : 6, sz = n <= 8 ? 8.6 : 6;
+      const steps = ps.map((_, i) => stepKanji(k, i + 1)).join('');
+      const partSvg = (p) => `<svg viewBox="0 0 109 109">${ps.map((d, j) => pathEl(d, p.ids.includes(j) ? p.color : '#e7e5e4', p.ids.includes(j) ? 8 : 6)).join('')}</svg>`;
+      const partRow = parts ? `<div class="parts2"><span class="lab2">ぶぶん</span>${parts.map((p, i) => `${i ? '<span class="plus">＋</span>' : ''}<span class="pc" style="border-color:${p.color}"><b style="background:${p.color}">${i + 1}</b>${partSvg(p)}</span>`).join('')}</div>` : '';
+      const yl = (cls, lab, t) => t ? `<div class="yl"><span class="chip2 ${cls}">${lab}</span><span>${red(t)}</span></div>` : '';
+      return `<div class="card">
+          <div class="big">${bigKanji(k)}</div>
+          ${partRow}
+          <div class="kj2"><span class="lab2">かきじゅん</span><span class="kaku">${n} かく</span></div>
+          <div class="steps2" style="grid-template-columns:repeat(${cols}, ${sz}mm)">${steps.replace(/<svg /g, `<svg style="width:${sz}mm;height:${sz}mm" `)}</div>
+          <div class="yomi2">${yl('on', 'おん', on)}${yl('kun', 'くん', kun)}</div>
+        </div>`;
     }
 
     // ふくしゅう（半分）：ステージの 5字
@@ -367,7 +434,7 @@
         ${kanjiHalf(pair[0], 'r', st.color, P)}
         <div class="divider"></div>
         ${pair[1] ? kanjiHalf(pair[1], 'l', st.color, P) : reviewHalf(st, P)}
-        <div class="foot">ポンタせんせいの かんじ プリント　ステージ${n}－${i + 1}</div>
+        <div class="foot">${PNAME}　ステージ${n}－${i + 1}</div>
       </div>`).join('');
     }
 
@@ -380,7 +447,7 @@
         <div class="half r"><div class="qs" style="right:0;left:auto">${group('よみを かこう（1もん 10てん）', st.color, ys)}</div></div>
         <div class="divider"></div>
         <div class="half l"><div class="qs" style="right:0;left:auto">${group('かんじを かこう（1もん 10てん）', '#0ea5e9', ks)}</div></div>
-        <div class="foot">ポンタせんせいの かんじ プリント　ステージ${stageNo(st)}　まとめテスト</div>
+        <div class="foot">${PNAME}　ステージ${stageNo(st)}　まとめテスト</div>
       </div>`;
     }
 
@@ -398,25 +465,142 @@
       return `<div class="sheet">
         ${header(st, 'こたえ')}
         <div class="anspage">${h}</div>
-        <div class="foot">ポンタせんせいの かんじ プリント　ステージ${stageNo(st)}　こたえ</div>
+        <div class="foot">${PNAME}　ステージ${stageNo(st)}　こたえ</div>
       </div>`;
     }
 
     const stageSheets = (st) => learnSheets(st) + testSheet(st) + answerSheet(st);
 
     // ---------------------------------------------------------------
+    // まとめ ふくしゅうテスト（2年生：4ステージごと。20字から よみ5問・かんじ5問）
+    // ---------------------------------------------------------------
+    function reviewPlan(r) {
+      const sts = r.from.map(id => KSTAGES.find(s => s.id === id));
+      // 4つの ステージから まんべんなく、よみと かんじで ちがう字を えらぶ
+      const yk = [[0, 0], [1, 1], [2, 2], [3, 3], [1, 4]], kk = [[0, 2], [1, 3], [2, 4], [3, 0], [0, 4]];
+      const used = (st) => { const P = plan(st); return [...Object.values(P.learn).flatMap(l => [...l.yomi, ...l.kaku]), ...P.test.yomi, ...P.test.kaku]; };
+      const choose = (si, ki, on) => { const st = sts[si], k = st.kanji[ki], P = plan(st); return pick(k, on, [...P.test.yomi, ...P.test.kaku, ...P.review.yomi, ...P.review.kaku]); };
+      return { sts, yomi: yk.map(([si, ki], i) => choose(si, ki, i % 2 === 1)), kaku: kk.map(([si, ki], i) => choose(si, ki, i % 2 === 0)) };
+    }
+    const rangeTag = (r) => { const a = stageNo(KSTAGES.find(s => s.id === r.from[0])), b = stageNo(KSTAGES.find(s => s.id === r.from[r.from.length - 1])); return `ステージ${a}〜${b}`; };
+    const rNo = (r) => '①②③④⑤⑥⑦⑧'[RSTAGES.indexOf(r)];
+    function reviewTestSheets(r) {
+      const fs = 8.4, w = 26.5, B = { yb: 13, kb: 19 }, R = reviewPlan(r);
+      const ys = R.yomi.map((ex, i) => question(CIRCLED[i], ex, 'yomi', fs, w, B)).join('');
+      const ks = R.kaku.map((ex, i) => question(CIRCLED[i + 5], ex, 'kaku', fs, w, B)).join('');
+      const block = (title, items) => `<h3>${title}</h3>` + items.map(([no, ex, kind]) => `<div class="ln kyo">${no} ${ansText(ex, kind)}</div>`).join('');
+      const ans = block('まとめ ふくしゅうテスト', [...R.yomi.map((ex, i) => [CIRCLED[i], ex, 'yomi']), ...R.kaku.map((ex, i) => [CIRCLED[i + 5], ex, 'kaku'])]);
+      return `<div class="sheet">
+        ${header(r, `まとめ ふくしゅうテスト${rNo(r)}`, { score: true, tag: rangeTag(r) })}
+        <div class="half r"><div class="qs" style="right:0;left:auto">${group('よみを かこう（1もん 10てん）', '#f97316', ys)}</div></div>
+        <div class="divider"></div>
+        <div class="half l"><div class="qs" style="right:0;left:auto">${group('かんじを かこう（1もん 10てん）', '#0ea5e9', ks)}</div></div>
+        <div class="foot">${PNAME}　${esc(r.name)}</div>
+      </div><div class="sheet">
+        ${header(r, `こたえ（まとめ ふくしゅうテスト${rNo(r)}）`, { tag: rangeTag(r) })}
+        <div class="anspage">${ans}</div>
+        <div class="foot">${PNAME}　${esc(r.name)}　こたえ</div>
+      </div>`;
+    }
+
+    // ---------------------------------------------------------------
+    // はってんの プリント（2年生）：とくべつな よみかた・おくりがな
+    // ---------------------------------------------------------------
+    // とくべつな よみかたの ことば：はってん① と、例文の 中の ことば（今日・明日）
+    function specialWords() {
+      const h1 = HATTEN.find(h => h.type === 'hatten');
+      const fromEx = Object.values(KANJI).flatMap(d => d.ex.filter(x => x.s.match(/\[(.+?)\]/)[1].length > 1).map(x => ({ w: x.s.match(/\[(.+?)\]/)[1], y: x.y, e: x.e, s: x.s })));
+      return [...fromEx, ...(h1 ? h1.words : [])];
+    }
+    // おぼえよう：ことばを たて書きで ならべる
+    const wordCol = (w, fs, okuri) => {
+      const chars = [...w.w].map(c => okuri && !/[一-鿿]/.test(c) ? `<span class="ok">${esc(c)}</span>` : esc(c)).join('');
+      return `<div class="wc"><div class="we">${w.e}</div><div class="ww kyo" style="font-size:${fs}mm"><ruby>${chars}<rt style="font-size:${(fs * .42).toFixed(2)}mm">${esc(w.y)}</rt></ruby></div></div>`;
+    };
+    // おくりがなを 書く 問題：漢字は 出して、おくりがなの ぶんだけ わくを 出す
+    function okuriQuestion(no, w, fs, width) {
+      const kan = [...w.w].filter(c => /[一-鿿]/.test(c)).join(''), kana = [...w.w].filter(c => !/[一-鿿]/.test(c));
+      const yb = fs * 1.15;
+      const html = esc(w.s.replace(/\{(.+?)\|(.+?)\}/g, '$1')).replace(esc(`[${w.w}]`), `<span class="kb">${esc(kan)}<span class="yo" style="left:calc(100% + .5mm);font-size:${(fs * .42).toFixed(2)}mm;line-height:1">${esc(w.y)}</span></span><span class="ansbox" style="display:inline-block;width:${yb.toFixed(2)}mm;height:${(yb * kana.length).toFixed(2)}mm;vertical-align:middle;margin:.6mm 0"></span>`);
+      // ほかの 漢字には ふりがなを 付ける
+      const withRuby = sentenceRuby(w.s, w.w, html);
+      return `<div class="q kyo" style="font-size:${fs}mm;width:${width.toFixed(2)}mm"><span class="no">${no}</span><div class="s" style="margin-right:${(fs * .45 + .8).toFixed(2)}mm">${withRuby}</div></div>`;
+    }
+    // おくりがなの 問題文：{漢字|よみ} に ふりがなを 付けなおす
+    function sentenceRuby(src, word, html) {
+      const rubies = [...src.matchAll(/\{(.+?)\|(.+?)\}/g)];
+      let out = html;
+      rubies.forEach(r => { out = out.replace(esc(r[1]), `<span class="rb">${esc(r[1])}<span class="rt2" style="font-size:42%">${esc(r[2])}</span></span>`); });
+      return out;
+    }
+    function hattenSheets() {
+      const sp = specialWords(), ok = HATTEN.find(h => h.type === 'okuri');
+      const B = { yb: 10, kb: 14 };
+      const spQs = sp.map((x, i) => question(CIRCLED[i] || String(i + 1), { s: x.s, y: x.y, e: x.e }, 'yomi', 6.6, 18.5, B)).join('');
+      const tag = { color: '#a16207' };
+      const s1 = `<div class="sheet">
+        ${header(tag, 'とくべつな よみかた', { tag: 'はってん①' })}
+        <div class="half r"><div class="memo"><div class="mh">おぼえよう</div><div class="wcs">${sp.map(w => wordCol(w, 12)).join('')}</div></div></div>
+        <div class="divider"></div>
+        <div class="half l"><div class="qs" style="right:0;left:auto">${group('よみを かこう', '#a16207', spQs)}</div></div>
+        <div class="foot">${PNAME}　はってん① とくべつな よみかた</div>
+      </div>`;
+      // おくりがなは 6こずつ 2まいに 分ける
+      const halves = [ok.words.slice(0, 6), ok.words.slice(6)];
+      const okSheets = halves.map((ws, j) => `<div class="sheet">
+        ${header(tag, `おくりがな ${j + 1}`, { tag: 'はってん②' })}
+        <div class="half r"><div class="memo"><div class="mh">おぼえよう　<span style="font-weight:400;font-size:3.2mm">（<span class="ok">あかい じ</span>が おくりがな）</span></div><div class="wcs">${ws.map(w => wordCol(w, 10.5, true)).join('')}</div></div></div>
+        <div class="divider"></div>
+        <div class="half l"><div class="qs" style="right:0;left:auto">${group('おくりがなを かこう', '#a16207', ws.map((w, i) => okuriQuestion(CIRCLED[j * 6 + i], w, 7.4, 21)).join(''))}</div></div>
+        <div class="foot">${PNAME}　はってん② おくりがな ${j + 1}</div>
+      </div>`).join('');
+      const plainS = (x, ans) => esc(x.s).replace(/\{(.+?)\|(.+?)\}/g, '$1').replace(/\[(.+?)\]/, ans);
+      const ans = `<h3>はってん① とくべつな よみかた</h3>` + sp.map((x, i) => `<div class="ln kyo">${CIRCLED[i] || i + 1} ${plainS(x, `<span class="a">${esc(x.w)}（${esc(x.y)}）</span>`)}</div>`).join('') +
+        `<h3>はってん② おくりがな</h3>` + ok.words.map((x, i) => `<div class="ln kyo">${CIRCLED[i]} ${plainS(x, `<span class="a">${esc(x.w)}</span>`)}</div>`).join('');
+      const s3 = `<div class="sheet">
+        ${header(tag, 'こたえ', { tag: 'はってん' })}
+        <div class="anspage">${ans}</div>
+        <div class="foot">${PNAME}　はってん　こたえ</div>
+      </div>`;
+      return s1 + okSheets + s3;
+    }
+
+    // ---------------------------------------------------------------
     // ひょうじ
     // ---------------------------------------------------------------
     const params = new URLSearchParams(location.search);
     const sel = document.getElementById('stage');
-    sel.innerHTML = KSTAGES.map(st => `<option value="${st.id}">ステージ${stageNo(st)}　${esc(st.name)}（${st.kanji.join('')}）</option>`).join('') + '<option value="all">ぜんぶ</option>';
-    const fileName = (st) => `かんじプリント_ステージ${String(stageNo(st)).padStart(2, '0')}_${st.name.replace(/[①②・ 　]/g, (c) => ({ '①': '1', '②': '2' }[c] || ''))}.pdf`;
-    window.KANJIPRINT_FILES = KSTAGES.map(st => ({ id: st.id, file: fileName(st) }));
-    document.getElementById('dl').innerHTML = '<span>できあがった PDF：</span><a href="pdf/かんじプリント_ぜんぶ.pdf" download>ぜんぶ</a>' +
-      KSTAGES.map(st => `<a href="pdf/${encodeURIComponent(fileName(st))}" download>ステージ${stageNo(st)}</a>`).join('');
+    const gsel = document.getElementById('grade');
+    gsel.value = String(G);
+    gsel.onchange = () => { location.search = gsel.value === '2' ? '?g=2' : ''; };
+    if (G === 2) document.getElementById('about').textContent = '2年生の漢字160字の、学習プリント（1まいに2字）・まとめテスト・まとめ ふくしゅうテスト・はってん・こたえです。A4よこで印刷します。';
+    // 2年生は ステージの あとに まとめ ふくしゅうテスト、さいごに はってん
+    const R2 = G === 2 ? RSTAGES : [];
+    const HAS_HATTEN = G === 2 && HATTEN.some(h => h.type === 'okuri');
+    sel.innerHTML = KSTAGES.map(st => `<option value="${st.id}">ステージ${stageNo(st)}　${esc(st.name)}（${st.kanji.join('')}）</option>`).join('') +
+      R2.map(r => `<option value="${r.id}">${esc(r.name)}テスト（${rangeTag(r)}）</option>`).join('') +
+      (HAS_HATTEN ? '<option value="hatten">はってん（とくべつな よみかた・おくりがな）</option>' : '') + '<option value="all">ぜんぶ</option>';
+    const clean = (t) => t.replace(/[①②・ 　]/g, (c) => ({ '①': '1', '②': '2' }[c] || ''));
+    const PRE = G === 2 ? 'かんじプリント2ねん' : 'かんじプリント';
+    const DIR = G === 2 ? 'pdf/2nen/' : 'pdf/';
+    const fileName = (st) => `${PRE}_ステージ${String(stageNo(st)).padStart(2, '0')}_${clean(st.name)}.pdf`;
+    const rFileName = (r) => `${PRE}_まとめふくしゅう${RSTAGES.indexOf(r) + 1}.pdf`;
+    window.KANJIPRINT_DIR = DIR;
+    window.KANJIPRINT_ALL = `${PRE}_ぜんぶ.pdf`;
+    window.KANJIPRINT_FILES = [...KSTAGES.map(st => ({ id: st.id, file: fileName(st) })), ...R2.map(r => ({ id: r.id, file: rFileName(r) })),
+      ...(HAS_HATTEN ? [{ id: 'hatten', file: `${PRE}_はってん.pdf` }] : [])];
+    document.getElementById('dl').innerHTML = `<span>できあがった PDF：</span><a href="${DIR}${encodeURIComponent(window.KANJIPRINT_ALL)}" download>ぜんぶ</a>` +
+      KSTAGES.map(st => `<a href="${DIR}${encodeURIComponent(fileName(st))}" download>ステージ${stageNo(st)}</a>`).join('') +
+      R2.map((r, i) => `<a href="${DIR}${encodeURIComponent(rFileName(r))}" download>まとめふくしゅう${i + 1}</a>`).join('') +
+      (HAS_HATTEN ? `<a href="${DIR}${encodeURIComponent(`${PRE}_はってん.pdf`)}" download>はってん</a>` : '');
+    // ぜんぶ：ステージ（4つごとに まとめ ふくしゅうテスト）→ はってん
+    const allSheets = () => STAGES.map(st => st.type === 'kanji' ? stageSheets(st) : R2.includes(st) ? reviewTestSheets(st) : '').join('') + (HAS_HATTEN ? hattenSheets() : '');
     function render(id) {
-      const list = id === 'all' ? KSTAGES : KSTAGES.filter(s => s.id === id);
-      document.getElementById('sheets').innerHTML = list.map(stageSheets).join('');
+      const el = document.getElementById('sheets');
+      if (id === 'all') el.innerHTML = allSheets();
+      else if (id === 'hatten' && HAS_HATTEN) el.innerHTML = hattenSheets();
+      else if (R2.some(r => r.id === id)) el.innerHTML = reviewTestSheets(R2.find(r => r.id === id));
+      else el.innerHTML = KSTAGES.filter(s => s.id === id).map(stageSheets).join('');
     }
     sel.value = params.get('stage') || 's1';
     render(sel.value);
