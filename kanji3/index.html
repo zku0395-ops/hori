@@ -4,7 +4,7 @@
   <base target="_top">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ポンタせんせいの かんじ マーケット</title>
+  <title>ポンタせんせいの かんじ ショッピングモール</title>
 
   <script crossorigin="anonymous" src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
   <script crossorigin="anonymous" src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
@@ -50,12 +50,12 @@
     (function () {
       var h = location.hostname;
       var local = location.protocol === 'file:' || /github\.io$/.test(h) || h === 'localhost' || h === '127.0.0.1';
-      window.KANJI1_BASE = local ? '' : 'https://zku0395-ops.github.io/hori/kanji1/';
+      window.KANJI3_BASE = local ? '' : 'https://zku0395-ops.github.io/hori/kanji3/';
       var V = '1';
-      window.KANJI1_READY = Promise.all(['data/mondai.js', 'data/strokes.js'].map(function (p) {
+      window.KANJI3_READY = Promise.all(['data/mondai.js', 'data/strokes.js'].map(function (p) {
         return new Promise(function (ok, ng) {
           var s = document.createElement('script');
-          s.src = window.KANJI1_BASE + p + '?v=' + V;
+          s.src = window.KANJI3_BASE + p + '?v=' + V;
           s.onload = ok; s.onerror = function () { ng(new Error(p)); };
           document.head.appendChild(s);
         });
@@ -65,8 +65,8 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext } = React;
-    const APP_VERSION = '1.0.1';
-    const BASE = window.KANJI1_BASE;
+    const APP_VERSION = '1.0.0';
+    const BASE = window.KANJI3_BASE;
     const IMG = BASE + 'img/';
 
     // =====================================================================
@@ -159,52 +159,84 @@
     // =====================================================================
     //  3. データ（問題・ショップ）
     // =====================================================================
-    let KANJI = {}, STAGES = [], HATTEN = [], PIC = new Set(), STROKES = {}, ALL_STAGES = [];
+    let KANJI = {}, STAGES = [], HATTEN = [], PIC = new Set(), STROKES = {}, PARTS = {}, PREV = {}, BU = {}, ALL_STAGES = [];
     const STEP = {
       meet: { label: 'であう', num: '⓪', icon: '👀', kind: '' },
       yomiSel: { label: 'よみを えらぶ', num: '①', icon: '🔍', kind: 'よみを えらぶ' },
       kanjiSel: { label: 'かんじを えらぶ', num: '③', icon: '🧩', kind: 'かんじを えらぶ' },
       yomiWrite: { label: 'よみを かく', num: '②', icon: '✏️', kind: 'よみを かく' },
       kanjiWrite: { label: 'かんじを かく', num: '④', icon: '📝', kind: 'かんじを かく' },
+      okuriSel: { label: 'おくりがなを えらぶ', num: '🖋', icon: '🖋️', kind: 'おくりがな' },
+      hantaiSel: { label: 'はんたいの ことばを えらぶ', num: '↔', icon: '↔️', kind: 'はんたい' },
       review: { label: 'まとめ ふくしゅう', num: '★', icon: '🏅', kind: '' },
     };
-    const KIND_ORDER = ['よみを えらぶ', 'かんじを えらぶ', 'よみを かく', 'かんじを かく'];
-    const KIND_NUM = { 'よみを えらぶ': '①', 'かんじを えらぶ': '③', 'よみを かく': '②', 'かんじを かく': '④' };
+    const KIND_ORDER = ['よみを えらぶ', 'かんじを えらぶ', 'よみを かく', 'かんじを かく', 'おくりがな', 'はんたい'];
+    const KIND_NUM = { 'よみを えらぶ': '①', 'かんじを えらぶ': '③', 'よみを かく': '②', 'かんじを かく': '④', 'おくりがな': '🖋', 'はんたい': '↔' };
+    const isHatten = (st) => st.type === 'hatten' || st.type === 'okuri' || st.type === 'hantai';
     const stepsOf = (st) => st.type === 'kanji' ? ['meet', 'yomiSel', 'kanjiSel', 'yomiWrite', 'kanjiWrite']
-      : st.type === 'hatten' ? ['meet', 'yomiSel', 'kanjiSel'] : ['review'];
+      : st.type === 'hatten' ? ['meet', 'yomiSel', 'kanjiSel'] : st.type === 'okuri' ? ['meet', 'okuriSel']
+      : st.type === 'hantai' ? ['meet', 'hantaiSel'] : ['review'];
+    // 部首（へん・つくり など）：[形, なまえ]（ないときは null）
+    const buOf = (k) => BU[k] || null;
     const stageById = (id) => ALL_STAGES.find(s => s.id === id);
     const hex = (k) => k.codePointAt(0).toString(16).padStart(4, '0');
     const picUrl = (k) => PIC.has(k) ? `${IMG}n/${hex(k)}.webp` : null;
-    const NUMS = { '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '十': 10 };
 
+    // 部品の色（10画以上の字を 部品ごとに 色分けして 見せる）
+    const PART_COLORS = [
+      { c: '#e11d48', light: '#fecdd3', name: 'あか' }, { c: '#2563eb', light: '#bfdbfe', name: 'あお' },
+      { c: '#16a34a', light: '#bbf7d0', name: 'みどり' }, { c: '#9333ea', light: '#e9d5ff', name: 'むらさき' },
+    ];
+    // 子どもが 知って いる 部品は、名前で 知らせる
+    const PART_NAME = { 日: 'ひ', 月: 'つき', 木: 'き', 口: 'くち', 目: 'め', 田: 'た', 土: 'つち', 力: 'ちから', 女: 'おんな', 子: 'こ',
+      人: 'ひと', 山: 'やま', 川: 'かわ', 水: 'みず', 火: 'ひ', 石: 'いし', 王: 'おう', 糸: 'いと', 貝: 'かい', 白: 'しろ', 立: 'たつ',
+      耳: 'みみ', 竹: 'たけ', 雨: 'あめ', 門: 'もん', 言: 'いう', 見: 'みる', 米: 'こめ', 羽: 'はね', 鳥: 'とり', 合: 'あう', 会: 'あう',
+      売: 'うる', 寺: 'てら', 首: 'くび', 豆: 'まめ', 弓: 'ゆみ', 虫: 'むし', 早: 'はやい', 小: 'ちいさい', 青: 'あお', 里: 'さと', 舌: 'した',
+      金: 'かね', 車: 'くるま', 馬: 'うま', 音: 'おと', 心: 'こころ', 長: 'ながい', 黄: 'き', 重: 'おもい', 直: 'なおす', 何: 'なに',
+      正: 'ただしい', 冬: 'ふゆ', 者: 'もの', 東: 'ひがし', 自: 'じぶん', 羊: 'ひつじ', 火: 'ひ', 方: 'ほう', 足: 'あし', 走: 'はしる',
+      氵: 'さんずい', 扌: 'てへん', 亻: 'にんべん', 艹: 'くさかんむり', 宀: 'うかんむり', '⻌': 'しんにょう', '⻖': 'こざとへん', '⻏': 'おおざと',
+      飠: 'しょくへん', 疒: 'やまいだれ', 广: 'まだれ', 礻: 'しめすへん', 癶: 'はつがしら', 隹: 'ふるとり', 頁: 'おおがい', 攵: 'のぶん',
+      巾: 'はば', 酉: 'とり', 示: 'しめす', 門: 'もんがまえ' };
+    // 部品の じょうほう：[{ el, ids, color }]（ないときは null）
+    let PARTS_ON = true; // 先生用画面の せってい
+    const partsOf = (ch) => {
+      if (!PARTS_ON) return null;
+      const p = PARTS[ch];
+      if (!p || p.length < 2) return null;
+      return [...p].sort((a, b) => a[1][0] - b[1][0]).map(([el, ids], i) => ({ el, ids, color: PART_COLORS[i % PART_COLORS.length] }));
+    };
+    const partOfStroke = (parts, i) => parts ? parts.findIndex(p => p.ids.includes(i)) : -1;
+    const partsSpeech = (ch, parts) => `「${ch}」は ${parts.length}つの ぶぶんで できて いるよ。` +
+      parts.map(p => `${p.color.name}${PART_NAME[p.el] ? `の「${PART_NAME[p.el]}」` : 'の ぶぶん'}`).join('、') + 'の じゅんに かくよ。';
+
+    // おみせ：ショッピングモールの おみせ（10の なかま × 10しゅるい）
     const ITEM_CATS = [
-      { id: 'norimono', name: 'のりもの', icon: '🚗', title: 'のりもの はかせ', items: [
-        ['🚲', 'じてんしゃ', 3], ['🛴', 'キックボード', 4], ['🚗', 'くるま', 5], ['🚌', 'バス', 6],
-        ['🚃', 'でんしゃ', 8], ['🚒', 'しょうぼうしゃ', 10], ['✈️', 'ひこうき', 12], ['🚀', 'ロケット', 15]] },
-      { id: 'tabemono', name: 'たべもの', icon: '🍙', title: 'たべもの はかせ', items: [
-        ['🍙', 'おにぎり', 3], ['🍞', 'パン', 4], ['🍳', 'めだまやき', 5], ['🍛', 'カレー', 6],
-        ['🍜', 'ラーメン', 8], ['🍕', 'ピザ', 10], ['🍔', 'ハンバーガー', 12], ['🍣', 'おすし', 15]] },
-      { id: 'kudamono', name: 'くだもの', icon: '🍎', title: 'くだもの はかせ', items: [
-        ['🍎', 'りんご', 3], ['🍌', 'バナナ', 4], ['🍊', 'みかん', 5], ['🍓', 'いちご', 6],
-        ['🍇', 'ぶどう', 8], ['🍑', 'もも', 10], ['🍉', 'すいか', 12], ['🍈', 'メロン', 15]] },
-      { id: 'yasai', name: 'やさい', icon: '🥕', title: 'やさい はかせ', items: [
-        ['🥕', 'にんじん', 3], ['🍅', 'トマト', 4], ['🥒', 'きゅうり', 5], ['🌽', 'とうもろこし', 6],
-        ['🥔', 'じゃがいも', 8], ['🥦', 'ブロッコリー', 10], ['🍆', 'なす', 12], ['🎃', 'かぼちゃ', 15]] },
-      { id: 'bunbougu', name: 'ぶんぼうぐ', icon: '✏️', title: 'ぶんぼうぐ はかせ', items: [
-        ['✏️', 'えんぴつ', 3], ['🖍️', 'クレヨン', 4], ['📏', 'じょうぎ', 5], ['📎', 'クリップ', 6],
-        ['✂️', 'はさみ', 8], ['📓', 'ノート', 10], ['📐', 'さんかくじょうぎ', 12], ['🖌️', 'ふで', 15]] },
-      { id: 'dezaato', name: 'デザート', icon: '🍰', title: 'デザート はかせ', items: [
-        ['🍮', 'プリン', 3], ['🍪', 'クッキー', 4], ['🍩', 'ドーナツ', 5], ['🍦', 'ソフトクリーム', 6],
-        ['🍡', 'おだんご', 8], ['🧁', 'カップケーキ', 10], ['🍰', 'ケーキ', 12], ['🎂', 'ホールケーキ', 20]] },
-      { id: 'doubutsu', name: 'どうぶつ', icon: '🐶', title: 'どうぶつ はかせ', items: [
-        ['🐹', 'ハムスター', 4], ['🐰', 'うさぎ', 5], ['🐱', 'ねこ', 6], ['🐶', 'いぬ', 8],
-        ['🐼', 'パンダ', 12], ['🦁', 'ライオン', 15], ['🐘', 'ぞう', 18], ['🦒', 'きりん', 20]] },
-    ].map(c => ({ ...c, items: c.items.map(([e, n, p], i) => ({ id: `${c.id}${i + 1}`, e, n, p, cat: c.id })) }));
+      { id: 'norimono', name: 'のりもの', icon: '🚲', title: 'のりもの はかせ', color: '#2563eb', items: [
+        ['🛴', 'キックボード'], ['🚲', 'じてんしゃ'], ['🚌', 'バス'], ['🚒', 'しょうぼうしゃ'], ['🚤', 'ボート'], ['🚡', 'ロープウェイ'], ['🚂', 'きかんしゃ'], ['🛩️', 'ひこうき'], ['🏎️', 'レーシングカー'], ['🚀', 'ロケット']] },
+      { id: 'tabemono', name: 'たべもの', icon: '🍙', title: 'たべもの はかせ', color: '#ea580c', items: [
+        ['🍙', 'おにぎり'], ['🍳', 'めだまやき'], ['🍟', 'ポテト'], ['🥐', 'クロワッサン'], ['🍔', 'ハンバーガー'], ['🍜', 'ラーメン'], ['🍛', 'カレーライス'], ['🍗', 'フライドチキン'], ['🍕', 'ピザ'], ['🍣', 'おすし']] },
+      { id: 'kudamono', name: 'くだもの', icon: '🍎', title: 'くだもの はかせ', color: '#dc2626', items: [
+        ['🍊', 'みかん'], ['🍌', 'バナナ'], ['🍎', 'りんご'], ['🍏', 'あおりんご'], ['🍑', 'もも'], ['🍇', 'ぶどう'], ['🍓', 'いちご'], ['🍍', 'パイナップル'], ['🍉', 'すいか'], ['🍈', 'メロン']] },
+      { id: 'yasai', name: 'やさい', icon: '🥕', title: 'やさい はかせ', color: '#16a34a', items: [
+        ['🥕', 'にんじん'], ['🥒', 'きゅうり'], ['🍅', 'トマト'], ['🥔', 'じゃがいも'], ['🍆', 'なす'], ['🥬', 'キャベツ'], ['🫛', 'えだまめ'], ['🥦', 'ブロッコリー'], ['🌽', 'とうもろこし'], ['🎃', 'かぼちゃ']] },
+      { id: 'bunbougu', name: 'ぶんぼうぐ', icon: '✏️', title: 'ぶんぼうぐ はかせ', color: '#0891b2', items: [
+        ['📎', 'クリップ'], ['✏️', 'えんぴつ'], ['📏', 'じょうぎ'], ['📓', 'ノート'], ['🖍️', 'クレヨン'], ['✂️', 'はさみ'], ['🗒️', 'メモちょう'], ['📐', 'さんかくじょうぎ'], ['🖌️', 'ふで'], ['📔', 'にっきちょう']] },
+      { id: 'dezaato', name: 'デザート', icon: '🍰', title: 'デザート はかせ', color: '#db2777', items: [
+        ['🍪', 'クッキー'], ['🍡', 'だんご'], ['🍩', 'ドーナツ'], ['🍮', 'プリン'], ['🍦', 'ソフトクリーム'], ['🧁', 'カップケーキ'], ['🍫', 'チョコレート'], ['🍰', 'ショートケーキ'], ['🥧', 'アップルパイ'], ['🎂', 'バースデーケーキ']] },
+      { id: 'doubutsu', name: 'どうぶつ', icon: '🐼', title: 'どうぶつ はかせ', color: '#a16207', items: [
+        ['🐹', 'ハムスター'], ['🐰', 'うさぎ'], ['🐱', 'ねこ'], ['🐶', 'いぬ'], ['🦘', 'カンガルー'], ['🐯', 'とら'], ['🦁', 'ライオン'], ['🦒', 'きりん'], ['🐘', 'ぞう'], ['🐼', 'パンダ']] },
+      { id: 'umi', name: 'うみの いきもの', icon: '🐬', title: 'うみの いきもの はかせ', color: '#0284c7', items: [
+        ['🦀', 'かに'], ['🐙', 'たこ'], ['🦑', 'いか'], ['🐠', 'ねったいぎょ'], ['🐡', 'ふぐ'], ['🐢', 'うみがめ'], ['🦭', 'あざらし'], ['🐬', 'いるか'], ['🦈', 'さめ'], ['🐳', 'くじら']] },
+      { id: 'hana', name: 'はな', icon: '🌷', title: 'はな はかせ', color: '#e11d48', items: [
+        ['🍀', 'よつばの クローバー'], ['🌼', 'デイジー'], ['🌷', 'チューリップ'], ['🌸', 'さくら'], ['🌻', 'ひまわり'], ['🪻', 'ヒヤシンス'], ['🌹', 'ばら'], ['🌺', 'ハイビスカス'], ['🪷', 'はす'], ['💐', 'はなたば']] },
+      { id: 'gakki', name: 'がっき', icon: '🎹', title: 'がっき はかせ', color: '#7c3aed', items: [
+        ['🔔', 'すず'], ['🪇', 'マラカス'], ['🥁', 'たいこ'], ['🪕', 'バンジョー'], ['🎸', 'ギター'], ['🪗', 'アコーディオン'], ['🎺', 'トランペット'], ['🎷', 'サックス'], ['🎻', 'バイオリン'], ['🎹', 'ピアノ']] },
+    ].map(c => ({ ...c, items: c.items.map(([e, n], i) => ({ id: `${c.id}${i + 1}`, e, n, p: [3, 4, 5, 6, 8, 10, 12, 14, 17, 20][i], cat: c.id })) }));
     const ALL_ITEMS = ITEM_CATS.flatMap(c => c.items);
     const titlesOf = (items) => {
       const own = new Set(items);
       const t = ITEM_CATS.filter(c => c.items.every(it => own.has(it.id))).map(c => c.title);
-      if (t.length === ITEM_CATS.length) t.push('マーケット めいじん');
+      if (t.length === ITEM_CATS.length) t.push('モール めいじん');
       return t;
     };
 
@@ -253,19 +285,36 @@
     // =====================================================================
     const otherReadings = (k, y) => (KANJI[k] ? KANJI[k].yomi.filter(r => r !== y) : []);
     const lookOf = (k) => (KANJI[k] ? KANJI[k].look : []);
+    // にている字の よみ（1・2年生の字も つかう）
+    const readingOf = (c) => KANJI[c] ? pickOne(KANJI[c].ex.filter(x => !isWordEx(x))).y : PREV[c] ? PREV[c][0] : '';
+    // てんてん・まるを とった よみ（「ほし」と「ぼし」は まちがいの せんたくしに しない）
+    const plainKana = (r) => r.normalize('NFD').replace(/[゙゚]/g, '');
+    const targetOf = (ex) => (ex.s.match(/\[(.+?)\]/) || [])[1] || '';
+    // 「今日」「明日」のような とくべつな よみの ことば
+    const isWordEx = (ex) => targetOf(ex).length > 1;
+    // 例文を えらぶ（かんじの もんだいでは 1字の 例文だけ）
+    const exFor = (k, off, single) => {
+      const all = KANJI[k].ex, list = single ? all.filter(x => !isWordEx(x)) : all;
+      return list[(off + Math.floor(Math.random() * list.length)) % list.length];
+    };
 
     function makeYomiSel(k, ex, stageKanji) {
-      const same = shuffle(otherReadings(k, ex.y));
-      const looks = lookOf(k).filter(l => KANJI[l]).map(l => ({ r: KANJI[l].ex[0].y, from: l }));
-      const others = shuffle(stageKanji.filter(x => x !== k)).map(l => ({ r: pickOne(KANJI[l].ex).y, from: l }));
       const picked = [];
-      const add = (r) => { if (r && r !== ex.y && !picked.includes(r) && picked.length < 3) picked.push(r); };
+      const add = (r) => { if (r && r !== ex.y && plainKana(r) !== plainKana(ex.y) && !picked.includes(r) && picked.length < 3) picked.push(r); };
+      const why = {};
+      if (isWordEx(ex)) {
+        // ことばの もんだい：ひとつずつ よんだ よみを まちがいの せんたくしに
+        (ex.ng || []).forEach(r => { add(r); why[r] = { type: 'naive' }; });
+        return { kind: 'yomiSel', k, ex, answer: ex.y, options: shuffle([ex.y, ...picked]), why, wordEx: true };
+      }
+      const same = shuffle(otherReadings(k, ex.y));
+      const looks = lookOf(k).map(l => ({ r: readingOf(l), from: l })).filter(o => o.r);
+      const others = shuffle(stageKanji.filter(x => x !== k)).map(l => ({ r: readingOf(l), from: l }));
       if (same[0]) add(same[0]);
       if (looks[0]) add(looks[0].r);
       others.forEach(o => add(o.r));
       same.forEach(add); looks.forEach(o => add(o.r));
       Object.values(KANJI).forEach(d => picked.length < 3 && add(d.ex[0].y));
-      const why = {};
       same.forEach(r => { why[r] = { type: 'same' }; });
       [...looks, ...others].forEach(o => { if (!why[o.r]) why[o.r] = { type: o.from && lookOf(k).includes(o.from) ? 'look' : 'other', from: o.from }; });
       return { kind: 'yomiSel', k, ex, answer: ex.y, options: shuffle([ex.y, ...picked]), why };
@@ -280,8 +329,13 @@
       shuffle(Object.keys(KANJI)).forEach(add);
       return { kind: 'kanjiSel', k, ex, answer: k, options: shuffle([k, ...picked]) };
     }
-    // はってん（ことば）
-    const naiveReading = (w) => [...w].map(c => (KANJI[c] ? KANJI[c].yomi[0] : '')).join('');
+    // はってん（ことば）。かなは そのまま、漢字は はじめの よみで よむ
+    const naiveReading = (w) => [...w].map(c => (KANJI[c] ? KANJI[c].yomi[0] : PREV[c] ? PREV[c][0] : c)).join('');
+    // はってん②：おくりがなを えらぶ
+    function makeOkuriSel(word) {
+      const ex = { s: word.s, y: word.y, e: word.e };
+      return { kind: 'okuriSel', k: word.w, ex, answer: word.w, options: shuffle([word.w, ...shuffle(word.ng).slice(0, 3)]), word: true, okuri: true };
+    }
     function makeWordSel(word, group, kind) {
       const ex = { s: word.s, y: word.y, e: word.e };
       if (kind === 'yomiSel') {
@@ -294,6 +348,15 @@
       const picked = [];
       shuffle(group.filter(x => x !== word)).forEach(x => { if (picked.length < 3 && !picked.includes(x.w)) picked.push(x.w); });
       return { kind, k: word.w, ex, answer: word.w, options: shuffle([word.w, ...picked]), word: true };
+    }
+    // はってん③：はんたいの いみの ことばを えらぶ。おなじ ことば（まちがいやすい）と、ほかの ことばを まぜる
+    function makeHantaiSel(word, group) {
+      const ex = { s: word.s, y: word.y, e: word.e };
+      const yomi = {};
+      group.forEach(x => { yomi[x.w] = x.y; yomi[x.a] = x.ay; });
+      const picked = [word.w];
+      shuffle(group.filter(x => x !== word)).forEach(x => { if (picked.length < 3) picked.push(pickOne([x.a, x.w])); });
+      return { kind: 'hantaiSel', k: word.w, ex, answer: word.a, options: shuffle([word.a, ...picked]), word: true, hantai: true, yomi, pair: word };
     }
 
     // =====================================================================
@@ -308,7 +371,7 @@
     const stepDone = (p, st, step) => (p.done[st.id] || []).includes(step);
     const stageIndex = (st) => STAGES.findIndex(s => s.id === st.id);
     const stageOpen = (p, st) => {
-      if (st.type === 'hatten') return p.unlockAll || p.hatten;
+      if (isHatten(st)) return p.unlockAll || p.hatten;
       if (p.unlockAll) return true;
       const i = stageIndex(st);
       return i <= 0 || !!p.cleared[STAGES[i - 1].id];
@@ -326,7 +389,7 @@
       google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
     });
     const LOG_HEADER = ['日時', 'なまえ', 'ステージ', 'だんかい', 'かんじ', 'もんだい', 'しゅるい', 'みほん', 'けっか', 'かいすう', 'まちがえた こたえ', 'ID'];
-    const DEFAULT_SETTINGS = { rate: 0.8, pitch: 1.1, font: 1, sound: true, judge: 'やさしい', flow: '3' };
+    const DEFAULT_SETTINGS = { rate: 0.8, pitch: 1.1, font: 1, sound: true, judge: 'やさしい', flow: '3', parts: true };
 
     // まとめ（先生用）— コード.gs の aggregate_ と おなじ しくみ
     const addStat = (map, key, kind, ok) => {
@@ -356,7 +419,7 @@
     }
 
     const Local = {
-      key: 'ponta_kanji1_local_v1', mem: null,
+      key: 'ponta_kanji3_local_v1', mem: null,
       data() {
         if (this.mem) return this.mem;
         let d = null; try { d = JSON.parse(safeStore.get(this.key)); } catch (e) {}
@@ -366,8 +429,8 @@
       save() { safeStore.set(this.key, JSON.stringify(this.mem)); },
     };
 
-    const PENDING_KEY = 'ponta_kanji1_pending_v1';
-    const COPY_KEY = (name) => 'ponta_kanji1_copy_' + name;
+    const PENDING_KEY = 'ponta_kanji3_pending_v1';
+    const COPY_KEY = (name) => 'ponta_kanji3_copy_' + name;
     const api = {
       async init() {
         if (HAS_GAS) return gas('getInitData');
@@ -444,7 +507,7 @@
       },
       async backup(pin) {
         if (HAS_GAS) return gas('getBackup', pin);
-        const d = Local.data(); return { ok: true, data: { app: 'kanji1', roster: d.roster.map(n => [n, d.progress[n] || '']), settings: d.settings } };
+        const d = Local.data(); return { ok: true, data: { app: 'kanji3', roster: d.roster.map(n => [n, d.progress[n] || '']), settings: d.settings } };
       },
       async restore(pin, data) {
         if (HAS_GAS) return gas('restoreBackup', pin, data);
@@ -517,17 +580,17 @@
       const [err, setErr] = useState(false);
       const d = KANJI[k];
       if (url && !err) return <img src={url} alt="" onError={() => setErr(true)} className={`rounded-3xl object-cover ${className}`} style={{ width: size, height: size }} draggable={false} />;
-      const n = NUMS[k];
       const fs = (r) => typeof size === 'number' ? size * r : `calc(${size} * ${r})`;
       return (
-        <div className={`rounded-3xl bg-white border-4 border-amber-100 flex flex-wrap items-center justify-center content-center gap-1 ${className}`} style={{ width: size, height: size, fontSize: n ? fs(n > 5 ? 0.15 : 0.2) : fs(0.5) }}>
-          {n ? Array.from({ length: n }).map((_, i) => <span key={i}>🍎</span>) : (d ? d.ex[0].e : '❔')}
+        <div className={`rounded-3xl bg-white border-4 border-amber-100 flex flex-wrap items-center justify-center content-center gap-1 ${className}`} style={{ width: size, height: size, fontSize: fs(0.5) }}>
+          {d ? d.ex[0].e : '❔'}
         </div>
       );
     }
 
     // かきじゅんの 絵（KanjiVG）を すこし ずつ かく
-    function StrokeChar({ ch, size = 200, animate = false, color = '#3f2d1d', width = 6, onDone, delay = 300 }) {
+    function StrokeChar({ ch, size = 200, animate = false, color = '#3f2d1d', width = 6, onDone, delay = 300, parts = null }) {
+      const colorAt = (i) => { const pi = partOfStroke(parts, i); return pi >= 0 ? parts[pi].color.c : color; };
       const paths = STROKES[ch] || [];
       const refs = useRef([]);
       const [lens, setLens] = useState(null);
@@ -545,11 +608,31 @@
         <svg viewBox="0 0 109 109" style={{ width: size, height: size }}>
           {paths.map((d, i) => <path key={`m${i}`} ref={el => refs.current[i] = el} d={d} fill="none" stroke="none" />)}
           {lens && paths.map((d, i) => i > idx ? null : (
-            <path key={`${ch}${i}`} d={d} fill="none" stroke={color} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round"
+            <path key={`${ch}${i}`} d={d} fill="none" stroke={colorAt(i)} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round"
               className={i === idx && animate ? 'draw-stroke' : ''}
               style={i === idx && animate ? { strokeDasharray: lens[i], strokeDashoffset: lens[i], '--dur': `${Math.max(500, lens[i] * 11)}ms` } : undefined} />
           ))}
         </svg>
+      );
+    }
+
+    // 部品を 1つずつ 見せる（「日」＋「羽」＋「隹」）
+    function PartChips({ ch, parts, size = 64, vertical = false }) {
+      const paths = STROKES[ch] || [];
+      return (
+        <div className={`flex items-center justify-center gap-1 ${vertical ? 'flex-col' : 'flex-wrap'}`}>
+          {parts.map((p, i) => (
+            <React.Fragment key={i}>
+              {i > 0 && <span className={`${vertical ? 'text-lg leading-none' : 'text-2xl'} font-bold text-stone-400`}>＋</span>}
+              <div className="bg-white rounded-xl border-2 flex flex-col items-center px-1" style={{ borderColor: p.color.c }}>
+                <svg viewBox="0 0 109 109" style={{ width: size, height: size }}>
+                  {paths.map((d, j) => <path key={j} d={d} fill="none" stroke={p.ids.includes(j) ? p.color.c : '#ece7df'} strokeWidth={p.ids.includes(j) ? 7 : 5} strokeLinecap="round" strokeLinejoin="round" />)}
+                </svg>
+                <span className="text-sm font-bold" style={{ color: p.color.c }}>{i + 1}. {p.color.name}</span>
+              </div>
+            </React.Fragment>
+          ))}
+        </div>
       );
     }
 
@@ -564,25 +647,46 @@
       const it = items[i];
       const isWord = !!it.word;
       const d = isWord ? null : KANJI[it.k];
-      const talk = () => {
+      const parts = isWord ? null : partsOf(it.k);
+      const okuriKana = it.okuri ? it.word.w.replace(/[一-鿿]/g, '') : '';
+      const bu = isWord ? null : buOf(it.k);
+      const turn = useRef(0);
+      const talk = async () => {
+        const my = ++turn.current;
+        if (it.hantai) return ponta.say(`「${it.word.w}」の はんたいは「${it.word.a}」だよ。`, { speech: `${it.word.y}。はんたいは、${it.word.ay}。` });
+        if (it.okuri) return ponta.say(`「${it.word.y}」は「${it.word.w}」と かくよ。おくりがなは「${okuriKana}」だよ。`, { speech: `${it.word.y}。おくりがなは、${okuriKana}。${speakText(it.word.s, it.word.y)}` });
         if (isWord) return ponta.say(`「${it.word.w}」は「${it.word.y}」と よむよ。とくべつな よみかた だね。`, { speech: `${it.word.y}。とくべつな よみかた だね。${speakText(it.word.s, it.word.y)}` });
         const first = d.ex[0];
-        return ponta.say(`${d.story}`, { speech: `${first.y}。${d.story.replace(/[「」]/g, '')} よみかたは、${d.yomi.slice(0, 2).join('、')}。` });
+        await ponta.say(`${d.story}`, { speech: `${first.y}。${d.story.replace(/[「」]/g, '')} よみかたは、${d.yomi.slice(0, 2).join('、')}。` });
+        // 部首の なまえ（3ねんせいの こくごで ならう「へんと つくり」）
+        if (bu && turn.current === my) await ponta.say(`ぶしゅは「${bu[1]}（${bu[0]}）」だよ。`, { speech: `ぶしゅは、${bu[1]}。` });
+        if (parts && turn.current === my) await ponta.say(partsSpeech(it.k, parts));
       };
       useEffect(() => {
         setPhase('pic');
         talk();
         const t = setTimeout(() => setPhase('draw'), isWord ? 300 : 1800);
-        return () => clearTimeout(t);
+        return () => { clearTimeout(t); turn.current++; };
       }, [i, replay]);
       const next = () => { Sound.tap(); if (i + 1 < items.length) setI(i + 1); else onFinish(); };
       return (
         <div className="flex flex-col items-center gap-4 w-full">
           <Dots total={items.length} current={i} />
-          {isWord ? (
+          {it.hantai ? (
+            <div className="bg-white rounded-3xl shadow p-6 flex flex-col items-center gap-3 pop" key={i}>
+              <div className="flex items-center gap-6">
+                <div className="flex flex-col items-center gap-2"><div className="text-8xl">{it.word.e}</div><ruby className="kyo text-7xl">{it.word.w}<rt className="text-3xl">{it.word.y}</rt></ruby></div>
+                <div className="text-6xl font-bold text-rose-500">⇔</div>
+                <div className="flex flex-col items-center gap-2"><div className="text-8xl">{it.word.ae}</div><ruby className="kyo text-7xl text-sky-700">{it.word.a}<rt className="text-3xl">{it.word.ay}</rt></ruby></div>
+              </div>
+              <div className="text-2xl font-bold">はんたいの いみの ことば だよ</div>
+              <div className="mt-2"><Sentence s={it.word.s} y={it.word.y} mode="answer" size="text-3xl" /></div>
+            </div>
+          ) : isWord ? (
             <div className="bg-white rounded-3xl shadow p-6 flex flex-col items-center gap-3 pop" key={i}>
               <div className="text-8xl">{it.word.e}</div>
-              <ruby className="kyo text-8xl">{it.word.w}<rt className="text-4xl">{it.word.y}</rt></ruby>
+              <ruby className="kyo text-8xl">{it.okuri ? <>{[...it.word.w].map((c, j) => /[一-鿿]/.test(c) ? <span key={j}>{c}</span> : <span key={j} className="text-rose-600">{c}</span>)}</> : it.word.w}<rt className="text-4xl">{it.word.y}</rt></ruby>
+              {it.okuri && <div className="text-2xl font-bold">おくりがなは「<span className="text-rose-600">{okuriKana}</span>」</div>}
               <div className="mt-2"><Sentence s={it.word.s} y={it.word.y} mode="answer" size="text-3xl" /></div>
             </div>
           ) : (
@@ -591,7 +695,7 @@
                 <div className={phase === 'draw' ? 'fadeout' : ''}><PicOrEmoji k={it.k} size="min(36vh, 40vw, 300px)" className="shadow" /></div>
                 {phase === 'draw' && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <StrokeChar ch={it.k} size="90%" animate color="#b45309" width={7} />
+                    <StrokeChar ch={it.k} size="90%" animate color="#b45309" width={7} parts={parts} />
                   </div>
                 )}
               </div>
@@ -602,6 +706,8 @@
                 <div className="flex flex-wrap gap-2 justify-center max-w-xs">
                   {d.yomi.slice(0, 3).map(r => <span key={r} className="bg-amber-100 border-2 border-amber-300 rounded-full px-3 py-1 text-2xl font-bold">{r}</span>)}
                 </div>
+                {bu && <div className="bg-sky-50 border-2 border-sky-300 rounded-2xl px-3 py-1 text-xl font-bold">ぶしゅ：<span className="kyo text-3xl text-sky-700 align-middle">{bu[0]}</span> {bu[1]}</div>}
+                {parts && <PartChips ch={it.k} parts={parts} size={56} />}
               </div>
               <div className="w-full flex justify-center bg-white/80 rounded-2xl px-4">
                 <span className="text-4xl mr-2 self-center">{d.ex[0].e}</span>
@@ -634,7 +740,12 @@
       const isYomi = q.kind === 'yomiSel';
       const d = q.word ? null : KANJI[q.k];
 
+      const okuriKana = q.okuri ? q.answer.replace(/[一-鿿]/g, '') : '';
+      const bu = q.word ? null : buOf(q.k);
       const ask = () => {
+        if (q.hantai) return ponta.say(`「${q.ex.y}」の はんたいの いみの ことばは どれかな？`, { speech: `${speakText(q.ex.s, q.ex.y)}。${q.ex.y}の、はんたいの いみの ことばは どれかな？` });
+        if (q.okuri) return ponta.say('□に はいる ことばは どれかな？ おくりがなに きを つけよう。', { speech: `${speakText(q.ex.s, q.ex.y)}。しかくに はいる ことばは どれかな？ おくりがなに きを つけよう。` });
+        if (q.wordEx) return ponta.say('あかい ことばの よみかたは どれかな？', { mood: 'normal' });
         if (isYomi) return ponta.say('あかい じの よみかたは どれかな？', { mood: 'normal' });
         return ponta.say('□に はいる かんじは どれかな？', { speech: `${speakText(q.ex.s, q.ex.y)}。しかくに はいる かんじは どれかな？` });
       };
@@ -644,10 +755,15 @@
         usedHint.current = true;
         setHint(lv);
         if (lv === 1) {
+          if (q.hantai) return ponta.say(`「${q.ex.y}」と ぎゃくの ようすを かんがえて みよう。`, { mood: 'think' });
+          if (q.okuri) return ponta.say(`「${q.ex.y}」の おわりの ほうを よく きいてね。`, { mood: 'think', speech: `${q.ex.y}。おわりの ほうを よく きいてね。` });
+          if (q.wordEx) return ponta.say('とくべつな よみかたを する ことばだよ。1じずつ よむのでは ないよ。', { mood: 'think' });
           if (q.word) return ponta.say(isYomi ? 'とくべつな よみかただよ。ふつうの よみかたとは ちがうよ。' : `「${q.ex.y}」の ことばを さがそう。`, { mood: 'think' });
-          return ponta.say(d.story, { mood: 'think' });
+          return ponta.say(`${d.story}${bu ? ` ぶしゅは「${bu[1]}」だよ。` : ''}`, { mood: 'think' });
         }
         if (lv === 2) {
+          if (q.hantai) return ponta.say(`えを みてね。さいしょの もじは「${q.pair.ay[0]}」だよ。`, { mood: 'think' });
+          if (q.okuri) return ponta.say(`おくりがなは ${okuriKana.length}もじ だよ。`, { mood: 'think' });
           if (isYomi) return ponta.say(`えを みてね。さいしょの もじは「${q.answer[0]}」だよ。`, { mood: 'think' });
           return ponta.say('えを みてね。この えから できた かんじだよ。', { mood: 'think' });
         }
@@ -672,7 +788,9 @@
         setWrongs(nw); setRemoved(r => [...r, opt]); setShakeKey(k => k + 1);
         Sound.retry();
         let msg = 'おしい！ もういちど よく みてね。';
-        if (isYomi) {
+        if (q.hantai) msg = opt === q.k ? 'それは おなじ ことばだよ。はんたいの いみの ことばを えらぼう。' : `「${opt}」は「${q.yomi[opt]}」。はんたいの いみでは ないよ。`;
+        else if (q.okuri) msg = `「${opt}」は おくりがなが ちがうよ。「${q.ex.y}」と よめるかな？`;
+        else if (isYomi) {
           const w = q.why && q.why[opt];
           if (w && w.type === 'same') msg = `「${opt}」とも よむけれど、この ぶんでは ちがう よみかただよ。`;
           else if (w && w.type === 'look') msg = `「${opt}」は「${w.from}」の よみかただよ。かたちが にて いるね。`;
@@ -690,14 +808,16 @@
           <div className="bg-white rounded-3xl shadow-sm border-4 border-amber-100 px-6 py-2 w-full max-w-3xl flex items-center gap-3">
             <span className="text-5xl shrink-0">{q.ex.e}</span>
             <div className="flex-1">
-              <Sentence s={q.ex.s} y={q.ex.y} mode={isYomi ? (solved ? 'answer' : 'hide') : 'blank'} answer={!isYomi && solved ? q.answer : null} />
+              <Sentence s={q.ex.s} y={q.ex.y} mode={q.hantai ? 'answer' : isYomi ? (solved ? 'answer' : 'hide') : 'blank'} answer={!isYomi && solved ? q.answer : null} />
             </div>
           </div>
           {hint >= 2 && (
             <div className="flex items-center gap-4 bg-amber-50 border-2 border-amber-300 rounded-2xl px-4 py-1 pop">
-              {q.word ? <span className="text-6xl">{q.ex.e}</span> : <PicOrEmoji k={q.k} size={84} />}
+              {q.hantai ? <span className="text-6xl">{q.pair.ae}</span> : q.word ? <span className="text-6xl">{q.ex.e}</span> : <PicOrEmoji k={q.k} size={84} />}
               <span className="text-4xl">→</span>
-              {isYomi ? <span className="text-3xl font-bold">さいしょは「<span className="text-rose-600">{q.answer[0]}</span>」</span>
+              {q.hantai ? <span className="text-3xl font-bold">さいしょは「<span className="text-rose-600">{q.pair.ay[0]}</span>」</span>
+                : q.okuri ? <span className="text-3xl font-bold">おくりがなは <span className="text-rose-600">{okuriKana.length}</span>もじ</span>
+                : isYomi ? <span className="text-3xl font-bold">さいしょは「<span className="text-rose-600">{q.answer[0]}</span>」</span>
                 : <span className="text-2xl font-bold">この えの じは どれかな？</span>}
             </div>
           )}
@@ -708,10 +828,10 @@
               const right = solved && opt === q.answer;
               return (
                 <button key={opt} onClick={() => choose(opt)} disabled={gone || solved}
-                  className={`btn3d rounded-3xl border-4 py-2 ${isYomi ? 'text-5xl' : 'text-6xl kyo'} font-bold transition
+                  className={`btn3d rounded-3xl border-4 py-2 ${isYomi ? 'text-5xl' : q.hantai ? 'text-5xl kyo leading-[1.9]' : q.okuri ? 'text-5xl kyo' : 'text-6xl kyo'} font-bold transition
                     ${gone ? 'opacity-20 bg-stone-100 border-stone-200' : right ? 'bg-emerald-100 border-emerald-500' : 'bg-white border-amber-400'}
                     ${hint >= 3 && opt === q.answer && !solved ? 'glow' : ''}`}>
-                  {gone ? '　' : opt}
+                  {gone ? '　' : q.hantai ? <ruby>{opt}<rt>{q.yomi[opt]}</rt></ruby> : opt}
                 </button>
               );
             })}
@@ -773,6 +893,10 @@
       const paths = STROKES[ch] || [];
       // 画数の 多い字は、お手本の 線を 細く する（線が かさなって 形が 見えなく ならないように）
       const sw = paths.length >= 13 ? 0.6 : paths.length >= 10 ? 0.78 : 1;
+      const parts = useMemo(() => partsOf(ch), [ch]);
+      // なぞる ときは、部品ごとに 色を つける
+      const tint = (i, base) => { const pi = partOfStroke(parts, i); return pi >= 0 ? parts[pi].color.light : base; };
+      const dark = (i, base) => { const pi = partOfStroke(parts, i); return pi >= 0 ? parts[pi].color.c : base; };
       const [geo, setGeo] = useState(null);
       const [phase, setPhase] = useState('draw');
       const [demoIdx, setDemoIdx] = useState(-1);
@@ -859,6 +983,13 @@
             setDone(true);
             const r = { fails: total, hint: usedHint.current };
             setTimeout(() => onDone(r), small ? 250 : 500);
+          } else if (parts && m !== 'none') {
+            // つぎの 画から べつの 部品に なるとき、声で しらせる
+            const pa = partOfStroke(parts, si), pb = partOfStroke(parts, ns);
+            if (pb >= 0 && pa !== pb) {
+              const p = parts[pb];
+              ponta.say(`つぎは ${p.color.name}の ぶぶん${PART_NAME[p.el] ? `（${PART_NAME[p.el]}）` : ''}だよ。`);
+            }
           }
           return;
         }
@@ -893,11 +1024,11 @@
               <line x1={VB / 2} y1="4" x2={VB / 2} y2={VB - 4} stroke="#e7d7c1" strokeWidth="0.7" strokeDasharray="3 3" />
               <line x1="4" y1={VB / 2} x2={VB - 4} y2={VB / 2} stroke="#e7d7c1" strokeWidth="0.7" strokeDasharray="3 3" />
               {paths.map((d, i) => <path key={`m${ch}-${i}`} ref={el => pathRefs.current[i] = el} d={d} fill="none" stroke="none" />)}
-              {m === 'trace' && paths.map((d, i) => <path key={`b${i}`} d={d} fill="none" stroke="#e7e1d8" strokeWidth={9 * sw} strokeLinecap="round" strokeLinejoin="round" />)}
+              {m === 'trace' && paths.map((d, i) => <path key={`b${i}`} d={d} fill="none" stroke={tint(i, '#e7e1d8')} strokeWidth={9 * sw} strokeLinecap="round" strokeLinejoin="round" />)}
               {m === 'ghost' && paths.map((d, i) => <path key={`g${i}`} d={d} fill="none" stroke="#f1ece4" strokeWidth={8 * sw} strokeLinecap="round" strokeLinejoin="round" />)}
               {phase === 'draw' && !done && showCurGhost && paths[si] && <path d={paths[si]} fill="none" stroke={m === 'trace' ? '#fde68a' : '#fef3c7'} strokeWidth={9 * sw} strokeLinecap="round" strokeLinejoin="round" />}
               {phase === 'demo' && geo && paths.map((d, i) => i > demoIdx ? null : (
-                <path key={`d${i}`} d={d} fill="none" stroke="#0284c7" strokeWidth={6 * sw} strokeLinecap="round" strokeLinejoin="round"
+                <path key={`d${i}`} d={d} fill="none" stroke={parts ? dark(i, '#0284c7') : '#0284c7'} strokeWidth={6 * sw} strokeLinecap="round" strokeLinejoin="round"
                   className={i === demoIdx ? 'draw-stroke' : ''}
                   style={i === demoIdx ? { strokeDasharray: geo[i].len, strokeDashoffset: geo[i].len, '--dur': `${Math.max(550, geo[i].len * 11)}ms` } : undefined} />
               ))}
@@ -905,7 +1036,7 @@
                 <path key={`h${hintKey}`} d={paths[si]} fill="none" stroke="#fb923c" strokeWidth="4" strokeLinecap="round" opacity=".85"
                   className="draw-stroke" style={{ strokeDasharray: g.len, strokeDashoffset: g.len, '--dur': `${Math.max(600, g.len * 12)}ms` }} />
               )}
-              {phase === 'draw' && paths.map((d, i) => i < si ? <path key={`k${i}`} d={d} fill="none" stroke="#3f2d1d" strokeWidth={6 * sw} strokeLinecap="round" strokeLinejoin="round" /> : null)}
+              {phase === 'draw' && paths.map((d, i) => i < si ? <path key={`k${i}`} d={d} fill="none" stroke={m === 'trace' ? dark(i, '#3f2d1d') : '#3f2d1d'} strokeWidth={6 * sw} strokeLinecap="round" strokeLinejoin="round" /> : null)}
               {showDot && g && (
                 <g>
                   <circle cx={g.pts[0].x} cy={g.pts[0].y} r="5.5" fill="#22c55e" stroke="#fff" strokeWidth="1.2" />
@@ -988,10 +1119,13 @@
       const first = useRef(0);
       const q = questions[qi];
       const mode = phases[pi];
+      const parts = partsOf(q.k);
       useEffect(() => {
         setSolved(false);
         const lead = pi === 0 ? `${speakText(q.ex.s, q.ex.y)}。` : '';
-        ponta.say(pi === 0 ? '□に はいる かんじを かこう。' : `こんどは ${MODE_LABEL[mode]}で かこう。`, { speech: `${lead}${pi === 0 ? 'しかくに はいる かんじを かこう。' : `こんどは、${MODE_LABEL[mode]}で かこう。`}` });
+        // 画数の 多い字は、なぞる ときに 部品の じゅんばんを 知らせる
+        const tail = parts && mode === 'trace' ? partsSpeech(q.k, parts) : '';
+        ponta.say(pi === 0 ? '□に はいる かんじを かこう。' : `こんどは ${MODE_LABEL[mode]}で かこう。`, { speech: `${lead}${pi === 0 ? 'しかくに はいる かんじを かこう。' : `こんどは、${MODE_LABEL[mode]}で かこう。`}${tail}` });
       }, [qi, pi]);
       const done = async (r) => {
         const ok = r.fails === 0 && !r.hint;
@@ -1021,6 +1155,7 @@
                   {i < pi ? '✓ ' : ''}{MODE_LABEL[p]}
                 </span>
               ))}
+              {parts && mode !== 'none' && !solved && <div className="flex flex-col items-center gap-1 mt-1"><span className="text-base font-bold">ぶぶんの じゅん</span><PartChips ch={q.k} parts={parts} size={44} vertical /></div>}
             </div>
             {!solved ? <Writer key={`${qi}-${pi}`} ch={q.k} mode={mode} tol={tol} onDone={done} /> :
               <div className="bg-white rounded-3xl border-4 border-emerald-300 flex items-center justify-center pop" style={{ width: 'max(240px, min(calc(100vh - 300px), 62vw, 420px))', height: 'max(240px, min(calc(100vh - 300px), 62vw, 420px))' }}><StrokeChar ch={q.k} size="85%" color="#047857" /></div>}
@@ -1038,9 +1173,11 @@
 
     function buildStep(st, step, progress, settings, resumeLeft) {
       const flow = FLOW[settings.flow] || FLOW['3'];
-      if (st.type === 'hatten') {
+      if (isHatten(st)) {
         const ws = shuffle(st.words).slice(0, 5);
-        if (step === 'meet') return { type: 'meet', items: st.words.map(w => ({ k: w.w, word: w })) };
+        if (step === 'meet') return { type: 'meet', items: st.words.map(w => ({ k: w.w, word: w, okuri: st.type === 'okuri', hantai: st.type === 'hantai' })) };
+        if (step === 'okuriSel') return { type: 'choice', questions: ws.map(makeOkuriSel) };
+        if (step === 'hantaiSel') return { type: 'choice', questions: ws.map(w => makeHantaiSel(w, st.words)) };
         return { type: 'choice', questions: ws.map(w => makeWordSel(w, st.words, step)) };
       }
       if (st.type === 'review') {
@@ -1055,24 +1192,22 @@
           picked.push(bag.splice(Math.min(idx, bag.length - 1), 1)[0]);
         }
         const choice = picked.map((k, i) => {
-          const ex = pickOne(KANJI[k].ex);
-          return i % 2 === 0 ? makeYomiSel(k, ex, pool) : makeKanjiSel(k, ex, pool);
+          return i % 2 === 0 ? makeYomiSel(k, exFor(k, 0, false), pool) : makeKanjiSel(k, exFor(k, 0, true), pool);
         });
         const worst = [...pool].sort((a, b) => (progress.miss[b] || 0) - (progress.miss[a] || 0) || Math.random() - .5).slice(0, 2);
-        return { type: 'review', questions: choice, writes: worst.map(k => ({ k, ex: pickOne(KANJI[k].ex) })) };
+        return { type: 'review', questions: choice, writes: worst.map(k => ({ k, ex: exFor(k, 0, true) })) };
       }
       const ks = shuffle(st.kanji);
-      const exAt = (k, off) => { const d = KANJI[k]; return d.ex[(Math.floor(Math.random() * 3) + off) % 3]; };
       const left = (arr) => resumeLeft ? arr.slice(arr.length - resumeLeft) : arr;
       if (step === 'meet') return { type: 'meet', items: st.kanji.map(k => ({ k })) };
-      if (step === 'yomiSel') return { type: 'choice', questions: left(ks.map(k => makeYomiSel(k, exAt(k, 0), st.kanji))) };
-      if (step === 'kanjiSel') return { type: 'choice', questions: left(ks.map(k => makeKanjiSel(k, exAt(k, 1), st.kanji))) };
+      if (step === 'yomiSel') return { type: 'choice', questions: left(ks.map(k => makeYomiSel(k, exFor(k, 0, false), st.kanji))) };
+      if (step === 'kanjiSel') return { type: 'choice', questions: left(ks.map(k => makeKanjiSel(k, exFor(k, 1, true), st.kanji))) };
       if (step === 'yomiWrite') {
-        const qs = ks.map(k => ({ k, ex: exAt(k, 2) }));
+        const qs = ks.map(k => ({ k, ex: exFor(k, 2, false) }));
         const ms = flow.yomi;
         return { type: 'yomiWrite', questions: left(qs), modes: left(ms) };
       }
-      return { type: 'kanjiWrite', questions: left(ks.map(k => ({ k, ex: exAt(k, 0) }))), phases: flow.kanji };
+      return { type: 'kanjiWrite', questions: left(ks.map(k => ({ k, ex: exFor(k, 0, true) }))), phases: flow.kanji };
     }
 
     function Activity({ st, step, progress, settings, onRecord, onCoin, onPartial, onFinish, onQuit }) {
@@ -1147,8 +1282,8 @@
             <Ponta size={170} className="floaty" />
             <div>
               <div className="text-2xl font-bold text-amber-700">ポンタせんせいの</div>
-              <div className="text-5xl font-bold text-amber-900">かんじ マーケット</div>
-              <div className="text-xl mt-1">1ねんせいの かんじ 80じ</div>
+              <div className="text-5xl font-bold text-amber-900">かんじ ショッピングモール</div>
+              <div className="text-xl mt-1">3ねんせいの かんじ 200じ（3ごうてん）</div>
             </div>
           </div>
           {demo && <div className="bg-yellow-100 border-2 border-yellow-400 rounded-xl px-4 py-2 text-lg">おためしモード（スプレッドシートに つながって いません。きろくは この たんまつだけに のこります）</div>}
@@ -1179,13 +1314,28 @@
       );
     }
 
-    function HomeScreen({ name, progress, onStudy, onContinue, onShop, onZukan }) {
+    function HomeScreen({ name, progress, onStudy, onContinue, onShop, onZukan, onWelcome }) {
       const ponta = usePonta();
       const cur = currentStage(progress);
       const titles = titlesOf(progress.items);
-      useEffect(() => { ponta.say(`${name}さん、いらっしゃい！ かんじを べんきょうして コインを あつめよう。`); }, []);
+      const first = !progress.welcome;
+      useEffect(() => {
+        if (first) ponta.say(`${name}さん、かんじ ショッピングモールの 3ごうてんへ ようこそ！ マーケット、デパートの つぎは、おみせが 10けん ならぶ ショッピングモールだよ。3ねんせいの かんじを べんきょうして、コインで おかいものを しよう。`, { mood: 'happy' });
+        else ponta.say(`${name}さん、いらっしゃいませ！ かんじを べんきょうして コインを あつめよう。`);
+      }, [first]);
       return (
         <div className="relative w-full flex-1 flex flex-col items-center gap-4 p-4" style={{ background: `url(${IMG}bg_home.webp) center/cover` }}>
+          {first && (
+            <div className="fixed inset-0 bg-black/40 z-40 flex items-center justify-center p-4">
+              <div className="bg-white rounded-3xl p-6 flex flex-col items-center gap-3 pop max-w-xl text-center">
+                <div className="text-3xl font-bold text-amber-700">🎉 3ごうてん オープン！ 🎉</div>
+                <Ponta mood="happy" size={200} className="floaty" />
+                <div className="text-2xl font-bold leading-relaxed">かんじ ショッピングモールへ<br />ようこそ！</div>
+                <div className="text-xl" style={{ wordBreak: 'keep-all' }}>のりもの・たべもの・がっき など、おみせが 10けん あるよ。モールの ちずから すきな おみせに はいろう。</div>
+                <Btn onClick={onWelcome} color="#16a34a" light="#dcfce7" className="text-3xl px-10">はいる ▶</Btn>
+              </div>
+            </div>
+          )}
           <div className="bg-white/85 rounded-3xl p-3 w-full max-w-3xl"><PontaBar size={120} /></div>
           {titles.length > 0 && <div className="bg-white/90 rounded-2xl px-4 py-2 text-xl font-bold">🏆 {titles.join('・')}</div>}
           <button onClick={onContinue} className="btn3d glow bg-emerald-100 border-4 border-emerald-500 rounded-3xl px-10 py-5 text-4xl font-bold mt-2">
@@ -1193,7 +1343,7 @@
           </button>
           <div className="grid grid-cols-3 gap-4 w-full max-w-3xl mt-2">
             <button onClick={onStudy} className="btn3d bg-sky-50 border-4 border-sky-500 rounded-3xl py-6 text-3xl font-bold">📖<br />べんきょう</button>
-            <button onClick={onShop} className="btn3d bg-rose-50 border-4 border-rose-500 rounded-3xl py-6 text-3xl font-bold">🛒<br />おみせ</button>
+            <button onClick={onShop} className="btn3d bg-rose-50 border-4 border-rose-500 rounded-3xl py-6 text-3xl font-bold">🏬<br />おみせ</button>
             <button onClick={onZukan} className="btn3d bg-violet-50 border-4 border-violet-500 rounded-3xl py-6 text-3xl font-bold">📚<br />ずかん</button>
           </div>
         </div>
@@ -1211,7 +1361,7 @@
               const steps = stepsOf(st);
               const n = steps.filter(s => stepDone(progress, st, s)).length;
               const clear = !!progress.cleared[st.id];
-              if (st.type === 'hatten' && !open) return (
+              if (isHatten(st) && !open) return (
                 <div key={st.id} className="rounded-3xl border-4 border-dashed border-stone-300 p-3 text-center text-stone-400 bg-white/60">
                   <div className="text-3xl">🔒</div><div className="text-lg font-bold">{st.name}</div><div className="text-sm">せんせいが ひらくと できるよ</div>
                 </div>
@@ -1220,7 +1370,7 @@
                 <button key={st.id} disabled={!open} onClick={() => onStage(st)}
                   className={`btn3d rounded-3xl border-4 p-3 text-center bg-white ${open ? '' : 'opacity-40'}`} style={{ borderColor: st.color }}>
                   <div className="text-lg font-bold rounded-full text-white px-2" style={{ background: st.color }}>{st.icon} {st.name}</div>
-                  <div className="kyo text-4xl my-2 tracking-wider">{st.type === 'kanji' ? st.kanji.join('') : st.type === 'review' ? 'ふくしゅう' : st.words.slice(0, 3).map(w => w.w).join(' ')}</div>
+                  <div className="kyo text-4xl my-2 tracking-wider">{st.type === 'kanji' ? st.kanji.join('') : st.type === 'review' ? 'ふくしゅう' : st.type === 'hantai' ? `${st.words[0].w}⇔${st.words[0].a}` : st.words.slice(0, 3).map(w => w.w).join(' ')}</div>
                   <div className="flex justify-center gap-1">
                     {steps.map(s => <span key={s} className={`w-6 h-6 rounded-full text-sm flex items-center justify-center ${stepDone(progress, st, s) ? 'bg-amber-400 text-white' : 'bg-stone-200 text-stone-500'}`}>{STEP[s].num}</span>)}
                   </div>
@@ -1269,12 +1419,19 @@
     // =====================================================================
     function ShopScreen({ progress, onBuy }) {
       const ponta = usePonta();
-      const [cat, setCat] = useState(ITEM_CATS[0].id);
+      const [cat, setCat] = useState(null);       // null：モールの ちず
       const [confirm, setConfirm] = useState(null);
       const [award, setAward] = useState(null);
       const own = new Set(progress.items);
-      const c = ITEM_CATS.find(x => x.id === cat);
-      useEffect(() => { ponta.say('いらっしゃいませ！ コインで すきな ものを かってね。'); }, []);
+      const c = cat && ITEM_CATS.find(x => x.id === cat);
+      useEffect(() => { ponta.say('ショッピングモールへ ようこそ！ どの おみせに はいる？'); }, []);
+      // おみせに はいる・ちずに もどる
+      const enter = (id) => {
+        Sound.tap(); setCat(id);
+        const cc = ITEM_CATS.find(x => x.id === id);
+        ponta.say(`いらっしゃいませ！ ${cc.name}の おみせです。`);
+      };
+      const leave = () => { Sound.tap(); setCat(null); ponta.say('つぎは どの おみせに はいる？'); };
       const tap = (it) => {
         Sound.tap();
         if (own.has(it.id)) { ponta.say(`${it.n}は もう ずかんに あるよ。`); return; }
@@ -1290,29 +1447,58 @@
         Sound.buy();
         const newT = after.find(t => !before.includes(t));
         if (newT) { setAward(newT); Sound.big(); ponta.say(`おめでとう！「${newT}」に なったよ！`, { mood: 'happy' }); }
-        else ponta.say(`まいど ありがとう！ ${it.n}を ずかんに いれたよ。`, { mood: 'happy' });
+        else ponta.say(`まいど ありがとう ございます！ ${it.n}を ずかんに いれたよ。`, { mood: 'happy' });
       };
+      // おみせの のき（しまもようの ひさし）
+      const awning = (color) => ({ background: `repeating-linear-gradient(90deg, ${color} 0 22px, #ffffff 22px 44px)` });
       return (
         <div className="relative w-full flex-1 flex flex-col items-center gap-3 p-3" style={{ background: `url(${IMG}bg_shop.webp) center/cover` }}>
-          <div className="bg-white/85 rounded-3xl p-2 w-full max-w-4xl"><PontaBar size={100} /></div>
-          <div className="flex flex-wrap gap-2 justify-center">
-            {ITEM_CATS.map(x => (
-              <button key={x.id} onClick={() => { Sound.tap(); setCat(x.id); }}
-                className={`btn3d rounded-2xl border-4 px-3 py-2 text-xl font-bold ${x.id === cat ? 'bg-amber-200 border-amber-600' : 'bg-white border-amber-300'}`}>{x.icon} {x.name}</button>
-            ))}
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-4xl bg-white/80 rounded-3xl p-3">
-            {c.items.map(it => {
-              const have = own.has(it.id), can = progress.coins >= it.p;
-              return (
-                <button key={it.id} onClick={() => tap(it)} className={`btn3d rounded-3xl border-4 p-2 flex flex-col items-center bg-white ${have ? 'border-emerald-400' : can ? 'border-amber-400' : 'border-stone-200'}`}>
-                  <span className={`text-7xl ${have ? '' : can ? '' : 'opacity-60'}`}>{it.e}</span>
-                  <span className="text-xl font-bold mt-1">{it.n}</span>
-                  <span className={`text-xl font-bold rounded-full px-3 mt-1 ${have ? 'bg-emerald-100 text-emerald-700' : can ? 'bg-amber-100' : 'bg-stone-100 text-stone-400'}`}>{have ? '✓ かったよ' : `🪙 ${it.p}`}</span>
-                </button>
-              );
-            })}
-          </div>
+          <div className="bg-white/85 rounded-3xl p-2 w-full max-w-5xl"><PontaBar size={100} /></div>
+          {!c && (
+            <div className="w-full max-w-5xl flex flex-col items-center gap-3">
+              <div className="bg-white/90 rounded-full px-6 py-1 text-2xl font-bold">🏬 モールの ちず　<span className="text-lg">おみせを おしてね</span></div>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 w-full">
+                {ITEM_CATS.map(x => {
+                  const n = x.items.filter(it => own.has(it.id)).length;
+                  return (
+                    <button key={x.id} onClick={() => enter(x.id)} className="btn3d rounded-2xl border-4 bg-white overflow-hidden flex flex-col items-stretch" style={{ borderColor: x.color }}>
+                      <div className="h-4" style={awning(x.color)} />
+                      <div className="flex flex-col items-center py-2 px-1">
+                        <span className="text-6xl">{x.icon}</span>
+                        <span className="text-lg font-bold leading-tight mt-1" style={{ wordBreak: 'keep-all' }}>{x.name}</span>
+                        <span className="text-sm font-bold rounded-full px-2 mt-1" style={{ background: n === x.items.length ? '#fef3c7' : '#f5f5f4' }}>{n === x.items.length ? '🏆 ' : ''}{n} / {x.items.length}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {c && (
+            <div className="w-full max-w-5xl flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <button onClick={leave} className="btn3d shrink-0 bg-white border-2 border-stone-300 rounded-2xl px-4 py-2 text-xl font-bold">◀ ちずへ</button>
+                <div className="flex-1 rounded-2xl overflow-hidden border-4 bg-white" style={{ borderColor: c.color }}>
+                  <div className="h-5" style={awning(c.color)} />
+                  <div className="text-center text-3xl font-bold py-1">{c.icon} {c.name}の おみせ</div>
+                </div>
+              </div>
+              <div className="bg-white/90 rounded-3xl p-3">
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                  {c.items.map(it => {
+                    const have = own.has(it.id), can = progress.coins >= it.p;
+                    return (
+                      <button key={it.id} onClick={() => tap(it)} className={`btn3d rounded-2xl border-4 p-1 flex flex-col items-center bg-white ${have ? 'border-emerald-400' : can ? 'border-amber-400' : 'border-stone-200'}`}>
+                        <span className={`text-6xl ${have || can ? '' : 'opacity-60'}`}>{it.e}</span>
+                        <span className="text-base font-bold mt-1 leading-tight h-10 flex items-center text-center">{it.n}</span>
+                        <span className={`text-xl font-bold rounded-full px-2 ${have ? 'bg-emerald-100 text-emerald-700' : can ? 'bg-amber-100' : 'bg-stone-100 text-stone-400'}`}>{have ? '✓' : `🪙 ${it.p}`}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
           {confirm && (
             <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
               <div className="bg-white rounded-3xl p-6 flex flex-col items-center gap-3 pop">
@@ -1355,7 +1541,7 @@
             return (
               <div key={c.id} className="w-full bg-white rounded-3xl shadow-sm p-3">
                 <div className="text-2xl font-bold mb-2">{c.icon} {c.name} <span className="text-lg text-stone-500">{n} / {c.items.length}</span> {n === c.items.length && <span className="text-amber-600">🏆 {c.title}</span>}</div>
-                <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
                   {c.items.map(it => (
                     <button key={it.id} onClick={() => own.has(it.id) ? ponta.say(it.n) : ponta.say('まだ もって いないよ。おみせで かえるよ。')}
                       className={`rounded-2xl border-2 aspect-square flex flex-col items-center justify-center ${own.has(it.id) ? 'bg-amber-50 border-amber-300' : 'bg-stone-100 border-stone-200'}`}>
@@ -1456,13 +1642,13 @@
         const r = await api.logRows(pin);
         if (!r || !r.ok) { flash('うまく いきませんでした'); return; }
         const text = '﻿' + r.rows.map(row => row.map(v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
-        downloadText(`かんじマーケット_きろく_${nowStr().slice(0, 10).replace(/\//g, '')}.csv`, text, 'text/csv');
+        downloadText(`かんじモール_きろく_${nowStr().slice(0, 10).replace(/\//g, '')}.csv`, text, 'text/csv');
         flash('CSVを書き出しました（ダウンロードフォルダ）');
       };
       const backup = async () => {
         const r = await api.backup(pin);
         if (!r || !r.ok) { flash('うまく いきませんでした'); return; }
-        downloadText(`かんじマーケット_バックアップ_${nowStr().slice(0, 10).replace(/\//g, '')}.json`, JSON.stringify(r.data), 'application/json');
+        downloadText(`かんじモール_バックアップ_${nowStr().slice(0, 10).replace(/\//g, '')}.json`, JSON.stringify(r.data), 'application/json');
         flash('バックアップを保存しました（ダウンロードフォルダ）');
       };
       const restore = (e) => {
@@ -1470,7 +1656,7 @@
         const rd = new FileReader();
         rd.onload = async () => {
           let d = null; try { d = JSON.parse(rd.result); } catch (err) {}
-          if (!d || d.app !== 'kanji1') { flash('このアプリのバックアップではありません'); return; }
+          if (!d || d.app !== 'kanji3') { flash('このアプリのバックアップではありません'); return; }
           if (!confirm('バックアップから、子どもの進み具合・コインを元にもどします。よろしいですか？')) return;
           await act(() => api.restore(pin, d), 'バックアップから元にもどしました');
         };
@@ -1569,13 +1755,15 @@
             {tab === 'settings' && (
               <div className="bg-white rounded-xl p-4 flex flex-col gap-4 max-w-2xl">
                 <label className="flex items-center gap-3">よみあげの はやさ：<input type="range" min="0.5" max="1.2" step="0.05" value={s.rate} onChange={e => setS({ ...s, rate: Number(e.target.value) })} /> {s.rate}倍
-                  <button className="border rounded px-2" onClick={() => { Speech.rate = s.rate; Speech.say('ポンタせんせいの かんじ マーケットだよ。'); }}>ためす</button></label>
+                  <button className="border rounded px-2" onClick={() => { Speech.rate = s.rate; Speech.say('ポンタせんせいの かんじ ショッピングモールだよ。'); }}>ためす</button></label>
                 <div>もじの おおきさ：{[[0.9, 'ちいさめ'], [1, 'ふつう'], [1.15, 'おおきめ'], [1.3, 'とても おおきい']].map(([v, t]) =>
                   <button key={v} onClick={() => setS({ ...s, font: v })} className={`ml-2 rounded-lg px-3 py-1 border-2 ${s.font === v ? 'bg-amber-200 border-amber-500' : 'bg-white'}`}>{t}</button>)}</div>
                 <div>こうかおん（ファンファーレなど）：{[[true, 'ならす'], [false, 'ならさない']].map(([v, t]) =>
                   <button key={t} onClick={() => setS({ ...s, sound: v })} className={`ml-2 rounded-lg px-3 py-1 border-2 ${s.sound === v ? 'bg-amber-200 border-amber-500' : 'bg-white'}`}>{t}</button>)}</div>
                 <div>かく はんていの きびしさ：{['やさしい', 'ふつう'].map(v =>
                   <button key={v} onClick={() => setS({ ...s, judge: v })} className={`ml-2 rounded-lg px-3 py-1 border-2 ${s.judge === v ? 'bg-amber-200 border-amber-500' : 'bg-white'}`}>{v}</button>)}</div>
+                <div>ぶひんの いろわけ（10画いじょうの字）：{[[true, 'つかう'], [false, 'つかわない']].map(([v, t]) =>
+                  <button key={t} onClick={() => setS({ ...s, parts: v })} className={`ml-2 rounded-lg px-3 py-1 border-2 ${s.parts === v ? 'bg-amber-200 border-amber-500' : 'bg-white'}`}>{t}</button>)}</div>
                 <div>かく れんしゅうの すすめかた：
                   {[['3', 'なぞる → うすい → みほんなし'], ['2', 'うすい → みほんなし'], ['1', 'みほんなし だけ']].map(([v, t]) =>
                     <button key={v} onClick={() => setS({ ...s, flow: v })} className={`ml-2 mt-1 rounded-lg px-3 py-1 border-2 ${s.flow === v ? 'bg-amber-200 border-amber-500' : 'bg-white'}`}>{t}</button>)}</div>
@@ -1611,7 +1799,7 @@
           <div className="kyo text-6xl">{k}</div>
           <table className="text-left">
             <thead><tr><th className="pr-3">だんかい</th><th className="pr-3">回数</th><th>1回目正解</th></tr></thead>
-            <tbody>{KIND_ORDER.map(kd => { const v = t && t[kd]; return <tr key={kd}><td className="pr-3">{KIND_NUM[kd]} {kd}</td><td>{v ? v[0] : 0}</td><td style={{ background: rateColor(v ? v[0] : 0, v ? v[1] : 0) }} className="px-2">{v ? pct(v[0], v[1]) : '－'}</td></tr>; })}</tbody>
+            <tbody>{KIND_ORDER.filter(kd => (kd !== 'おくりがな' && kd !== 'はんたい') || (t && t[kd])).map(kd => { const v = t && t[kd]; return <tr key={kd}><td className="pr-3">{KIND_NUM[kd]} {kd}</td><td>{v ? v[0] : 0}</td><td style={{ background: rateColor(v ? v[0] : 0, v ? v[1] : 0) }} className="px-2">{v ? pct(v[0], v[1]) : '－'}</td></tr>; })}</tbody>
           </table>
           <div>
             <div className="font-bold">よく選んだ まちがい</div>
@@ -1662,6 +1850,7 @@
         setSettings(v);
         Speech.rate = Number(v.rate) || 0.8; Speech.pitch = Number(v.pitch) || 1.1;
         Sound.on = v.sound !== false && v.sound !== 'false'; setSoundOn(Sound.on);
+        PARTS_ON = v.parts !== false && v.parts !== 'false';
         document.documentElement.style.fontSize = `${16 * (Number(v.font) || 1)}px`;
       };
 
@@ -1800,7 +1989,8 @@
         body = <div className="min-h-screen flex flex-col">{bar(false)}
           <HomeScreen name={name} progress={progress} onStudy={() => setView({ v: 'map' })}
             onContinue={() => { const st = currentStage(progress); startStep(st, nextStep(progress, st)); }}
-            onShop={() => setView({ v: 'shop' })} onZukan={() => setView({ v: 'zukan' })} /></div>;
+            onShop={() => setView({ v: 'shop' })} onZukan={() => setView({ v: 'zukan' })}
+            onWelcome={() => { Sound.buy(); persist({ ...progRef.current, welcome: 1 }, []); }} /></div>;
       } else if (view.v === 'map') {
         body = <div className="min-h-screen flex flex-col items-center">{bar()}<StageMap progress={progress} onStage={(st) => setView({ v: 'stage', st })} /></div>;
       } else if (view.v === 'stage') {
@@ -1829,9 +2019,10 @@
       );
     }
 
-    window.KANJI1_READY.then(() => {
+    window.KANJI3_READY.then(() => {
       const D = window.KANJI_DATA;
-      KANJI = D.KANJI; STAGES = D.STAGES; HATTEN = D.HATTEN; PIC = new Set(D.PIC); STROKES = window.KANJI_STROKES;
+      KANJI = D.KANJI; STAGES = D.STAGES; HATTEN = D.HATTEN; PIC = new Set(D.PIC); PREV = D.PREV || {}; BU = D.BU || {};
+      STROKES = window.KANJI_STROKES; PARTS = window.KANJI_PARTS || {};
       ALL_STAGES = [...STAGES, ...HATTEN];
       ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     }).catch(e => {

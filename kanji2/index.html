@@ -65,7 +65,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext } = React;
-    const APP_VERSION = '1.0.0';
+    const APP_VERSION = '1.0.1';
     const BASE = window.KANJI2_BASE;
     const IMG = BASE + 'img/';
 
@@ -859,6 +859,8 @@
     function Writer({ ch, mode, tol, onDone, small = false, autoDemo }) {
       const ponta = usePonta();
       const paths = STROKES[ch] || [];
+      // 画数の 多い字は、お手本の 線を 細く する（線が かさなって 形が 見えなく ならないように）
+      const sw = paths.length >= 13 ? 0.6 : paths.length >= 10 ? 0.78 : 1;
       const parts = useMemo(() => partsOf(ch), [ch]);
       // なぞる ときは、部品ごとに 色を つける
       const tint = (i, base) => { const pi = partOfStroke(parts, i); return pi >= 0 ? parts[pi].color.light : base; };
@@ -990,11 +992,11 @@
               <line x1={VB / 2} y1="4" x2={VB / 2} y2={VB - 4} stroke="#e7d7c1" strokeWidth="0.7" strokeDasharray="3 3" />
               <line x1="4" y1={VB / 2} x2={VB - 4} y2={VB / 2} stroke="#e7d7c1" strokeWidth="0.7" strokeDasharray="3 3" />
               {paths.map((d, i) => <path key={`m${ch}-${i}`} ref={el => pathRefs.current[i] = el} d={d} fill="none" stroke="none" />)}
-              {m === 'trace' && paths.map((d, i) => <path key={`b${i}`} d={d} fill="none" stroke={tint(i, '#e7e1d8')} strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />)}
-              {m === 'ghost' && paths.map((d, i) => <path key={`g${i}`} d={d} fill="none" stroke="#f1ece4" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" />)}
-              {phase === 'draw' && !done && showCurGhost && paths[si] && <path d={paths[si]} fill="none" stroke={m === 'trace' ? '#fde68a' : '#fef3c7'} strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />}
+              {m === 'trace' && paths.map((d, i) => <path key={`b${i}`} d={d} fill="none" stroke={tint(i, '#e7e1d8')} strokeWidth={9 * sw} strokeLinecap="round" strokeLinejoin="round" />)}
+              {m === 'ghost' && paths.map((d, i) => <path key={`g${i}`} d={d} fill="none" stroke="#f1ece4" strokeWidth={8 * sw} strokeLinecap="round" strokeLinejoin="round" />)}
+              {phase === 'draw' && !done && showCurGhost && paths[si] && <path d={paths[si]} fill="none" stroke={m === 'trace' ? '#fde68a' : '#fef3c7'} strokeWidth={9 * sw} strokeLinecap="round" strokeLinejoin="round" />}
               {phase === 'demo' && geo && paths.map((d, i) => i > demoIdx ? null : (
-                <path key={`d${i}`} d={d} fill="none" stroke={parts ? dark(i, '#0284c7') : '#0284c7'} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round"
+                <path key={`d${i}`} d={d} fill="none" stroke={parts ? dark(i, '#0284c7') : '#0284c7'} strokeWidth={6 * sw} strokeLinecap="round" strokeLinejoin="round"
                   className={i === demoIdx ? 'draw-stroke' : ''}
                   style={i === demoIdx ? { strokeDasharray: geo[i].len, strokeDashoffset: geo[i].len, '--dur': `${Math.max(550, geo[i].len * 11)}ms` } : undefined} />
               ))}
@@ -1002,7 +1004,7 @@
                 <path key={`h${hintKey}`} d={paths[si]} fill="none" stroke="#fb923c" strokeWidth="4" strokeLinecap="round" opacity=".85"
                   className="draw-stroke" style={{ strokeDasharray: g.len, strokeDashoffset: g.len, '--dur': `${Math.max(600, g.len * 12)}ms` }} />
               )}
-              {phase === 'draw' && paths.map((d, i) => i < si ? <path key={`k${i}`} d={d} fill="none" stroke={m === 'trace' ? dark(i, '#3f2d1d') : '#3f2d1d'} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" /> : null)}
+              {phase === 'draw' && paths.map((d, i) => i < si ? <path key={`k${i}`} d={d} fill="none" stroke={m === 'trace' ? dark(i, '#3f2d1d') : '#3f2d1d'} strokeWidth={6 * sw} strokeLinecap="round" strokeLinejoin="round" /> : null)}
               {showDot && g && (
                 <g>
                   <circle cx={g.pts[0].x} cy={g.pts[0].y} r="5.5" fill="#22c55e" stroke="#fff" strokeWidth="1.2" />
