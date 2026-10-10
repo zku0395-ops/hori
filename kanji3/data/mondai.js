@@ -1369,7 +1369,7 @@
   ];
 
   // なりたちの絵がある漢字（img/n/<コード>.webp）
-  const PIC = '';
+  const PIC = '皿豆歯鼻指羊島橋駅';
 
   window.KANJI_DATA = { KANJI, STAGES, HATTEN, PIC: [...PIC], PREV, BU };
 })();
