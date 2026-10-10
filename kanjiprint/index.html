@@ -78,6 +78,7 @@
     .q ruby rt { font-family: 'BIZ UDPGothic', sans-serif; font-weight: 400; }
     .rb { position: relative; }
     .rt2 { position: absolute; left: 100%; top: 50%; transform: translateY(-50%); writing-mode: vertical-rl; white-space: nowrap; line-height: 1; font-family: 'BIZ UDPGothic', sans-serif; font-weight: 400; }
+    .rt2.l { left: auto; right: 100%; }
     .tg { border-left: .8mm solid #e11d48; position: relative; display: inline-block; }
     .tg .ansbox { position: absolute; top: 0; }
     .kb { position: relative; display: inline-block; }
@@ -113,6 +114,7 @@
     <div class="note">印刷の画面では「用紙サイズ：A4」「レイアウト：横」「余白：なし」「倍率：100%」にしてください。</div>
     <div class="row dl" id="dl"></div>
   </div>
+  <div id="mm" style="position:absolute;width:10mm;height:0;visibility:hidden"></div>
   <div id="sheets"></div>
 
   <script src="../kanji1/data/mondai.js"></script>
@@ -207,17 +209,23 @@
       const re = /\[(.+?)\]|\{(.+?)\|(.+?)\}/g;
       let last = 0, m;
       const rt = (t) => `<rt style="font-size:${(fs * 0.42).toFixed(2)}mm">${esc(t)}</rt>`;
-      // よみの わくが のびて いる ところ（mm）。そこに ふりがなの ある 字が くるときは、わくの したまで 字を さげる
+      // よみの わくが のびて いる ところ（mm）。そこに ふりがなの ある 字が くるときは、わくの したまで 字を さげる。
+      // ただし おなじ ことばの 中（「竹林」「女の子」など）は、字を さげると ことばが 2つに わかれて 見えるので、ふりがなを 字の ひだりに 出す
       let reach = 0, tail = 0; // tail：まえの 字の ふりがなが したに はみ出して いる ながさ（mm）
       const pass = (t) => { for (const c of t) { const d = c === ' ' ? fs * .2 : fs; reach -= d; tail -= d; } };
-      while ((m = re.exec(ex.s))) {
-        const before = ex.s.slice(last, m.index);
+      const toks = [];
+      while ((m = re.exec(ex.s))) { toks.push({ before: ex.s.slice(last, m.index), m }); last = re.lastIndex; }
+      toks.forEach(({ before, m }, i) => {
         out.push(esc(before)); pass(before);
         if (m[2]) {
-          if (reach > 0) { out.push(`<span style="display:inline-block;height:${(reach + 1).toFixed(2)}mm"></span>`); reach = 0; }
-          // ふりがなは 行の 幅を ふやさないよう、字の みぎに 重ねて おく（ruby だと 字が 左に ずれて、となりの 列の わくに ちかづく）
-          out.push(`<span class="rb">${esc(m[2])}<span class="rt2" style="font-size:${(fs * 0.42).toFixed(2)}mm">${esc(m[3])}</span></span>`); pass(m[2]);
-          tail = Math.max(0, ([...m[3]].length * fs * 0.42 - fs * [...m[2]].length) / 2);
+          // つぎが すぐ よみの 問題の 字で、ふりがなが その わくに かかるときも ひだりに 出す（「十円」「森林」など）
+          const nx = toks[i + 1], over = ([...m[3]].length * fs * 0.42 - fs * [...m[2]].length) / 2;
+          const word = (t) => !/[ 　、。]/.test(t);
+          const left = mode === 'yomi' && ((reach > 0 && word(before)) || (over > 0 && nx && !nx.m[2] && nx.before === ''));
+          if (reach > 0 && !left) { out.push(`<span style="display:inline-block;height:${(reach + 1).toFixed(2)}mm"></span>`); reach = 0; }
+          // ふりがなは 行の 幅を ふやさないよう、字の よこに 重ねて おく（ruby だと 字が 左に ずれて、となりの 列の わくに ちかづく）
+          out.push(`<span class="rb">${esc(m[2])}<span class="rt2${left ? ' l' : ''}" style="font-size:${(fs * 0.42).toFixed(2)}mm">${esc(m[3])}</span></span>`); pass(m[2]);
+          tail = left ? 0 : Math.max(0, over);
         }
         else if (mode === 'yomi') {
           // 字の みぎに、よみを 書く わく
@@ -232,8 +240,7 @@
           const b = B.kb || fs * 1.75, n = [...m[1]].length;
           out.push(`<span class="kb" style="margin:${(fs * .15).toFixed(2)}mm 0"><span class="kbox" style="width:${b.toFixed(2)}mm;height:${(b * n).toFixed(2)}mm"></span><span class="yo" style="left:calc(100% + .5mm);font-size:${(fs * .42).toFixed(2)}mm;line-height:1">${esc(ex.y)}</span></span>`);
         } else out.push(`<ruby class="ans-red">${esc(m[1])}${rt(ex.y)}</ruby>`);
-        last = re.lastIndex;
-      }
+      });
       out.push(esc(ex.s.slice(last)));
       return out.join('');
     }
@@ -241,7 +248,9 @@
     const question = (no, ex, mode, fs, width, B = {}) => {
       // 字の みぎに わく（よみ）や よみがな（かく）が 出るので、その ぶん あける
       const pad = mode === 'yomi' ? (B.yb || fs * 1.1) + 1.2 : fs * .45 + .8;
-      return `<div class="q kyo" style="font-size:${fs}mm;width:${width}mm"><span class="no">${no}</span><div class="s" style="margin-right:${pad.toFixed(2)}mm">${sentence(ex, mode, fs, B)}</div></div>`;
+      const html = sentence(ex, mode, fs, B);
+      // ふりがなを 字の ひだりに 出した 文は、あとで（fit） 列を ひろげる
+      return `<div class="q kyo${html.includes('rt2 l') ? ' hasl' : ''}" style="font-size:${fs}mm;width:${width.toFixed(2)}mm"><span class="no">${no}</span><div class="s" style="margin-right:${pad.toFixed(2)}mm">${html}</div></div>`;
     };
     // 「よみを かこう」「かんじを かこう」の まとまり（見出しは 上に よこ書き）
     const group = (title, color, cols) => `<div class="grp"><div class="ghead" style="background:${color}">${title}</div><div class="gcols">${cols}</div></div>`;
@@ -410,10 +419,43 @@
       document.getElementById('sheets').innerHTML = list.map(stageSheets).join('');
     }
     sel.value = params.get('stage') || 's1';
-    sel.onchange = () => render(sel.value);
     render(sel.value);
     if (params.get('print')) document.getElementById('panel').style.display = 'none';
-    (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => { document.body.dataset.ready = '1'; });
+    // ひだりに 出した ふりがなが、ひだりどなりの 列の わくに かからないよう、その 列だけ ひろげる。
+    // ひろげて 半分の わくから はみ出すときは、「よみ」と「かんじ」の まとまりの あいだを つめる
+    function fit() {
+      const mm = document.getElementById('mm').getBoundingClientRect().width / 10;
+      document.querySelectorAll('.qs').forEach(qs => {
+        const cols = [...qs.querySelectorAll('.q')];
+        // あいだを つめると となりの 列が ちかづくので、なんどか くりかえす
+        for (let t = 0; t < 6; t++) {
+        cols.forEach(q => {
+          if (!q.classList.contains('hasl')) return;
+          const qr = q.getBoundingClientRect();
+          const nb = cols.filter(o => o.getBoundingClientRect().right <= qr.left + 1).sort((a, b) => b.getBoundingClientRect().right - a.getBoundingClientRect().right)[0];
+          if (!nb) return;
+          let need = 0;
+          q.querySelectorAll('.rt2.l').forEach(rt => {
+            const r = rt.getBoundingClientRect();
+            nb.querySelectorAll('.ansbox, .kbox, .yo, .rt2').forEach(x => {
+              const xr = x.getBoundingClientRect();
+              if (xr.top < r.bottom + .3 * mm && r.top < xr.bottom + .3 * mm) need = Math.max(need, xr.right + .6 * mm - r.left);
+            });
+          });
+          if (need > 0) q.style.width = (qr.width + need) / mm + 'mm';
+        });
+        const half = qs.closest('.half').getBoundingClientRect();
+        const left = Math.min(...cols.map(q => q.getBoundingClientRect().left));
+        if (left < half.left - .1) qs.style.gap = Math.max(.8, parseFloat(getComputedStyle(qs).columnGap) / mm - (half.left - left) / mm) + 'mm';
+        }
+        // それでも はみ出す ときは、まん中の 線の ほうへ すこし（はみ出しの 半分、1mm まで） ずらす
+        const half = qs.closest('.half').getBoundingClientRect();
+        const over = (half.left - Math.min(...cols.map(q => q.getBoundingClientRect().left))) / mm;
+        if (over > .1 && qs.closest('.half.l')) qs.style.right = -Math.min(1, over / 2) + 'mm';
+      });
+    }
+    sel.onchange = () => { render(sel.value); fit(); };
+    (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => { fit(); document.body.dataset.ready = '1'; });
   </script>
 </body>
 </html>
