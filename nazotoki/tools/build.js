@@ -104,6 +104,10 @@ function buildData() {
   return { lv1, lv2 };
 }
 
+// ほかの 道具（プリントを 作る nazotokiprint/tools など）からも 使えるように する
+module.exports = { buildData, choicesFor, check, errors, asks, KEYS, DEFAULT_Q, plain, yomi, ruby };
+if (require.main !== module) return;
+
 check(L1, 1);
 check(L2, 2);
 if (errors.length) { console.error(errors.join('\n')); process.exit(1); }
@@ -208,4 +212,3 @@ if (process.argv.includes('--app')) {
   console.log('index.html の 問題データを 書きかえました');
 }
 
-module.exports = { buildData };
