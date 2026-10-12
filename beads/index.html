@@ -800,14 +800,25 @@
       return { W: cols * S.pinsX, H: rows * S.pinsY, cols, rows };
     }
     // どこに おけるか（かざりの 数と わく）を しらべる
+    // わくで かこむ 形（box：長方形、boxsq：正方形）
+    const isBox = (kid) => kid.shape === 'box' || kid.shape === 'boxsq';
+    // なまえの まわりに 1マス あけて わくを つける（なかは あとで うめる）
+    function boxify(B, square) {
+      let w = B.w + 4, h = B.h + 4;
+      if (square) w = h = Math.max(w, h);
+      const ox = Math.floor((w - B.w) / 2), oy = Math.floor((h - B.h) / 2);
+      return { w, h, box: true, px: B.px.map(([x, y, id]) => [x + ox, y + oy, id]), items: B.items.map(it => ({ ...it, x: it.x + ox, y: it.y + oy })) };
+    }
     function fitInfo(kid, S, decos, frame) {
       const { W, H } = boardSize(kid, S);
-      const m = frame ? 2 : 1;
+      const box = isBox(kid);
+      const m = box ? 0 : frame ? 2 : 1;
       const d1 = decos[0] ? DECOS[decos[0]] : null, d2 = decos[1] ? DECOS[decos[1]] : null;
       const cands = sizeCands(kid.lines, kid.size);
       for (let i = 0; i < cands.length; i++) {
-        const B = textBlock(kid, cands[i]);
-        if (!B.w) continue;
+        const T = textBlock(kid, cands[i]);
+        if (!T.w) continue;
+        const B = box ? boxify(T, kid.shape === 'boxsq') : T;
         const a = arrange(B, d1, d2, W - 2 * m, H - 2 * m);
         if (a) return { sz: cands[i], B, a, idx: i };
       }
@@ -827,7 +838,8 @@
       const cells = new Array(W * H).fill(null), roles = new Array(W * H).fill(null);
       const res = { W, H, cols, rows, cells, roles, ok: true, items: [], shrunk: false, sz: null, frame: false, decos: [null, null] };
       let decos = [...(D.decos || [null, null])];
-      let frame = !!D.frame;
+      const box = isBox(kid);
+      let frame = !!D.frame && !box;
       let fi = fitInfo(kid, S, decos, frame);
       // はいらない ときは、わく → かざり の じゅんに はずす
       if (!fi && frame) { frame = false; fi = fitInfo(kid, S, decos, frame); }
@@ -838,14 +850,15 @@
         // なまえが プレートに はいらない：いちばん 小さい もじで まんなかに おく（はみだす ぶんは きれる）
         res.ok = false;
         const sz = cands[cands.length - 1];
-        const B = textBlock(kid, sz);
+        const T = textBlock(kid, sz);
+        const B = box ? boxify(T, kid.shape === 'boxsq') : T;
         fi = { sz, B, a: { w: B.w, h: B.h, B: [0, 0], kind: 'N' }, idx: cands.length - 1 };
       }
       res.frame = frame; res.decos = decos;
       const plain = fitInfo(kid, S, [null, null], false);
       res.shrunk = !!(plain && fi && fi.idx > plain.idx);
       res.sz = fi.sz;
-      const m = frame ? 2 : 1;
+      const m = box ? 0 : frame ? 2 : 1;
       const pw = fi.a.w + 2 * m, ph = fi.a.h + 2 * m;
       const px0 = Math.floor((W - pw) / 2), py0 = Math.floor((H - ph) / 2);
       const cx = px0 + m, cy = py0 + m;
@@ -864,6 +877,21 @@
         const dd = DECOS[id]; const [dx, dy] = fi.a[k];
         dd.px.forEach((row, r) => [...row].forEach((ch, c) => { if (ch !== '.') put(cx + dx + c, cy + dy + r, nearestKey(DCOL[ch], S, enabled), 'deco'); }));
       });
+      const bgKey0 = D.outline || defaultOutline(kid, S);
+      const fk = D.frameColor || colorOf('h0');
+      if (box) {
+        // わくで かこんで、なかを うめる
+        const x0 = cx + bx, y0 = cy + by, bw = fi.B.w, bh = fi.B.h;
+        for (let y = y0; y < y0 + bh; y++) for (let x = x0; x < x0 + bw; x++) {
+          if (x < 0 || y < 0 || x >= W || y >= H) continue;
+          const edge = x === x0 || y === y0 || x === x0 + bw - 1 || y === y0 + bh - 1;
+          if (edge) put(x, y, fk, 'frame');
+          else if (cells[y * W + x] == null) put(x, y, bgKey0, 'outline');
+        }
+        res.box = true;
+        connectAll(cells, roles, W, H, res.rect, fk);
+        return res;
+      }
       // まわり
       const inner = { x: px0 + (frame ? 1 : 0), y: py0 + (frame ? 1 : 0), w: pw - (frame ? 2 : 0), h: ph - (frame ? 2 : 0) };
       const bgKey = D.outline || defaultOutline(kid, S);
@@ -880,7 +908,6 @@
         if (near) put(x, y, bgKey, 'outline');
       }
       if (frame) {
-        const fk = D.frameColor || colorOf('h0');
         for (let x = px0; x < px0 + pw; x++) { put(x, py0, fk, 'frame'); put(x, py0 + ph - 1, fk, 'frame'); }
         for (let y = py0; y < py0 + ph; y++) { put(px0, y, fk, 'frame'); put(px0 + pw - 1, y, fk, 'frame'); }
       }
@@ -1598,11 +1625,11 @@
           </>
         );
       } else if (step === 3) {
-        const fill = kid.shape === 'fill';
-        talk = msg || (fill ? 'うしろを うめる ビーズの いろを えらんでね。' : 'もじの まわりを かこむ ビーズの いろを えらんでね。');
+        const fill = kid.shape === 'fill', boxed = isBox(kid);
+        talk = msg || (boxed ? 'わくの なかを うめる ビーズの いろを えらんでね。' : fill ? 'うしろを うめる ビーズの いろを えらんでね。' : 'もじの まわりを かこむ ビーズの いろを えらんでね。');
         body = (
           <>
-            <div className="bold" style={{ fontSize: '1.2rem', color: '#6d28d9' }}>{fill ? 'うしろの いろ' : 'まわりの いろ（ふちどり）'}</div>
+            <div className="bold" style={{ fontSize: '1.2rem', color: '#6d28d9' }}>{boxed ? 'わくの なかの いろ' : fill ? 'うしろの いろ' : 'まわりの いろ（ふちどり）'}</div>
             <Palette S={S} value={outline} ng={used} onPick={(k) => {
               if (used.has(k)) { sfx('ng'); const m = 'もじと おなじ いろだと、もじが よめなく なるよ。ほかの いろに しよう。'; setMsg(m); if (m === msg) TTS.speak(m); return; }
               sfx('put'); TTS.speak(colorName(k)); setMsg(''); setD({ outline: k });
@@ -1613,7 +1640,7 @@
         const n = slotCount(kid, S, false);
         const nf = slotCount(kid, S, true);
         const frameOk = !!fitInfo(kid, S, D.decos, true);
-        talk = msg || (n === 0 ? 'この プレートには かざりが はいらないよ。わくを つけるか、そのまま つぎへ すすもう。' : n === 1 ? 'かざりを 1つ えらべるよ。' : 'かざりを 2つまで えらべるよ。おきたい ばしょを おしてから えらんでね。');
+        talk = msg || (n === 0 ? (isBox(kid) ? 'この プレートには かざりが はいらないよ。わくの いろを えらんでね。' : 'この プレートには かざりが はいらないよ。わくを つけるか、そのまま つぎへ すすもう。') : n === 1 ? 'かざりを 1つ えらべるよ。' : 'かざりを 2つまで えらべるよ。おきたい ばしょを おしてから えらんでね。') + (isBox(kid) && n > 0 && !msg ? ' わくの いろも えらべるよ。' : '');
         const curSlot = Math.min(slot, Math.max(0, n - 1));
         const pick = (id) => {
           if (!n) return;
@@ -1651,12 +1678,19 @@
                 </div>
               </div>
             ))}
+            {isBox(kid) ? (
+              <>
+                <div className="dgroup">わくの いろ</div>
+                <Palette S={S} small value={D.frameColor || [...used][0]} onPick={(k) => { sfx('put'); TTS.speak(colorName(k)); setD({ frameColor: k }); setMsg(k === outline ? 'なかと おなじ いろだと、わくが みえなく なるよ。' : ''); }} />
+              </>
+            ) : (<>
             <div className="dgroup">わく</div>
             <div className="row wrapflex">
               <Btn color={D.frame ? 'green' : 'white'} size="md" disabled={!D.frame && !frameOk} onClick={() => { const on = !D.frame; setD({ frame: on }); sfx('put'); TTS.speak(on ? 'わくを つけたよ' : 'わくを はずしたよ'); }} data-t="frame">{D.frame ? '✓ わく あり' : 'わく なし'}</Btn>
               {!D.frame && !frameOk && <span className="muted small">{nf === 0 && n === 0 ? 'この プレートには わくが はいりません' : 'かざりを へらすと わくが つけられるよ'}</span>}
             </div>
             {D.frame && <Palette S={S} small value={D.frameColor || [...used][0]} onPick={(k) => { sfx('put'); TTS.speak(colorName(k)); setD({ frameColor: k }); }} />}
+            </>)}
           </>
         );
       } else {
@@ -1726,7 +1760,7 @@
               <label className="field">文字<select value={kid.lines} onChange={e => set({ lines: e.target.value })}><option value="hira">かなだけ</option><option value="roma">ローマ字だけ</option><option value="both">2段（かな＋ローマ字）</option></select></label>
               <label className="field">かな<select value={kid.kana || 'hira'} onChange={e => set({ kana: e.target.value })}><option value="hira">ひらがな</option><option value="kata">カタカナ</option></select></label>
               <label className="field">文字の大きさ<select value={kid.size} onChange={e => set({ size: e.target.value })}><option value="auto">自動</option><option value="big">大（16マス）</option><option value="mid">中（8マス）</option><option value="small">小（6マス）</option></select></label>
-              <label className="field">形<select value={kid.shape} onChange={e => set({ shape: e.target.value })}><option value="outline">ふちどり</option><option value="fill">背景をうめる</option></select></label>
+              <label className="field">形<select value={kid.shape} onChange={e => set({ shape: e.target.value })}><option value="outline">ふちどり</option><option value="fill">背景をうめる</option><option value="box">わくでかこむ（長方形）</option><option value="boxsq">わくでかこむ（正方形）</option></select></label>
               <label className="field">プレート（よこ×たて）<select value={kid.plateCols ? `${kid.plateCols}x${kid.plateRows}` : ''} onChange={e => { const v = e.target.value; if (!v) set({ plateCols: null, plateRows: null }); else { const [c, r] = v.split('x').map(Number); set({ plateCols: c, plateRows: r }); } }}>
                 <option value="">ふだんの設定（{S.plateCols}×{S.plateRows}まい）</option>
                 {['1x1', '2x1', '3x1', '1x2', '2x2', '3x2'].map(v => <option key={v} value={v}>{v.replace('x', '×')}まい</option>)}
@@ -1862,7 +1896,7 @@
                 <label className="field">文字<select value={S.lines} onChange={e => setS({ lines: e.target.value })}><option value="hira">かなだけ</option><option value="roma">ローマ字だけ</option><option value="both">2段</option></select></label>
                 <label className="field">かな<select value={S.kana || 'hira'} onChange={e => setS({ kana: e.target.value })}><option value="hira">ひらがな</option><option value="kata">カタカナ</option></select></label>
                 <label className="field">文字の大きさ<select value={S.size} onChange={e => setS({ size: e.target.value })}><option value="auto">自動</option><option value="big">大</option><option value="mid">中</option><option value="small">小</option></select></label>
-                <label className="field">形<select value={S.shape} onChange={e => setS({ shape: e.target.value })}><option value="outline">ふちどり</option><option value="fill">背景をうめる</option></select></label>
+                <label className="field">形<select value={S.shape} onChange={e => setS({ shape: e.target.value })}><option value="outline">ふちどり</option><option value="fill">背景をうめる</option><option value="box">わくでかこむ（長方形）</option><option value="boxsq">わくでかこむ（正方形）</option></select></label>
                 <label className="field">ローマ字の形<select value={S.caseMode} onChange={e => setS({ caseMode: e.target.value })}><option value="upper">大文字</option><option value="cap">はじめだけ大文字</option></select></label>
               </div>
               <div className="bold" style={{ marginTop: '.6rem' }}>暗証番号の変更</div>
