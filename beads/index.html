@@ -1,0 +1,1787 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ニジーせんせいの ビーズ こうぼう</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+  <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+  <style>
+    :root {
+      --bg: #f5f3ff; --ink: #1e293b; --sub: #64748b; --line: #e2e8f0;
+      --leaf: #16a34a; --leaf-l: #bbf7d0; --cream: #fffdf6;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body { font-family: 'BIZ UDPGothic', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--ink); -webkit-tap-highlight-color: transparent; }
+    button { font-family: inherit; touch-action: manipulation; cursor: pointer; }
+    input, select { font-family: inherit; font-size: 1rem; }
+    .loading { display: flex; align-items: center; justify-content: center; min-height: 100vh; font-size: 28px; color: #16a34a; }
+    .emoji { font-family: 'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif; line-height: 1; }
+
+    /* 立体ボタン */
+    .btn3d { word-break: keep-all; border: 0; border-bottom: 6px solid rgba(0,0,0,.28); border-radius: 1.1rem; font-weight: 700; transition: transform .08s, border-bottom-width .08s, filter .15s; display: inline-flex; align-items: center; justify-content: center; gap: .4em; user-select: none; line-height: 1.25; }
+    .btn3d:active:not(:disabled) { transform: translateY(3px); border-bottom-width: 3px; }
+    .btn3d:disabled { opacity: .4; cursor: not-allowed; }
+    .btn3d:hover:not(:disabled) { filter: brightness(1.05); }
+    .c-sky { background: #0ea5e9; color: #fff; border-bottom-color: #0369a1; }
+    .c-red { background: #f43f5e; color: #fff; border-bottom-color: #be123c; }
+    .c-green { background: #16a34a; color: #fff; border-bottom-color: #166534; }
+    .c-amber { background: #fbbf24; color: #451a03; border-bottom-color: #d97706; }
+    .c-violet { background: #8b5cf6; color: #fff; border-bottom-color: #6d28d9; }
+    .c-slate { background: #475569; color: #fff; border-bottom-color: #1e293b; }
+    .c-white { background: #fff; color: #334155; border: 2px solid #cbd5e1; border-bottom: 6px solid #cbd5e1; }
+    .c-orange { background: #f97316; color: #fff; border-bottom-color: #c2410c; }
+    .s-sm { padding: .45rem .8rem; font-size: 1rem; }
+    .s-md { padding: .7rem 1.2rem; font-size: 1.25rem; }
+    .s-lg { padding: .9rem 1.5rem; font-size: 1.6rem; }
+    .s-xl { padding: 1.1rem 2rem; font-size: 2rem; }
+
+    /* レイアウト */
+    .wrap { max-width: 1200px; margin: 0 auto; padding: .75rem; }
+    .row { display: flex; align-items: center; gap: .6rem; }
+    .col { display: flex; flex-direction: column; gap: .6rem; }
+    .wrapflex { flex-wrap: wrap; }
+    .grow { flex: 1 1 auto; min-width: 0; }
+    .center { justify-content: center; }
+    .between { justify-content: space-between; }
+    .card { background: #fff; border-radius: 1.4rem; border: 4px solid #ddd6fe; box-shadow: 0 2px 8px rgba(0,0,0,.05); padding: 1rem; }
+    .muted { color: var(--sub); }
+    .bold { font-weight: 700; }
+    .tc { text-align: center; }
+    .small { font-size: .9rem; }
+
+    /* ヘッダー */
+    .hdr { position: sticky; top: 0; z-index: 30; background: rgba(255,255,255,.96); box-shadow: 0 1px 6px rgba(0,0,0,.08); }
+    .hdr-in { max-width: 1400px; margin: 0 auto; padding: 0 .75rem; display: flex; align-items: center; gap: .5rem; height: 56px; overflow: hidden; }
+    .logo { display: flex; align-items: center; gap: .4rem; font-weight: 900; color: #15803d; font-size: 1.3rem; background: none; border: 0; padding: 0; white-space: nowrap; }
+    .logo .rb { background: linear-gradient(90deg, #ef4444, #f97316, #eab308, #22c55e, #0ea5e9, #6366f1, #a855f7); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .tbtn { font-size: .85rem; color: #94a3b8; border: 1px solid #e2e8f0; border-radius: .6rem; padding: .3rem .55rem; background: #fff; white-space: nowrap; }
+    .kidpill { display: inline-flex; align-items: center; gap: .3rem; background: #f0fdf4; border: 3px solid #86efac; border-radius: 999px; padding: .1rem .8rem; font-weight: 900; font-size: 1.2rem; color: #166534; white-space: nowrap; }
+    @media (max-width: 760px) { .logo .lt { display: none; } }
+    .framebar { background: #fef3c7; border-bottom: 2px solid #fcd34d; padding: .5rem .75rem; text-align: center; font-weight: 700; }
+    .framebar a { margin-left: .5rem; }
+
+    /* ホーム */
+    .home { max-width: 1400px; margin: 0 auto; padding: .6rem .75rem; display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 38%); gap: .8rem; min-height: calc(100vh - 56px); }
+    .home-scene { border-radius: 1.4rem; overflow: hidden; background: #ecfeff; display: flex; align-items: center; justify-content: center; min-height: 0; box-shadow: 0 4px 14px rgba(0,0,0,.12); align-self: start; }
+    .home-scene > svg { width: 100%; height: auto; display: block; }
+    .names { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .7rem; }
+    .namebtn { font-size: 1.9rem; padding: 1rem .5rem; position: relative; flex-direction: column; gap: .1rem; }
+    .namebtn small { font-size: .9rem; font-weight: 700; }
+    @media (max-width: 900px) { .home { grid-template-columns: 1fr; } }
+
+    /* つくる 画面 */
+    .stage { max-width: 1400px; margin: 0 auto; padding: .6rem .75rem; display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 40%); gap: .75rem; height: calc(100vh - 56px); height: calc(100dvh - 56px); }
+    .boardcard { position: relative; background: #fff; border-radius: 1.4rem; border: 4px solid #e9d5ff; box-shadow: 0 2px 8px rgba(0,0,0,.05); overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+    .boardbox { flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; padding: .6rem; }
+    .boardbox svg { width: 100%; height: 100%; display: block; }
+    .panel { display: flex; flex-direction: column; gap: .55rem; min-height: 0; overflow-y: auto; padding-bottom: .5rem; }
+    .steps { display: flex; gap: .3rem; padding: .5rem .7rem .2rem; flex-wrap: wrap; }
+    .step { font-size: .95rem; font-weight: 700; padding: .25rem .6rem; border-radius: 999px; background: #f1f5f9; color: #94a3b8; white-space: nowrap; }
+    .step.now { background: #16a34a; color: #fff; }
+    .step.done { background: #dcfce7; color: #166534; }
+    .navrow { display: flex; gap: .6rem; justify-content: space-between; margin-top: auto; padding-top: .3rem; }
+    @media (max-width: 900px) {
+      .stage { grid-template-columns: 1fr; height: auto; }
+      .boardcard { height: 52vh; }
+    }
+
+    /* ふきだし */
+    .talk { display: flex; align-items: flex-start; gap: .4rem; }
+    .talk .chara { width: 120px; flex-shrink: 0; cursor: pointer; }
+    .bubble { position: relative; flex: 1; background: #fff; border: 4px solid #a7f3d0; border-radius: 1.3rem; padding: .7rem 1rem .6rem; font-size: 1.35rem; line-height: 1.85; font-weight: 700; color: #1e293b; word-break: keep-all; overflow-wrap: anywhere; }
+    .bubble::before { content: ''; position: absolute; left: -16px; top: 26px; border-top: 11px solid transparent; border-bottom: 11px solid transparent; border-right: 15px solid #a7f3d0; }
+    .again { margin-top: .3rem; }
+
+    /* ビーズの いろ ボタン */
+    .palette { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: .55rem .35rem; }
+    .pbtn { background: none; border: 0; padding: 0; display: flex; flex-direction: column; align-items: center; gap: .25rem; font-weight: 700; font-size: .9rem; white-space: nowrap; color: #334155; position: relative; }
+    .bead { width: 3.9rem; height: 3.9rem; border-radius: 50%; position: relative; box-shadow: inset 0 -6px 0 rgba(0,0,0,.18), 0 5px 0 rgba(0,0,0,.22); transition: transform .08s; }
+    .bead::after { content: ''; position: absolute; left: 50%; top: 50%; width: 30%; height: 30%; transform: translate(-50%, -55%); border-radius: 50%; background: rgba(255,255,255,.75); box-shadow: inset 0 2px 2px rgba(0,0,0,.25); }
+    .pbtn:active .bead { transform: translateY(3px); box-shadow: inset 0 -6px 0 rgba(0,0,0,.18), 0 2px 0 rgba(0,0,0,.22); }
+    .pbtn.on .bead { outline: 5px solid #0ea5e9; outline-offset: 3px; }
+    .pbtn.ng { opacity: .35; }
+    .pbtn.ng .bead::before { content: '✕'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: #0f172a; z-index: 2; }
+    .pbtn .chk { position: absolute; top: -6px; right: 2px; background: #0ea5e9; color: #fff; border-radius: 999px; width: 1.6rem; height: 1.6rem; display: flex; align-items: center; justify-content: center; font-size: 1rem; z-index: 3; }
+    .bead.mini { width: 2.6rem; height: 2.6rem; }
+
+    .chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+    .chip { font-size: 1.7rem; min-width: 3.4rem; padding: .35rem .6rem; }
+    .chip.on { outline: 5px solid #0ea5e9; outline-offset: 2px; }
+    .tabs2 { display: flex; gap: .4rem; }
+
+    /* かざり */
+    .decos { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: .45rem; }
+    .dbtn { flex-direction: column; padding: .4rem .2rem .3rem; font-size: .85rem; gap: .2rem; }
+    .dbtn svg { width: 46px; height: 46px; }
+    .dgroup { font-weight: 700; color: #6d28d9; margin: .3rem 0 .1rem; font-size: 1.05rem; }
+    .slots { display: flex; gap: .5rem; }
+    .slot { flex: 1; border: 4px dashed #c4b5fd; border-radius: 1rem; background: #faf5ff; padding: .4rem; display: flex; align-items: center; gap: .4rem; min-height: 72px; font-weight: 700; color: #6d28d9; }
+    .slot.on { border-style: solid; border-color: #0ea5e9; background: #f0f9ff; }
+    .slot svg { width: 52px; height: 52px; }
+    .slot .x { margin-left: auto; }
+
+    /* できあがり */
+    .counts { display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: .4rem; }
+    .cnt { display: flex; align-items: center; gap: .5rem; font-weight: 700; font-size: 1.15rem; background: #f8fafc; border-radius: .9rem; padding: .3rem .5rem; }
+
+    /* 先生用 */
+    .tabs { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .8rem; }
+    .tab { font-size: 1.05rem; }
+    .tab.on { outline: 4px solid #0ea5e9; outline-offset: 2px; }
+    .kidrow { display: grid; grid-template-columns: 140px 1fr; gap: .8rem; padding: .8rem 0; border-top: 2px solid #f1f5f9; }
+    .kidrow:first-child { border-top: 0; }
+    .thumb { width: 140px; height: 90px; border: 2px solid #e2e8f0; border-radius: .6rem; background: #fff; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .thumb svg { width: 100%; height: 100%; }
+    .field { display: flex; flex-direction: column; gap: .2rem; font-size: .9rem; color: #475569; }
+    .field select, .field input[type=text], .field input[type=number] { font-size: 1.05rem; padding: .35rem .5rem; border: 2px solid #cbd5e1; border-radius: .6rem; background: #fff; color: #1e293b; }
+    .fields { display: flex; flex-wrap: wrap; gap: .6rem 1rem; align-items: flex-end; }
+    .warn { color: #b91c1c; font-weight: 700; }
+    .ok { color: #15803d; font-weight: 700; }
+    .colorrow { display: flex; align-items: center; gap: .6rem; padding: .3rem 0; border-top: 1px solid #f1f5f9; }
+    .colorrow .sw { width: 30px; height: 30px; border-radius: 50%; border: 2px solid rgba(0,0,0,.2); flex-shrink: 0; }
+    .check { display: inline-flex; align-items: center; gap: .4rem; font-size: 1.05rem; cursor: pointer; }
+    .check input { width: 22px; height: 22px; }
+    table.simple { border-collapse: collapse; }
+    table.simple td, table.simple th { padding: .3rem .5rem; border-bottom: 1px solid #e2e8f0; text-align: left; }
+
+    /* モーダル */
+    .modal { position: fixed; inset: 0; background: rgba(15,23,42,.45); z-index: 80; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .modal > div { width: 100%; max-height: 100%; overflow: auto; }
+
+    /* 動き */
+    .pop { animation: popup .45s cubic-bezier(.175,.885,.32,1.275) both; }
+    @keyframes popup { 0% { transform: scale(.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+    .shake { animation: shake .4s; }
+    @keyframes shake { 20%, 60% { transform: translateX(-10px); } 40%, 80% { transform: translateX(10px); } }
+    .confetti { position: fixed; top: -60px; z-index: 60; pointer-events: none; animation: fall linear forwards; }
+    @keyframes fall { to { transform: translateY(115vh) rotate(540deg); } }
+    .nijii { display: block; user-select: none; animation: bob 3.2s ease-in-out infinite; transform-origin: 50% 100%; }
+    .nijii.talking { animation: talk .45s ease-in-out infinite; }
+    @keyframes bob { 50% { transform: translateY(-4px); } }
+    @keyframes talk { 50% { transform: translateY(-3px) rotate(-1.5deg); } }
+
+    /* 印刷の 見本 */
+    .pv { min-height: 100vh; background: #cbd5e1; }
+    .pv-bar { position: sticky; top: 0; z-index: 10; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.12); padding: .6rem .8rem; display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+    .pv-note { max-width: 900px; margin: .8rem auto; background: #fffbeb; border: 2px solid #fcd34d; border-radius: 1rem; padding: .6rem 1rem; line-height: 1.7; }
+    .pages { padding: 1rem 0 3rem; }
+    .pg { width: min(96vw, 820px); margin: 0 auto 1.2rem; background: #fff; box-shadow: 0 4px 14px rgba(0,0,0,.2); }
+    .pg.land { width: min(96vw, 1120px); }
+    .pg > svg { width: 100%; height: auto; display: block; }
+
+    @page { size: A4 portrait; margin: 0; }
+    @page port { size: A4 portrait; margin: 0; }
+    @page land { size: A4 landscape; margin: 0; }
+    @media print {
+      html, body { background: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .pv { background: #fff; min-height: 0; }
+      .pv-bar, .pv-note, .noprint { display: none !important; }
+      .pages { padding: 0; }
+      .pg { width: 210mm; height: 297mm; margin: 0; box-shadow: none; break-after: page; page: port; overflow: hidden; }
+      .pg.land { width: 297mm; height: 210mm; page: land; }
+      .pg:last-child { break-after: auto; }
+      .pg > svg { width: 100%; height: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"><div class="loading">よみこみちゅう…</div></div>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useMemo, useRef } = React;
+
+    /* =========================================================
+       ビーズの いろ（パーラービーズ カワダ の 色に あわせた 見本の色）
+       ========================================================= */
+    const BASE_COLORS = [
+      { key: 'w', name: 'しろ', hex: '#f8fafc' },
+      { key: 'k', name: 'くろ', hex: '#1f2937' },
+      { key: 'r', name: 'あか', hex: '#dc2626' },
+      { key: 'p', name: 'ピンク', hex: '#f9a8d4' },
+      { key: 'o', name: 'オレンジ', hex: '#f97316' },
+      { key: 'y', name: 'きいろ', hex: '#facc15' },
+      { key: 'g', name: 'きみどり', hex: '#84cc16' },
+      { key: 'd', name: 'みどり', hex: '#15803d' },
+      { key: 's', name: 'みずいろ', hex: '#7dd3fc' },
+      { key: 'b', name: 'あお', hex: '#2563eb' },
+      { key: 'v', name: 'むらさき', hex: '#7c3aed' },
+      { key: 'c', name: 'ちゃいろ', hex: '#92400e' },
+      { key: 'h', name: 'うすだいだい', hex: '#fcd5b5' },
+    ];
+    // はじめは つかわない いろ（先生用画面で つかえるように できます）
+    const EXTRA_COLORS = [
+      { key: 'gy', name: 'はいいろ', hex: '#9ca3af' },
+      { key: 'nv', name: 'こん', hex: '#1e3a8a' },
+      { key: 'cr', name: 'クリーム', hex: '#fef3c7' },
+      { key: 'dc', name: 'こげちゃ', hex: '#4a2511' },
+    ];
+    const RAINBOW = ['r', 'o', 'y', 'g', 's', 'b', 'v', 'p'];
+
+    /* =========================================================
+       ビーズの もじ（ひらがな 7×7、ローマじ 5×7）。# が ビーズ
+       ========================================================= */
+    const HIRA = {
+      'あ': ['..#....', '######.', '..#..#.', '.####.#', '#.#...#', '#.#..#.', '.#..#..'],
+      'い': ['.......', '#......', '#....#.', '#.....#', '#.....#', '#..#...', '.##....'],
+      'う': ['..###..', '.......', '.####..', '#....#.', '.....#.', '....#..', '.##....'],
+      'え': ['..##...', '.......', '.#####.', '....#..', '...#...', '..#.#..', '.#...##'],
+      'お': ['.#...#.', '####..#', '.#.....', '.#.###.', '.##...#', '##....#', '.#..##.'],
+      'か': ['.#.....', '.#...#.', '#####.#', '.#..#.#', '.#..#..', '#...#..', '#..#...'],
+      'き': ['..#....', '######.', '...#...', '######.', '.....#.', '.#.....', '..####.'],
+      'く': ['....#..', '...#...', '..#....', '.#.....', '..#....', '...#...', '....#..'],
+      'け': ['#...#..', '#.#####', '#...#..', '#...#..', '##..#..', '#...#..', '...#...'],
+      'こ': ['.......', '.#####.', '......#', '.......', '.......', '#......', '.######'],
+      'さ': ['..#....', '######.', '...#...', '....#..', '.####..', '#......', '.####..'],
+      'し': ['.#.....', '.#.....', '.#.....', '.#.....', '.#....#', '.#...#.', '..###..'],
+      'す': ['...#...', '#######', '..##...', '.#.#...', '..##...', '...#...', '..#....'],
+      'せ': ['....#..', '.#..#..', '#######', '.#..#..', '.#.##..', '.#.....', '..####.'],
+      'そ': ['.####..', '...#...', '..#....', '#######', '...#...', '...#...', '....##.'],
+      'た': ['.#.....', '####...', '.#..###', '.#.....', '#......', '#..#...', '....###'],
+      'ち': ['.#.....', '######.', '.#.....', '#.###..', '##...#.', '.....#.', '..##...'],
+      'つ': ['.......', '.......', '.#####.', '#.....#', '......#', '.....#.', '.###...'],
+      'て': ['.......', '#######', '....#..', '...#...', '..#....', '..#....', '...###.'],
+      'と': ['.#.....', '..#....', '..#..#.', '..###..', '.#.....', '#......', '.#####.'],
+      'な': ['.#.....', '####.#.', '.#....#', '#...#..', '#..##..', '..#.#.#', '...###.'],
+      'に': ['#.####.', '#......', '#......', '#......', '##.....', '#..#...', '#...###'],
+      'ぬ': ['.#.....', '.#.###.', '#.#...#', '#.#...#', '#..#.##', '#.#.#.#', '.#...##'],
+      'ね': ['.#.....', '.#.###.', '####..#', '.##...#', '.#...##', '##..#.#', '.#...##'],
+      'の': ['.......', '..####.', '.#.#..#', '#..#..#', '#.#...#', '#.#..#.', '.#..#..'],
+      'は': ['#...#..', '#.#####', '#...#..', '#...#..', '#.###..', '##..#.#', '#..###.'],
+      'ひ': ['##...#.', '.#...##', '#.....#', '#.....#', '#.....#', '.#...#.', '..###..'],
+      'ふ': ['...#...', '....#..', '...#...', '...#...', '#...#.#', '#...#.#', '.###...'],
+      'へ': ['.......', '.......', '..#....', '.#.#...', '#...#..', '.....#.', '......#'],
+      'ほ': ['#.#####', '#...#..', '#.#####', '#...#..', '#.###..', '##..#.#', '#..###.'],
+      'ま': ['...#...', '#######', '...#...', '#######', '...#...', '.###...', '#..####'],
+      'み': ['####...', '..#....', '.#...#.', '.##..#.', '#.#####', '##...#.', '....#..'],
+      'む': ['..#....', '#####..', '..#..#.', '.##...#', '#.#....', '.##...#', '..####.'],
+      'め': ['.#...#.', '..#.#..', '.#####.', '#.#...#', '#..#..#', '#...##.', '.###...'],
+      'も': ['..#....', '#####..', '..#....', '#####..', '..#..#.', '..#...#', '...###.'],
+      'や': ['.#.....', '.#..##.', '####..#', '.#....#', '..#..#.', '..#....', '...#...'],
+      'ゆ': ['...#...', '#.####.', '#.#.#.#', '#.#.#.#', '.#.###.', '...#...', '..#....'],
+      'よ': ['...#...', '...###.', '...#...', '...#...', '.####..', '#..#.#.', '.##...#'],
+      'ら': ['..##...', '.......', '.#.....', '.#.###.', '.##...#', '......#', '..###..'],
+      'り': ['.#...#.', '.#...#.', '.#...#.', '.##..#.', '.....#.', '....#..', '..##...'],
+      'る': ['.####..', '...#...', '..#....', '.#####.', '#.....#', '#.##..#', '.#.###.'],
+      'れ': ['.#.....', '.#..#..', '####.#.', '.##..#.', '.#...#.', '##...#.', '.#....#'],
+      'ろ': ['.####..', '...#...', '..#....', '.#####.', '......#', '......#', '.#####.'],
+      'わ': ['.#.....', '.#.###.', '####..#', '.##...#', '.#....#', '##...#.', '.#.##..'],
+      'を': ['..#....', '#####..', '.#.....', '#.####.', '##.#...', '..#....', '..####.'],
+      'ん': ['...#...', '...#...', '..#....', '..#.#..', '.#.#.#.', '.#...#.', '#.....#'],
+      'ー': ['.......', '.......', '.......', '#######', '.......', '.......', '.......'],
+      // ちいさい もじ（したの 5ぎょう）
+      'ゃ': ['.....', '.....', '.#.#.', '.#..#', '###..', '..#..', '..#..'],
+      'ゅ': ['.....', '.....', '..#..', '#####', '#.#.#', '.###.', '.#...'],
+      'ょ': ['.....', '.....', '..#..', '..##.', '..#..', '.##..', '#.###'],
+      'っ': ['.....', '.....', '.....', '.###.', '....#', '...#.', '.##..'],
+    };
+    const SMALL_TO_BIG = { 'ぁ': 'あ', 'ぃ': 'い', 'ぅ': 'う', 'ぇ': 'え', 'ぉ': 'お', 'ゎ': 'わ' };
+    const ROMA_U = {
+      A: ['.###.', '#...#', '#...#', '#####', '#...#', '#...#', '#...#'],
+      B: ['####.', '#...#', '#...#', '####.', '#...#', '#...#', '####.'],
+      C: ['.###.', '#...#', '#....', '#....', '#....', '#...#', '.###.'],
+      D: ['####.', '#...#', '#...#', '#...#', '#...#', '#...#', '####.'],
+      E: ['#####', '#....', '#....', '####.', '#....', '#....', '#####'],
+      F: ['#####', '#....', '#....', '####.', '#....', '#....', '#....'],
+      G: ['.###.', '#...#', '#....', '#.###', '#...#', '#...#', '.###.'],
+      H: ['#...#', '#...#', '#...#', '#####', '#...#', '#...#', '#...#'],
+      I: ['###', '.#.', '.#.', '.#.', '.#.', '.#.', '###'],
+      J: ['..###', '...#.', '...#.', '...#.', '...#.', '#..#.', '.##..'],
+      K: ['#...#', '#..#.', '#.#..', '##...', '#.#..', '#..#.', '#...#'],
+      L: ['#....', '#....', '#....', '#....', '#....', '#....', '#####'],
+      M: ['#...#', '##.##', '#.#.#', '#.#.#', '#...#', '#...#', '#...#'],
+      N: ['#...#', '##..#', '##..#', '#.#.#', '#..##', '#..##', '#...#'],
+      O: ['.###.', '#...#', '#...#', '#...#', '#...#', '#...#', '.###.'],
+      P: ['####.', '#...#', '#...#', '####.', '#....', '#....', '#....'],
+      Q: ['.###.', '#...#', '#...#', '#...#', '#.#.#', '#..#.', '.##.#'],
+      R: ['####.', '#...#', '#...#', '####.', '#.#..', '#..#.', '#...#'],
+      S: ['.###.', '#...#', '#....', '.###.', '....#', '#...#', '.###.'],
+      T: ['#####', '..#..', '..#..', '..#..', '..#..', '..#..', '..#..'],
+      U: ['#...#', '#...#', '#...#', '#...#', '#...#', '#...#', '.###.'],
+      V: ['#...#', '#...#', '#...#', '#...#', '#...#', '.#.#.', '..#..'],
+      W: ['#...#', '#...#', '#...#', '#.#.#', '#.#.#', '##.##', '#...#'],
+      X: ['#...#', '#...#', '.#.#.', '..#..', '.#.#.', '#...#', '#...#'],
+      Y: ['#...#', '#...#', '.#.#.', '..#..', '..#..', '..#..', '..#..'],
+      Z: ['#####', '....#', '...#.', '..#..', '.#...', '#....', '#####'],
+    };
+    const ROMA_L = {
+      a: ['.....', '.....', '.###.', '....#', '.####', '#...#', '.####'],
+      b: ['#....', '#....', '####.', '#...#', '#...#', '#...#', '####.'],
+      c: ['.....', '.....', '.###.', '#....', '#....', '#...#', '.###.'],
+      d: ['....#', '....#', '.####', '#...#', '#...#', '#...#', '.####'],
+      e: ['.....', '.....', '.###.', '#...#', '#####', '#....', '.###.'],
+      f: ['..##.', '.#..#', '.#...', '###..', '.#...', '.#...', '.#...'],
+      g: ['.....', '.....', '.####', '#...#', '.####', '....#', '.###.'],
+      h: ['#....', '#....', '#.##.', '##..#', '#...#', '#...#', '#...#'],
+      i: ['.#.', '...', '##.', '.#.', '.#.', '.#.', '###'],
+      j: ['...#.', '.....', '..##.', '...#.', '...#.', '#..#.', '.##..'],
+      k: ['#...', '#...', '#..#', '#.#.', '##..', '#.#.', '#..#'],
+      l: ['##.', '.#.', '.#.', '.#.', '.#.', '.#.', '###'],
+      m: ['.....', '.....', '##.#.', '#.#.#', '#.#.#', '#.#.#', '#.#.#'],
+      n: ['.....', '.....', '#.##.', '##..#', '#...#', '#...#', '#...#'],
+      o: ['.....', '.....', '.###.', '#...#', '#...#', '#...#', '.###.'],
+      p: ['.....', '.....', '####.', '#...#', '####.', '#....', '#....'],
+      q: ['.....', '.....', '.####', '#...#', '.####', '....#', '....#'],
+      r: ['.....', '.....', '#.##.', '##..#', '#....', '#....', '#....'],
+      s: ['.....', '.....', '.####', '#....', '.###.', '....#', '####.'],
+      t: ['.#...', '.#...', '####.', '.#...', '.#...', '.#..#', '..##.'],
+      u: ['.....', '.....', '#...#', '#...#', '#...#', '#..##', '.##.#'],
+      v: ['.....', '.....', '#...#', '#...#', '#...#', '.#.#.', '..#..'],
+      w: ['.....', '.....', '#...#', '#...#', '#.#.#', '#.#.#', '.#.#.'],
+      x: ['.....', '.....', '#...#', '.#.#.', '..#..', '.#.#.', '#...#'],
+      y: ['.....', '.....', '#...#', '#...#', '.####', '....#', '.###.'],
+      z: ['.....', '.....', '#####', '...#.', '..#..', '.#...', '#####'],
+    };
+
+    // いちばん 小さい ローマじ（たて 5マス。大文字だけ）
+    const ROMA_T = {
+      A: ['.#.', '#.#', '###', '#.#', '#.#'], B: ['##.', '#.#', '##.', '#.#', '##.'], C: ['.##', '#..', '#..', '#..', '.##'],
+      D: ['##.', '#.#', '#.#', '#.#', '##.'], E: ['###', '#..', '##.', '#..', '###'], F: ['###', '#..', '##.', '#..', '#..'],
+      G: ['.##', '#..', '#.#', '#.#', '.##'], H: ['#.#', '#.#', '###', '#.#', '#.#'], I: ['###', '.#.', '.#.', '.#.', '###'],
+      J: ['..#', '..#', '..#', '#.#', '.#.'], K: ['#.#', '#.#', '##.', '#.#', '#.#'], L: ['#..', '#..', '#..', '#..', '###'],
+      M: ['#...#', '##.##', '#.#.#', '#...#', '#...#'], N: ['#..#', '##.#', '#.##', '#..#', '#..#'], O: ['.#.', '#.#', '#.#', '#.#', '.#.'],
+      P: ['##.', '#.#', '##.', '#..', '#..'], Q: ['.#.', '#.#', '#.#', '##.', '.##'], R: ['##.', '#.#', '##.', '#.#', '#.#'],
+      S: ['.##', '#..', '.#.', '..#', '##.'], T: ['###', '.#.', '.#.', '.#.', '.#.'], U: ['#.#', '#.#', '#.#', '#.#', '###'],
+      V: ['#.#', '#.#', '#.#', '#.#', '.#.'], W: ['#...#', '#...#', '#.#.#', '##.##', '#...#'], X: ['#.#', '#.#', '.#.', '#.#', '#.#'],
+      Y: ['#.#', '#.#', '.#.', '.#.', '.#.'], Z: ['###', '..#', '.#.', '#..', '###'],
+    };
+
+    /* =========================================================
+       かざり（ドット絵）。もじは いろの しるし
+       ========================================================= */
+    const DCOL = { R: 'r', P: 'p', O: 'o', Y: 'y', G: 'g', D: 'd', S: 's', B: 'b', V: 'v', C: 'c', K: 'k', W: 'w', H: 'h' };
+    const DECO_GROUPS = [
+      { name: 'きほん', items: [
+        { id: 'heart', name: 'ハート', px: ['.RR...RR.', 'RWRR.RRRR', 'RRRRRRRRR', 'RRRRRRRRR', '.RRRRRRR.', '..RRRRR..', '...RRR...', '....R....'] },
+        { id: 'star', name: 'ほし', px: ['....Y....', '...YYY...', '...YYY...', 'YYYYYYYYY', '.YYYYYYY.', '..YYYYY..', '..YYYYY..', '.YYY.YYY.', '.YY...YY.'] },
+        { id: 'smile', name: 'にこにこ', px: ['..YYYYY..', '.YYYYYYY.', 'YYKYYYKYY', 'YYKYYYKYY', 'YYYYYYYYY', 'YKYYYYYKY', 'YYKKKKKYY', '.YYYYYYY.', '..YYYYY..'] },
+        { id: 'note', name: 'おんぷ', px: ['....B....', '....BB...', '....B.B..', '....B..B.', '....B..B.', '....B....', '.BBBB....', 'BBBBB....', '.BBB.....'] },
+      ] },
+      { name: 'どうぶつ', items: [
+        { id: 'dog', name: 'いぬ', px: ['CC.....CC', 'CCHHHHHCC', 'CHHHHHHHC', 'CHKHHHKHC', '.HHHHHHH.', '.HHKKKHH.', '..HHKHH..', '...HHH...'] },
+        { id: 'cat', name: 'ねこ', px: ['O.......O', 'OO.....OO', 'OOOOOOOOO', 'OOKOOOKOO', 'OOOOOOOOO', 'OOOOPOOOO', '.OOOOOOO.', '..OOOOO..'] },
+        { id: 'rabbit', name: 'うさぎ', px: ['.WW...WW.', '.WP...PW.', '.WP...PW.', '.WWWWWWW.', 'WWWWWWWWW', 'WWKWWWKWW', 'WWWWPWWWW', '.WWWWWWW.', '..WWWWW..'] },
+        { id: 'bear', name: 'くま', px: ['CC.....CC', 'CCCCCCCCC', '.CCCCCCC.', '.CKCCCKC.', '.CCHHHCC.', '.CCHKHCC.', '..CCCCC..'] },
+        { id: 'fish', name: 'さかな', px: ['..SSSS...', '.SSSSSS.S', 'SKSSSSSSS', 'SSSSSSSSS', '.SSSSSS.S', '..SSSS...'] },
+        { id: 'bird', name: 'ことり', px: ['..YYY....', '.YYYYY...', '.YKYYYY..', 'OOYYYYYYY', '.YYYYYYYY', '..YYYYYY.', '...O..O..'] },
+      ] },
+      { name: 'はな', items: [
+        { id: 'tulip', name: 'チューリップ', px: ['R.R.R', 'RRRRR', 'RRRRR', '.RRR.', '..D..', 'D.D.D', '.DDD.', '..D..'] },
+        { id: 'flower', name: 'はな', px: ['..PP.PP..', '.PPPPPPP.', '..PYYYP..', 'PPPYYYPPP', '..PYYYP..', '.PPPPPPP.', '..PP.PP..', '....D....', '....D....'] },
+        { id: 'sunflower', name: 'ひまわり', px: ['.Y.YYY.Y.', '..YYYYY..', 'YYYCCCYYY', '.YYCCCYY.', 'YYYCCCYYY', '..YYYYY..', '.Y.YDY.Y.', '....D....', '...DD....'] },
+      ] },
+      { name: 'きせつ', items: [
+        { id: 'sakura', name: 'さくら（はる）', px: ['....P....', '...PPP...', '.P.PPP.P.', 'PPPPYPPPP', '.PPYYYPP.', '..PPYPP..', '.PPP.PPP.', '.PP...PP.'] },
+        { id: 'suika', name: 'すいか（なつ）', px: ['RRKRRRKRR', 'RRRRKRRRR', '.RKRRRKR.', '.GRRRRRG.', '..GGGGG..', '...DDD...'] },
+        { id: 'momiji', name: 'もみじ（あき）', px: ['....R....', '..R.R.R..', '...RRR...', 'RR.RRR.RR', '.RRRRRRR.', '..RRRRR..', '.RR.R.RR.', '....R....', '....R....'] },
+        { id: 'snowman', name: 'ゆきだるま（ふゆ）', px: ['..WWW..', '.WKWKW.', '.WWOWW.', '.RRRRR.', '.WWWWW.', 'WWWKWWW', 'WWWWWWW', 'WWWKWWW', '.WWWWW.'] },
+      ] },
+    ];
+    const DECOS = {};
+    DECO_GROUPS.forEach(g => g.items.forEach(it => { DECOS[it.id] = { ...it, w: it.px[0].length, h: it.px.length }; }));
+    const DECO_MAX = { w: 9, h: 9 };
+
+    /* =========================================================
+       ちいさな 道具
+       ========================================================= */
+    const STORE_KEY = 'nijiiBeads.v1';
+    const uid = () => Math.random().toString(36).slice(2, 10);
+    function hashPin(pin) { let h = 2166136261; for (const c of 'beads:' + pin) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16); }
+    function hexRgb(hex) { const n = parseInt(hex.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+    function rgbHex(r, g, b) { return '#' + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join(''); }
+    function shade(hex, t) { const [r, g, b] = hexRgb(hex); const f = v => t < 0 ? v * (1 + t) : v + (255 - v) * t; return rgbHex(f(r), f(g), f(b)); }
+    function lum(hex) { const [r, g, b] = hexRgb(hex); return (0.299 * r + 0.587 * g + 0.114 * b) / 255; }
+    function inkOn(hex) { return lum(hex) > 0.6 ? '#111827' : '#ffffff'; }
+    function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+    function pickFile(accept) {
+      return new Promise((resolve) => {
+        const input = document.createElement('input'); input.type = 'file'; input.accept = accept;
+        input.onchange = () => resolve(input.files && input.files[0] ? input.files[0] : null);
+        input.click();
+      });
+    }
+    function download(name, blob) {
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+      document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    }
+    const inFrame = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
+
+    /* =========================================================
+       ほぞん（この 端末の ブラウザの 中 ＝ localStorage）
+       ========================================================= */
+    function defaultSettings() {
+      return {
+        plateCols: 1, plateRows: 1, pinsX: 30, pinsY: 30, pitch: 5,
+        colors: [...BASE_COLORS.map(c => ({ ...c, on: true })), ...EXTRA_COLORS.map(c => ({ ...c, on: false }))],
+        lines: 'both', size: 'auto', shape: 'outline', caseMode: 'upper',
+        voice: true, rate: 0.8, sfx: true, uiScale: 1,
+      };
+    }
+    function loadState() {
+      let s = null;
+      try { s = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { s = null; }
+      const base = { v: 1, profile: null, settings: defaultSettings(), kids: [] };
+      if (!s || typeof s !== 'object') return base;
+      const settings = { ...base.settings, ...(s.settings || {}) };
+      // あとから 足した 色も 一覧に 入れる
+      const have = new Set((settings.colors || []).map(c => c.key));
+      settings.colors = [...(settings.colors || []), ...base.settings.colors.filter(c => !have.has(c.key))];
+      return { ...base, ...s, settings, kids: Array.isArray(s.kids) ? s.kids : [] };
+    }
+    function saveState(s) { try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch (e) { console.warn(e); } }
+    let CURRENT = { settings: defaultSettings() };
+
+    function newDesign() {
+      return { mode: 'same', text: 'b', items: {}, outline: null, decos: [null, null], frame: false, frameColor: null, step: 2, doneAt: null };
+    }
+    function newKid(name, S) {
+      return { id: uid(), name, roma: null, caseMode: S.caseMode, lines: S.lines, size: S.size, shape: S.shape, plateCols: null, plateRows: null, design: newDesign(), createdAt: Date.now() };
+    }
+
+    /* =========================================================
+       なまえ と ローマじ
+       ========================================================= */
+    function cleanName(s) {
+      return String(s || '')
+        .replace(/[ァ-ヶ]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60)) // カタカナ → ひらがな
+        .replace(/[　\s]+/g, ' ')
+        .replace(/[^ぁ-ゖー ]/g, '')
+        .trim();
+    }
+    const KANA_ROMA = {
+      'あ': 'a', 'い': 'i', 'う': 'u', 'え': 'e', 'お': 'o', 'か': 'ka', 'き': 'ki', 'く': 'ku', 'け': 'ke', 'こ': 'ko',
+      'さ': 'sa', 'し': 'shi', 'す': 'su', 'せ': 'se', 'そ': 'so', 'た': 'ta', 'ち': 'chi', 'つ': 'tsu', 'て': 'te', 'と': 'to',
+      'な': 'na', 'に': 'ni', 'ぬ': 'nu', 'ね': 'ne', 'の': 'no', 'は': 'ha', 'ひ': 'hi', 'ふ': 'fu', 'へ': 'he', 'ほ': 'ho',
+      'ま': 'ma', 'み': 'mi', 'む': 'mu', 'め': 'me', 'も': 'mo', 'や': 'ya', 'ゆ': 'yu', 'よ': 'yo',
+      'ら': 'ra', 'り': 'ri', 'る': 'ru', 'れ': 're', 'ろ': 'ro', 'わ': 'wa', 'を': 'o', 'ん': 'n',
+      'が': 'ga', 'ぎ': 'gi', 'ぐ': 'gu', 'げ': 'ge', 'ご': 'go', 'ざ': 'za', 'じ': 'ji', 'ず': 'zu', 'ぜ': 'ze', 'ぞ': 'zo',
+      'だ': 'da', 'ぢ': 'ji', 'づ': 'zu', 'で': 'de', 'ど': 'do', 'ば': 'ba', 'び': 'bi', 'ぶ': 'bu', 'べ': 'be', 'ぼ': 'bo',
+      'ぱ': 'pa', 'ぴ': 'pi', 'ぷ': 'pu', 'ぺ': 'pe', 'ぽ': 'po', 'ゔ': 'vu',
+      'ぁ': 'a', 'ぃ': 'i', 'ぅ': 'u', 'ぇ': 'e', 'ぉ': 'o', 'ゎ': 'wa',
+    };
+    // ひらがな → ローマじ（ヘボン式。のばす おとは そのまま 書きます：ゆうと → yuuto）
+    function toRomaji(name) {
+      const s = cleanName(name); let out = ''; let i = 0;
+      while (i < s.length) {
+        const ch = s[i], nx = s[i + 1];
+        if (ch === ' ') { out += ' '; i++; continue; }
+        if (ch === 'っ') {
+          const r = syl(s, i + 1);
+          if (r) out += r.text.startsWith('ch') ? 't' : r.text[0];
+          i++; continue;
+        }
+        if (ch === 'ー') { const m = out.match(/[aeiou](?=[^aeiou]*$)/); out += m ? m[0] : ''; i++; continue; }
+        const r = syl(s, i);
+        if (r) {
+          let t = r.text;
+          if (ch === 'ん' && nx && /^[aiueoy]/.test((syl(s, i + 1) || {}).text || '')) t = "n";
+          out += t; i += r.len;
+        } else i++;
+      }
+      return out;
+      function syl(str, k) {
+        const c = str[k], d = str[k + 1];
+        if (!c || !KANA_ROMA[c]) return null;
+        const base = KANA_ROMA[c];
+        if (d && 'ゃゅょ'.includes(d) && /i$/.test(base) && base !== 'i') {
+          const v = { 'ゃ': 'a', 'ゅ': 'u', 'ょ': 'o' }[d];
+          const stem = base.slice(0, -1);
+          return { text: (/(sh|ch|j)$/.test(stem) ? stem : stem + 'y') + v, len: 2 };
+        }
+        if ('ゃゅょ'.includes(c)) return { text: { 'ゃ': 'ya', 'ゅ': 'yu', 'ょ': 'yo' }[c], len: 1 };
+        return { text: base, len: 1 };
+      }
+    }
+    function romaFor(kid) {
+      const raw = (kid.roma != null && kid.roma !== '') ? kid.roma : toRomaji(kid.name);
+      const t = raw.replace(/[^A-Za-z ]/g, '').replace(/\s+/g, ' ').trim();
+      if (kid.caseMode === 'cap') return t.toLowerCase().replace(/(^|\s)([a-z])/g, (m, a, b) => a + b.toUpperCase());
+      return t.toUpperCase();
+    }
+    function hiraItems(kid) { return [...cleanName(kid.name)].filter(c => c !== ' '); }
+
+    /* =========================================================
+       もじを ビーズの ならびに する
+       ========================================================= */
+    function addMark(rows, mark) {
+      const pat = mark === 'd' ? ['#.#', '#.#'] : ['.#.', '#.#', '.#.'];
+      const w = rows[0].length, h = rows.length;
+      const at = (r, c) => r >= 0 && r < h && c >= 0 && c < w && rows[r][c] === '#';
+      for (let x = w - 3; x <= w + 1; x++) {
+        let ok = true;
+        pat.forEach((pr, r) => [...pr].forEach((p, j) => {
+          if (p !== '#') return;
+          for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) if (at(r + dr, x + j + dc)) ok = false;
+        }));
+        if (!ok) continue;
+        const nw = Math.max(w, x + 3);
+        return rows.map((row, r) => {
+          const a = (row + '.'.repeat(nw)).slice(0, nw).split('');
+          if (pat[r]) [...pat[r]].forEach((p, j) => { if (p === '#') a[x + j] = '#'; });
+          return a.join('');
+        });
+      }
+      return rows;
+    }
+    function trimCols(rows) {
+      const w = rows[0].length;
+      let a = 0, b = w - 1;
+      while (a < w && rows.every(r => r[a] !== '#')) a++;
+      while (b > a && rows.every(r => r[b] !== '#')) b--;
+      if (a > b) return rows;
+      return rows.map(r => r.slice(a, b + 1));
+    }
+    function hiraGlyph(ch) {
+      if (ch === ' ') return ['...', '...', '...', '...', '...', '...', '...'];
+      if (HIRA[ch]) return trimCols(HIRA[ch]);
+      if (SMALL_TO_BIG[ch]) return trimCols(HIRA[SMALL_TO_BIG[ch]]);
+      const d = ch.normalize('NFD');
+      if (d.length === 2 && HIRA[d[0]]) return trimCols(addMark(HIRA[d[0]], d[1] === '゙' ? 'd' : 'h'));
+      return null;
+    }
+    function romaGlyph(ch, tiny) {
+      if (tiny) return ch === ' ' ? ['..', '..', '..', '..', '..'] : (ROMA_T[ch.toUpperCase()] || null);
+      if (ch === ' ') return ['...', '...', '...', '...', '...', '...', '...'];
+      return ROMA_U[ch] || ROMA_L[ch] || null;
+    }
+    // 1ぎょう ぶん（s は 大きさの ばい。s が 't' の ときは いちばん 小さい ローマじ）
+    function renderLine(text, kind, s0, oneItem, gap) {
+      const tiny = s0 === 't', s = tiny ? 1 : s0;
+      const chars = [...text];
+      const px = []; const items = []; let x = 0; let n = 0;
+      chars.forEach((ch, i) => {
+        const g = kind === 'h' ? hiraGlyph(ch) : romaGlyph(ch, tiny);
+        if (!g) return;
+        if (x > 0) x += gap || s; // もじの あいだ
+        const id = ch === ' ' ? null : (oneItem ? 'r' : (kind === 'h' ? 'h' : 'r') + (n++));
+        g.forEach((row, r) => [...row].forEach((p, c) => {
+          if (p !== '#') return;
+          for (let a = 0; a < s; a++) for (let b = 0; b < s; b++) px.push([x + c * s + b, r * s + a, id]);
+        }));
+        if (id) items.push({ id, x, w: g[0].length * s });
+        x += g[0].length * s;
+      });
+      return { w: x, h: (tiny ? 5 : 7) * s, px, items };
+    }
+    function sizeCands(lines, size) {
+      // g は ひらがなの あいだ（小さい もじは、はいる ときは 2マス あけて よみやすく する）
+      let c = lines === 'hira' ? [{ h: 2 }, { h: 1, g: 2 }, { h: 1 }] : lines === 'roma' ? [{ r: 2 }, { r: 1 }, { r: 't' }] : [{ h: 2, r: 2 }, { h: 2, r: 1 }, { h: 1, g: 2, r: 1 }, { h: 1, r: 1 }, { h: 1, g: 2, r: 't' }, { h: 1, r: 't' }];
+      if (size === 'big') { const b = c.filter(x => (x.h || x.r) === 2); c = b.length ? b : c; }
+      if (size === 'small') c = c.filter(x => (x.h || 1) === 1 && (x.r || 1) !== 2);
+      return c;
+    }
+    function textBlock(kid, sz) {
+      const parts = [];
+      if (kid.lines !== 'roma') parts.push(renderLine(cleanName(kid.name), 'h', sz.h, false, sz.g));
+      if (kid.lines !== 'hira') parts.push(renderLine(romaFor(kid), 'r', sz.r, kid.lines === 'both'));
+      const w = Math.max(0, ...parts.map(p => p.w));
+      let y = 0; const px = []; const items = [];
+      parts.forEach((p, i) => {
+        if (i) y += 1;
+        const ox = Math.floor((w - p.w) / 2);
+        p.px.forEach(([x, yy, id]) => px.push([x + ox, yy + y, id]));
+        p.items.forEach(it => items.push({ ...it, x: it.x + ox, y, h: p.h }));
+        y += p.h;
+      });
+      return { w, h: y, px, items };
+    }
+    function arrange(B, d1, d2, maxW, maxH) {
+      const C = [];
+      const mid = (h, hh) => Math.floor((h - hh) / 2);
+      if (d1 && d2) {
+        { const h = Math.max(d1.h, B.h, d2.h); C.push({ w: d1.w + 1 + B.w + 1 + d2.w, h, B: [d1.w + 1, mid(h, B.h)], d1: [0, mid(h, d1.h)], d2: [d1.w + 1 + B.w + 1, mid(h, d2.h)], kind: 'LR' }); }
+        { const w = Math.max(B.w, d1.w, d2.w); const bx = mid(w, B.w); C.push({ w, h: d1.h + 1 + B.h + 1 + d2.h, B: [bx, d1.h + 1], d1: [Math.max(0, Math.min(bx, w - d1.w)), 0], d2: [Math.max(0, Math.min(bx + B.w - d2.w, w - d2.w)), d1.h + 1 + B.h + 1], kind: 'TB' }); }
+      } else if (d1 || d2) {
+        const d = d1 || d2, first = !!d1, key = first ? 'd1' : 'd2';
+        { const h = Math.max(d.h, B.h); C.push({ w: d.w + 1 + B.w, h, B: [first ? d.w + 1 : 0, mid(h, B.h)], [key]: [first ? 0 : B.w + 1, mid(h, d.h)], kind: first ? 'L' : 'R' }); }
+        { const w = Math.max(B.w, d.w); const bx = mid(w, B.w); C.push({ w, h: d.h + 1 + B.h, B: [bx, first ? d.h + 1 : 0], [key]: [first ? Math.max(0, Math.min(bx, w - d.w)) : Math.max(0, Math.min(bx + B.w - d.w, w - d.w)), first ? 0 : B.h + 1], kind: first ? 'T' : 'B' }); }
+      } else C.push({ w: B.w, h: B.h, B: [0, 0], kind: 'N' });
+      return C.find(c => c.w <= maxW && c.h <= maxH) || null;
+    }
+    function boardSize(kid, S) {
+      const cols = kid.plateCols || S.plateCols || 1, rows = kid.plateRows || S.plateRows || 1;
+      return { W: cols * S.pinsX, H: rows * S.pinsY, cols, rows };
+    }
+    // どこに おけるか（かざりの 数と わく）を しらべる
+    function fitInfo(kid, S, decos, frame) {
+      const { W, H } = boardSize(kid, S);
+      const m = frame ? 2 : 1;
+      const d1 = decos[0] ? DECOS[decos[0]] : null, d2 = decos[1] ? DECOS[decos[1]] : null;
+      const cands = sizeCands(kid.lines, kid.size);
+      for (let i = 0; i < cands.length; i++) {
+        const B = textBlock(kid, cands[i]);
+        if (!B.w) continue;
+        const a = arrange(B, d1, d2, W - 2 * m, H - 2 * m);
+        if (a) return { sz: cands[i], B, a, idx: i };
+      }
+      return null;
+    }
+    function slotCount(kid, S, frame) {
+      const dummy = 'star';
+      if (fitInfo(kid, S, [dummy, dummy], frame)) return 2;
+      if (fitInfo(kid, S, [dummy, null], frame)) return 1;
+      return 0;
+    }
+
+    // ビーズの ならびを つくる
+    function computeLayout(kid, S) {
+      const D = kid.design || newDesign();
+      const { W, H, cols, rows } = boardSize(kid, S);
+      const cells = new Array(W * H).fill(null), roles = new Array(W * H).fill(null);
+      const res = { W, H, cols, rows, cells, roles, ok: true, items: [], shrunk: false, sz: null, frame: false, decos: [null, null] };
+      let decos = [...(D.decos || [null, null])];
+      let frame = !!D.frame;
+      let fi = fitInfo(kid, S, decos, frame);
+      // はいらない ときは、わく → かざり の じゅんに はずす
+      if (!fi && frame) { frame = false; fi = fitInfo(kid, S, decos, frame); }
+      if (!fi && decos[1]) { decos[1] = null; fi = fitInfo(kid, S, decos, frame); }
+      if (!fi && decos[0]) { decos[0] = null; fi = fitInfo(kid, S, decos, frame); }
+      const cands = sizeCands(kid.lines, kid.size);
+      if (!fi) {
+        // なまえが プレートに はいらない：いちばん 小さい もじで まんなかに おく（はみだす ぶんは きれる）
+        res.ok = false;
+        const sz = cands[cands.length - 1];
+        const B = textBlock(kid, sz);
+        fi = { sz, B, a: { w: B.w, h: B.h, B: [0, 0], kind: 'N' }, idx: cands.length - 1 };
+      }
+      res.frame = frame; res.decos = decos;
+      const plain = fitInfo(kid, S, [null, null], false);
+      res.shrunk = !!(plain && fi && fi.idx > plain.idx);
+      res.sz = fi.sz;
+      const m = frame ? 2 : 1;
+      const pw = fi.a.w + 2 * m, ph = fi.a.h + 2 * m;
+      const px0 = Math.floor((W - pw) / 2), py0 = Math.floor((H - ph) / 2);
+      const cx = px0 + m, cy = py0 + m;
+      res.rect = { x: px0, y: py0, w: pw, h: ph };
+      const colorOf = (id) => {
+        if (D.mode === 'each' && id) return D.items[id] || (id[0] === 'r' && D.items.r) || D.text || 'b';
+        return D.text || 'b';
+      };
+      const put = (x, y, key, role) => { if (x < 0 || y < 0 || x >= W || y >= H) return; cells[y * W + x] = key; roles[y * W + x] = role; };
+      const [bx, by] = fi.a.B;
+      fi.B.px.forEach(([x, y, id]) => put(cx + bx + x, cy + by + y, colorOf(id), id && id[0] === 'r' ? 'roma' : 'text'));
+      res.items = fi.B.items.map(it => ({ ...it, x: cx + bx + it.x, y: cy + by + it.y }));
+      const enabled = S.colors.filter(c => c.on);
+      ['d1', 'd2'].forEach((k, i) => {
+        const id = decos[i]; if (!id || !fi.a[k]) return;
+        const dd = DECOS[id]; const [dx, dy] = fi.a[k];
+        dd.px.forEach((row, r) => [...row].forEach((ch, c) => { if (ch !== '.') put(cx + dx + c, cy + dy + r, nearestKey(DCOL[ch], S, enabled), 'deco'); }));
+      });
+      // まわり
+      const inner = { x: px0 + (frame ? 1 : 0), y: py0 + (frame ? 1 : 0), w: pw - (frame ? 2 : 0), h: ph - (frame ? 2 : 0) };
+      const bgKey = D.outline || defaultOutline(kid, S);
+      const content = cells.map(c => c != null);
+      const isText = roles.map(r => r === 'text' || r === 'roma');
+      for (let y = Math.max(0, inner.y); y < Math.min(H, inner.y + inner.h); y++) for (let x = Math.max(0, inner.x); x < Math.min(W, inner.x + inner.w); x++) {
+        const i = y * W + x; if (content[i]) continue;
+        if (kid.shape === 'fill') { put(x, y, bgKey, 'outline'); continue; }
+        let near = false;
+        for (let dy = -1; dy <= 1 && !near; dy++) for (let dx = -1; dx <= 1; dx++) {
+          const xx = x + dx, yy = y + dy;
+          if (xx >= 0 && yy >= 0 && xx < W && yy < H && isText[yy * W + xx]) { near = true; break; }
+        }
+        if (near) put(x, y, bgKey, 'outline');
+      }
+      if (frame) {
+        const fk = D.frameColor || colorOf('h0');
+        for (let x = px0; x < px0 + pw; x++) { put(x, py0, fk, 'frame'); put(x, py0 + ph - 1, fk, 'frame'); }
+        for (let y = py0; y < py0 + ph; y++) { put(px0, y, fk, 'frame'); put(px0 + pw - 1, y, fk, 'frame'); }
+      }
+      connectAll(cells, roles, W, H, res.rect, bgKey);
+      return res;
+    }
+    function nearestKey(key, S, enabled) {
+      if (enabled.some(c => c.key === key)) return key;
+      const src = (S.colors.find(c => c.key === key) || BASE_COLORS.find(c => c.key === key) || { hex: '#888888' }).hex;
+      const [r, g, b] = hexRgb(src); let best = enabled[0] ? enabled[0].key : key, bd = 1e9;
+      enabled.forEach(c => { const [R, G, B] = hexRgb(c.hex); const d = (r - R) ** 2 + (g - G) ** 2 + (b - B) ** 2; if (d < bd) { bd = d; best = c.key; } });
+      return best;
+    }
+    function textKeys(kid) {
+      const D = kid.design;
+      if (D.mode !== 'each') return new Set([D.text]);
+      const ids = [...hiraItems(kid).map((_, i) => 'h' + i)];
+      if (kid.lines === 'both') ids.push('r'); else if (kid.lines === 'roma') [...romaFor(kid).replace(/ /g, '')].forEach((_, i) => ids.push('r' + i));
+      return new Set(ids.map(id => D.items[id] || (id[0] === 'r' && D.items.r) || D.text));
+    }
+    function defaultOutline(kid, S) {
+      const used = textKeys(kid);
+      const pref = ['y', 'w', 's', 'p', 'g', 'o', 'b', 'r', 'k'];
+      const en = S.colors.filter(c => c.on).map(c => c.key);
+      return pref.find(k => en.includes(k) && !used.has(k)) || en.find(k => !used.has(k)) || 'y';
+    }
+    // ばらばらに ならないように、はなれた ところを まわりの いろで つなぐ
+    function connectAll(cells, roles, W, H, rect, key) {
+      for (let guard = 0; guard < 60; guard++) {
+        const comp = new Int32Array(W * H).fill(-1); const sizes = []; let n = 0;
+        for (let i = 0; i < W * H; i++) {
+          if (cells[i] == null || comp[i] >= 0) continue;
+          const st = [i]; comp[i] = n; let sz = 0;
+          while (st.length) { const j = st.pop(); sz++; const x = j % W, y = (j / W) | 0;
+            [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => { const xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= W || yy >= H) return; const k = yy * W + xx; if (cells[k] != null && comp[k] < 0) { comp[k] = n; st.push(k); } }); }
+          sizes.push(sz); n++;
+        }
+        if (n <= 1) return;
+        const main = sizes.indexOf(Math.max(...sizes));
+        const prev = new Int32Array(W * H).fill(-2); const q = [];
+        const inRect = (x, y) => x >= rect.x && y >= rect.y && x < rect.x + rect.w && y < rect.y + rect.h && x >= 0 && y >= 0 && x < W && y < H;
+        for (let i = 0; i < W * H; i++) if (comp[i] === main) {
+          const x = i % W, y = (i / W) | 0;
+          [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => { const xx = x + dx, yy = y + dy; if (!inRect(xx, yy)) return; const k = yy * W + xx; if (cells[k] == null && prev[k] === -2) { prev[k] = -1; q.push(k); } });
+        }
+        let hit = -1;
+        for (let h = 0; h < q.length && hit < 0; h++) {
+          const j = q[h]; const x = j % W, y = (j / W) | 0;
+          for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+            const xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue; const k = yy * W + xx;
+            if (cells[k] != null && comp[k] !== main) { hit = j; break; }
+            if (cells[k] == null && prev[k] === -2 && inRect(xx, yy)) { prev[k] = j; q.push(k); }
+          }
+        }
+        if (hit < 0) return;
+        for (let j = hit; j >= 0; j = prev[j]) { cells[j] = key; roles[j] = 'outline'; if (prev[j] === -1) break; }
+      }
+    }
+    // つかう いろと かず（ばんごうの じゅんばん：もじ → ローマじ → かざり → まわり → わく）
+    function colorStats(L, S) {
+      const order = { text: 0, roma: 1, deco: 2, outline: 3, frame: 4 };
+      const first = {}; const count = {};
+      L.cells.forEach((k, i) => {
+        if (k == null) return; count[k] = (count[k] || 0) + 1;
+        const r = order[L.roles[i]] ?? 5;
+        if (!(k in first) || r < first[k][0]) first[k] = [r, i];
+      });
+      const keys = Object.keys(count).sort((a, b) => first[a][0] - first[b][0] || first[a][1] - first[b][1]);
+      return keys.map((k, i) => { const c = colorInfo(k, S); return { key: k, num: i + 1, count: count[k], name: c.name, hex: c.hex }; });
+    }
+    function colorInfo(key, S) {
+      return S.colors.find(c => c.key === key) || BASE_COLORS.find(c => c.key === key) || EXTRA_COLORS.find(c => c.key === key) || { key, name: key, hex: '#888888' };
+    }
+
+    /* =========================================================
+       ニジーせんせい（カメレオン）。からだの いろが かわります
+       ========================================================= */
+    function nijiiSVG(body = '#4ade80', mood = 'smile') {
+      const dark = shade(body, -0.3), light = shade(body, 0.5);
+      const beads = ['#ef4444', '#f97316', '#facc15', '#22c55e', '#38bdf8', '#3b82f6', '#a855f7'];
+      const mouth = mood === 'open'
+        ? `<path d="M150 118 Q166 132 182 112 Q168 118 150 118 Z" fill="#7f1d1d"/>`
+        : `<path d="M150 117 Q166 128 182 110" fill="none" stroke="#1f2937" stroke-width="3.2" stroke-linecap="round"/>`;
+      const tail = 'M70 140 C 30 150, 14 120, 22 98 C 30 74, 66 76, 66 100 C 66 116, 44 118, 42 104 C 41 96, 50 93, 54 99';
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 40 220 148">
+      <path d="M8 178 Q110 166 214 176" fill="none" stroke="#92400e" stroke-width="10" stroke-linecap="round"/>
+      <path d="${tail}" fill="none" stroke="${dark}" stroke-width="17" stroke-linecap="round"/>
+      <path d="${tail}" fill="none" stroke="${body}" stroke-width="12" stroke-linecap="round"/>
+      <path d="M74 166 q-6 10 -14 12 M88 166 q2 10 -4 14" stroke="${dark}" stroke-width="8" stroke-linecap="round" fill="none"/>
+      <ellipse cx="108" cy="130" rx="54" ry="40" fill="${body}" stroke="${dark}" stroke-width="3"/>
+      <path d="M66 146 Q108 176 152 146 Q108 160 66 146 Z" fill="${light}"/>
+      ${beads.map((c, i) => { const a = Math.PI * (0.92 - i * 0.12); const x = (108 + 44 * Math.cos(a)).toFixed(1), y = (132 - 30 * Math.sin(a)).toFixed(1); return `<circle cx="${x}" cy="${y}" r="6.2" fill="${c}" stroke="#fff" stroke-width="1.6"/><circle cx="${x}" cy="${y}" r="1.9" fill="#fff"/>`; }).join('')}
+      <path d="M128 166 q4 10 -2 14 M146 160 q10 8 6 16" stroke="${dark}" stroke-width="8" stroke-linecap="round" fill="none"/>
+      <path d="M132 82 L150 52 L176 84 Z" fill="${dark}"/>
+      <ellipse cx="160" cy="104" rx="38" ry="30" fill="${body}" stroke="${dark}" stroke-width="3"/>
+      <circle cx="176" cy="122" r="7" fill="#fda4af" opacity=".8"/>
+      ${mouth}
+      <circle cx="152" cy="94" r="17" fill="${dark}"/>
+      <circle cx="152" cy="94" r="13" fill="#fff"/>
+      <circle cx="155" cy="95" r="7" fill="#1f2937"/>
+      <circle cx="157.5" cy="92" r="2.4" fill="#fff"/>
+      <circle cx="194" cy="100" r="1.8" fill="${dark}"/>
+      </svg>`;
+    }
+    function Nijii({ color, mood, talking, onClick, style }) {
+      const hex = color || '#4ade80';
+      return <div className={`nijii ${talking ? 'talking' : ''}`} style={style} onClick={onClick} dangerouslySetInnerHTML={{ __html: nijiiSVG(hex, mood) }} />;
+    }
+
+    /* =========================================================
+       よみあげ・こうかおん
+       ========================================================= */
+    const TTS = {
+      voice: null,
+      init() {
+        if (!('speechSynthesis' in window)) return;
+        const choose = () => {
+          const vs = speechSynthesis.getVoices().filter(v => /^ja/i.test(v.lang));
+          this.voice = vs.find(v => /google/i.test(v.name)) || vs[0] || null;
+        };
+        choose();
+        speechSynthesis.onvoiceschanged = choose;
+      },
+      speak(text, { force = false } = {}) {
+        return new Promise(resolve => {
+          if (!('speechSynthesis' in window) || !text || (!CURRENT.settings.voice && !force)) return resolve();
+          speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(text.replace(/[🔊▶◀✕✓☐]/g, ''));
+          u.lang = 'ja-JP'; if (this.voice) u.voice = this.voice;
+          const rate = Number(CURRENT.settings.rate) || 0.8;
+          u.rate = rate; u.pitch = 1.1;
+          let done = false;
+          const finish = () => { if (!done) { done = true; clearTimeout(timer); resolve(); } };
+          const timer = setTimeout(finish, 2000 + text.length * 400 / rate);
+          u.onend = finish; u.onerror = finish;
+          this.current = u; // Chrome で onend が 来なくなるのを ふせぐため 参照を のこす
+          speechSynthesis.speak(u);
+        });
+      },
+      cancel() { if ('speechSynthesis' in window) speechSynthesis.cancel(); },
+    };
+    TTS.init();
+    let AUDIO = null;
+    function sfx(kind) {
+      if (!CURRENT.settings.sfx) return;
+      try {
+        AUDIO = AUDIO || new (window.AudioContext || window.webkitAudioContext)();
+        const t = AUDIO.currentTime;
+        const notes = kind === 'done' ? [523, 659, 784, 1047] : kind === 'ng' ? [330] : kind === 'put' ? [880, 1175] : [740];
+        notes.forEach((f, i) => {
+          const o = AUDIO.createOscillator(), g = AUDIO.createGain();
+          o.type = kind === 'ng' ? 'sine' : 'triangle'; o.frequency.value = f;
+          const st = t + i * (kind === 'done' ? 0.13 : 0.06);
+          g.gain.setValueAtTime(0.0001, st); g.gain.exponentialRampToValueAtTime(kind === 'ng' ? 0.06 : 0.12, st + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, st + 0.25);
+          o.connect(g); g.connect(AUDIO.destination); o.start(st); o.stop(st + 0.3);
+        });
+      } catch (e) { /* 音が 出せなくても つづける */ }
+    }
+    function confetti() {
+      const cs = ['#ef4444', '#f97316', '#facc15', '#22c55e', '#38bdf8', '#6366f1', '#a855f7', '#f472b6'];
+      for (let i = 0; i < 40; i++) {
+        const d = document.createElement('div'); d.className = 'confetti';
+        const s = 10 + Math.random() * 12;
+        d.style.cssText = `left:${Math.random() * 100}vw;width:${s}px;height:${s}px;border-radius:50%;background:${cs[i % cs.length]};animation-duration:${2 + Math.random() * 2}s;animation-delay:${Math.random() * .6}s;box-shadow: inset 0 0 0 ${s / 3.2}px ${cs[i % cs.length]}, inset 0 0 0 ${s}px #fff;`;
+        document.body.appendChild(d); setTimeout(() => d.remove(), 5000);
+      }
+    }
+
+    /* =========================================================
+       プレートの え（画面用 SVG）
+       ========================================================= */
+    function BoardSVG({ L, S, highlight, plain }) {
+      const { W, H } = L;
+      const pegs = []; const beads = [];
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const k = L.cells[y * W + x];
+        if (k == null) { if (!plain) pegs.push(<circle key={'p' + x + '_' + y} cx={x + .5} cy={y + .5} r=".13" fill="#cbd5e1" />); continue; }
+        const hex = colorInfo(k, S).hex;
+        beads.push(<g key={'b' + x + '_' + y}><circle cx={x + .5} cy={y + .5} r=".46" fill={hex} stroke={shade(hex, -0.25)} strokeWidth=".06" /><circle cx={x + .5} cy={y + .47} r=".14" fill="rgba(255,255,255,.6)" /></g>);
+      }
+      const plates = [];
+      const pw = W / L.cols, ph = H / L.rows;
+      for (let r = 0; r < L.rows; r++) for (let c = 0; c < L.cols; c++) plates.push(<rect key={'pl' + r + c} x={c * pw + .08} y={r * ph + .08} width={pw - .16} height={ph - .16} rx=".6" fill="#f1f5f9" stroke="#94a3b8" strokeWidth=".12" />);
+      return (
+        <svg viewBox={`-0.3 -0.3 ${W + .6} ${H + .6}`} preserveAspectRatio="xMidYMid meet">
+          {!plain && plates}
+          {pegs}{beads}
+          {highlight && <rect x={highlight.x - .25} y={highlight.y - .25} width={highlight.w + .5} height={highlight.h + .5} rx=".5" fill="none" stroke="#0ea5e9" strokeWidth=".28" strokeDasharray=".7 .4" />}
+        </svg>
+      );
+    }
+    function DecoIcon({ id, S }) {
+      const d = DECOS[id]; if (!d) return null;
+      const en = S.colors.filter(c => c.on);
+      return (
+        <svg viewBox={`-0.5 -0.5 ${Math.max(d.w, d.h) + 1} ${Math.max(d.w, d.h) + 1}`}>
+          <g transform={`translate(${(Math.max(d.w, d.h) - d.w) / 2},${(Math.max(d.w, d.h) - d.h) / 2})`}>
+            {d.px.map((row, r) => [...row].map((ch, c) => ch === '.' ? null : (() => { const hex = colorInfo(nearestKey(DCOL[ch], S, en), S).hex; return <circle key={r + '_' + c} cx={c + .5} cy={r + .5} r=".46" fill={hex} stroke={shade(hex, -0.25)} strokeWidth=".06" />; })()))}
+          </g>
+        </svg>
+      );
+    }
+
+    /* =========================================================
+       印刷の ページ（mm で かく。画面・印刷・PDF で おなじ ものを つかう）
+       ========================================================= */
+    function mkPage(land) {
+      const p = { w: land ? 297 : 210, h: land ? 210 : 297, land, ops: [] };
+      p.rect = (x, y, w, h, o = {}) => p.ops.push({ t: 'rect', x, y, w, h, ...o });
+      p.circle = (cx, cy, r, o = {}) => p.ops.push({ t: 'circle', cx, cy, r, ...o });
+      p.line = (x1, y1, x2, y2, o = {}) => p.ops.push({ t: 'line', x1, y1, x2, y2, ...o });
+      p.text = (x, y, text, o = {}) => p.ops.push({ t: 'text', x, y, text: String(text), s: 4, fill: '#1f2937', ...o });
+      p.nijii = (x, y, w) => p.ops.push({ t: 'nijii', x, y, w, h: w * 148 / 220 });
+      return p;
+    }
+    const PLATE_EDGE = 2.5; // プレートの はしから さいしょの ピンまで（ピンの まんなか）は 2.5mm＋ピンの はんぶん
+    function sheetHeader(p, kid, title, sub) {
+      p.nijii(8, 6, 30);
+      p.text(42, 13, title, { s: p.land ? 6.2 : 5.6, bold: true });
+      p.text(42, 22.5, sub || '', { s: p.land ? 4.2 : 3.9, fill: '#475569' });
+      p.text(p.w - 10, 13, 'なまえ： ' + cleanName(kid.name), { s: p.land ? 5.2 : 4.8, bold: true, align: 'right' });
+      p.line(8, 28, p.w - 8, 28, { stroke: '#cbd5e1', lw: .5 });
+    }
+    function legend(p, stats, x, y, wAll, cols, focus) {
+      const cw = wAll / cols, rh = 8;
+      stats.forEach((st, i) => {
+        const cx = x + (i % cols) * cw, cy = y + Math.floor(i / cols) * rh;
+        const dim = focus && st.key !== focus;
+        const hex = dim ? fade(st.hex) : st.hex;
+        p.circle(cx + 3.2, cy + 3, 3, { fill: hex, stroke: shade(st.hex, -0.3), lw: .25 });
+        p.text(cx + 3.2, cy + 3.1, st.num, { s: 3, bold: true, align: 'center', fill: dim ? '#94a3b8' : inkOn(st.hex) });
+        p.text(cx + 8, cy + 3.1, st.name, { s: 3.8, bold: !dim, fill: dim ? '#94a3b8' : '#1f2937' });
+        p.text(cx + cw - 7, cy + 3.1, st.count + 'こ', { s: 3.8, bold: !dim, align: 'right', fill: dim ? '#94a3b8' : '#1f2937' });
+      });
+      return Math.ceil(stats.length / cols) * rh;
+    }
+    function fade(hex) { return shade(hex, 0.8); }
+    // ビーズの ならびを かく（region は ボードの 中の はんい）
+    function drawBeads(p, L, stats, region, ox, oy, cell, opt = {}) {
+      const byKey = {}; stats.forEach(s => { byKey[s.key] = s; });
+      const { x0, y0, cols, rows } = region;
+      const nums = opt.numbers !== false;
+      // 5こ ごとの せん と プレートの つなぎめ
+      if (opt.guides) {
+        for (let c = 0; c <= cols; c++) { const gx = x0 + c; const seam = gx % (L.W / L.cols) === 0 && gx > 0 && gx < L.W; if (gx % 5 === 0 || seam) p.line(ox + c * cell, oy, ox + c * cell, oy + rows * cell, { stroke: seam ? '#64748b' : '#e2e8f0', lw: seam ? .5 : .25, dash: seam ? [1.5, 1] : null }); }
+        for (let r = 0; r <= rows; r++) { const gy = y0 + r; const seam = gy % (L.H / L.rows) === 0 && gy > 0 && gy < L.H; if (gy % 5 === 0 || seam) p.line(ox, oy + r * cell, ox + cols * cell, oy + r * cell, { stroke: seam ? '#64748b' : '#e2e8f0', lw: seam ? .5 : .25, dash: seam ? [1.5, 1] : null }); }
+      }
+      const fs = Math.min(cell * 0.5, 6);
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+        const gx = x0 + c, gy = y0 + r;
+        const cx = ox + (c + .5) * cell, cy = oy + (r + .5) * cell;
+        const k = (gx < L.W && gy < L.H) ? L.cells[gy * L.W + gx] : null;
+        if (k == null) { p.circle(cx, cy, Math.max(.35, cell * .1), { fill: '#d1d5db' }); continue; }
+        const st = byKey[k];
+        const dim = opt.focus && opt.focus !== k;
+        const hex = dim ? fade(st.hex) : st.hex;
+        p.circle(cx, cy, cell * .45, { fill: hex, stroke: dim ? '#d1d5db' : shade(st.hex, -0.35), lw: Math.max(.15, cell * .03) });
+        if (nums && !dim) p.text(cx, cy + fs * 0.04, st.num, { s: fs, bold: true, align: 'center', fill: inkOn(st.hex) });
+      }
+      // ばんごう（よこ・たて）
+      const ns = Math.min(3.4, Math.max(1.9, cell * .48));
+      const step = cell < 3.2 ? 5 : 1;
+      const pad = opt.numPad || 0;
+      for (let c = 0; c < cols; c++) { const n = x0 + c + 1; if (step === 1 || n % 5 === 0 || n === 1) p.text(ox + (c + .5) * cell, oy - pad - ns * .9, n, { s: ns, align: 'center', fill: '#475569' }); }
+      for (let r = 0; r < rows; r++) { const n = y0 + r + 1; if (step === 1 || n % 5 === 0 || n === 1) p.text(ox - pad - 1.2, oy + (r + .5) * cell, n, { s: ns, align: 'right', fill: '#475569' }); }
+    }
+    function contentRegion(L) {
+      let a = L.W, b = L.H, c = -1, d = -1;
+      L.cells.forEach((k, i) => { if (k == null) return; const x = i % L.W, y = (i / L.W) | 0; a = Math.min(a, x); b = Math.min(b, y); c = Math.max(c, x); d = Math.max(d, y); });
+      if (c < 0) return { x0: 0, y0: 0, cols: L.W, rows: L.H };
+      a = Math.max(0, a - 1); b = Math.max(0, b - 1); c = Math.min(L.W - 1, c + 1); d = Math.min(L.H - 1, d + 1);
+      return { x0: a, y0: b, cols: c - a + 1, rows: d - b + 1 };
+    }
+    function splitRegion(R, maxC, maxR) {
+      const nx = Math.max(1, Math.ceil(R.cols / maxC)), ny = Math.max(1, Math.ceil(R.rows / maxR));
+      const cw = Math.ceil(R.cols / nx), rh = Math.ceil(R.rows / ny); const out = [];
+      for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+        const x0 = R.x0 + i * cw, y0 = R.y0 + j * rh;
+        out.push({ x0, y0, cols: Math.min(cw, R.x0 + R.cols - x0), rows: Math.min(rh, R.y0 + R.rows - y0), part: nx * ny > 1 ? `${j * nx + i + 1}/${nx * ny}` : '' });
+      }
+      return out;
+    }
+    const PLACE_X = { 1: [''], 2: ['ひだり', 'みぎ'], 3: ['ひだり', 'まんなか', 'みぎ'] };
+    const PLACE_Y = { 1: [''], 2: ['うえ', 'した'], 3: ['うえ', 'まんなか', 'した'] };
+
+    function buildPages(kid, S, kinds) {
+      const L = computeLayout(kid, S);
+      const stats = colorStats(L, S);
+      const total = stats.reduce((a, s) => a + s.count, 0);
+      const pages = [];
+      const pitch = Number(S.pitch) || 5;
+
+      // ① いろと かずの ひょう
+      if (kinds.table) {
+        const p = mkPage(false);
+        sheetHeader(p, kid, 'ビーズの じゅんび', 'つかう いろと かずです。ビーズを よういしたら ☐ に ✓ を つけよう。');
+        let y = 40;
+        p.text(20, y, 'ばんごう', { s: 4, fill: '#475569' }); p.text(56, y, 'いろ', { s: 4, fill: '#475569' }); p.text(140, y, 'かず', { s: 4, fill: '#475569', align: 'right' }); p.text(176, y, 'よういした', { s: 4, fill: '#475569', align: 'center' });
+        y += 5;
+        const rh = Math.min(17, 220 / Math.max(1, stats.length));
+        stats.forEach((st, i) => {
+          if (i % 2 === 0) p.rect(12, y, 186, rh, { fill: '#f8fafc' });
+          const cy = y + rh / 2, r = Math.min(6.5, rh * .4);
+          p.circle(28, cy, r, { fill: st.hex, stroke: shade(st.hex, -0.35), lw: .4 });
+          p.text(28, cy + .2, st.num, { s: r * 1.1, bold: true, align: 'center', fill: inkOn(st.hex) });
+          p.text(56, cy, st.name, { s: Math.min(7, rh * .45), bold: true });
+          p.text(140, cy, st.count + ' こ', { s: Math.min(7.5, rh * .48), bold: true, align: 'right' });
+          p.rect(170, cy - 5, 10, 10, { stroke: '#334155', lw: .6, r: 1.2 });
+          y += rh;
+        });
+        y += 6;
+        p.line(12, y, 198, y, { stroke: '#94a3b8', lw: .4 });
+        p.text(56, y + 9, 'ぜんぶで', { s: 6, bold: true }); p.text(140, y + 9, total + ' こ', { s: 7, bold: true, align: 'right' });
+        p.text(105, 285, 'プレートの ばしょと もじの いろは「じっさいの おおきさ」の みほんで たしかめよう。', { s: 3.4, align: 'center', fill: '#64748b' });
+        pages.push(p);
+      }
+
+      // ② じっさいの おおきさ（プレート 1まいずつ）
+      if (kinds.real) {
+        const pinsX = L.W / L.cols, pinsY = L.H / L.rows;
+        const maxPins = Math.floor((190 - 2 * PLATE_EDGE) / pitch), maxPinsY = Math.floor((200 - 2 * PLATE_EDGE) / pitch);
+        const tiles = [];
+        for (let r = 0; r < L.rows; r++) for (let c = 0; c < L.cols; c++) {
+          splitRegion({ x0: c * pinsX, y0: r * pinsY, cols: pinsX, rows: pinsY }, maxPins, maxPinsY).forEach(t => tiles.push({ ...t, pc: c, pr: r }));
+        }
+        tiles.forEach(t => {
+          let has = false;
+          for (let y = t.y0; y < t.y0 + t.rows && !has; y++) for (let x = t.x0; x < t.x0 + t.cols; x++) if (L.cells[y * L.W + x] != null) { has = true; break; }
+          if (!has) return;
+          const p = mkPage(false);
+          const where = [PLACE_Y[L.rows] ? PLACE_Y[L.rows][t.pr] : '', PLACE_X[L.cols] ? PLACE_X[L.cols][t.pc] : ''].filter(Boolean).join('の ');
+          sheetHeader(p, kid, 'じっさいの おおきさの みほん', (where ? `${where}の プレート　` : '') + (t.part ? `（${t.part}）　` : '') + 'プレートを のせて、おなじ ところに おこう。');
+          const pw = t.cols * pitch + 2 * PLATE_EDGE, ph = t.rows * pitch + 2 * PLATE_EDGE;
+          const px = (210 - pw) / 2 + 3, py = 44;
+          p.rect(px, py, pw, ph, { fill: '#f8fafc', stroke: '#64748b', lw: .4, r: 2, dash: [2, 1.2] });
+          drawBeads(p, L, stats, t, px + PLATE_EDGE, py + PLATE_EDGE, pitch, { numPad: PLATE_EDGE + .6 });
+          // プレートの ならび（ちいさな ず）
+          if (L.cols * L.rows > 1) {
+            const mw = 6, mx = 10, my = 31;
+            for (let r = 0; r < L.rows; r++) for (let c = 0; c < L.cols; c++) p.rect(mx + c * mw, my + r * mw * .9, mw - .8, mw * .9 - .8, { fill: (r === t.pr && c === t.pc) ? '#16a34a' : '#e2e8f0', r: .8 });
+          }
+          let y = py + ph + 6;
+          y += legend(p, stats, 20, y, 170, 3) + 2;
+          // ものさし（いんさつの 大きさの たしかめ）
+          const ry = Math.max(y + 6, 276);
+          p.line(55, ry, 155, ry, { stroke: '#111827', lw: .5 });
+          for (let i = 0; i <= 10; i++) p.line(55 + i * 10, ry - (i % 5 === 0 ? 3 : 1.8), 55 + i * 10, ry, { stroke: '#111827', lw: .35 });
+          p.text(105, ry + 5, 'この せんが 10cm なら、じっさいの おおきさで いんさつ できています', { s: 3.2, align: 'center', fill: '#475569' });
+          p.text(105, ry + 10, `ピンの あいだ ${pitch}mm・ピン ${L.W}×${L.H}`, { s: 2.8, align: 'center', fill: '#94a3b8' });
+          pages.push(p);
+        });
+      }
+
+      // ③〜⑤ 大きい みほん
+      const R = contentRegion(L);
+      const big = (focus, rowsCheck) => {
+        const out = [];
+        const top = 36, availW = 297 - 24 - (rowsCheck ? 26 : 0), availH = 210 - top - (rowsCheck ? 26 : 28);
+        splitRegion(R, Math.floor(availW / 6), Math.floor(availH / 6)).forEach(part => {
+          const cell = Math.min(13, availW / part.cols, availH / part.rows);
+          const gw = cell * part.cols, gh = cell * part.rows;
+          const p = mkPage(true);
+          const ox = 16 + (availW - gw) / 2, oy = top + 2;
+          out.push({ p, part, cell, ox, oy, gw, gh });
+        });
+        return out;
+      };
+      if (kinds.big) {
+        big(null, false).forEach(({ p, part, cell, ox, oy, gh }) => {
+          sheetHeader(p, kid, 'ビーズの みほん（おおきい みほん）', 'まるの なかの ばんごうが ビーズの いろです。' + (part.part ? `（${part.part}）` : ''));
+          drawBeads(p, L, stats, part, ox, oy, cell, { guides: true });
+          legend(p, stats, 14, Math.max(oy + gh + 4, 186), 269, 5);
+          pages.push(p);
+        });
+      }
+      if (kinds.color) {
+        stats.forEach((st, si) => {
+          big(st.key, false).forEach(({ p, part, cell, ox, oy, gh }) => {
+            sheetHeader(p, kid, `1いろずつ おこう（${si + 1}/${stats.length}）`, 'こい いろの ところに ビーズを おこう。' + (part.part ? `（${part.part}）` : ''));
+            // いま おく いろ
+            p.circle(136, 14, 7, { fill: st.hex, stroke: shade(st.hex, -0.35), lw: .4 });
+            p.text(136, 14.2, st.num, { s: 6.5, bold: true, align: 'center', fill: inkOn(st.hex) });
+            p.text(146, 11, `${st.name} を ${st.count}こ`, { s: 5.2, bold: true });
+            p.rect(146, 17.5, 6, 6, { stroke: '#334155', lw: .5, r: .8 });
+            p.text(154, 20.6, 'おいたら ✓', { s: 3.6, fill: '#475569' });
+            drawBeads(p, L, stats, part, ox, oy, cell, { guides: true, focus: st.key });
+            legend(p, stats, 14, Math.max(oy + gh + 4, 186), 269, 5, st.key);
+            pages.push(p);
+          });
+        });
+      }
+      if (kinds.rows) {
+        big(null, true).forEach(({ p, part, cell, ox, oy, gw, gh }) => {
+          sheetHeader(p, kid, 'ビーズの みほん（1ぎょうずつ）', 'うえから 1ぎょうずつ おこう。おわったら ☐ に ✓ を つけよう。' + (part.part ? `（${part.part}）` : ''));
+          for (let r = 0; r < part.rows; r++) if (r % 2 === 1) p.rect(ox - 6, oy + r * cell, gw + 34, cell, { fill: '#f1f5f9' });
+          drawBeads(p, L, stats, part, ox, oy, cell, { guides: true });
+          const bs = Math.min(cell * .8, 6.5);
+          for (let r = 0; r < part.rows; r++) {
+            const gy = part.y0 + r; let n = 0;
+            for (let c = 0; c < part.cols; c++) { const gx = part.x0 + c; if (L.cells[gy * L.W + gx] != null) n++; }
+            if (!n) continue;
+            const cy = oy + (r + .5) * cell;
+            p.text(ox + gw + 12, cy, n + 'こ', { s: Math.min(3.6, cell * .55), align: 'right', fill: '#334155' });
+            p.rect(ox + gw + 15, cy - bs / 2, bs, bs, { stroke: '#334155', lw: .45, r: .8, fill: '#fff' });
+          }
+          legend(p, stats, 14, Math.max(oy + gh + 4, 186), 269, 5);
+          pages.push(p);
+        });
+      }
+      return pages;
+    }
+
+    // SVG に する（画面と 印刷）
+    function pageSVG(p) {
+      const o = p.ops.map(op => {
+        if (op.t === 'rect') return `<rect x="${op.x}" y="${op.y}" width="${op.w}" height="${op.h}" rx="${op.r || 0}" fill="${op.fill || 'none'}" ${op.stroke ? `stroke="${op.stroke}" stroke-width="${op.lw || .3}"` : ''} ${op.dash ? `stroke-dasharray="${op.dash.join(' ')}"` : ''}/>`;
+        if (op.t === 'circle') return `<circle cx="${op.cx.toFixed(2)}" cy="${op.cy.toFixed(2)}" r="${op.r.toFixed(2)}" fill="${op.fill || 'none'}" ${op.stroke ? `stroke="${op.stroke}" stroke-width="${op.lw || .3}"` : ''}/>`;
+        if (op.t === 'line') return `<line x1="${op.x1}" y1="${op.y1}" x2="${op.x2}" y2="${op.y2}" stroke="${op.stroke || '#000'}" stroke-width="${op.lw || .3}" ${op.dash ? `stroke-dasharray="${op.dash.join(' ')}"` : ''}/>`;
+        if (op.t === 'text') return `<text x="${op.x.toFixed(2)}" y="${op.y.toFixed(2)}" font-size="${op.s}" font-weight="${op.bold ? 700 : 400}" fill="${op.fill}" text-anchor="${op.align === 'center' ? 'middle' : op.align === 'right' ? 'end' : 'start'}" dominant-baseline="central">${esc(op.text)}</text>`;
+        if (op.t === 'nijii') return nijiiSVG('#4ade80').replace('<svg ', `<svg x="${op.x}" y="${op.y}" width="${op.w}" height="${op.h}" `);
+        return '';
+      }).join('');
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${p.w} ${p.h}" width="${p.w}mm" height="${p.h}mm" font-family="'BIZ UDPGothic', sans-serif"><rect width="${p.w}" height="${p.h}" fill="#fff"/>${o}</svg>`;
+    }
+
+    // PDF に する（jsPDF。図形は mm の まま かくので、大きさが ずれません）
+    let jsPdfLoading = null;
+    function loadJsPDF() {
+      if (window.jspdf) return Promise.resolve();
+      if (!jsPdfLoading) jsPdfLoading = new Promise((res, rej) => {
+        const s = document.createElement('script'); s.src = 'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js';
+        s.onload = () => res(); s.onerror = () => { jsPdfLoading = null; rej(new Error('jsPDF')); };
+        document.head.appendChild(s);
+      });
+      return jsPdfLoading;
+    }
+    async function svgToPng(svg, w, h) {
+      const img = new Image();
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      await img.decode();
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      return c.toDataURL('image/png');
+    }
+    async function makePDF(pages, filename) {
+      await loadJsPDF();
+      try { await Promise.all([document.fonts.load('700 20px "BIZ UDPGothic"'), document.fonts.load('400 20px "BIZ UDPGothic"')]); } catch (e) { /* なくても つづける */ }
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: pages[0].land ? 'landscape' : 'portrait', compress: true });
+      const nijiiPng = await svgToPng(nijiiSVG('#4ade80'), 660, 444);
+      const K = 12; // 1mm あたりの 画素（もじを 画像に する とき）
+      const cache = {}; let nimg = 0;
+      const ctx = document.createElement('canvas').getContext('2d');
+      const textImg = (op) => {
+        const key = [op.text, op.s, op.bold ? 1 : 0, op.fill].join('|');
+        if (cache[key]) return cache[key];
+        const font = `${op.bold ? 700 : 400} ${op.s * K}px "BIZ UDPGothic", "IPAPGothic", sans-serif`;
+        ctx.font = font;
+        const w = Math.ceil(ctx.measureText(op.text).width) + 4, h = Math.ceil(op.s * K * 1.35);
+        const c = document.createElement('canvas'); c.width = w; c.height = h;
+        const x = c.getContext('2d'); x.font = font; x.fillStyle = op.fill; x.textBaseline = 'middle'; x.fillText(op.text, 2, h / 2);
+        return (cache[key] = { url: c.toDataURL('image/png'), w: w / K, h: h / K, alias: 't' + (nimg++) });
+      };
+      pages.forEach((p, i) => {
+        if (i) doc.addPage('a4', p.land ? 'landscape' : 'portrait');
+        p.ops.forEach(op => {
+          const style = op.fill && op.fill !== 'none' ? (op.stroke ? 'FD' : 'F') : 'S';
+          if (op.fill && op.fill !== 'none') doc.setFillColor(op.fill);
+          if (op.stroke) { doc.setDrawColor(op.stroke); doc.setLineWidth(op.lw || .3); }
+          doc.setLineDashPattern(op.dash || [], 0);
+          if (op.t === 'rect') { if (op.r) doc.roundedRect(op.x, op.y, op.w, op.h, op.r, op.r, style); else doc.rect(op.x, op.y, op.w, op.h, style); }
+          else if (op.t === 'circle') doc.circle(op.cx, op.cy, op.r, style);
+          else if (op.t === 'line') { doc.setDrawColor(op.stroke || '#000000'); doc.setLineWidth(op.lw || .3); doc.line(op.x1, op.y1, op.x2, op.y2); }
+          else if (op.t === 'text') {
+            if (/^[\x20-\x7e]*$/.test(op.text)) {
+              doc.setFont('helvetica', op.bold ? 'bold' : 'normal'); doc.setFontSize(op.s * 72 / 25.4); doc.setTextColor(op.fill);
+              doc.text(op.text, op.x, op.y, { align: op.align === 'center' ? 'center' : op.align === 'right' ? 'right' : 'left', baseline: 'middle' });
+            } else {
+              const im = textImg(op);
+              const x = op.align === 'center' ? op.x - im.w / 2 : op.align === 'right' ? op.x - im.w + 2 / K : op.x - 2 / K;
+              doc.addImage(im.url, 'PNG', x, op.y - im.h / 2, im.w, im.h, im.alias, 'FAST');
+            }
+          } else if (op.t === 'nijii') doc.addImage(nijiiPng, 'PNG', op.x, op.y, op.w, op.h, 'nijii', 'FAST');
+        });
+        doc.setLineDashPattern([], 0);
+      });
+      download(filename, doc.output('blob'));
+      return doc;
+    }
+
+    /* =========================================================
+       ちいさな 部品
+       ========================================================= */
+    function Btn({ color = 'sky', size = 'md', className = '', children, ...rest }) {
+      return <button className={`btn3d c-${color} s-${size} ${className}`} {...rest}>{children}</button>;
+    }
+    function Modal({ children, onClose }) {
+      return <div className="modal" onClick={e => { if (e.target === e.currentTarget && onClose) onClose(); }}><div>{children}</div></div>;
+    }
+    function Talk({ text, color, mood, onAgain }) {
+      const [talking, setTalking] = useState(false);
+      const say = () => { setTalking(true); TTS.speak(text).then(() => setTalking(false)); };
+      useEffect(() => { const t = setTimeout(say, 250); return () => { clearTimeout(t); TTS.cancel(); }; }, [text]);
+      return (
+        <div className="talk">
+          <div className="chara" onClick={say} title="もういちど きく"><Nijii color={color} mood={mood || (talking ? 'open' : 'smile')} talking={talking} /></div>
+          <div className="grow">
+            <div className="bubble">{text}</div>
+            <button className="tbtn again" onClick={say} style={{ fontSize: '1rem', color: '#0369a1' }}>🔊 もういちど</button>
+          </div>
+        </div>
+      );
+    }
+    function PinPad({ onSuccess, onClose, check }) {
+      const [digitsIn, setDigits] = useState('');
+      const [shake, setShake] = useState(false);
+      const press = (d) => {
+        if (digitsIn.length >= 4) return;
+        const v = digitsIn + d;
+        setDigits(v);
+        if (v.length === 4) {
+          setTimeout(() => {
+            if (check(v)) onSuccess();
+            else { sfx('ng'); setShake(true); setTimeout(() => { setShake(false); setDigits(''); }, 450); }
+          }, 150);
+        }
+      };
+      return (
+        <Modal onClose={onClose}>
+          <div className={`card tc ${shake ? 'shake' : ''}`} style={{ maxWidth: 380, margin: '0 auto' }}>
+            <div className="bold" style={{ fontSize: '1.5rem' }}>🔐 先生用の画面</div>
+            <div className="muted" style={{ marginBottom: '.8rem' }}>4けたの暗証番号を入れてください</div>
+            <div className="row center" style={{ marginBottom: '1rem' }}>
+              {[0, 1, 2, 3].map(i => <span key={i} style={{ width: 22, height: 22, borderRadius: 99, border: '2px solid #334155', background: i < digitsIn.length ? '#334155' : 'transparent' }} />)}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '.5rem' }}>
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(d => <Btn key={d} color="white" size="lg" onClick={() => press(d)} data-pin={d}>{d}</Btn>)}
+              <Btn color="white" size="lg" onClick={() => setDigits(s => s.slice(0, -1))}>⌫</Btn>
+              <Btn color="white" size="lg" onClick={() => press('0')} data-pin="0">0</Btn>
+              <Btn color="slate" size="lg" onClick={onClose}>✕</Btn>
+            </div>
+          </div>
+        </Modal>
+      );
+    }
+
+    /* =========================================================
+       はじめての 設定
+       ========================================================= */
+    function SetupScreen({ onDone }) {
+      const [pin, setPin] = useState(''); const [pin2, setPin2] = useState(''); const [err, setErr] = useState('');
+      const submit = () => {
+        if (!/^\d{4}$/.test(pin)) return setErr('暗証番号は4けたの数字にしてください。');
+        if (pin !== pin2) return setErr('確認用の暗証番号が一致しません。');
+        onDone({ pin: hashPin(pin), createdAt: Date.now() });
+      };
+      return (
+        <div className="wrap" style={{ maxWidth: 820 }}>
+          <div className="card">
+            <div className="row" style={{ marginBottom: '1rem' }}>
+              <div style={{ width: 150 }}><Nijii /></div>
+              <div>
+                <div className="bold" style={{ fontSize: '1.6rem' }}>ニジーせんせいの ビーズ こうぼう</div>
+                <div className="muted">はじめに、先生が設定をします。</div>
+              </div>
+            </div>
+            <ol style={{ lineHeight: 1.9, fontSize: '1.05rem' }}>
+              <li>先生用の暗証番号（4けたの数字）を決めます。</li>
+              <li>このあと、右上の「🔐 せんせい」から、子どもの名前（ひらがな）とプレートの大きさを入れます。</li>
+            </ol>
+            <div className="fields" style={{ marginTop: '.5rem' }}>
+              <label className="field">先生用の暗証番号（4けた）<input type="text" inputMode="numeric" maxLength={4} value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, ''))} data-t="pin1" /></label>
+              <label className="field">暗証番号（確認）<input type="text" inputMode="numeric" maxLength={4} value={pin2} onChange={e => setPin2(e.target.value.replace(/\D/g, ''))} data-t="pin2" /></label>
+            </div>
+            {err && <p className="warn">{err}</p>}
+            <div style={{ marginTop: '1rem' }}><Btn color="green" size="lg" onClick={submit} data-t="setup-ok">はじめる</Btn></div>
+          </div>
+        </div>
+      );
+    }
+
+    /* =========================================================
+       ホーム（なまえを えらぶ）
+       ========================================================= */
+    function HomeScene() {
+      const jars = ['#ef4444', '#f97316', '#facc15', '#84cc16', '#38bdf8', '#2563eb', '#a855f7', '#f9a8d4'];
+      const heart = ['.RR.RR.', 'RRRRRRR', 'RRRRRRR', '.RRRRR.', '..RRR..', '...R...'];
+      return (
+        <svg viewBox="0 0 800 520">
+          <defs>
+            <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#e0f2fe" /><stop offset="1" stopColor="#f5f3ff" /></linearGradient>
+          </defs>
+          <rect width="800" height="520" fill="url(#wall)" />
+          {/* にじ */}
+          {['#ef4444', '#f97316', '#facc15', '#22c55e', '#38bdf8', '#6366f1', '#a855f7'].map((c, i) => <path key={c} d={`M ${120 + i * 14} 300 A ${280 - i * 14} ${230 - i * 14} 0 0 1 ${680 - i * 14} 300`} fill="none" stroke={c} strokeWidth="14" opacity=".35" />)}
+          {/* かんばん */}
+          <rect x="250" y="22" width="300" height="62" rx="18" fill="#fff" stroke="#a78bfa" strokeWidth="6" />
+          <text x="400" y="64" textAnchor="middle" fontSize="34" fontWeight="700" fill="#6d28d9">ビーズ こうぼう</text>
+          {/* たな と びん */}
+          <rect x="40" y="150" width="300" height="12" rx="6" fill="#b45309" />
+          <rect x="460" y="150" width="300" height="12" rx="6" fill="#b45309" />
+          {jars.map((c, i) => {
+            const x = (i < 4 ? 52 : 472) + (i % 4) * 72;
+            return (
+              <g key={i}>
+                <rect x={x} y="92" width="58" height="58" rx="12" fill="rgba(255,255,255,.7)" stroke="#94a3b8" strokeWidth="3" />
+                <rect x={x + 8} y="84" width="42" height="12" rx="4" fill="#64748b" />
+                {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(j => <circle key={j} cx={x + 12 + (j % 3) * 17} cy={112 + Math.floor(j / 3) * 13} r="6.5" fill={c} stroke={shade(c, -.25)} strokeWidth="1.5" />)}
+              </g>
+            );
+          })}
+          {/* つくえ と プレート */}
+          <rect x="0" y="400" width="800" height="120" fill="#fde68a" />
+          <rect x="0" y="396" width="800" height="10" fill="#f59e0b" />
+          <g transform="translate(470 290) skewX(-12)">
+            <rect x="0" y="0" width="190" height="130" rx="10" fill="#e0f2fe" stroke="#7dd3fc" strokeWidth="4" />
+            {Array.from({ length: 9 * 13 }).map((_, i) => { const c = i % 13, r = Math.floor(i / 13); const hr = r - 1, hc = c - 3; const on = hr >= 0 && hr < heart.length && hc >= 0 && hc < 7 && heart[hr][hc] === 'R'; return <circle key={i} cx={14 + c * 13.5} cy={12 + r * 13.5} r={on ? 6 : 2.2} fill={on ? '#f43f5e' : '#94a3b8'} />; })}
+          </g>
+          <g transform="translate(70 230)"><g dangerouslySetInnerHTML={{ __html: nijiiSVG('#4ade80').replace('<svg ', '<svg width="360" height="242" ') }} /></g>
+          {/* ビーズの つぶ */}
+          {[[380, 450, '#ef4444'], [410, 470, '#facc15'], [440, 448, '#38bdf8'], [700, 460, '#a855f7'], [730, 440, '#84cc16']].map(([x, y, c], i) => <g key={i}><circle cx={x} cy={y} r="11" fill={c} /><circle cx={x} cy={y} r="4" fill="#fff" opacity=".8" /></g>)}
+        </svg>
+      );
+    }
+    function Home({ state, onPick }) {
+      const kids = state.kids;
+      return (
+        <div className="home">
+          <div className="home-scene"><HomeScene /></div>
+          <div className="col">
+            <Talk text={kids.length ? 'ようこそ！ ニジーせんせいの ビーズ こうぼう だよ。じぶんの なまえを おしてね。' : 'せんせい、みんなの なまえを いれてね。みぎうえの「せんせい」を おしてね。'} />
+            {kids.length > 0 && (
+              <div className="names">
+                {kids.map((k, i) => (
+                  <Btn key={k.id} color={['sky', 'green', 'orange', 'violet', 'red', 'amber'][i % 6]} className="namebtn" onClick={() => onPick(k.id)} data-kid={cleanName(k.name)}>
+                    {cleanName(k.name)}
+                    {k.design && k.design.doneAt ? <small>✓ できた</small> : <small>&nbsp;</small>}
+                  </Btn>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    /* =========================================================
+       つくる（② もじの いろ → ③ まわりの いろ → ④ かざり → ⑤ できあがり）
+       ========================================================= */
+    const STEP_NAMES = ['なまえ', 'もじの いろ', 'まわりの いろ', 'かざり', 'できあがり'];
+    function Palette({ S, value, onPick, ng = new Set(), small }) {
+      const en = S.colors.filter(c => c.on);
+      return (
+        <div className="palette">
+          {en.map(c => (
+            <button key={c.key} className={`pbtn ${value === c.key ? 'on' : ''} ${ng.has(c.key) ? 'ng' : ''}`} onClick={() => onPick(c.key)} data-color={c.key}>
+              <span className={`bead ${small ? 'mini' : ''}`} style={{ background: c.hex }} />
+              {value === c.key && <span className="chk">✓</span>}
+              <span>{c.name}</span>
+            </button>
+          ))}
+        </div>
+      );
+    }
+    function Maker({ kid, S, onChange, onHome }) {
+      const D = kid.design;
+      const step = Math.min(5, Math.max(2, D.step || 2));
+      const L = useMemo(() => computeLayout(kid, S), [kid, S]);
+      const [sel, setSel] = useState('h0');
+      const [slot, setSlot] = useState(0);
+      const [msg, setMsg] = useState('');
+      const setD = (patch) => onChange({ ...kid, design: { ...kid.design, ...patch } });
+      const go = (n) => { TTS.cancel(); setMsg(''); setD({ step: n, ...(n === 5 ? { doneAt: Date.now() } : {}) }); };
+      useEffect(() => { if (step === 5) { sfx('done'); confetti(); } }, [step]);
+      const stats = useMemo(() => colorStats(L, S), [L, S]);
+      const items = useMemo(() => {
+        const a = hiraItems(kid).map((ch, i) => ({ id: 'h' + i, label: ch }));
+        if (kid.lines === 'both') a.push({ id: 'r', label: 'ローマじ' });
+        if (kid.lines === 'roma') [...romaFor(kid).replace(/ /g, '')].forEach((ch, i) => a.push({ id: 'r' + i, label: ch }));
+        if (kid.lines === 'roma') return a.filter(x => x.id[0] === 'r');
+        return a;
+      }, [kid]);
+      const used = textKeys(kid);
+      const outline = D.outline || defaultOutline(kid, S);
+      const bodyHex = colorInfo(step === 3 ? outline : (D.mode === 'each' ? (D.items[sel] || D.text) : D.text), S).hex;
+      const hl = step === 2 && D.mode === 'each' ? (L.items.find(it => it.id === sel) || (sel === 'r' ? (() => { const rs = L.items.filter(it => it.id[0] === 'r'); if (!rs.length) return null; const x = Math.min(...rs.map(r => r.x)), y = rs[0].y; return { x, y, w: Math.max(...rs.map(r => r.x + r.w)) - x, h: rs[0].h }; })() : null)) : null;
+      const hlBox = hl ? { x: hl.x, y: hl.y, w: hl.w, h: hl.h } : null;
+      const colorName = (k) => colorInfo(k, S).name;
+
+      let talk = '', body = null;
+      if (step === 2) {
+        talk = D.mode === 'each' ? 'いろを かえたい もじを おしてから、すきな いろを えらんでね。' : 'なまえの もじは なにいろに する？ すきな いろを えらんでね。';
+        const pick = (k) => {
+          sfx('put'); TTS.speak(colorName(k));
+          if (D.mode === 'each') setD({ items: { ...D.items, [sel]: k } }); else setD({ text: k });
+        };
+        body = (
+          <>
+            <div className="tabs2">
+              <Btn color={D.mode === 'same' ? 'green' : 'white'} size="md" onClick={() => { setD({ mode: 'same' }); TTS.speak('ぜんぶ おなじ いろ'); }} data-t="mode-same">ぜんぶ おなじ いろ</Btn>
+              <Btn color={D.mode === 'each' ? 'green' : 'white'} size="md" onClick={() => { setD({ mode: 'each', items: Object.keys(D.items).length ? D.items : {} }); TTS.speak('1もじずつ'); }} data-t="mode-each">1もじずつ</Btn>
+            </div>
+            {D.mode === 'each' && (
+              <>
+                <div className="chips">
+                  {items.map(it => {
+                    const k = D.items[it.id] || (it.id[0] === 'r' && D.items.r) || D.text; const hex = colorInfo(k, S).hex;
+                    return <Btn key={it.id} color="white" className={`chip ${sel === it.id ? 'on' : ''}`} style={{ color: shade(hex, lum(hex) > .75 ? -.45 : 0), fontSize: it.label.length > 2 ? '1.1rem' : undefined }} onClick={() => { setSel(it.id); TTS.speak(it.id === 'r' ? 'ローマじ' : it.label); }} data-item={it.id}>{it.label}</Btn>;
+                  })}
+                </div>
+                <div><Btn color="violet" size="sm" onClick={() => { const en = S.colors.filter(c => c.on).map(c => c.key); const rb = RAINBOW.filter(k => en.includes(k)); const it2 = {}; items.forEach((it, i) => { it2[it.id] = rb[i % rb.length]; }); setD({ items: it2 }); sfx('put'); TTS.speak('にじいろ'); }} data-t="rainbow">🌈 にじいろ</Btn></div>
+              </>
+            )}
+            <Palette S={S} value={D.mode === 'each' ? (D.items[sel] || (sel[0] === 'r' && D.items.r) || D.text) : D.text} onPick={pick} />
+          </>
+        );
+      } else if (step === 3) {
+        const fill = kid.shape === 'fill';
+        talk = msg || (fill ? 'うしろを うめる ビーズの いろを えらんでね。' : 'もじの まわりを かこむ ビーズの いろを えらんでね。');
+        body = (
+          <>
+            <div className="bold" style={{ fontSize: '1.2rem', color: '#6d28d9' }}>{fill ? 'うしろの いろ' : 'まわりの いろ（ふちどり）'}</div>
+            <Palette S={S} value={outline} ng={used} onPick={(k) => {
+              if (used.has(k)) { sfx('ng'); const m = 'もじと おなじ いろだと、もじが よめなく なるよ。ほかの いろに しよう。'; setMsg(m); if (m === msg) TTS.speak(m); return; }
+              sfx('put'); TTS.speak(colorName(k)); setMsg(''); setD({ outline: k });
+            }} />
+          </>
+        );
+      } else if (step === 4) {
+        const n = slotCount(kid, S, false);
+        const nf = slotCount(kid, S, true);
+        const frameOk = !!fitInfo(kid, S, D.decos, true);
+        talk = msg || (n === 0 ? 'この プレートには かざりが はいらないよ。わくを つけるか、そのまま つぎへ すすもう。' : n === 1 ? 'かざりを 1つ えらべるよ。' : 'かざりを 2つまで えらべるよ。おきたい ばしょを おしてから えらんでね。');
+        const curSlot = Math.min(slot, Math.max(0, n - 1));
+        const pick = (id) => {
+          if (!n) return;
+          const dd = [...D.decos]; dd[curSlot] = id;
+          if (D.frame && !fitInfo(kid, S, dd, true)) { setD({ decos: dd, frame: false }); setMsg('かざりを いれたので、わくは はずしたよ。'); }
+          else {
+            const before = L.sz, k2 = { ...kid, design: { ...D, decos: dd } };
+            const after = computeLayout(k2, S);
+            setD({ decos: dd });
+            setMsg(after.shrunk && !L.shrunk ? 'かざりが はいるように、なまえを すこし ちいさく したよ。' : '');
+          }
+          const same = DECOS[id].px.join('').split('').filter(ch => ch !== '.' && nearestKey(DCOL[ch], S, S.colors.filter(c => c.on)) === outline).length;
+          if (same > DECOS[id].px.join('').replace(/\./g, '').length * 0.3) setMsg((kid.shape === 'fill' ? 'うしろ' : 'まわり') + 'と おなじ いろの ところは、みえにくく なるよ。');
+          sfx('put'); TTS.speak(DECOS[id].name.replace(/（.*）/, ''));
+          if (n > 1 && curSlot === 0 && !D.decos[1]) setSlot(1);
+        };
+        body = (
+          <>
+            {n > 0 && (
+              <div className="slots">
+                {Array.from({ length: n }).map((_, i) => (
+                  <div key={i} className={`slot ${curSlot === i ? 'on' : ''}`} onClick={() => setSlot(i)} data-slot={i}>
+                    <span>{n === 1 ? 'かざり' : (i === 0 ? '1つめ' : '2つめ')}</span>
+                    {D.decos[i] ? <DecoIcon id={D.decos[i]} S={S} /> : <span className="muted">（なし）</span>}
+                    {D.decos[i] && <button className="tbtn x" onClick={(e) => { e.stopPropagation(); const dd = [...D.decos]; dd[i] = null; setD({ decos: dd }); setMsg(''); }}>✕ はずす</button>}
+                  </div>
+                ))}
+              </div>
+            )}
+            {n > 0 && DECO_GROUPS.map(g => (
+              <div key={g.name}>
+                <div className="dgroup">{g.name}</div>
+                <div className="decos">
+                  {g.items.map(it => <Btn key={it.id} color="white" className="dbtn" onClick={() => pick(it.id)} data-deco={it.id}><DecoIcon id={it.id} S={S} /><span>{it.name}</span></Btn>)}
+                </div>
+              </div>
+            ))}
+            <div className="dgroup">わく</div>
+            <div className="row wrapflex">
+              <Btn color={D.frame ? 'green' : 'white'} size="md" disabled={!D.frame && !frameOk} onClick={() => { const on = !D.frame; setD({ frame: on }); sfx('put'); TTS.speak(on ? 'わくを つけたよ' : 'わくを はずしたよ'); }} data-t="frame">{D.frame ? '✓ わく あり' : 'わく なし'}</Btn>
+              {!D.frame && !frameOk && <span className="muted small">{nf === 0 && n === 0 ? 'この プレートには わくが はいりません' : 'かざりを へらすと わくが つけられるよ'}</span>}
+            </div>
+            {D.frame && <Palette S={S} small value={D.frameColor || [...used][0]} onPick={(k) => { sfx('put'); TTS.speak(colorName(k)); setD({ frameColor: k }); }} />}
+          </>
+        );
+      } else {
+        talk = L.ok ? `できたね！ すてきな ネームプレートだね。ビーズは ぜんぶで ${stats.reduce((a, s) => a + s.count, 0)}こ つかうよ。せんせいに みせてね。` : 'なまえが プレートに はいらないよ。せんせいに プレートを ふやして もらおう。';
+        body = (
+          <>
+            <div className="counts">
+              {stats.map(s => <div key={s.key} className="cnt"><span className="bead mini" style={{ background: s.hex, width: '2rem', height: '2rem' }} /><span className="grow">{s.name}</span><span>{s.count}こ</span></div>)}
+            </div>
+            <div className="row wrapflex" style={{ marginTop: '.4rem' }}>
+              <Btn color="sky" size="md" onClick={() => go(2)}>🎨 いろを かえる</Btn>
+              <Btn color="green" size="lg" onClick={onHome} data-t="finish">🏠 おわる</Btn>
+            </div>
+          </>
+        );
+      }
+
+      return (
+        <div className="stage">
+          <div className="boardcard">
+            <div className="steps">
+              {STEP_NAMES.map((n, i) => <span key={n} className={`step ${i + 1 === step ? 'now' : i + 1 < step ? 'done' : ''}`}>{'①②③④⑤'[i]} {n}</span>)}
+            </div>
+            <div className="boardbox"><BoardSVG L={L} S={S} highlight={hlBox} /></div>
+            {!L.ok && <div className="warn tc" style={{ padding: '.3rem' }}>なまえが プレートに はいりません（先生：プレートを ふやしてください）</div>}
+          </div>
+          <div className="panel">
+            <Talk text={talk} color={bodyHex} mood={step === 5 ? 'open' : undefined} />
+            {body}
+            <div className="navrow">
+              <Btn color="white" size="lg" onClick={() => step === 2 ? onHome() : go(step - 1)} data-t="back">◀ もどる</Btn>
+              {step < 5 && <Btn color="amber" size="lg" onClick={() => go(step + 1)} disabled={step === 3 && used.has(outline)} data-t="next">つぎへ ▶</Btn>}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* =========================================================
+       先生用画面
+       ========================================================= */
+    function sizeLabel(sz) {
+      if (!sz) return '';
+      const n = v => v === 2 ? '大' : v === 't' ? 'いちばん小（たて5マス）' : '小';
+      if (sz.h && sz.r) return `ひらがな ${n(sz.h)}・ローマ字 ${n(sz.r)}`;
+      return n(sz.h || sz.r);
+    }
+    function KidEditor({ kid, S, onChange, onDelete, onPrint }) {
+      const L = useMemo(() => computeLayout(kid, S), [kid, S]);
+      const set = (patch) => onChange({ ...kid, ...patch });
+      const autoRoma = toRomaji(kid.name);
+      const { cols, rows } = boardSize(kid, S);
+      return (
+        <div className="kidrow">
+          <div>
+            <div className="thumb"><BoardSVG L={L} S={S} /></div>
+            <div className="small tc" style={{ marginTop: '.2rem' }}>{kid.design.doneAt ? <span className="ok">✓ できた</span> : <span className="muted">まだ</span>}</div>
+          </div>
+          <div className="col" style={{ gap: '.4rem' }}>
+            <div className="fields">
+              <label className="field">名前（ひらがな）<input type="text" value={kid.name} onChange={e => set({ name: e.target.value })} style={{ width: 160 }} /></label>
+              <label className="field">ローマ字（空欄なら自動：{autoRoma || '—'}）<input type="text" value={kid.roma || ''} placeholder={autoRoma} onChange={e => set({ roma: e.target.value.replace(/[^A-Za-z ]/g, '') })} style={{ width: 180 }} /></label>
+              <label className="field">ローマ字の形<select value={kid.caseMode} onChange={e => set({ caseMode: e.target.value })}><option value="upper">大文字（TARO）</option><option value="cap">はじめだけ大文字（Taro）</option></select></label>
+            </div>
+            <div className="fields">
+              <label className="field">文字<select value={kid.lines} onChange={e => set({ lines: e.target.value })}><option value="hira">ひらがなだけ</option><option value="roma">ローマ字だけ</option><option value="both">2段（ひらがな＋ローマ字）</option></select></label>
+              <label className="field">文字の大きさ<select value={kid.size} onChange={e => set({ size: e.target.value })}><option value="auto">自動</option><option value="big">大（14マス）</option><option value="small">小（7マス）</option></select></label>
+              <label className="field">形<select value={kid.shape} onChange={e => set({ shape: e.target.value })}><option value="outline">ふちどり</option><option value="fill">背景をうめる</option></select></label>
+              <label className="field">プレート（よこ×たて）<select value={kid.plateCols ? `${kid.plateCols}x${kid.plateRows}` : ''} onChange={e => { const v = e.target.value; if (!v) set({ plateCols: null, plateRows: null }); else { const [c, r] = v.split('x').map(Number); set({ plateCols: c, plateRows: r }); } }}>
+                <option value="">ふだんの設定（{S.plateCols}×{S.plateRows}まい）</option>
+                {['1x1', '2x1', '3x1', '1x2', '2x2', '3x2'].map(v => <option key={v} value={v}>{v.replace('x', '×')}まい</option>)}
+              </select></label>
+            </div>
+            <div className="small">
+              {L.ok ? <span>文字：{sizeLabel(L.sz)}　プレート {cols}×{rows}まい（ピン {L.W}×{L.H}）{L.shrunk ? '　※かざりのため文字を小さくしています' : ''}</span>
+                : <span className="warn">⚠ 名前がプレートに入りません。プレートをふやすか、文字を「小」、または「ひらがなだけ」にしてください。</span>}
+              {!cleanName(kid.name) && <span className="warn">　⚠ 名前はひらがなで入れてください。</span>}
+            </div>
+            <div className="row wrapflex">
+              <Btn color="sky" size="sm" onClick={() => onPrint(kid.id)}>🖨 見本を見る・印刷・PDF</Btn>
+              <Btn color="white" size="sm" onClick={() => { if (confirm(`${kid.name} さんの作品（色・かざり）をはじめにもどします。よろしいですか？`)) set({ design: newDesign() }); }}>作品をリセット</Btn>
+              <Btn color="red" size="sm" onClick={() => { if (confirm(`${kid.name} さんを名簿から消します。よろしいですか？`)) onDelete(kid.id); }}>名簿から消す</Btn>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    function Teacher({ state, update, onClose, onPrint }) {
+      const [tab, setTab] = useState('kids');
+      const [newName, setNewName] = useState('');
+      const [msg, setMsg] = useState('');
+      const S = state.settings;
+      const setS = (patch) => update(st => ({ ...st, settings: { ...st.settings, ...patch } }));
+      const [unsel, setUnsel] = useState(() => new Set()); // えらばない 子（はじめは 全員 えらぶ）
+      const sel = new Set(state.kids.filter(k => !unsel.has(k.id)).map(k => k.id));
+      const [kinds, setKinds] = useState({ table: true, real: true, big: true, color: true, rows: true });
+      const [pin, setPin] = useState(''); const [pin2, setPin2] = useState('');
+      const [cname, setCname] = useState(''); const [chex, setChex] = useState('#9ca3af');
+      const addKid = () => {
+        const n = cleanName(newName);
+        if (!n) return setMsg('名前をひらがなで入れてください。');
+        update(st => ({ ...st, kids: [...st.kids, newKid(n, st.settings)] })); setNewName(''); setMsg(`「${n}」を追加しました。`);
+      };
+      const plateMM = (n) => (n * (Number(S.pitch) || 5) + 2 * PLATE_EDGE).toFixed(1);
+      const TABS = [['kids', '👧 名簿と作品'], ['plate', '🟦 プレート'], ['colors', '🎨 ビーズの色'], ['print', '🖨 印刷・PDF'], ['settings', '⚙️ 設定'], ['data', '💾 データ']];
+      return (
+        <div className="wrap" style={{ maxWidth: 1100 }}>
+          <div className="row between" style={{ marginBottom: '.6rem' }}>
+            <div className="bold" style={{ fontSize: '1.5rem' }}>🔐 先生用の画面</div>
+            <Btn color="slate" size="md" onClick={onClose} data-t="t-close">✕ 子どもの画面にもどる</Btn>
+          </div>
+          <div className="tabs">{TABS.map(([k, n]) => <Btn key={k} color="white" size="sm" className={`tab ${tab === k ? 'on' : ''}`} onClick={() => { setTab(k); setMsg(''); }} data-tab={k}>{n}</Btn>)}</div>
+          {msg && <div className="card" style={{ marginBottom: '.6rem', borderColor: '#86efac' }}>{msg}</div>}
+
+          {tab === 'kids' && (
+            <div className="card">
+              <div className="bold" style={{ fontSize: '1.2rem' }}>名前を追加する</div>
+              <div className="row wrapflex" style={{ margin: '.4rem 0 .8rem' }}>
+                <input type="text" value={newName} onChange={e => setNewName(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') addKid(); }} placeholder="ひらがなで（例：はると）" style={{ fontSize: '1.2rem', padding: '.4rem .6rem', border: '2px solid #cbd5e1', borderRadius: '.6rem', width: 260 }} data-t="newname" />
+                <Btn color="green" size="md" onClick={addKid} data-t="addkid">＋ 追加</Btn>
+              </div>
+              <p className="muted small">名前は呼び名でもかまいません（ひらがな・カタカナで入れます。カタカナはひらがなになります）。ローマ字は自動で作ります。のばす音（ゆうと → YUUTO）などは、ローマ字の欄で直せます（例：YUTO）。</p>
+              {state.kids.length === 0 && <p className="muted">まだ名前がありません。</p>}
+              {state.kids.map(k => <KidEditor key={k.id} kid={k} S={S} onChange={nk => update(st => ({ ...st, kids: st.kids.map(x => x.id === nk.id ? nk : x) }))} onDelete={id => update(st => ({ ...st, kids: st.kids.filter(x => x.id !== id) }))} onPrint={id => onPrint([id], kinds)} />)}
+            </div>
+          )}
+
+          {tab === 'plate' && (
+            <div className="card col">
+              <div className="bold" style={{ fontSize: '1.2rem' }}>ふだん使うプレート</div>
+              <div className="fields">
+                <label className="field">よこにつなぐ枚数<select value={S.plateCols} onChange={e => setS({ plateCols: Number(e.target.value) })} data-t="pcols">{[1, 2, 3].map(n => <option key={n} value={n}>{n}まい</option>)}</select></label>
+                <label className="field">たてにつなぐ枚数<select value={S.plateRows} onChange={e => setS({ plateRows: Number(e.target.value) })}>{[1, 2, 3].map(n => <option key={n} value={n}>{n}まい</option>)}</select></label>
+              </div>
+              <p className="small muted">子どもごとに変えるときは、「名簿と作品」の「プレート」で選びます。</p>
+              <div className="bold" style={{ fontSize: '1.2rem', marginTop: '.6rem' }}>プレート1まいのピンの数</div>
+              <div className="fields">
+                <label className="field">よこ（ピン）<input type="number" min="5" max="80" value={S.pinsX} onChange={e => setS({ pinsX: Math.max(5, Math.min(80, Number(e.target.value) || 30)) })} style={{ width: 100 }} /></label>
+                <label className="field">たて（ピン）<input type="number" min="5" max="80" value={S.pinsY} onChange={e => setS({ pinsY: Math.max(5, Math.min(80, Number(e.target.value) || 30)) })} style={{ width: 100 }} /></label>
+                <label className="field">ピンとピンのあいだ（mm）<input type="number" step="0.05" min="2" max="10" value={S.pitch} onChange={e => setS({ pitch: Math.max(2, Math.min(10, Number(e.target.value) || 5)) })} style={{ width: 110 }} /></label>
+                <Btn color="white" size="sm" onClick={() => setS({ pinsX: 30, pinsY: 30, pitch: 5 })}>もとにもどす（30×30・5mm）</Btn>
+              </div>
+              <p className="small">いまのプレート1まい：約 <b>{plateMM(S.pinsX)} × {plateMM(S.pinsY)} mm</b>（ピン {S.pinsX}×{S.pinsY}）。お使いのプレートは 155×155mm・ピン30×30 です。</p>
+              <p className="small muted">「じっさいの おおきさ」の見本がプレートとずれるときは、ピンの端から端までの長さをものさしで測り、（測った長さ ÷ (ピンの数 − 1)）を「ピンとピンのあいだ」に入れます。例：ピン30こで 145mm なら 145 ÷ 29 = 5mm。</p>
+            </div>
+          )}
+
+          {tab === 'colors' && (
+            <div className="card">
+              <div className="bold" style={{ fontSize: '1.2rem' }}>使うビーズの色</div>
+              <p className="small muted">チェックを外した色は、子どもの画面に出ません（持っていない色を外します）。かざりの色が外れているときは、近い色に変わります。</p>
+              {S.colors.map((c, i) => (
+                <div key={c.key} className="colorrow">
+                  <input type="checkbox" checked={!!c.on} onChange={e => setS({ colors: S.colors.map((x, j) => j === i ? { ...x, on: e.target.checked } : x) })} style={{ width: 22, height: 22 }} />
+                  <span className="sw" style={{ background: c.hex }} />
+                  <input type="text" value={c.name} onChange={e => setS({ colors: S.colors.map((x, j) => j === i ? { ...x, name: e.target.value } : x) })} style={{ width: 160, fontSize: '1.05rem', padding: '.2rem .4rem', border: '2px solid #e2e8f0', borderRadius: '.5rem' }} />
+                  <input type="color" value={c.hex} onChange={e => setS({ colors: S.colors.map((x, j) => j === i ? { ...x, hex: e.target.value } : x) })} />
+                  {c.key.startsWith('u') && <Btn color="white" size="sm" onClick={() => setS({ colors: S.colors.filter((_, j) => j !== i) })}>消す</Btn>}
+                </div>
+              ))}
+              <div className="row wrapflex" style={{ marginTop: '.8rem' }}>
+                <span className="bold">色を足す：</span>
+                <input type="text" value={cname} onChange={e => setCname(e.target.value)} placeholder="色の名前（ひらがな）" style={{ width: 200, fontSize: '1.05rem', padding: '.3rem .5rem', border: '2px solid #cbd5e1', borderRadius: '.5rem' }} />
+                <input type="color" value={chex} onChange={e => setChex(e.target.value)} />
+                <Btn color="green" size="sm" onClick={() => { if (!cname.trim()) return setMsg('色の名前を入れてください。'); setS({ colors: [...S.colors, { key: 'u' + uid(), name: cname.trim(), hex: chex, on: true }] }); setCname(''); }}>＋ 足す</Btn>
+              </div>
+              <div style={{ marginTop: '.8rem' }}><Btn color="white" size="sm" onClick={() => { if (confirm('色の一覧をはじめの状態にもどします。よろしいですか？')) setS({ colors: defaultSettings().colors }); }}>はじめの13色にもどす</Btn></div>
+            </div>
+          )}
+
+          {tab === 'print' && (
+            <div className="card col">
+              <div className="bold" style={{ fontSize: '1.2rem' }}>だれの見本を作りますか</div>
+              <div className="row wrapflex">
+                {state.kids.map(k => <label key={k.id} className="check"><input type="checkbox" checked={sel.has(k.id)} onChange={e => { const s2 = new Set(unsel); if (e.target.checked) s2.delete(k.id); else s2.add(k.id); setUnsel(s2); }} />{cleanName(k.name)}{k.design.doneAt ? '' : '（まだ）'}</label>)}
+              </div>
+              <div className="row"><Btn color="white" size="sm" onClick={() => setUnsel(new Set())}>全員</Btn><Btn color="white" size="sm" onClick={() => setUnsel(new Set(state.kids.map(k => k.id)))}>だれも選ばない</Btn></div>
+              <div className="bold" style={{ fontSize: '1.2rem', marginTop: '.5rem' }}>どの見本を入れますか</div>
+              <div className="col" style={{ gap: '.3rem' }}>
+                {[['table', 'ビーズのじゅんび（使う色と数の表）・A4たて'], ['real', 'じっさいの おおきさ（プレートを上にのせる）・A4たて・プレート1まいに1ページ'], ['big', 'おおきい みほん・A4よこ'], ['color', '1いろずつ（その色だけ濃い）・A4よこ・色の数だけ'], ['rows', '1ぎょうずつ（チェックらんつき）・A4よこ']].map(([k, n]) => (
+                  <label key={k} className="check"><input type="checkbox" checked={kinds[k]} onChange={e => setKinds({ ...kinds, [k]: e.target.checked })} />{n}</label>
+                ))}
+              </div>
+              <div style={{ marginTop: '.6rem' }}><Btn color="green" size="lg" disabled={!sel.size || !Object.values(kinds).some(Boolean)} onClick={() => onPrint(state.kids.filter(k => sel.has(k.id)).map(k => k.id), kinds)} data-t="open-print">見本を見る（印刷・PDF）</Btn></div>
+            </div>
+          )}
+
+          {tab === 'settings' && (
+            <div className="card col">
+              <label className="check"><input type="checkbox" checked={S.voice} onChange={e => setS({ voice: e.target.checked })} />ニジーせんせいのセリフを読み上げる</label>
+              <label className="field" style={{ maxWidth: 360 }}>読み上げの速さ：{Number(S.rate).toFixed(2)}倍
+                <input type="range" min="0.5" max="1.3" step="0.05" value={S.rate} onChange={e => setS({ rate: Number(e.target.value) })} />
+              </label>
+              <div><Btn color="white" size="sm" onClick={() => TTS.speak('この はやさで よみあげるよ。', { force: true })}>🔊 ためしに聞く</Btn></div>
+              <label className="check"><input type="checkbox" checked={S.sfx} onChange={e => setS({ sfx: e.target.checked })} />効果音を鳴らす</label>
+              <label className="field" style={{ maxWidth: 360 }}>画面の文字の大きさ
+                <select value={S.uiScale} onChange={e => setS({ uiScale: Number(e.target.value) })}><option value={1}>ふつう</option><option value={1.12}>大きめ</option><option value={1.25}>とても大きい</option></select>
+              </label>
+              <div className="bold" style={{ marginTop: '.6rem' }}>新しく名簿に入れる子のはじめの設定</div>
+              <div className="fields">
+                <label className="field">文字<select value={S.lines} onChange={e => setS({ lines: e.target.value })}><option value="hira">ひらがなだけ</option><option value="roma">ローマ字だけ</option><option value="both">2段</option></select></label>
+                <label className="field">文字の大きさ<select value={S.size} onChange={e => setS({ size: e.target.value })}><option value="auto">自動</option><option value="big">大</option><option value="small">小</option></select></label>
+                <label className="field">形<select value={S.shape} onChange={e => setS({ shape: e.target.value })}><option value="outline">ふちどり</option><option value="fill">背景をうめる</option></select></label>
+                <label className="field">ローマ字の形<select value={S.caseMode} onChange={e => setS({ caseMode: e.target.value })}><option value="upper">大文字</option><option value="cap">はじめだけ大文字</option></select></label>
+              </div>
+              <div className="bold" style={{ marginTop: '.6rem' }}>暗証番号の変更</div>
+              <div className="fields">
+                <label className="field">新しい暗証番号<input type="text" inputMode="numeric" maxLength={4} value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, ''))} style={{ width: 120 }} /></label>
+                <label className="field">確認<input type="text" inputMode="numeric" maxLength={4} value={pin2} onChange={e => setPin2(e.target.value.replace(/\D/g, ''))} style={{ width: 120 }} /></label>
+                <Btn color="sky" size="sm" onClick={() => {
+                  if (!/^\d{4}$/.test(pin)) return setMsg('暗証番号は4けたの数字にしてください。');
+                  if (pin !== pin2) return setMsg('確認用の暗証番号が一致しません。');
+                  update(st => ({ ...st, profile: { ...st.profile, pin: hashPin(pin) } })); setPin(''); setPin2(''); setMsg('暗証番号を変更しました。');
+                }}>変更する</Btn>
+              </div>
+            </div>
+          )}
+
+          {tab === 'data' && (
+            <div className="card col">
+              <p>作品と設定は、この Chromebook のブラウザの中に保存しています。別の Chromebook で使うときや、念のための控えには、バックアップを使います。</p>
+              <div className="row wrapflex">
+                <Btn color="sky" size="md" onClick={() => { download(`ビーズこうぼう_バックアップ_${new Date().toISOString().slice(0, 10)}.json`, new Blob([JSON.stringify(state, null, 1)], { type: 'application/json' })); setMsg('バックアップを「ダウンロード」フォルダに保存しました。'); }}>💾 バックアップを保存</Btn>
+                <Btn color="white" size="md" onClick={async () => {
+                  const f = await pickFile('.json,application/json'); if (!f) return;
+                  try { const d = JSON.parse(await f.text()); if (!d || !Array.isArray(d.kids)) throw new Error('形がちがいます'); if (!confirm('いまのデータを、バックアップの中身に置きかえます。よろしいですか？')) return; update(() => ({ ...d, profile: d.profile || state.profile })); setMsg('バックアップから読みこみました。'); }
+                  catch (e) { setMsg('読みこめませんでした：' + e.message); }
+                }}>📂 バックアップから読みこむ</Btn>
+              </div>
+              <div className="row wrapflex" style={{ marginTop: '.8rem' }}>
+                <Btn color="white" size="sm" onClick={() => { if (confirm('全員の作品（色・かざり）をはじめにもどします。名簿は残ります。よろしいですか？')) update(st => ({ ...st, kids: st.kids.map(k => ({ ...k, design: newDesign() })) })); }}>全員の作品をリセット</Btn>
+                <Btn color="red" size="sm" onClick={() => { if (confirm('名簿・作品・設定をすべて消します。元にもどせません。よろしいですか？')) { try { localStorage.removeItem(STORE_KEY); } catch (e) { } location.reload(); } }}>すべて消す</Btn>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    /* =========================================================
+       印刷・PDF の 見本
+       ========================================================= */
+    function PrintView({ state, ids, kinds, onClose }) {
+      const S = state.settings;
+      const kids = ids.map(id => state.kids.find(k => k.id === id)).filter(Boolean);
+      const pages = useMemo(() => kids.flatMap(k => buildPages(k, S, kinds)), [state, ids.join(','), JSON.stringify(kinds)]);
+      const [busy, setBusy] = useState(''); const [err, setErr] = useState('');
+      const fname = `ビーズこうぼう_${kids.length === 1 ? cleanName(kids[0].name) : kids.length + 'にんぶん'}.pdf`;
+      useEffect(() => { document.title = fname.replace('.pdf', ''); return () => { document.title = 'ニジーせんせいの ビーズ こうぼう'; }; }, [fname]);
+      const pdf = async () => {
+        setErr(''); setBusy('PDF を作っています…');
+        try { await makePDF(pages, fname); setBusy(''); }
+        catch (e) { setBusy(''); setErr('PDF を作れませんでした。インターネットにつながっているか確かめてください。（' + e.message + '）'); }
+      };
+      return (
+        <div className="pv">
+          <div className="pv-bar">
+            <Btn color="slate" size="md" onClick={onClose} data-t="pv-close">✕ とじる</Btn>
+            <Btn color="sky" size="md" onClick={() => window.print()} data-t="pv-print">🖨 いんさつ</Btn>
+            <Btn color="green" size="md" onClick={pdf} disabled={!!busy} data-t="pv-pdf">📄 PDFで ほぞん</Btn>
+            <span className="bold">{pages.length} ページ</span>
+            {busy && <span className="bold" style={{ color: '#0369a1' }}>{busy}</span>}
+            {err && <span className="warn">{err}</span>}
+          </div>
+          <div className="pv-note">
+            印刷するときは、印刷の画面で <b>倍率を「100%」（または「実際のサイズ」）</b>、<b>余白を「なし」</b>にし、<b>「背景のグラフィック」にチェック</b>を入れます。<br />
+            「じっさいの おおきさ」のページは、下の ものさしが <b>10cm</b> になっていれば、プレートと同じ大きさです。<br />
+            「📄 PDFで ほぞん」を押すと、PDF が「ダウンロード」フォルダに入ります（ファイル名：{fname}）。
+          </div>
+          <div className="pages">
+            {pages.map((p, i) => <div key={i} className={`pg ${p.land ? 'land' : ''}`} dangerouslySetInnerHTML={{ __html: pageSVG(p) }} />)}
+          </div>
+        </div>
+      );
+    }
+
+    /* =========================================================
+       アプリ
+       ========================================================= */
+    function App() {
+      const [state, setState] = useState(loadState);
+      const [kidId, setKidId] = useState(null);
+      const [pinOpen, setPinOpen] = useState(false);
+      const [teacher, setTeacher] = useState(false);
+      const [print, setPrint] = useState(null);
+      CURRENT = state;
+      useEffect(() => { saveState(state); }, [state]);
+      useEffect(() => { document.documentElement.style.fontSize = (16 * (state.settings.uiScale || 1)) + 'px'; }, [state.settings.uiScale]);
+      useEffect(() => { document.body.dataset.ready = '1'; }, []);
+      const update = (fn) => setState(s => fn(s));
+      const kid = state.kids.find(k => k.id === kidId);
+
+      if (!state.profile || !state.profile.pin) return <SetupScreen onDone={(profile) => update(s => ({ ...s, profile }))} />;
+      if (print) return <PrintView state={state} ids={print.ids} kinds={print.kinds} onClose={() => setPrint(null)} />;
+
+      return (
+        <>
+          {inFrame && <div className="framebar noprint">この画面は、Googleサイトの枠の中では 印刷や保存ができないことがあります。<a href={location.href.split('#')[0]} target="_blank" rel="noopener">▶ あたらしいタブで ひらく</a></div>}
+          <div className="hdr">
+            <div className="hdr-in">
+              <button className="logo" onClick={() => { setKidId(null); setTeacher(false); TTS.cancel(); }}><span className="emoji">🦎</span><span className="lt">ニジーせんせいの</span><span className="rb">ビーズ こうぼう</span></button>
+              <div className="grow" />
+              {kid && !teacher && <span className="kidpill">🙂 {cleanName(kid.name)}</span>}
+              {!teacher && <button className="tbtn" onClick={() => setPinOpen(true)} data-t="teacher">🔐 せんせい</button>}
+            </div>
+          </div>
+          {teacher ? <Teacher state={state} update={update} onClose={() => setTeacher(false)} onPrint={(ids, kinds) => setPrint({ ids, kinds })} />
+            : kid ? <Maker key={kid.id} kid={kid} S={state.settings} onChange={nk => update(s => ({ ...s, kids: s.kids.map(k => k.id === nk.id ? nk : k) }))} onHome={() => { setKidId(null); TTS.cancel(); }} />
+              : <Home state={state} onPick={(id) => { sfx('tap'); setKidId(id); const k = state.kids.find(x => x.id === id); if (k && (k.design.step || 2) >= 5) update(s => ({ ...s, kids: s.kids.map(x => x.id === id ? { ...x, design: { ...x.design, step: 2 } } : x) })); }} />}
+          {pinOpen && <PinPad check={v => hashPin(v) === state.profile.pin} onClose={() => setPinOpen(false)} onSuccess={() => { setPinOpen(false); setTeacher(true); setKidId(null); }} />}
+        </>
+      );
+    }
+
+    // テスト用（Playwright から よびます）
+    window.__beads = { computeLayout, colorStats, buildPages, toRomaji, romaFor, cleanName, defaultSettings, newKid, pageSVG };
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
