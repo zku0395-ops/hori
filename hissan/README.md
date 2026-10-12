@@ -10,6 +10,7 @@
 - どんぐりが10こたまるたびに、10こをふくろに入れるアニメーションが出ます。
 - どんぐりで家具やかざりを買い、「もりの おうち」の好きな場所に置けます。
 - ステップをクリアすると、森の友だちが遊びに来て、アルバムに入ります。
+- 同じやり方で練習できる紙のプリント（A4たて、PDF）もあります：[hissan/print/README.md](print/README.md)
 
 ## できること
 
@@ -81,6 +82,7 @@ hissan/index.html       アプリ本体（https://zku0395-ops.github.io/hori/his
 hissan/img/             クルミせんせい（ふつう・よろこぶ・かんがえる）、ホームの背景、もりの おうちの背景（Canva で作成）
 hissan/gas/Code.gs      Google Apps Script：入口ページと記録の受け取り口
 hissan/gas/start.html   Google Apps Script：入口ページの画面
+hissan/print/           紙のプリント（じゅんび・れんしゅう・テスト・こたえ）と PDF。くわしくは hissan/print/README.md
 ```
 
 ## 公開の手順
@@ -241,5 +243,4 @@ Googleサイトでは、入口ページを「埋め込む」で貼らずに、**
 ## これから相談して決めること
 
 - 十のくらいからも くりさがる問題（3けた）を入れるか
-- アプリから練習プリントを印刷できるようにするか
 - 1台の Chromebook を何人かで使う（名簿から名前を選ぶ）形にするか
