@@ -13,6 +13,8 @@ const { KEYS, DEFAULT_Q, plain, ruby } = B;
 
 // れんしゅうプリントに 使う 文章（各ステージから 2つ。人・動物・場面が かたよらないように、5人の 名前の 文章も 入れる）
 const PICK1 = ['1-02', '1-05', '1-07', '1-09', '1-11', '1-14', '1-16', '1-19', '1-21', '1-22', '1-26', '1-28', '1-32', '1-34', '1-36', '1-39', '1-42', '1-43', '1-46', '1-48'];
+// ながい ぶんしょう（アプリの レベル2 ステージ11＝5文・12＝7文）は、20こ 全部 使う
+const LONG = L2.filter((m) => m.st >= 11).map((m) => m.id);
 const PICK2 = ['2-01', '2-03', '2-06', '2-10', '2-12', '2-13', '2-16', '2-17', '2-22', '2-23', '2-26', '2-30', '2-31', '2-34', '2-36', '2-40', '2-42', '2-44', '2-46', '2-48'];
 
 // テストの 文章を 確かめる（アプリと 同じ きまり。50こ ある かの きまりは のぞく）
@@ -22,6 +24,7 @@ B.check(T2, 2);
 const errs = B.errors.filter((e) => !/文章が \d+こ/.test(e));
 const ids = new Set([...L1, ...L2].map((m) => m.id));
 [...PICK1, ...PICK2].forEach((id) => { if (!ids.has(id)) errs.push(`れんしゅうの ${id} が アプリに ありません`); });
+if (LONG.length !== 20) errs.push(`ながい ぶんしょうが ${LONG.length}こ です（20こ の はず）`);
 if (errs.length) { console.error(errs.join('\n')); process.exit(1); }
 
 // プリントでは、どの 文章も 4つとも 聞く
@@ -42,6 +45,7 @@ const byId = (list, id) => { const m = list.find((x) => x.id === id); const add 
 const DATA = {
   practice1: PICK1.map((id) => choose(byId(L1, id), L1)),
   practice2: PICK2.map((id) => write(byId(L2, id))),
+  practice3: LONG.map((id) => write(byId(L2, id))),
   test1: T1.map((m) => choose(m, [...T1, ...L1])),
   test2: T2.map((m) => write(m)),
 };
@@ -73,6 +77,7 @@ function md() {
   part('テスト（書く・5まい）', DATA.test2, 2);
   part('れんしゅう（○を つける・20まい）', DATA.practice1, 1);
   part('れんしゅう（書く・20まい）', DATA.practice2, 2);
+  part('れんしゅう（ながい ぶんしょう・書く・20まい）', DATA.practice3, 2);
   return s;
 }
 fs.writeFileSync(path.join(ROOT, 'ichiran.md'), md());
@@ -112,6 +117,7 @@ td.id{white-space:nowrap;color:#78716c;font-size:13px}td.txt{min-width:240px}rt{
   part('テスト（書く）5まい', DATA.test2, 2, true);
   part('れんしゅう（○を つける）20まい', DATA.practice1, 1, false);
   part('れんしゅう（書く）20まい', DATA.practice2, 2, false);
+  part('れんしゅう（ながい ぶんしょう・書く）20まい', DATA.practice3, 2, false);
   h += '</body></html>';
   fs.writeFileSync(process.argv[hi + 1], h);
   console.log('HTML を 書き出しました');

@@ -65,6 +65,12 @@
   .text.s { font-size: 16.5pt; line-height: 2; }
   .text p { margin: 0; }
   .left.xs .text { font-size: 15.5pt; line-height: 1.95; padding: 2mm 3.5mm; }
+  /* ながい ぶんしょう（5文・7文）：挿絵を 小さくし、文に ①②… の 番号を 付ける */
+  .left.long { width: 150mm; }
+  .left.long .pic { width: 100mm; height: 75mm; align-self: center; flex: none; }
+  .left.long .text { font-size: 17.5pt; line-height: 1.9; padding: 2mm 3.5mm; min-height: 0; overflow: hidden; }
+  .text p.n { padding-left: 1.25em; text-indent: -1.25em; }
+  .text p.n .sn { display: inline-block; width: 1.25em; text-indent: 0; font-weight: 700; }
 
   .right { flex: 1; display: flex; flex-direction: column; gap: 2.4mm; min-width: 0; }
   .q { flex: 1; border: 0.5mm solid #111; border-radius: 3mm; padding: 1.8mm 3mm 2mm; display: flex; flex-direction: column; min-height: 0; }
@@ -98,14 +104,16 @@
   var KEYS = ['itsu', 'doko', 'dare', 'nani'];
   var MARK = { itsu: ['🕐', 'いつ'], doko: ['📍', 'どこで'], dare: ['👤', 'だれが'], nani: ['🏃', 'なにを した'] };
   var KANA = ['ア', 'イ', 'ウ', 'エ'];
+  var SN = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨'];
   // set：どの プリントか。kind 1 は ○を つける、2 は 書く
   var SETS = {
     practice1: { kind: 1, test: false, name: 'れんしゅう', sub: 'えらぶ', file: 'れんしゅう_えらぶ' },
     practice2: { kind: 2, test: false, name: 'れんしゅう', sub: 'かく', file: 'れんしゅう_かく' },
+    practice3: { kind: 2, test: false, long: true, name: 'れんしゅう', sub: 'ながい ぶんしょう', file: 'れんしゅう_ながいぶんしょう' },
     test1: { kind: 1, test: true, name: 'テスト', sub: 'えらぶ', file: 'テスト_えらぶ' },
     test2: { kind: 2, test: true, name: 'テスト', sub: 'かく', file: 'テスト_かく' }
   };
-  var ORDER = ['practice1', 'practice2', 'test1', 'test2'];
+  var ORDER = ['practice1', 'practice2', 'practice3', 'test1', 'test2'];
   // PDF の ファイル（tools/make-pdf.js が 使います）
   window.NAZOPRINT_FILES = [];
   ORDER.forEach(function (s) {
@@ -141,7 +149,7 @@
   function head(m, i, n) {
     var h = '<div class="head">';
     h += '<div class="ttl"><img src="../nazotoki/img/wanda.webp" alt=""><div><div class="t1">ワンダせんせいの</div><div class="t2">なぞとき プリント'
-      + '<span class="tag' + (S.test ? ' test' : '') + '">' + S.name + '</span></div></div></div>';
+      + '<span class="tag' + (S.test ? ' test' : '') + '">' + S.name + '</span>' + (S.long ? '<span class="tag">ながい ぶんしょう</span>' : '') + '</div></div></div>';
     h += '<div class="box date"><span class="blank"></span>がつ<span class="blank"></span>にち</div>';
     h += '<div class="box name"><span class="lbl">なまえ</span></div>';
     h += '<div class="box self">できたかな？<span class="f">😊</span><span class="f">😐</span><span class="f">😟</span></div>';
@@ -176,8 +184,9 @@
     h += '<div class="lead"><span class="no">' + (i + 1) + '</span>' + lead + '<span class="note">' + note + '</span>' + (ans ? '<span class="stamp">こたえ</span>' : '') + '</div>';
     var img = /^T/.test(m.id) ? 'img/' + m.id + '.webp' : '../nazotoki/img/' + m.id + '.webp';
     var len = plain(m.t.join('')).length;
-    h += '<div class="body"><div class="left' + (len > 60 ? ' xs' : '') + '"><div class="pic"><img src="' + img + '" alt="" onerror="this.parentNode.textContent=\'（さしえ）\'"></div>';
-    h += '<div class="text' + (len > 50 ? ' s' : '') + '">' + m.t.map(function (t) { return '<p>' + ruby(t) + '</p>'; }).join('') + '</div></div>';
+    var num = m.t.length >= 5;
+    h += '<div class="body"><div class="left' + (num ? ' long' : len > 60 ? ' xs' : '') + '"><div class="pic"><img src="' + img + '" alt="" onerror="this.parentNode.textContent=\'（さしえ）\'"></div>';
+    h += '<div class="text' + (!num && len > 50 ? ' s' : '') + '">' + m.t.map(function (t, j) { return num ? '<p class="n"><span class="sn">' + SN[j] + '</span>' + ruby(t) + '</p>' : '<p>' + ruby(t) + '</p>'; }).join('') + '</div></div>';
     h += '<div class="right">';
     KEYS.forEach(function (k) {
       h += '<div class="q"><div class="qh"><span class="mk"><span class="e">' + MARK[k][0] + '</span>' + MARK[k][1] + '</span><span>' + ruby(m.qs[k].q) + '</span></div>';
@@ -197,8 +206,15 @@
   // 絵と フォントが そろったら 合図を 出す（PDF を 作るとき 使います）
   var imgs = Array.prototype.slice.call(document.images);
   Promise.all(imgs.map(function (im) { return im.complete ? 0 : new Promise(function (r) { im.addEventListener('load', r); im.addEventListener('error', r); }); }))
-    .then(function () { return document.fonts ? document.fonts.ready : 0; })
-    .then(function () { document.body.setAttribute('data-ready', '1'); });
+    .then(function () { return document.fonts ? Promise.all([document.fonts.load('400 17pt "BIZ UDPGothic"', 'あ'), document.fonts.load('700 17pt "BIZ UDPGothic"', 'あ')]).catch(function () {}).then(function () { return document.fonts.ready; }) : 0; })
+    .then(function () {
+      // ながい ぶんしょうが 枠に 入りきらないときは、字を 少しずつ 小さくする
+      Array.prototype.forEach.call(document.querySelectorAll('.left.long .text'), function (el) {
+        var pt = 17.5;
+        while (el.scrollHeight > el.clientHeight + 1 && pt > 13) { pt -= 0.5; el.style.fontSize = pt + 'pt'; }
+      });
+      document.body.setAttribute('data-ready', '1');
+    });
 })();
 </script>
 </body>
