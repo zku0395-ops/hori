@@ -1,6 +1,6 @@
 // なぞとき プリントの PDF を 作ります。
 // つかいかた：node nazotokiprint/tools/make-pdf.js            … 全部（れんしゅう・テスト、それぞれ こたえも）
-//             node nazotokiprint/tools/make-pdf.js test1      … 1つの プリントだけ（practice1 / practice2 / test1 / test2）
+//             node nazotokiprint/tools/make-pdf.js test1      … 1つの プリントだけ（practice1 / practice2 / practice3 / test1 / test2）
 // （Playwright と Chromium が いります。できた PDF は nazotokiprint/pdf/ に 入ります）
 // FONT_CSS に フォントの CSS の 場所を 入れると、Google Fonts の かわりに それを 使います。
 const path = require('path');
