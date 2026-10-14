@@ -239,7 +239,7 @@
       kana: 'ひらがな・カタカナのちがい',
     };
 
-    // シール（8しゅるい × 13まい）
+    // シール（8しゅるい × 13まい ＋ 2しゅるい × 10まい。ステージ11・12を ふやしたときに 2しゅるいを たした）
     const STICKER_CATS = [
       { id: 'food', name: 'たべもの', color: '#f97316', items: [['🍙', 'おにぎり'], ['🍣', 'おすし'], ['🍛', 'カレー'], ['🍜', 'ラーメン'], ['🍔', 'ハンバーガー'], ['🍕', 'ピザ'], ['🍞', 'パン'], ['🥪', 'サンドイッチ'], ['🍳', 'めだまやき'], ['🍤', 'えびフライ'], ['🌭', 'ホットドッグ'], ['🥟', 'ぎょうざ'], ['🍱', 'おべんとう']] },
       { id: 'drink', name: 'のみもの', color: '#0ea5e9', items: [['🥛', 'ぎゅうにゅう'], ['🧃', 'ジュース'], ['🍵', 'おちゃ'], ['🧋', 'タピオカ'], ['🥤', 'ソーダ'], ['🫖', 'こうちゃ'], ['🍼', 'ミルク'], ['☕', 'ココア'], ['🥥', 'ココナッツ'], ['🧉', 'ハーブティー'], ['🧊', 'こおりみず'], ['🍋', 'レモネード'], ['🍹', 'フルーツジュース']] },
@@ -249,6 +249,8 @@
       { id: 'veg', name: 'やさい', color: '#16a34a', items: [['🥕', 'にんじん'], ['🥦', 'ブロッコリー'], ['🌽', 'とうもろこし'], ['🍅', 'トマト'], ['🥒', 'きゅうり'], ['🍆', 'なす'], ['🥔', 'じゃがいも'], ['🧅', 'たまねぎ'], ['🫑', 'ピーマン'], ['🥬', 'はくさい'], ['🍠', 'さつまいも'], ['🍄', 'きのこ'], ['🧄', 'にんにく']] },
       { id: 'sweet', name: 'デザート', color: '#db2777', items: [['🍰', 'ショートケーキ'], ['🎂', 'バースデーケーキ'], ['🍮', 'プリン'], ['🍦', 'ソフトクリーム'], ['🍨', 'アイス'], ['🍧', 'かきごおり'], ['🍩', 'ドーナツ'], ['🍪', 'クッキー'], ['🧁', 'カップケーキ'], ['🍫', 'チョコレート'], ['🍬', 'キャンディ'], ['🍭', 'ペロペロキャンディ'], ['🍡', 'だんご']] },
       { id: 'stat', name: 'ぶんぼうぐ', color: '#7c3aed', items: [['✏️', 'えんぴつ'], ['🖍️', 'クレヨン'], ['🖊️', 'ペン'], ['🖌️', 'ふで'], ['📏', 'じょうぎ'], ['📐', 'さんかくじょうぎ'], ['✂️', 'はさみ'], ['📎', 'クリップ'], ['📌', 'がびょう'], ['📒', 'ノート'], ['📕', 'ほん'], ['🎒', 'ランドセル'], ['🗂️', 'ファイル']] },
+      { id: 'nature', name: 'しぜん', color: '#0d9488', items: [['☀️', 'たいよう'], ['🌙', 'おつきさま'], ['⭐', 'ほし'], ['🌈', 'にじ'], ['☁️', 'くも'], ['⛄', 'ゆきだるま'], ['🌸', 'さくら'], ['🌻', 'ひまわり'], ['🍁', 'もみじ'], ['🌊', 'なみ']] },
+      { id: 'toy', name: 'おもちゃ', color: '#c026d3', items: [['🧸', 'ぬいぐるみ'], ['🪀', 'ヨーヨー'], ['🪁', 'たこ'], ['🎈', 'ふうせん'], ['🧩', 'パズル'], ['🎲', 'サイコロ'], ['🎯', 'まとあて'], ['⚽', 'ボール'], ['🪄', 'まほうの ステッキ'], ['🎠', 'メリーゴーランド']] },
     ];
     const STICKERS = [];
     STICKER_CATS.forEach(c => c.items.forEach(([e, n], i) => STICKERS.push({ id: `${c.id}${i + 1}`, cat: c.id, e, n, color: c.color })));
@@ -1088,7 +1090,7 @@
             const f = free();
             if (f.length) { newSticker = pick(f); stickers[newSticker.id] = Date.now(); textSticker[text.id] = newSticker.id; }
           }
-          // レベルの 50もんを ぜんぶ といたら ボーナス 2まい
+          // レベルの もんだいを ぜんぶ といたら ボーナス 2まい
           const lvKey = `L${stage.lv}`;
           if (!bonusMap[lvKey] && LEVELS.find(L => L.lv === stage.lv).list.every(x => solved[x.id])) {
             bonusMap[lvKey] = Date.now();
@@ -1278,7 +1280,7 @@
           <div className="row wrapflex" style={{ gap: '.4rem', marginBottom: '.8rem' }}>
             {STICKER_CATS.map(c => {
               const n = STICKERS.filter(s => s.cat === c.id && st.stickers[s.id]).length;
-              return <button key={c.id} className={`tab ${cat === c.id ? 'on' : ''}`} style={cat === c.id ? { background: c.color, borderColor: c.color } : { borderColor: c.color }} onClick={() => setCat(c.id)} data-cat={c.id}>{c.name} {n}/13</button>;
+              return <button key={c.id} className={`tab ${cat === c.id ? 'on' : ''}`} style={cat === c.id ? { background: c.color, borderColor: c.color } : { borderColor: c.color }} onClick={() => setCat(c.id)} data-cat={c.id}>{c.name} {n}/{c.items.length}</button>;
             })}
           </div>
           <div className="card" style={{ background: '#fffdf5', borderColor: C.color }}>
