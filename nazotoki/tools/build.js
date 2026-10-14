@@ -45,7 +45,7 @@ function check(list, level) {
       else if (m.pos && m.pos[k] != null && !(m.t[m.pos[k]] || '').includes(m[k])) errors.push(`${m.id}: pos.${k} の 文に「${m[k]}」が ありません`);
     }
     if (m.st <= 4 && !m.ask) errors.push(`${m.id}: ask が ありません`);
-    if (m.st === 8 || m.st === 10) for (const k of KEYS) if (!(m.q && m.q[k])) errors.push(`${m.id}: q.${k} が ありません`);
+    if (m.st === 8 || m.st >= 10) for (const k of KEYS) if (!(m.q && m.q[k])) errors.push(`${m.id}: q.${k} が ありません`);
     if (level === 2) {
       for (const k of KEYS) {
         const kk = m.k && m.k[k];
@@ -59,7 +59,7 @@ function check(list, level) {
       }
     }
   }
-  if (list.length !== 50) errors.push(`レベル${level}: 文章が ${list.length}こ です（50こ にします）`);
+  if (list.length !== (level === 1 ? 50 : 70)) errors.push(`レベル${level}: 文章が ${list.length}こ です（${level === 1 ? 50 : 70}こ にします）`);
 }
 
 // レベル1の 選択肢（答え＋まちがいやすい 3つ）
@@ -116,6 +116,7 @@ const data = buildData();
 const STAGE_NAME = {
   1: '1文・だれが', 2: '1文・どこで', 3: '1文・いつ', 4: '1文・なにを した', 5: '1文・4つとも',
   6: '1文・4つとも（ならびかえ）', 7: '2文', 8: '2文（にている ことばが 2つ）', 9: '3文', 10: '3文（にている ことばが いくつも）',
+  11: '5文（1日の できごと）', 12: '7文（2〜3人の おはなし）',
 };
 
 // ── 一覧表（Markdown）
@@ -126,7 +127,7 @@ function md() {
   s += '- **太字** が答えです。（ ）の中は、レベル1で いっしょに出る まちがいやすい選択肢です。\n- ステージ1〜4は、★の手がかりだけを聞きます。ステージ5からは4つとも聞きます。\n- レベル2の □ は、子どもが50音表で打つところです。\n\n';
   for (const [lv, list, src] of [[1, data.lv1, L1], [2, data.lv2, L2]]) {
     s += `## レベル${lv}（${lv === 1 ? '4つの選択肢から選ぶ' : '50音表から入力する'}）\n\n`;
-    for (let st = 1; st <= 10; st++) {
+    for (let st = 1; st <= (lv === 1 ? 10 : 12); st++) {
       s += `### ステージ${st}：${STAGE_NAME[st]}\n\n| 番号 | 文章 | いつ | どこで | だれが | なにを した | 挿絵 |\n|---|---|---|---|---|---|---|\n`;
       for (const m of list.filter((x) => x.st === st)) {
         const o = src.find((x) => x.id === m.id);
@@ -178,7 +179,7 @@ td.id{white-space:nowrap;color:#78716c;font-size:13px}td.txt{min-width:240px}rt{
 </div>`;
   for (const [lv, list, src] of [[1, data.lv1, L1], [2, data.lv2, L2]]) {
     h += `<h2>レベル${lv}　${lv === 1 ? '4つの選択肢から えらぶ' : '50音表から 入力する'}（50の文章）</h2>`;
-    for (let st = 1; st <= 10; st++) {
+    for (let st = 1; st <= (lv === 1 ? 10 : 12); st++) {
       h += `<h3>ステージ${st}：${STAGE_NAME[st]}</h3><table><tr><th>番号</th><th>文章</th><th style="color:${COLORS.itsu}">いつ</th><th style="color:${COLORS.doko}">どこで</th><th style="color:${COLORS.dare}">だれが</th><th style="color:${COLORS.nani}">なにを した</th><th>挿絵</th></tr>`;
       for (const m of list.filter((x) => x.st === st)) {
         const o = src.find((x) => x.id === m.id);
