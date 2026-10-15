@@ -118,7 +118,7 @@
 
     /* 50音表 */
     .kb { display: grid; gap: .3rem; }
-    .kcol { display: grid; grid-template-rows: repeat(5, 1fr); gap: .3rem; }
+    .kcol { display: grid; grid-template-rows: repeat(6, 1fr); gap: .3rem; }
     .key { width: 100%; min-width: 2.5rem; height: 2.7rem; font-size: 1.4rem; padding: 0; border-radius: .7rem; }
     .key.blank { visibility: hidden; }
     .tabs { display: flex; gap: .4rem; flex-wrap: wrap; }
@@ -184,6 +184,7 @@
     .sh-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 5mm; font-weight: 700; border: .6mm dashed #cbd5e1; margin: 3mm; border-radius: 2mm; }
     .sh-mapbox { flex: 1; display: flex; gap: 2mm; padding: 2mm; align-items: center; min-height: 0; }
     .sh-mapbox svg { height: 100%; width: auto; max-width: 62mm; }
+    .sh-headmap svg { height: 100%; width: auto; }
     .sh-mapnote { font-size: 4.6mm; font-weight: 700; line-height: 2.1; }
 
     @page { size: 364mm 257mm; margin: 0; }
@@ -207,6 +208,7 @@
   <!-- 地図と 都道府県の データ（Babel を 通さないので 速く 読みこめる） -->
   <script src="data/japan-map.js"></script>
   <script src="data/tokyo.js"></script>
+  <script src="data/tokyo2.js"></script>
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, useCallback } = React;
@@ -232,10 +234,19 @@
       '46': ['鹿児島県', 'かごしまけん'], '47': ['沖縄県', 'おきなわけん'],
     };
     // いま たずねられる 都道府県（データの ある ところ）。コードの 順。
-    const PREFS = Object.values(PREF_DATA).sort((a, b) => a.code.localeCompare(b.code));
-    const PREF_MAP = Object.fromEntries(PREFS.map(p => [p.id, p]));
+    // しんぶん（1まい = 1つの データ）。parent の ある ものは、その 都道府県の 2まいめ いこうの しんぶん。
+    const ALL_SHEETS = Object.values(PREF_DATA).sort((a, b) => a.code.localeCompare(b.code) || (a.sheetNo || 1) - (b.sheetNo || 1));
+    const PREFS = ALL_SHEETS.filter(p => !p.parent);
+    const PREF_MAP = Object.fromEntries(ALL_SHEETS.map(p => [p.id, p]));
     const PREF_BY_CODE = Object.fromEntries(PREFS.map(p => [p.code, p]));
+    const sheetsOf = pref => ALL_SHEETS.filter(s => s.id === pref.id || s.parent === pref.id);
+    const subSheets = pref => ALL_SHEETS.filter(s => s.parent === pref.id);
+    const mainOf = sheet => (sheet.parent ? PREF_MAP[sheet.parent] : sheet);
+    const CIRCLED = ['①', '②', '③', '④', '⑤'];
+    const sheetMark = sheet => (subSheets(mainOf(sheet)).length ? CIRCLED[(sheet.sheetNo || 1) - 1] : '');
+    const sheetLabel = sheet => plain(sheet.name) + (sheet.parent ? CIRCLED[(sheet.sheetNo || 1) - 1] : '');
     const STEPS = [['read', 'よむ', '📖'], ['quiz', 'クイズ', '❓'], ['pick', 'えらぶ', '🖼️'], ['write', 'かく', '✏️']];
+    const OWN = '__own'; // じぶんで 入れた しゃしん
 
     const DEFAULT_SETTINGS = {
       voice: true,       // ツバサせんせいの 声
@@ -288,14 +299,22 @@
       return <span className={className} style={style}>{out}</span>;
     }
     // 子どもが 50音表で 書いた 文字は、{ } | を ふくまない ように する
-    const cleanTyped = s => String(s || '').replace(/[{}|<>]/g, '').slice(0, 40);
+    const cleanTyped = (s, max = 40) => String(s || '').replace(/[{}|<>]/g, '').replace(/[\r\n]+/g, ' ').slice(0, max);
     const toKata = s => s.replace(/[ぁ-ゖ]/g, c => String.fromCharCode(c.charCodeAt(0) + 0x60));
     const toHira = s => s.replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
     const isKata = c => /[ァ-ヺー]/.test(c);
 
     /* ---- 文を つくる ---- */
     const cardOf = (item, id) => item.cards.find(c => c.id === id) || null;
-    const sentence1 = (item, ip) => { const c = cardOf(item, ip.pick); return c && ip.s1 ? `${c.name || c.title}は、${ip.s1}。` : ''; };
+    const endDot = t => (t && !/[。．.！!？?]$/.test(t) ? t + '。' : t);
+    const isOwn = (item, ip) => item.free || ip.pick === OWN;
+    const ownOf = ip => ({ name: '', desc: '', src: '', ...(ip.own || {}) });
+    const sentence1 = (item, ip) => {
+      if (isOwn(item, ip)) { const o = ownOf(ip); return o.desc ? endDot(o.desc.trim()) : ''; }
+      const c = cardOf(item, ip.pick); return c && ip.s1 ? `${c.name || c.title}は、${ip.s1}。` : '';
+    };
+    const photoName = (item, ip) => { if (isOwn(item, ip)) return ownOf(ip).name; const c = cardOf(item, ip.pick); return c ? c.title : ''; };
+    const writeReady = (item, ip) => !!ip.s2 && (isOwn(item, ip) ? !!(ownOf(ip).name.trim() && ownOf(ip).desc.trim() && ip.ownRev) : !!ip.s1);
     const sentence2 = ip => (ip.s2 ? `${ip.s2}と おもいました。` : '');
 
     /* =========================================================
@@ -346,10 +365,11 @@
     function getDB() {
       if (dbPromise) return dbPromise;
       dbPromise = new Promise((resolve, reject) => {
-        const req = indexedDB.open(DB_NAME, 1);
+        const req = indexedDB.open(DB_NAME, 2);
         req.onupgradeneeded = () => {
           const db = req.result;
           if (!db.objectStoreNames.contains('history')) db.createObjectStore('history', { keyPath: 'id', autoIncrement: true });
+          if (!db.objectStoreNames.contains('photos')) db.createObjectStore('photos'); // じぶんで 入れた しゃしん（キー：子ども|しんぶん|項目）
         };
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
@@ -375,6 +395,48 @@
       getAll: (s) => idbReq(s, 'readonly', st => st.getAll()),
       clear: (s) => idbReq(s, 'readwrite', st => st.clear()),
     };
+    // じぶんで 入れた しゃしん（データURL）
+    const photoKey = (kid, pid, iid) => `${kid}|${pid}|${iid}`;
+    const Photos = {
+      put: (key, data) => idbReq('photos', 'readwrite', st => st.put(data, key)),
+      get: (key) => idbReq('photos', 'readonly', st => st.get(key)),
+      del: (key) => idbReq('photos', 'readwrite', st => st.delete(key)),
+      keys: () => idbReq('photos', 'readonly', st => st.getAllKeys()),
+      async all() { const ks = await this.keys(); const out = []; for (const k of ks) out.push({ key: k, data: await this.get(k) }); return out; },
+      async delKid(kid) { const ks = await this.keys(); for (const k of ks) if (String(k).startsWith(kid + '|')) await this.del(k); },
+    };
+    // 画像の ファイルを 小さく して データURL に する（たて よこ 1200 まで）
+    function imageToDataURL(src, max = 1200) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const sc = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+          const c = document.createElement('canvas');
+          c.width = Math.round(img.naturalWidth * sc); c.height = Math.round(img.naturalHeight * sc);
+          const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+          g.drawImage(img, 0, 0, c.width, c.height);
+          resolve(c.toDataURL('image/jpeg', 0.85));
+        };
+        img.onerror = () => reject(new Error('image'));
+        img.src = src;
+      });
+    }
+    function fileToDataURL(file) {
+      return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        imageToDataURL(url).then(d => { URL.revokeObjectURL(url); resolve(d); }, e => { URL.revokeObjectURL(url); reject(e); });
+      });
+    }
+    function useOwnPhoto(kid, pid, iid, rev) {
+      const [src, setSrc] = useState(null);
+      useEffect(() => {
+        let alive = true;
+        if (!rev) { setSrc(null); return; }
+        Photos.get(photoKey(kid, pid, iid)).then(d => { if (alive) setSrc(d || null); }).catch(() => { if (alive) setSrc(null); });
+        return () => { alive = false; };
+      }, [kid, pid, iid, rev]);
+      return src;
+    }
 
     function downloadFile(name, content, type) {
       const blob = content instanceof Blob ? content : new Blob([content], { type });
@@ -503,22 +565,29 @@
     /* =========================================================
        すすみぐあい
        ========================================================= */
-    const EMPTY_ITEM = { step: 'read', seen: [], ci: 0, qi: 0, pick: null, s1: '', s1Own: false, s2: '', s2Own: false, doneAt: 0 };
+    const EMPTY_ITEM = { step: 'read', seen: [], ci: 0, qi: 0, pick: null, s1: '', s1Own: false, s2: '', s2Own: false, own: null, ownRev: 0, doneAt: 0 };
     const kidOf = (st, kid) => st.kids[kid] || { prefs: {}, stickers: {} };
     const kidPref = (st, kid, pid) => (kidOf(st, kid).prefs || {})[pid] || { items: {}, rev: 0, sentRev: 0, stampAt: 0 };
     const itemProg = (st, kid, pid, iid) => ({ ...EMPTY_ITEM, ...((kidPref(st, kid, pid).items || {})[iid] || {}) });
     const isDone = (st, kid, pid, iid) => !!itemProg(st, kid, pid, iid).doneAt;
     function isItemOpen(st, kid, pref, idx) {
+      if (!isSheetOpen(st, kid, pref)) return false;
       if (st.settings.unlockAll || idx === 0) return true;
       return isDone(st, kid, pref.id, pref.items[idx - 1].id);
     }
     const doneCount = (st, kid, pref) => pref.items.filter(it => isDone(st, kid, pref.id, it.id)).length;
     const prefComplete = (st, kid, pref) => doneCount(st, kid, pref) === pref.items.length;
+    // 2まいめ いこうの しんぶんは、1まいめが ぜんぶ できると 開く
+    const isSheetOpen = (st, kid, sheet) => !sheet.parent || st.settings.unlockAll || prefComplete(st, kid, PREF_MAP[sheet.parent]);
+    // 金の スタンプ：その 都道府県の しんぶんが ぜんぶ できた
+    const prefGold = (st, kid, pref) => subSheets(pref).length > 0 && sheetsOf(pref).every(s => prefComplete(st, kid, s));
+    // つぎに すすめる しんぶん
+    const nextSheet = (st, kid, pref) => sheetsOf(pref).find(s => isSheetOpen(st, kid, s) && !prefComplete(st, kid, s)) || pref;
     const visitedCount = (st, kid) => PREFS.filter(p => prefComplete(st, kid, p)).length;
     function titleIndex(n) { let i = 0; TITLES.forEach((t, k) => { if (n >= t.min) i = k; }); return i; }
     const titleOf = (st, kid) => TITLES[titleIndex(visitedCount(st, kid))];
     const stickerId = (pref, item) => `${pref.id}-${item.id}`;
-    const ALL_STICKERS = PREFS.reduce((n, p) => n + p.items.length, 0);
+    const ALL_STICKERS = ALL_SHEETS.reduce((n, p) => n + p.items.length, 0);
     const stickerCount = (st, kid) => Object.keys(kidOf(st, kid).stickers || {}).length;
     function nextItem(st, kid, pref) {
       for (let i = 0; i < pref.items.length; i++) {
@@ -545,12 +614,12 @@
     function sheetPayload(st, kid, name, pref) {
       const kp = kidPref(st, kid, pref.id);
       return {
-        uid: `${name}|${pref.id}`, prefId: pref.id, pref: plain(pref.name), done: doneCount(st, kid, pref), total: pref.items.length,
+        uid: `${name}|${pref.id}`, prefId: pref.id, pref: sheetLabel(pref), sub: pref.parent ? 1 : 0, done: doneCount(st, kid, pref), total: pref.items.length,
         updatedAt: Date.now(),
         items: pref.items.map(it => {
           const ip = itemProg(st, kid, pref.id, it.id);
-          const c = cardOf(it, ip.pick);
-          return { id: it.id, name: plain(it.name), done: ip.doneAt ? 1 : 0, photo: c ? plain(c.title) : '', text: ip.doneAt ? plain(sentence1(it, ip) + sentence2(ip)) : '' };
+          const photo = isOwn(it, ip) ? `じぶんの しゃしん（${ownOf(ip).name}）` : plain(photoName(it, ip));
+          return { id: it.id, name: plain(it.name), done: ip.doneAt ? 1 : 0, photo: ip.pick || it.free ? photo : '', text: ip.doneAt ? plain(sentence1(it, ip) + sentence2(ip)) : '' };
         }),
         rev: kp.rev || 0,
       };
@@ -559,7 +628,7 @@
       const pref = PREF_MAP[h.pref];
       const item = pref && pref.items.find(i => i.id === h.item);
       return {
-        uid: `${st.deviceId}-${h.at}-${h.qid}`, at: h.at, pref: pref ? plain(pref.name) : h.pref, item: item ? plain(item.name) : h.item,
+        uid: `${st.deviceId}-${h.at}-${h.qid}`, at: h.at, pref: pref ? sheetLabel(pref) : h.pref, item: item ? plain(item.name) : h.item,
         qid: h.qid, q: plain(h.q), correct: plain(h.correct), answers: (h.answers || []).map(plain).join(' → '),
         result: h.result, mistakes: h.mistakes, hints: h.hints, sec: h.sec,
       };
@@ -567,13 +636,14 @@
     function buildSummary(st, kid, hist) {
       let lastAt = 0, n = 0, first = 0;
       hist.forEach(h => { lastAt = Math.max(lastAt, h.at || 0); n++; if (!h.mistakes && !h.hints) first++; });
-      PREFS.forEach(p => p.items.forEach(it => { lastAt = Math.max(lastAt, itemProg(st, kid, p.id, it.id).doneAt || 0); }));
+      ALL_SHEETS.forEach(p => p.items.forEach(it => { lastAt = Math.max(lastAt, itemProg(st, kid, p.id, it.id).doneAt || 0); }));
       const t = titleOf(st, kid);
-      const now = PREFS.map(p => ({ p, it: nextItem(st, kid, p) })).find(x => x.it && doneCount(st, kid, x.p) > 0) || PREFS.map(p => ({ p, it: nextItem(st, kid, p) })).find(x => x.it);
+      const cand = ALL_SHEETS.map(p => ({ p, it: nextItem(st, kid, p) }));
+      const now = cand.find(x => x.it && doneCount(st, kid, x.p) > 0) || cand.find(x => x.it);
       return {
         title: `${t.icon} ${t.name}`, visited: visitedCount(st, kid), stickers: stickerCount(st, kid), allStickers: ALL_STICKERS,
         quizN: n, quizFirst: first, lastAt,
-        current: now ? `${plain(now.p.name)}：${plain(now.it.name)}` : 'ぜんぶ おわり',
+        current: now ? `${sheetLabel(now.p)}：${plain(now.it.name)}` : 'ぜんぶ おわり',
       };
     }
     const SYNC_ERRORS = {
@@ -611,7 +681,7 @@
             const st = app.stateRef.current;
             const hist = histAll.filter(h => h.kid === k.id);
             const targets = hist.filter(h => all || !h.sent);
-            const sheets = PREFS.filter(p => { const kp = kidPref(st, k.id, p.id); return (kp.rev || 0) > 0 && (all || (kp.rev || 0) !== (kp.sentRev || 0)); })
+            const sheets = ALL_SHEETS.filter(p => { const kp = kidPref(st, k.id, p.id); return (kp.rev || 0) > 0 && (all || (kp.rev || 0) !== (kp.sentRev || 0)); })
               .map(p => sheetPayload(st, k.id, k.name, p));
             const summary = buildSummary(st, k.id, hist);
             const sumKey = fnv(k.name + JSON.stringify(summary));
@@ -763,14 +833,16 @@
       );
     }
     // はんこ（都道府県の スタンプ）
-    function Stamp({ x, y, r = 58, label, anim }) {
+    function Stamp({ x, y, r = 58, label, anim, gold }) {
+      const c = gold ? '#b45309' : '#dc2626';
       return (
-        <g transform={`translate(${x} ${y}) rotate(-12)`} data-stamp="1">
+        <g transform={`translate(${x} ${y}) rotate(-12)`} data-stamp={gold ? 'gold' : 'red'}>
           <g className={anim ? 'stampin' : ''}>
-            <circle r={r} fill="#fff" fillOpacity=".75" stroke="#dc2626" strokeWidth={r * .1} />
-            <circle r={r * .78} fill="none" stroke="#dc2626" strokeWidth={r * .04} />
-            <text y={-r * .18} textAnchor="middle" fontSize={r * .3} fontWeight="700" fill="#dc2626">たんけん</text>
-            <text y={r * .32} textAnchor="middle" fontSize={r * (label.length > 3 ? .3 : .38)} fontWeight="700" fill="#dc2626">{label}</text>
+            {gold && [...Array(12)].map((_, i) => <path key={i} d={`M0 ${-r * 1.28} L${r * .12} ${-r * 1.02} L${-r * .12} ${-r * 1.02} Z`} fill="#f59e0b" transform={`rotate(${i * 30})`} />)}
+            <circle r={r} fill={gold ? '#fde68a' : '#fff'} fillOpacity={gold ? 1 : .75} stroke={c} strokeWidth={r * .1} />
+            <circle r={r * .78} fill="none" stroke={c} strokeWidth={r * .04} />
+            <text y={-r * .18} textAnchor="middle" fontSize={r * .3} fontWeight="700" fill={c}>{gold ? '★きん★' : 'たんけん'}</text>
+            <text y={r * .32} textAnchor="middle" fontSize={r * (label.length > 3 ? .3 : .38)} fontWeight="700" fill={c}>{label}</text>
           </g>
         </g>
       );
@@ -790,7 +862,7 @@
           {showPins && PREFS.map(pref => {
             const p = MAP.prefs[pref.code]; if (!p) return null;
             const done = kid && prefComplete(st, kid, pref);
-            if (done) return <Stamp key={pref.id} x={p.cx + 70} y={p.cy + 10} label={plain(pref.name)} anim={stampAnim === pref.id} />;
+            if (done) return <Stamp key={pref.id} x={p.cx + 70} y={p.cy + 10} label={plain(pref.name)} anim={stampAnim === pref.id} gold={prefGold(st, kid, pref)} />;
             return (
               <g key={pref.id} onClick={() => onTap && onTap(pref.code)} style={{ cursor: 'pointer' }} data-pin={pref.id}>
                 <circle cx={p.cx} cy={p.cy} r="44" fill="transparent" />
@@ -830,7 +902,7 @@
       };
       const remove = async (k) => {
         if (!confirm(`「${k.name}」を名簿から消します。この子の記録もこの端末から消えます。よろしいですか？`)) return;
-        try { const h = await DB.getAll('history'); for (const x of h) if (x.kid === k.id) await DB.del('history', x.id); } catch (e) { console.warn(e); }
+        try { const h = await DB.getAll('history'); for (const x of h) if (x.kid === k.id) await DB.del('history', x.id); await Photos.delKid(k.id); } catch (e) { console.warn(e); }
         app.update(s => { const kids = { ...s.kids }; delete kids[k.id]; return { ...s, roster: s.roster.filter(x => x.id !== k.id), kids }; });
       };
       const move = (i, d) => app.update(s => { const r = [...s.roster]; const j = i + d; if (j < 0 || j >= r.length) return s; [r[i], r[j]] = [r[j], r[i]]; return { ...s, roster: r }; });
@@ -940,11 +1012,12 @@
                 {nt && <div className="muted" style={{ fontSize: '1rem', fontWeight: 400 }}>つぎの しょうごう「{nt.name}」まで あと {nt.min - n}けん</div>}
               </Say>
               {PREFS.map(p => {
-                const d = doneCount(st, kid, p);
+                const ss = sheetsOf(p);
+                const all = ss.every(x => prefComplete(st, kid, x));
                 return (
-                  <Btn key={p.id} color={d === p.items.length ? 'green' : 'orange'} size="xl" className={d < p.items.length ? 'pulse' : ''} onClick={() => go({ name: 'pref', pid: p.id })} data-go-pref={p.id}>
+                  <Btn key={p.id} color={all ? 'green' : 'orange'} size="xl" className={all ? '' : 'pulse'} onClick={() => go({ name: 'pref', pid: nextSheet(st, kid, p).id })} data-go-pref={p.id} style={{ flexWrap: 'wrap' }}>
                     <span className="emoji">🗾</span> <R t={p.name} />を たずねる
-                    <span style={{ fontSize: '1.1rem' }}>（{d} / {p.items.length}）</span>
+                    <span style={{ fontSize: '1.05rem' }}>（{ss.map(x => `${sheetMark(x)}${doneCount(st, kid, x)}/${x.items.length}`).join('　')}）</span>
                   </Btn>
                 );
               })}
@@ -963,18 +1036,36 @@
     function PrefPage({ app, kid, pid, go }) {
       const st = app.state;
       const pref = PREF_MAP[pid];
+      const main = mainOf(pref);
+      const sheets = sheetsOf(main);
+      const sheetOpen = isSheetOpen(st, kid, pref);
       const next = nextItem(st, kid, pref);
       const d = doneCount(st, kid, pref);
       const complete = d === pref.items.length;
-      const text = complete
-        ? `${pref.name}の たんけんは ぜんぶ おわったよ！ しんぶんを みて みよう。`
-        : d === 0 ? `${pref.greet} じゅんばんに しらべて、しんぶんを つくろう。` : `つづきから しらべよう。あと ${pref.items.length - d}つで しんぶんが できるよ。`;
-      useEffect(() => { const id = setTimeout(() => TTS.speak(text), 300); return () => { clearTimeout(id); TTS.cancel(); }; }, []);
+      const mark = sheetMark(pref);
+      const text = !sheetOpen
+        ? `しんぶん${mark}は、しんぶん${sheetMark(main)}が ぜんぶ できると ひらくよ。`
+        : complete
+          ? (pref.parent ? `しんぶん${mark}も ぜんぶ できたよ！ すごいね。` : `${pref.name}の たんけんは ぜんぶ おわったよ！ しんぶんを みて みよう。`)
+          : d === 0 ? `${pref.greet} じゅんばんに しらべて、しんぶんを つくろう。` : `つづきから しらべよう。あと ${pref.items.length - d}つで しんぶん${mark}が できるよ。`;
+      useEffect(() => { const id = setTimeout(() => TTS.speak(text), 300); return () => { clearTimeout(id); TTS.cancel(); }; }, [pid]);
       return (
         <div className="wrap">
           <TopBar left={<Btn color="white" size="sm" onClick={() => go({ name: 'home' })}>🗾 ちずに もどる</Btn>} title={<R t={`${pref.name}を たんけん`} />} />
+          {sheets.length > 1 && (
+            <div className="row wrapflex center" style={{ marginBottom: '.6rem' }} data-sheet-tabs="1">
+              {sheets.map(x => {
+                const op = isSheetOpen(st, kid, x);
+                return (
+                  <button key={x.id} className={`tab ${x.id === pid ? 'on' : ''}`} style={{ fontSize: '1.3rem', padding: '.4rem 1.2rem' }} onClick={() => { sfx('tap'); go({ name: 'pref', pid: x.id }); }} data-sheet-tab={x.id}>
+                    {op ? '📰' : '🔒'} しんぶん{sheetMark(x)}（{doneCount(st, kid, x)} / {x.items.length}）{prefComplete(st, kid, x) ? ' ✅' : ''}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           <Say text={text} size={110} />
-          <div className="itemgrid" style={{ marginTop: '1rem' }}>
+          <div className="itemgrid" style={{ marginTop: '1rem', gridTemplateColumns: `repeat(${Math.min(pref.items.length, 6)}, 1fr)` }}>
             {pref.items.map((it, i) => {
               const open = isItemOpen(st, kid, pref, i);
               const ip = itemProg(st, kid, pref.id, it.id);
@@ -984,15 +1075,18 @@
                   <span style={{ fontSize: '1rem', color: '#64748b' }}>{i + 1}</span>
                   {done ? <Sticker item={it} size={64} /> : <span className="emoji" style={{ fontSize: '3rem' }}>{open ? it.icon : '🔒'}</span>}
                   <span className="kw" style={{ fontSize: '1.3rem', color: it.color }}><R t={it.name} /></span>
-                  <span style={{ fontSize: '1rem' }}>{done ? '✅ できた' : open ? (ip.step !== 'read' || ip.seen.length ? '▶ つづき' : '▶ はじめる') : 'まえを おえると ひらくよ'}</span>
+                  <span style={{ fontSize: '1rem' }}>{done ? '✅ できた' : open ? (ip.step !== 'read' || ip.seen.length ? '▶ つづき' : '▶ はじめる') : sheetOpen ? 'まえを おえると ひらくよ' : 'しんぶん' + sheetMark(main) + 'の あとで ひらくよ'}</span>
                 </button>
               );
             })}
           </div>
           <div className="row wrapflex center" style={{ marginTop: '1.2rem', gap: '1rem' }}>
-            {complete && !kidPref(st, kid, pid).stampAt && <Btn color="orange" size="xl" className="pulse" onClick={() => go({ name: 'stamp', pid })} data-get-stamp="1">🔴 スタンプを もらう</Btn>}
+            {complete && !kidPref(st, kid, pid).stampAt && <Btn color="orange" size="xl" className="pulse" onClick={() => go({ name: 'stamp', pid })} data-get-stamp="1">{pref.parent ? '🥇 きんの スタンプを もらう' : '🔴 スタンプを もらう'}</Btn>}
             {next && <Btn color="green" size="xl" className="pulse" onClick={() => go({ name: 'item', pid, iid: next.id })} data-continue="1">▶ {d || itemProg(st, kid, pid, next.id).seen.length ? 'つづきから' : 'はじめる'}</Btn>}
-            <Btn color="sky" size="lg" onClick={() => go({ name: 'sheet', pid, kid })} data-open-sheet="1">📰 しんぶんを みる（{d} / {pref.items.length}）</Btn>
+            {sheetOpen && <Btn color="sky" size="lg" onClick={() => go({ name: 'sheet', pid, kid })} data-open-sheet="1">📰 しんぶん{mark}を みる（{d} / {pref.items.length}）</Btn>}
+            {complete && kidPref(st, kid, pid).stampAt && sheets.filter(x => x.id !== pid && isSheetOpen(st, kid, x) && !prefComplete(st, kid, x)).slice(0, 1).map(x => (
+              <Btn key={x.id} color="green" size="xl" className="pulse" onClick={() => go({ name: 'pref', pid: x.id })} data-go-sheet={x.id}>📰 しんぶん{sheetMark(x)}へ ▶</Btn>
+            ))}
           </div>
         </div>
       );
@@ -1001,11 +1095,12 @@
     /* =========================================================
        1つの 項目（よむ → クイズ → えらぶ → かく）
        ========================================================= */
-    function Steps({ step }) {
-      const idx = STEPS.findIndex(s => s[0] === step);
+    function Steps({ step, free }) {
+      const list = free ? [['pick', 'しゃしん', '📷'], ['write', 'かく', '✏️']] : STEPS;
+      const idx = list.findIndex(s => s[0] === step);
       return (
         <div className="steps wrapflex" data-steps={step}>
-          {STEPS.map(([k, n, ic], i) => (
+          {list.map(([k, n, ic], i) => (
             <React.Fragment key={k}>
               {i > 0 && <span className="arrow">→</span>}
               <span className={`step ${i === idx ? 'on' : i < idx || step === 'done' ? 'ok' : ''}`}><span className="emoji">{i < idx || step === 'done' ? '✅' : ic}</span> {n}</span>
@@ -1029,11 +1124,20 @@
       );
     }
     const imgOf = (pref, card) => `img/${pref.id}/${card.id}.webp`;
-    function Photo({ pref, card, style }) {
+    // カードの 写真（まだ 写真が ない ときは「じゅんびちゅう」と 出す）
+    function CardImg({ pref, card, className, style, ngStyle }) {
+      const [ng, setNg] = useState(false);
+      useEffect(() => { setNg(false); }, [pref.id, card.id]);
+      if (ng) return <div className={className} style={{ ...style, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9', color: '#94a3b8', fontWeight: 700, textAlign: 'center', ...ngStyle }} data-img-ng="1">しゃしんは<br />じゅんびちゅう</div>;
+      return <img className={className} style={style} src={imgOf(pref, card)} alt={plain(card.title)} onError={() => setNg(true)} />;
+    }
+    function Photo({ pref, card, style, own, src }) {
       return (
         <div style={style}>
-          <img className="pic" src={imgOf(pref, card)} alt={plain(card.title)} />
-          <div className="imgnote">※しゃしんは イメージです</div>
+          {own
+            ? (own.data ? <img className="pic" src={own.data} alt={own.name || ''} style={{ objectFit: 'contain', background: '#f1f5f9' }} data-own-photo="1" /> : <div className="pic" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '4rem' }}>📷</div>)
+            : <CardImg className="pic" pref={pref} card={card} ngStyle={{ fontSize: '1.6rem' }} />}
+          <div className="imgnote kw">{own ? (src ? `でどころ：${src}` : '※じぶんで いれた しゃしん') : '※しゃしんは イメージです'}</div>
         </div>
       );
     }
@@ -1193,7 +1297,7 @@
             <div>
               {hint >= 2 && hc ? (
                 <div className="card col" style={{ gap: '.3rem' }} data-hint-card="1">
-                  <img className="pic" src={imgOf(pref, hc)} alt="" style={{ maxHeight: '13rem', objectFit: 'cover' }} />
+                  <CardImg className="pic" pref={pref} card={hc} style={{ maxHeight: '13rem', objectFit: 'cover' }} />
                   <div className="ctitle kw" style={{ color: item.color, fontSize: '1.5rem' }}><R t={hc.title} /></div>
                   <div style={{ fontSize: '.85em' }}><CardText card={hc} mark={Q.mark} glow={hint >= 3} /></div>
                 </div>
@@ -1210,36 +1314,126 @@
       );
     }
 
+    // カメラで とる
+    function CameraModal({ onShot, onCancel }) {
+      const vref = useRef(null);
+      const streamRef = useRef(null);
+      const [err, setErr] = useState('');
+      const [shot, setShot] = useState(null);
+      useEffect(() => {
+        let alive = true;
+        (async () => {
+          try {
+            const sm = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 } }, audio: false });
+            if (!alive) { sm.getTracks().forEach(t => t.stop()); return; }
+            streamRef.current = sm;
+            if (vref.current) { vref.current.srcObject = sm; await vref.current.play().catch(() => {}); }
+          } catch (e) { setErr('カメラが つかえません。せんせいに きいてね。'); }
+        })();
+        return () => { alive = false; if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop()); };
+      }, []);
+      const take = () => {
+        const v = vref.current; if (!v || !v.videoWidth) return;
+        const sc = Math.min(1, 1200 / Math.max(v.videoWidth, v.videoHeight));
+        const c = document.createElement('canvas'); c.width = Math.round(v.videoWidth * sc); c.height = Math.round(v.videoHeight * sc);
+        c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+        sfx('pick'); setShot(c.toDataURL('image/jpeg', 0.85));
+      };
+      return (
+        <Modal onClose={onCancel} wide>
+          <div className="col" style={{ alignItems: 'center' }}>
+            <div className="bold" style={{ fontSize: '1.3rem' }}>📷 カメラで とる</div>
+            {err ? <div className="bold" style={{ color: '#be123c', fontSize: '1.3rem' }}>{err}</div> : (
+              <div style={{ width: 'min(720px, 90vw)', aspectRatio: '4 / 3', background: '#0f172a', borderRadius: '1rem', overflow: 'hidden' }}>
+                {shot ? <img src={shot} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  : <video ref={vref} playsInline muted style={{ width: '100%', height: '100%', objectFit: 'contain' }} />}
+              </div>
+            )}
+            <div className="row wrapflex center">
+              <Btn color="white" size="md" onClick={onCancel}>やめる</Btn>
+              {!err && !shot && <Btn color="red" size="lg" onClick={take} data-cam-take="1">⏺ とる</Btn>}
+              {shot && <Btn color="white" size="md" onClick={() => setShot(null)}>とりなおす</Btn>}
+              {shot && <Btn color="green" size="lg" onClick={() => onShot(shot)} data-cam-ok="1">これに する</Btn>}
+            </div>
+          </div>
+        </Modal>
+      );
+    }
+    // じぶんの しゃしんを 入れる ボタン（ファイル・カメラ）
+    function OwnPhotoButtons({ onData, size = 'md' }) {
+      const [cam, setCam] = useState(false);
+      const [busy, setBusy] = useState(false);
+      const fileRef = useRef(null);
+      const onFile = async e => {
+        const f = e.target.files && e.target.files[0]; e.target.value = '';
+        if (!f) return;
+        setBusy(true);
+        try { onData(await fileToDataURL(f)); } catch (err) { alert('この しゃしんは よみこめませんでした。べつの しゃしんを えらんでね。'); }
+        setBusy(false);
+      };
+      return (
+        <div className="row wrapflex center">
+          <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={onFile} data-own-file="1" />
+          <Btn color="sky" size={size} onClick={() => fileRef.current && fileRef.current.click()} disabled={busy} data-own-pick="1">🖼️ {size === 'sm' ? 'えらぶ' : 'しゃしんを えらぶ'}</Btn>
+          {navigator.mediaDevices && navigator.mediaDevices.getUserMedia && <Btn color="violet" size={size} onClick={() => setCam(true)} disabled={busy} data-own-camera="1">📷 {size === 'sm' ? 'カメラ' : 'カメラで とる'}</Btn>}
+          {cam && <CameraModal onCancel={() => setCam(false)} onShot={d => { setCam(false); onData(d); }} />}
+        </div>
+      );
+    }
     function PickStep({ app, kid, pref, item, ip, onNext }) {
-      const text = 'しんぶんに はる しゃしんを 1まい えらぼう。いちばん つたえたい ものは どれかな。';
+      const text = item.free ? item.intro : 'しんぶんに はる しゃしんを 1まい えらぼう。じぶんで さがした しゃしんでも いいよ。';
+      const ownSrc = useOwnPhoto(kid, pref.id, item.id, ip.ownRev);
       useEffect(() => { const id = setTimeout(() => TTS.speak(text), 300); return () => { clearTimeout(id); TTS.cancel(); }; }, []);
       const pick = (c) => {
         sfx('pick');
         updItem(app, kid, pref.id, item.id, cur => ({ pick: c.id, s1: cur.pick === c.id ? cur.s1 : '', s1Own: cur.pick === c.id ? cur.s1Own : false }));
         TTS.speak(c.title);
       };
+      const useOwn = async (data) => {
+        try { await Photos.put(photoKey(kid, pref.id, item.id), data); } catch (e) { alert('しゃしんを ほぞん できませんでした。'); return; }
+        sfx('pick');
+        updItem(app, kid, pref.id, item.id, { pick: OWN, ownRev: Date.now() });
+        TTS.speak('じぶんの しゃしんを いれたよ。');
+      };
+      const pickOwn = () => { if (!ip.ownRev) return; sfx('pick'); updItem(app, kid, pref.id, item.id, { pick: OWN }); };
+      const ownOn = item.free ? !!ip.ownRev : ip.pick === OWN;
+      const ownTile = (
+        <div className={`pickbtn ${ownOn ? 'on' : ''}`} style={{ borderStyle: ip.ownRev ? 'solid' : 'dashed' }} data-pick-own="1">
+          <div onClick={pickOwn} style={{ cursor: ip.ownRev ? 'pointer' : 'default' }}>
+            {ownSrc ? <img src={ownSrc} alt="" style={{ objectFit: 'contain', background: '#f1f5f9' }} />
+              : <div style={{ width: '100%', aspectRatio: '4 / 3', borderRadius: '.8rem', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3.5rem' }}>📷</div>}
+            <span className="kw tc" style={{ display: 'block' }}>じぶんの しゃしん</span>
+          </div>
+          <OwnPhotoButtons onData={useOwn} size={item.free ? "md" : "sm"} />
+          {ownOn && <span className="check">✓</span>}
+        </div>
+      );
+      const many = item.cards.length + 1 > 6;
       return (
         <div className="col">
           <Say text={text} size={90} />
-          <div className="pickgrid">
-            {item.cards.map(c => (
-              <button key={c.id} className={`pickbtn ${ip.pick === c.id ? 'on' : ''}`} onClick={() => pick(c)} data-pick={c.id}>
-                <img src={imgOf(pref, c)} alt={plain(c.title)} />
-                <span className="kw tc"><R t={c.title} /></span>
-                {ip.pick === c.id && <span className="check">✓</span>}
-              </button>
-            ))}
-          </div>
-          <div className="tc actionbar"><Btn color="green" size="xl" disabled={!ip.pick} className={ip.pick ? 'pulse' : ''} onClick={onNext} data-pick-ok="1">これに する ▶</Btn></div>
+          {item.free
+            ? <div style={{ maxWidth: 480, width: '100%', margin: '0 auto' }}>{ownTile}</div>
+            : <div className="pickgrid" style={many ? { gridTemplateColumns: 'repeat(4, 1fr)', maxWidth: 1000 } : null}>
+                {item.cards.map(c => (
+                  <button key={c.id} className={`pickbtn ${ip.pick === c.id ? 'on' : ''}`} onClick={() => pick(c)} data-pick={c.id}>
+                    <CardImg pref={pref} card={c} ngStyle={{ width: '100%', aspectRatio: '4 / 3', borderRadius: '.8rem' }} />
+                    <span className="kw tc"><R t={c.title} /></span>
+                    {ip.pick === c.id && <span className="check">✓</span>}
+                  </button>
+                ))}
+                {ownTile}
+              </div>}
+          <div className="tc actionbar"><Btn color="green" size="xl" disabled={!ownOn && !(ip.pick && ip.pick !== OWN)} className={ip.pick || ownOn ? 'pulse' : ''} onClick={() => { if (item.free && ip.pick !== OWN) updItem(app, kid, pref.id, item.id, { pick: OWN }); onNext(); }} data-pick-ok="1">これに する ▶</Btn></div>
         </div>
       );
     }
 
-    function KanaPad({ title, initial = '', onOk, onCancel }) {
+    function KanaPad({ title, initial = '', onOk, onCancel, max = 40 }) {
       const [v, setV] = useState(initial);
       const [kata, setKata] = useState(false);
       const cols = KANA_COLS.map(c => c.map(x => (x && kata ? toKata(x) : x)));
-      const push = ch => { sfx('key'); setV(s => cleanTyped(s + ch)); };
+      const push = ch => { sfx('key'); setV(s => cleanTyped(s + ch, max)); };
       const mark = m => setV(s => { const A = [...s]; const last = A[A.length - 1]; const r = applyMark(last, m); if (!r) return s; A[A.length - 1] = r; return A.join(''); });
       return (
         <Modal onClose={onCancel} wide>
@@ -1256,10 +1450,11 @@
                   {c.map((k, j) => k ? <Btn key={j} color="white" className="key" onClick={() => push(k)} data-key={k}>{k}</Btn> : <span key={j} className="key blank" />)}
                 </div>
               ))}
-              <div className="kcol">
+              <div className="kcol" style={{ gridTemplateRows: 'repeat(6, 1fr)' }}>
                 {['゛', '゜', '小'].map(m => <Btn key={m} color="amber" className="key" onClick={() => mark(m)} data-key={m}>{m === '小' ? <span style={{ fontSize: '1rem' }}>小さく</span> : m}</Btn>)}
                 <Btn color="amber" className="key" onClick={() => push('ー')}>ー</Btn>
                 <Btn color="amber" className="key" onClick={() => push('　')}><span style={{ fontSize: '.9rem' }}>あける</span></Btn>
+                <Btn color="amber" className="key" onClick={() => push('。')}>。</Btn>
               </div>
             </div>
             <div className="row wrapflex between">
@@ -1277,7 +1472,80 @@
       );
     }
 
-    function WriteStep({ app, kid, pref, item, ip, onNext }) {
+    // 1行の 入力（キーボードでも 50音表でも 書ける）
+    function TextField({ label, value, max, onChange, placeholder, k, note }) {
+      const [pad, setPad] = useState(false);
+      return (
+        <div className="col" style={{ gap: '.25rem' }}>
+          <div className="bold muted">{label}{note && <span style={{ fontWeight: 400, fontSize: '.9rem' }}>　{note}</span>}</div>
+          <div className="row">
+            <input className="inp grow" style={{ fontSize: '1.35rem', padding: '.5rem .7rem' }} value={value} maxLength={max} onChange={e => onChange(cleanTyped(e.target.value, max))} placeholder={placeholder} data-field={k} />
+            <Btn color="white" size="md" onClick={() => setPad(true)} data-kana={k}>あいう</Btn>
+          </div>
+          {pad && <KanaPad title={label} initial={value} max={max} onCancel={() => setPad(false)} onOk={v => { onChange(cleanTyped(v, max)); setPad(false); }} />}
+        </div>
+      );
+    }
+    function FeelBox({ app, kid, pref, item, ip, setPad }) {
+      const set = (patch) => { sfx('tap'); updItem(app, kid, pref.id, item.id, patch); };
+      return (
+        <div className="sentbox col" data-s2="1">
+          <div className="bold muted">{isOwn(item, ip) ? '④' : '②'} じぶんの きもち</div>
+          <div className="sentprev kw"><span className={`slot ${ip.s2 ? '' : 'empty'}`}>{ip.s2 || '？？？'}</span>と おもいました。</div>
+          <div className="row wrapflex">
+            {item.feels.map(f => (
+              <Btn key={f} color="white" size="md" className={`opt ${ip.s2 === f && !ip.s2Own ? 'on' : ''}`} onClick={() => { set({ s2: f, s2Own: false }); TTS.speak(`${f}と おもいました。`); }} data-feel={f}>{f}</Btn>
+            ))}
+          </div>
+          <Btn color="white" size="sm" className={ip.s2Own ? 'opt on' : 'opt'} onClick={() => setPad('s2')} data-own="s2">✏️ じぶんで かく{ip.s2Own ? `：${ip.s2}` : ''}</Btn>
+        </div>
+      );
+    }
+    // じぶんの しゃしんの とき：なまえ・せつめい・でどころを 書く
+    function OwnWriteStep({ app, kid, pref, item, ip, onNext }) {
+      const [pad, setPad] = useState(null);
+      const own = ownOf(ip);
+      const src = useOwnPhoto(kid, pref.id, item.id, ip.ownRev);
+      const text = item.free
+        ? 'その ひとの なまえと、どんな ひとかを かこう。キーボードでも、「あいう」の ボタンでも かけるよ。'
+        : 'しゃしんの なまえと、しらべた ことを かこう。キーボードでも、「あいう」の ボタンでも かけるよ。';
+      useEffect(() => { const id = setTimeout(() => TTS.speak(text), 300); return () => { clearTimeout(id); TTS.cancel(); }; }, []);
+      const setOwn = patch => updItem(app, kid, pref.id, item.id, cur => ({ own: { ...ownOf(cur), ...patch } }));
+      const s1 = sentence1(item, ip), s2 = sentence2(ip);
+      const ready = writeReady(item, ip);
+      return (
+        <div className="col">
+          <Say text={text} size={80} />
+          <div className="writegrid">
+            <div className="col">
+              <Photo own={{ data: src, name: own.name }} src={own.src} />
+              <div className="ctitle tc kw" style={{ color: item.color, fontSize: '1.5rem' }}>{own.name || '　'}</div>
+              <Btn color="white" size="sm" onClick={() => updItem(app, kid, pref.id, item.id, { step: 'pick' })}>🖼️ しゃしんを えらびなおす</Btn>
+            </div>
+            <div className="col">
+              <div className="sentbox col" data-own-write="1">
+                <TextField k="name" label={`① ${item.ownName || 'しゃしんの なまえ'}`} value={own.name} max={20} placeholder={item.free ? 'れい：やまだ たろう' : 'れい：めいじじんぐう'} onChange={v => setOwn({ name: v })} />
+                <TextField k="desc" label={`② ${item.ownDesc || 'しらべた こと（1〜2ぶん）'}`} value={own.desc} max={80} placeholder={item.free ? 'れい：やきゅうの せんしゅです。' : 'れい：おおきな じんじゃです。'} onChange={v => setOwn({ desc: v })} />
+                <TextField k="src" label="③ でどころ（どこの しゃしんか）" note="かかなくても いいよ" value={own.src} max={40} placeholder="れい：がっこうの ほん、じぶんで とった" onChange={v => setOwn({ src: v })} />
+              </div>
+              <FeelBox app={app} kid={kid} pref={pref} item={item} ip={ip} setPad={setPad} />
+            </div>
+          </div>
+          <div className="row center wrapflex actionbar" style={{ gap: '1rem' }}>
+            <button className="speak" style={{ fontSize: '1.2rem' }} disabled={!s1 || !s2} onClick={() => TTS.speak(s1 + s2, { force: true })}>🔊 ぶんを よむ</button>
+            <Btn color="green" size="xl" disabled={!ready} className={ready ? 'pulse' : ''} onClick={onNext} data-write-ok="1">できた！</Btn>
+          </div>
+          {pad && <KanaPad title="＿＿＿と おもいました。" initial={ip.s2Own ? ip.s2 : ''}
+            onCancel={() => setPad(null)}
+            onOk={v => { updItem(app, kid, pref.id, item.id, { s2: cleanTyped(v), s2Own: true }); setPad(null); }} />}
+        </div>
+      );
+    }
+    function WriteStep(props) {
+      if (isOwn(props.item, props.ip)) return <OwnWriteStep {...props} />;
+      return <CardWriteStep {...props} />;
+    }
+    function CardWriteStep({ app, kid, pref, item, ip, onNext }) {
       const card = cardOf(item, ip.pick) || item.cards[0];
       const [pad, setPad] = useState(null);
       const subj = card.name || card.title;
@@ -1303,16 +1571,7 @@
                 ))}
                 <Btn color="white" size="sm" className={ip.s1Own ? 'opt on' : 'opt'} onClick={() => setPad('s1')} data-own="s1">✏️ じぶんで かく{ip.s1Own ? `：${ip.s1}` : ''}</Btn>
               </div>
-              <div className="sentbox col" data-s2="1">
-                <div className="bold muted">② じぶんの きもち</div>
-                <div className="sentprev kw"><span className={`slot ${ip.s2 ? '' : 'empty'}`}>{ip.s2 || '？？？'}</span>と おもいました。</div>
-                <div className="row wrapflex">
-                  {item.feels.map(f => (
-                    <Btn key={f} color="white" size="md" className={`opt ${ip.s2 === f && !ip.s2Own ? 'on' : ''}`} onClick={() => { set({ s2: f, s2Own: false }); TTS.speak(`${f}と おもいました。`); }} data-feel={f}>{f}</Btn>
-                  ))}
-                </div>
-                <Btn color="white" size="sm" className={ip.s2Own ? 'opt on' : 'opt'} onClick={() => setPad('s2')} data-own="s2">✏️ じぶんで かく{ip.s2Own ? `：${ip.s2}` : ''}</Btn>
-              </div>
+              <FeelBox app={app} kid={kid} pref={pref} item={item} ip={ip} setPad={setPad} />
             </div>
           </div>
           <div className="row center wrapflex actionbar" style={{ gap: '1rem' }}>
@@ -1334,7 +1593,7 @@
       const nx = pref.items[idx + 1];
       const complete = prefComplete(st, kid, pref);
       const text = fresh
-        ? (complete ? `やったね！ ${pref.name}の しんぶんが できたよ！` : `できたね！ シールを 1まい あげるよ。`)
+        ? (complete ? `やったね！ ${pref.name}の しんぶん${sheetMark(pref)}が できたよ！` : `できたね！ シールを 1まい あげるよ。`)
         : `「${item.name}」は できて いるよ。`;
       useEffect(() => {
         if (fresh) { fanfare('item'); confetti(50); }
@@ -1349,13 +1608,13 @@
               <Sticker item={item} big={fresh} size={fresh ? null : 110} />
               <div className="bold kw" style={{ color: item.color, fontSize: '1.3rem' }}><R t={item.name} />の シール</div>
             </div>
-            <div style={{ width: 'min(560px, 90vw)' }}><SheetBox pref={pref} item={item} ip={ip} preview /></div>
+            <div style={{ width: 'min(560px, 90vw)' }}><SheetBox kid={kid} pref={pref} item={item} ip={ip} preview /></div>
           </div>
           <div className="row wrapflex center" style={{ gap: '1rem', marginTop: '.8rem' }}>
             {!fresh && <Btn color="white" size="md" onClick={() => updItem(app, kid, pref.id, item.id, { step: 'pick', doneAt: ip.doneAt })} data-redo="1">✏️ しゃしんと ぶんを なおす</Btn>}
             <Btn color="sky" size="lg" onClick={() => go({ name: 'sheet', pid: pref.id, kid })} data-open-sheet="1">📰 しんぶんを みる</Btn>
             {complete && fresh
-              ? <Btn color="orange" size="xl" className="pulse" onClick={() => go({ name: 'stamp', pid: pref.id })} data-get-stamp="1">🔴 スタンプを もらう</Btn>
+              ? <Btn color="orange" size="xl" className="pulse" onClick={() => go({ name: 'stamp', pid: pref.id })} data-get-stamp="1">{pref.parent ? '🥇 きんの スタンプを もらう' : '🔴 スタンプを もらう'}</Btn>
               : nx && isItemOpen(st, kid, pref, idx + 1) && !isDone(st, kid, pref.id, nx.id)
                 ? <Btn color="green" size="xl" className="pulse" onClick={() => go({ name: 'item', pid: pref.id, iid: nx.id })} data-next-item="1">つぎ：<R t={nx.name} /> ▶</Btn>
                 : <Btn color="green" size="lg" onClick={() => go({ name: 'pref', pid: pref.id })}>もどる</Btn>}
@@ -1370,7 +1629,8 @@
       const item = pref.items.find(i => i.id === iid);
       const ip = itemProg(st, kid, pid, iid);
       const [fresh, setFresh] = useState(false);
-      const step = ip.doneAt && (ip.step === 'done' || ip.step === 'read' || ip.step === 'quiz') ? 'done' : ip.step;
+      let step = ip.doneAt && (ip.step === 'done' || ip.step === 'read' || ip.step === 'quiz') ? 'done' : ip.step;
+      if (item.free && (step === 'read' || step === 'quiz')) step = 'pick'; // じぶんで しらべる 項目は カードと クイズが ない
       const setStep = s => updItem(app, kid, pid, iid, { step: s });
       const finish = () => {
         const first = !ip.doneAt;
@@ -1388,7 +1648,7 @@
           <TopBar
             left={<Btn color="white" size="sm" onClick={() => go({ name: 'pref', pid })} data-back-pref="1">◀ もどる</Btn>}
             title={<span style={{ color: item.color }}><span className="emoji">{item.icon}</span> <R t={item.name} /></span>}
-            right={<Steps step={step} />}
+            right={<Steps step={step} free={item.free} />}
           />
           {step === 'read' && <ReadStep key="read" app={app} kid={kid} pref={pref} item={item} ip={ip} onNext={() => setStep('quiz')} />}
           {step === 'quiz' && <QuizStep key="quiz" app={app} kid={kid} pref={pref} item={item} ip={ip} onNext={() => updItem(app, kid, pid, iid, { step: 'pick', qi: 0 })} />}
@@ -1405,8 +1665,13 @@
     function StampPage({ app, kid, pid, go }) {
       const st = app.state;
       const pref = PREF_MAP[pid];
+      const main = mainOf(pref);
+      const gold = !!pref.parent;
       const t = titleOf(st, kid);
-      const text = `${pref.name}の たんけん、おつかれさま！ たんけん てちょうに スタンプを おしたよ。いまの しょうごうは「${t.name}」だよ。`;
+      const nextS = subSheets(main).find(x => isSheetOpen(st, kid, x) && !prefComplete(st, kid, x));
+      const text = gold
+        ? `しんぶん${sheetMark(pref)}も できたね！ ${main.name}の スタンプが、きんの スタンプに なったよ！`
+        : `${pref.name}の たんけん、おつかれさま！ たんけん てちょうに スタンプを おしたよ。いまの しょうごうは「${t.name}」だよ。`;
       useEffect(() => {
         sfx('stamp'); setTimeout(() => { fanfare('stamp'); confetti(70); }, 500);
         const id = setTimeout(() => TTS.speak(text), 1500);
@@ -1420,13 +1685,14 @@
         <div className="wrap">
           <Say text={text} pose="happy" size={110} />
           <div className="homegrid" style={{ marginTop: '.8rem' }}>
-            <div className="sky" style={{ padding: '.6rem' }}><JapanMap st={st} kid={kid} height="min(62vh, 520px)" stampAnim={pid} /></div>
+            <div className="sky" style={{ padding: '.6rem' }}><JapanMap st={st} kid={kid} height="min(62vh, 520px)" stampAnim={main.id} /></div>
             <div className="col" style={{ alignItems: 'center', justifyContent: 'center' }}>
               <div className="card tc col" style={{ alignItems: 'center' }}>
-                <div className="emoji" style={{ fontSize: '4rem' }}>{t.icon}</div>
-                <div className="bold" style={{ fontSize: '1.8rem', color: 'var(--navy)' }}>{t.name}</div>
+                <div className="emoji" style={{ fontSize: '4rem' }}>{gold ? '🥇' : t.icon}</div>
+                <div className="bold" style={{ fontSize: '1.8rem', color: gold ? '#b45309' : 'var(--navy)' }}>{gold ? 'きんの スタンプ' : t.name}</div>
               </div>
-              <Btn color="sky" size="lg" onClick={() => go({ name: 'sheet', pid, kid })} data-open-sheet="1">📰 しんぶんを みる</Btn>
+              <Btn color="sky" size="lg" onClick={() => go({ name: 'sheet', pid, kid })} data-open-sheet="1">📰 しんぶん{sheetMark(pref)}を みる</Btn>
+              {nextS && <Btn color="orange" size="lg" className="pulse" onClick={() => go({ name: 'pref', pid: nextS.id })} data-go-sheet={nextS.id}>📰 しんぶん{sheetMark(nextS)}へ すすむ ▶</Btn>}
               <Btn color="green" size="lg" onClick={() => go({ name: 'home' })} data-go-home="1">🗾 ちずに もどる</Btn>
             </div>
           </div>
@@ -1437,9 +1703,12 @@
     /* =========================================================
        しんぶん（B4よこ）
        ========================================================= */
-    function SheetBox({ pref, item, ip, preview }) {
-      const card = cardOf(item, ip.pick);
-      const done = !!ip.doneAt && card;
+    function SheetBox({ kid, pref, item, ip, preview }) {
+      const own = isOwn(item, ip);
+      const card = own ? null : cardOf(item, ip.pick);
+      const ownSrc = useOwnPhoto(kid, pref.id, item.id, own ? ip.ownRev : 0);
+      const done = !!ip.doneAt && (own || card);
+      const o = ownOf(ip);
       const box = (
         <div className="sh-box" style={{ borderColor: item.color, height: preview ? '100%' : undefined }} data-sheet-box={item.id}>
           <div className="sh-band" style={{ background: item.color }}>
@@ -1449,9 +1718,10 @@
           {done ? (
             <div className="sh-body">
               <div className="sh-photo">
-                <img src={imgOf(pref, card)} alt="" />
-                <div className="sh-cap kw"><R t={card.title} /></div>
-                <div className="sh-note">※しゃしんは イメージです</div>
+                {own ? (ownSrc ? <img src={ownSrc} alt="" style={{ objectFit: 'contain', background: '#f1f5f9' }} data-own-photo="1" /> : <div style={{ width: '52mm', height: '39mm', background: '#f1f5f9' }} />)
+                  : <CardImg pref={pref} card={card} ngStyle={{ width: '52mm', height: '39mm', fontSize: '4mm' }} />}
+                <div className="sh-cap kw">{own ? o.name : <R t={card.title} />}</div>
+                <div className="sh-note kw">{own ? (o.src ? `でどころ：${o.src}` : 'じぶんで いれた しゃしん') : '※しゃしんは イメージです'}</div>
               </div>
               <div className="sh-text kw"><div><R t={sentence1(item, ip)} /></div><div><R t={sentence2(ip)} /></div></div>
             </div>
@@ -1498,6 +1768,7 @@
         <div className="sheet" data-sheet="1">
           <div className="sh-head">
             <div className="sh-title"><span className="emoji">📰</span><R t={pref.sheetTitle} /></div>
+            {pref.parent && <div style={{ height: '25mm', alignSelf: 'center' }} className="sh-headmap"><MiniMap pref={pref} /></div>}
             <div style={{ width: '24mm', alignSelf: 'center' }}><TsubasaArt pose="happy" /></div>
             <div className="sh-meta">
               <div className="ln">なまえ <span className="v">{k.name}</span></div>
@@ -1505,7 +1776,7 @@
             </div>
           </div>
           <div className="sh-grid">
-            <div className="sh-box" style={{ borderColor: '#e11d48' }}>
+            {!pref.parent && <div className="sh-box" style={{ borderColor: '#e11d48' }}>
               <div className="sh-band" style={{ background: '#e11d48' }}><span className="emoji">📍</span><R t={pref.name} />は ここ！</div>
               <div className="sh-mapbox">
                 <MiniMap pref={pref} />
@@ -1514,8 +1785,8 @@
                   <span style={{ fontSize: '3.6mm', color: '#475569' }}><R t="{赤|あか}い ところが " /><R t={pref.name} /></span>
                 </div>
               </div>
-            </div>
-            {pref.items.map(it => <SheetBox key={it.id} pref={pref} item={it} ip={itemProg(st, kid, pref.id, it.id)} />)}
+            </div>}
+            {pref.items.map(it => <SheetBox key={it.id} kid={kid} pref={pref} item={it} ip={itemProg(st, kid, pref.id, it.id)} />)}
           </div>
         </div>
       );
@@ -1579,9 +1850,9 @@
             <div className="col">
               <div className="card col">
                 <div className="bold" style={{ fontSize: '1.3rem' }}>⭐ シール（{stickerCount(st, kid)} / {ALL_STICKERS}）</div>
-                {PREFS.map(p => (
+                {ALL_SHEETS.map(p => (
                   <div key={p.id} className="col" style={{ gap: '.3rem' }}>
-                    <div className="bold"><R t={p.name} /></div>
+                    <div className="bold"><R t={p.name} /> {sheetMark(p) && `しんぶん${sheetMark(p)}`}</div>
                     <div className="row wrapflex">{p.items.map(it => <div key={it.id} className="col" style={{ alignItems: 'center', gap: '.2rem', width: '6.2rem' }}>
                       <Sticker item={it} none={!(kidOf(st, kid).stickers || {})[stickerId(p, it)]} size={70} />
                       <span className="kw tc" style={{ fontSize: '.85rem' }}><R t={it.name} /></span>
@@ -1653,19 +1924,19 @@
           <div className="card">
             <div className="bold">一人ずつの すすみぐあい</div>
             <table className="tbl" style={{ marginTop: '.4rem' }} data-progress-table="1">
-              <thead><tr><th>なまえ</th><th>しょうごう</th>{PREFS.map(p => <th key={p.id}>{plain(p.name)}</th>)}<th>クイズ（1回で正解）</th><th></th></tr></thead>
+              <thead><tr><th>なまえ</th><th>しょうごう</th>{ALL_SHEETS.map(p => <th key={p.id}>{plain(p.name)}{sheetMark(p) && ` しんぶん${sheetMark(p)}`}</th>)}<th>クイズ（1回で正解）</th><th></th></tr></thead>
               <tbody>{st.roster.map(k => {
                 const hs = hist.filter(h => h.kid === k.id);
                 const f = hs.filter(h => !h.mistakes && !h.hints).length;
                 return (
                   <tr key={k.id}><td className="bold">{k.name}</td><td>{titleOf(st, k.id).name}</td>
-                    {PREFS.map(p => <td key={p.id}>{p.items.map(it => (isDone(st, k.id, p.id, it.id) ? '◎' : itemProg(st, k.id, p.id, it.id).seen.length ? '△' : '・')).join(' ')}<br /><span className="muted" style={{ fontSize: '.8rem' }}>{doneCount(st, k.id, p)} / {p.items.length}</span></td>)}
+                    {ALL_SHEETS.map(p => <td key={p.id}>{p.items.map(it => (isDone(st, k.id, p.id, it.id) ? '◎' : itemProg(st, k.id, p.id, it.id).seen.length ? '△' : '・')).join(' ')}<br /><span className="muted" style={{ fontSize: '.8rem' }}>{doneCount(st, k.id, p)} / {p.items.length}</span></td>)}
                     <td>{hs.length ? `${pct(f, hs.length)}%（${f} / ${hs.length}問）` : '－'}</td>
                     <td><Btn color="white" size="sm" onClick={() => setSel(k.id)}>くわしく</Btn></td></tr>
                 );
               })}</tbody>
             </table>
-            <div className="muted" style={{ fontSize: '.85rem', marginTop: '.3rem' }}>◎＝できた、△＝とちゅう、・＝まだ（左から「{PREFS[0] ? PREFS[0].items.map(i => plain(i.name)).join('・') : ''}」）</div>
+            <div className="muted" style={{ fontSize: '.85rem', marginTop: '.3rem' }}>◎＝できた、△＝とちゅう、・＝まだ。{ALL_SHEETS.map(p => `${sheetLabel(p)}は 左から「${p.items.map(i => plain(i.name)).join('・')}」`).join('。')}</div>
           </div>
           <div className="card">
             <div className="bold">つまずいた クイズ（全員。まちがいが多い順）</div>
@@ -1675,7 +1946,7 @@
                 <tbody>{qRows.map(x => {
                   const pref = PREF_MAP[x.pref]; const it = pref && pref.items.find(i => i.id === x.item);
                   return (
-                    <tr key={x.qid}><td>{pref ? plain(pref.name) : ''}<br />{it ? plain(it.name) : ''}</td><td>{plain(x.q)}</td><td>{plain(x.correct)}</td><td>{x.n}</td>
+                    <tr key={x.qid}><td>{pref ? sheetLabel(pref) : ''}<br />{it ? plain(it.name) : ''}</td><td>{plain(x.q)}</td><td>{plain(x.correct)}</td><td>{x.n}</td>
                       <td><div className="row"><div className="bar grow" style={{ minWidth: '4rem' }}><i style={{ width: pct(x.first, x.n) + '%', background: '#10b981' }} /></div><span>{pct(x.first, x.n)}%</span></div></td>
                       <td>{x.mis}</td><td>{x.hints}</td><td>{Object.entries(x.wrong).map(([a, c]) => `${plain(a)}（${c}）`).join('、')}</td></tr>
                   );
@@ -1689,16 +1960,16 @@
               <button className={`tab ${sel === 'all' ? 'on' : ''}`} onClick={() => setSel('all')}>全員</button>
               {st.roster.map(k => <button key={k.id} className={`tab ${sel === k.id ? 'on' : ''}`} onClick={() => setSel(k.id)} data-sel-kid={k.name}>{k.name}</button>)}
             </div>
-            {kids.map(k => PREFS.map(p => (
+            {kids.map(k => ALL_SHEETS.map(p => (
               <div key={k.id + p.id} className="col" style={{ gap: '.3rem', borderTop: '1px solid #e2e8f0', paddingTop: '.5rem' }}>
-                <div className="row wrapflex"><span className="bold" style={{ fontSize: '1.1rem' }}>{k.name}：{plain(p.name)}</span>
+                <div className="row wrapflex"><span className="bold" style={{ fontSize: '1.1rem' }}>{k.name}：{plain(p.name)}{sheetMark(p) && ` しんぶん${sheetMark(p)}`}</span>
                   <Btn color="sky" size="sm" onClick={() => go({ name: 'sheet', pid: p.id, kid: k.id, from: 'teacher' })} data-teacher-sheet={k.name}>📰 しんぶんを見る・印刷</Btn></div>
                 <table className="tbl">
                   <thead><tr><th>項目</th><th>写真</th><th>書いた文</th><th>クイズ</th><th>できた日</th></tr></thead>
                   <tbody>{p.items.map(it => {
-                    const ip = itemProg(st, k.id, p.id, it.id); const c = cardOf(it, ip.pick);
+                    const ip = itemProg(st, k.id, p.id, it.id); const own = isOwn(it, ip);
                     const hs = hist.filter(h => h.kid === k.id && h.item === it.id && h.pref === p.id);
-                    return <tr key={it.id}><td>{plain(it.name)}</td><td>{c && ip.doneAt ? plain(c.title) : ''}</td><td>{ip.doneAt ? plain(sentence1(it, ip) + sentence2(ip)) : ''}{ip.s1Own || ip.s2Own ? <span className="pill" style={{ background: '#fff7ed', color: '#9a3412', marginLeft: '.3rem' }}>自分で書いた</span> : null}</td>
+                    return <tr key={it.id}><td>{plain(it.name)}</td><td>{ip.doneAt ? plain(photoName(it, ip)) : ''}{ip.doneAt && own ? <><br /><span className="pill" style={{ background: '#ede9fe', color: '#5b21b6' }}>自分の写真</span>{ownOf(ip).src ? <span className="muted" style={{ fontSize: '.8rem' }}> でどころ：{ownOf(ip).src}</span> : null}</> : null}</td><td>{ip.doneAt ? plain(sentence1(it, ip) + sentence2(ip)) : ''}{ip.s1Own || ip.s2Own || own ? <span className="pill" style={{ background: '#fff7ed', color: '#9a3412', marginLeft: '.3rem' }}>自分で書いた</span> : null}</td>
                       <td>{hs.length ? hs.map(h => (h.mistakes ? `まちがい${h.mistakes}` : '◎') + (h.hints ? `・ヒント${h.hints}` : '')).join(' / ') : ''}</td><td>{ip.doneAt ? fmtDate(ip.doneAt) : ''}</td></tr>;
                   })}</tbody>
                 </table>
@@ -1754,7 +2025,7 @@
       const [pending, setPending] = useState(null);
       const refresh = () => DB.getAll('history').then(h => setPending(h.filter(x => !x.sent).length)).catch(() => setPending(0));
       useEffect(() => { refresh(); }, []);
-      const sheetPending = st.roster.reduce((n, k) => n + PREFS.filter(p => { const kp = kidPref(st, k.id, p.id); return (kp.rev || 0) !== (kp.sentRev || 0); }).length, 0);
+      const sheetPending = st.roster.reduce((n, k) => n + ALL_SHEETS.filter(p => { const kp = kidPref(st, k.id, p.id); return (kp.rev || 0) !== (kp.sentRev || 0); }).length, 0);
       const saveSync = () => {
         const u = url.trim();
         if (u && !REC_URL_RE.test(u)) { setMsg('URLの形がちがいます。「https://script.google.com/macros/s/…/exec」の形のURLを入れてください。'); return; }
@@ -1777,10 +2048,10 @@
       };
       const csvSheet = () => {
         const head = ['なまえ', '都道府県', 'できた項目'];
-        const maxItems = Math.max(...PREFS.map(p => p.items.length));
+        const maxItems = Math.max(...ALL_SHEETS.map(p => p.items.length));
         for (let i = 1; i <= maxItems; i++) head.push(`${i} 項目`, `${i} 写真`, `${i} 書いた文`);
         const rows = [];
-        st.roster.forEach(k => PREFS.forEach(p => {
+        st.roster.forEach(k => ALL_SHEETS.forEach(p => {
           const sp = sheetPayload(st, k.id, k.name, p);
           const r = [k.name, sp.pref, `${sp.done} / ${sp.total}`];
           sp.items.forEach(it => r.push(it.name, it.photo && it.done ? it.photo : '', it.text));
@@ -1790,7 +2061,8 @@
       };
       const backup = async () => {
         const hist = await DB.getAll('history');
-        downloadFile(`たんけんたい_バックアップ_${ymd()}.json`, JSON.stringify({ app: APP_ID, at: Date.now(), state: st, history: hist }), 'application/json');
+        let photos = []; try { photos = await Photos.all(); } catch (e) { photos = []; }
+        downloadFile(`たんけんたい_バックアップ_${ymd()}.json`, JSON.stringify({ app: APP_ID, at: Date.now(), state: st, history: hist, photos }), 'application/json');
       };
       const restore = async () => {
         const f = await pickFile('application/json,.json');
@@ -1801,14 +2073,17 @@
           if (!confirm('今の記録を消して、バックアップから戻します。よろしいですか？')) return;
           await DB.clear('history');
           for (const h of d.history || []) { const { id, ...rest } = h; await DB.add('history', rest); }
+          await DB.clear('photos');
+          for (const ph of d.photos || []) if (ph && typeof ph.key === 'string' && typeof ph.data === 'string' && ph.data.startsWith('data:image/')) await Photos.put(ph.key, ph.data);
           app.replace(normalizeState(d.state));
           setMsg('バックアップから戻しました。');
         } catch (e) { setMsg('このファイルは読み込めませんでした。'); }
       };
       const wipe = async () => {
-        if (!confirm('この端末の記録（全員の すすみぐあい・シール・書いたシート・クイズの記録）をすべて消します。名簿と設定は残ります。よろしいですか？')) return;
+        if (!confirm('この端末の記録（全員の すすみぐあい・シール・書いたシート・自分で入れた写真・クイズの記録）をすべて消します。名簿と設定は残ります。よろしいですか？')) return;
         if (!confirm('本当に消しますか？ 元にはもどせません。')) return;
         await DB.clear('history');
+        await DB.clear('photos');
         app.update(s => ({ ...s, kids: {} }));
         refresh(); setMsg('記録を消しました。');
       };
