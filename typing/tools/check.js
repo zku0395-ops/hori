@@ -2,7 +2,8 @@
 // ・すべての ことば・ぶんが ローマ字に できるか
 // ・ひらがなの ほし（6〜12）の ことばが、その ほしまでに ならった もじ だけで できて いるか
 // ・ことばが かさなって いないか
-// ・おみせの しなものが 12しゅるい × 10こ で、id が かさなって いないか
+// ・おみせの しなものが 16しゅるい × 10こ で、id が かさなって いないか
+// ・ねだんが ふつう・ごうか・ちょうごうか・でんせつ の じゅんに あがって いるか
 const fs = require('fs');
 const path = require('path');
 const dir = path.join(__dirname, '..', 'data');
@@ -10,7 +11,7 @@ global.window = {};
 eval(fs.readFileSync(path.join(dir, 'romaji.js'), 'utf8'));
 eval(fs.readFileSync(path.join(dir, 'mondai.js'), 'utf8'));
 const R = window.TYPING_ROMAJI;
-const { STAGES, ITEM_CATS } = window.TYPING_DATA;
+const { STAGES, ITEM_CATS, TIERS } = window.TYPING_DATA;
 let bad = 0;
 const ng = (...a) => { console.log('✖', ...a); bad++; };
 
@@ -41,11 +42,22 @@ HIRA_STAGES.forEach(id => {
 });
 
 // 3. おみせ
-if (ITEM_CATS.length !== 12) ng('おみせが 12しゅるい でない', ITEM_CATS.length);
+if (ITEM_CATS.length !== 16) ng('おみせが 16しゅるい でない', ITEM_CATS.length);
 const ids = ITEM_CATS.flatMap(c => c.items.map(i => i.id));
 ITEM_CATS.forEach(c => { if (c.items.length !== 10) ng('しなものが 10こ でない', c.id); });
 ids.forEach((x, i) => { if (ids.indexOf(x) !== i) ng('id が かさなって いる', x); });
-ITEM_CATS.find(c => c.id === 'buhin').items.forEach(i => { if (!i.slot || !i.v) ng('ロボットの ぶひんに slot・v が ない', i.id); });
+ITEM_CATS.filter(c => c.robo).forEach(c => c.items.forEach(i => { if (!i.slot || !i.v) ng('ロボットに つける ものに slot・v が ない', i.id); }));
+const vs = ITEM_CATS.flatMap(c => c.items).filter(i => i.slot).map(i => i.slot + ':' + i.v);
+vs.forEach((x, i) => { if (vs.indexOf(x) !== i) ng('ロボットの かたちが かさなって いる', x); });
+ITEM_CATS.forEach(c => c.items.forEach((it, i) => {
+  if (i && it.p < c.items[i - 1].p) ng('ねだんが さがって いる', it.id);
+  if (it.p !== TIERS[it.tier].p) ng('ねだんが だんかいと あわない', it.id);
+}));
+// index.html の ロボットの 絵に、すべての かたちが あるか
+const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+ITEM_CATS.filter(c => c.robo).forEach(c => c.items.forEach(i => {
+  if (!new RegExp(`(case '${i.v}'|\\b${i.v}: <|=== '${i.v}')`).test(html)) ng('ロボットの 絵に ない かたち', i.slot, i.v);
+}));
 
 const total = STAGES.reduce((n, s) => n + (s.words || []).length, 0);
 console.log(`ほし ${STAGES.length}こ／ことば・ぶん ${total}こ／しなもの ${ids.length}こ`);

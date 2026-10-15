@@ -279,7 +279,7 @@
     // =====================================================================
     //  4. データ（ほし・ごほうび）と もんだいづくり
     // =====================================================================
-    let STAGES = [], ITEM_CATS = [], ALL_ITEMS = [], R = null;
+    let STAGES = [], ITEM_CATS = [], ALL_ITEMS = [], TIERS = [], R = null;
     const ITEM = {};
     const isHatten = (st) => !!st.hatten;
     const stageNo = (st) => st.hatten ? `はってん${st.id}` : st.id;
@@ -509,11 +509,14 @@
         </svg>
       );
     }
+    // よみこめなかった 絵（かおの 絵が ない ときは ふつうの 絵、それも ない ときは 自作の 絵）
+    const KIBO_MISSING = new Set();
     function Kibo({ mood = 'normal', size = 150, className = '' }) {
-      const [err, setErr] = useState(false);
-      const src = IMG + (mood === 'happy' ? 'kibo_happy.webp' : mood === 'think' ? 'kibo_think.webp' : 'kibo.webp');
-      if (err) return <div className={className} style={{ width: size, height: size }}><KiboSvg size={size} /></div>;
-      return <img src={src} alt="キャプテン・キーボ" onError={() => setErr(true)} className={`kibo-img select-none ${className}`} style={{ width: size, height: size, objectFit: 'contain' }} draggable={false} />;
+      const [, setErr] = useState(0);
+      const want = mood === 'happy' ? 'kibo_happy.webp' : mood === 'think' ? 'kibo_think.webp' : 'kibo.webp';
+      const file = !KIBO_MISSING.has(want) ? want : !KIBO_MISSING.has('kibo.webp') ? 'kibo.webp' : null;
+      if (!file) return <div className={className} style={{ width: size, height: size }}><KiboSvg size={size} /></div>;
+      return <img key={file} src={IMG + file} alt="キャプテン・キーボ" onError={() => { KIBO_MISSING.add(file); setErr(e => e + 1); }} className={`kibo-img select-none ${className}`} style={{ width: size, height: size, objectFit: 'contain' }} draggable={false} />;
     }
     function KiboBar({ size = 100, compact = false }) {
       const kibo = useKibo();
@@ -538,12 +541,56 @@
       { id: 'yellow', c: '#fde047', n: 'きいろ' }, { id: 'orange', c: '#fdba74', n: 'オレンジ' }, { id: 'pink', c: '#f9a8d4', n: 'ピンク' },
       { id: 'purple', c: '#c4b5fd', n: 'むらさき' }, { id: 'white', c: '#e5e7eb', n: 'しろ' },
     ];
-    const SLOTS = [['top', 'あたま'], ['eyes', 'め'], ['chest', 'むね'], ['arms', 'うで'], ['feet', 'あし']];
-    function Robot({ color = 'sky', equip = {}, size = 160, happy = false, className = '' }) {
-      const gold = equip.color === 'gold';
-      const c = gold ? '#fbbf24' : (ROBO_COLORS.find(x => x.id === color) || ROBO_COLORS[0]).c;
-      const line = gold ? '#b45309' : '#334155';
+    // ガレージで つけかえる ところ
+    const SLOTS = [['body', 'からだ'], ['hat', 'ぼうし'], ['top', 'アンテナ'], ['eyes', 'め'], ['chest', 'むね'], ['arms', 'うで'], ['feet', 'あし'], ['acc', 'アクセサリ'], ['bg', 'はいけい']];
+    // からだの もよう（おみせの「ロボットの からだ」）。g は もようの 中身
+    function bodyPaint(body, c, id) {
+      const P = (inner, w = 20, h = 20) => <pattern id={id} width={w} height={h} patternUnits="userSpaceOnUse">{inner}</pattern>;
+      const L = (stops, x2 = 1, y2 = 1) => <linearGradient id={id} x1="0" y1="0" x2={x2} y2={y2}>{stops.map((s, i) => <stop key={i} offset={`${(i / (stops.length - 1)) * 100}%`} stopColor={s} />)}</linearGradient>;
+      switch (body) {
+        case 'stripe': return { def: P(<><rect width="20" height="20" fill={c} /><rect width="20" height="7" fill="#fff" opacity=".7" /></>), fill: `url(#${id})` };
+        case 'dots': return { def: P(<><rect width="20" height="20" fill={c} /><circle cx="6" cy="6" r="4" fill="#fff" opacity=".8" /><circle cx="16" cy="16" r="4" fill="#fff" opacity=".8" /></>), fill: `url(#${id})` };
+        case 'check': return { def: P(<><rect width="20" height="20" fill={c} /><rect width="10" height="10" fill="#fff" opacity=".55" /><rect x="10" y="10" width="10" height="10" fill="#fff" opacity=".55" /></>), fill: `url(#${id})` };
+        case 'hearts': return { def: P(<><rect width="24" height="24" fill={c} /><path d="M12 19 C4 13 4 7 8 6 C10 6 12 8 12 9 C12 8 14 6 16 6 C20 7 20 13 12 19 Z" fill="#f472b6" /></>, 24, 24), fill: `url(#${id})` };
+        case 'stars': return { def: P(<><rect width="26" height="26" fill="#1e3a8a" /><path d="M13 4 l2.6 5.4 6 .8 -4.4 4.1 1.1 5.9 -5.3 -2.9 -5.3 2.9 1.1 -5.9 -4.4 -4.1 6 -.8 z" fill="#facc15" /></>, 26, 26), fill: `url(#${id})`, line: '#0f172a' };
+        case 'silver': return { def: L(['#f8fafc', '#94a3b8', '#e2e8f0', '#64748b']), fill: `url(#${id})`, line: '#334155' };
+        case 'crystal': return { def: L(['#e0f2fe', '#7dd3fc', '#f0f9ff', '#38bdf8']), fill: `url(#${id})`, line: '#0369a1', op: 0.85 };
+        case 'rainbow': return { def: L(['#f87171', '#fb923c', '#facc15', '#4ade80', '#60a5fa', '#a78bfa'], 1, 0), fill: `url(#${id})` };
+        case 'galaxy': return { def: P(<><rect width="30" height="30" fill="#312e81" /><circle cx="5" cy="6" r="1.5" fill="#fff" /><circle cx="20" cy="12" r="1" fill="#fde68a" /><circle cx="12" cy="24" r="1.6" fill="#fff" /><circle cx="26" cy="26" r="1" fill="#c4b5fd" /><circle cx="24" cy="3" r="3" fill="#a855f7" opacity=".5" /></>, 30, 30), fill: `url(#${id})`, line: '#1e1b4b' };
+        case 'diamond': return { def: L(['#ffffff', '#a5f3fc', '#f5d0fe', '#ffffff', '#bae6fd']), fill: `url(#${id})`, line: '#0e7490', sparkle: true };
+        case 'gold': return { def: L(['#fef3c7', '#fbbf24', '#f59e0b', '#fde68a']), fill: `url(#${id})`, line: '#b45309' };
+        default: return { def: null, fill: c };
+      }
+    }
+    // はいけい（おみせの「ロボットの はいけい」）
+    function RobotBg({ bg }) {
+      const box = (fill, kids) => <g><rect x="-4" y="-6" width="208" height="242" rx="26" fill={fill} />{kids}</g>;
+      const T = (x, y, s, e) => <text x={x} y={y} fontSize={s} textAnchor="middle">{e}</text>;
+      const grad = (id, a, b) => <defs><linearGradient id={id} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={a} /><stop offset="100%" stopColor={b} /></linearGradient></defs>;
+      switch (bg) {
+        case 'sky': return <g>{grad('bgsky', '#7dd3fc', '#e0f2fe')}{box('url(#bgsky)', <>{T(30, 40, 30, '☁️')}{T(170, 70, 26, '☁️')}{T(160, 20, 22, '☀️')}</>)}</g>;
+        case 'grass': return <g>{grad('bggr', '#bae6fd', '#f0fdf4')}{box('url(#bggr)', <><path d="M-4 180 Q100 150 204 180 L204 230 Q204 236 196 236 L4 236 Q-4 236 -4 228 Z" fill="#86efac" />{T(20, 214, 20, '🌼')}{T(182, 206, 20, '🌷')}{T(30, 30, 20, '🦋')}</>)}</g>;
+        case 'sea': return <g>{grad('bgsea', '#7dd3fc', '#0369a1')}{box('url(#bgsea)', <>{T(24, 200, 24, '🐠')}{T(176, 120, 24, '🐟')}{T(170, 216, 22, '🐚')}{T(30, 60, 18, '🫧')}</>)}</g>;
+        case 'sunset': return <g>{grad('bgsun', '#fb923c', '#fde68a')}{box('url(#bgsun)', <><circle cx="100" cy="150" r="60" fill="#f97316" opacity=".5" />{T(30, 40, 20, '🐦')}{T(176, 30, 18, '✨')}</>)}</g>;
+        case 'forest': return <g>{grad('bgfo', '#bbf7d0', '#4ade80')}{box('url(#bgfo)', <>{T(20, 120, 40, '🌲')}{T(184, 150, 40, '🌳')}{T(180, 40, 30, '🌲')}{T(24, 224, 20, '🍄')}</>)}</g>;
+        case 'snow': return <g>{grad('bgsn', '#bfdbfe', '#ffffff')}{box('url(#bgsn)', <><path d="M-4 160 L50 90 L100 150 L150 80 L204 150 L204 236 L-4 236 Z" fill="#e2e8f0" /><path d="M38 105 L50 90 L62 105 Z M138 95 L150 80 L162 95 Z" fill="#fff" />{T(24, 40, 18, '❄️')}{T(176, 30, 18, '❄️')}{T(180, 214, 26, '⛄')}</>)}</g>;
+        case 'candy': return <g>{grad('bgca', '#fbcfe8', '#fef9c3')}{box('url(#bgca)', <>{T(22, 50, 26, '🍭')}{T(178, 60, 26, '🍬')}{T(24, 210, 26, '🧁')}{T(178, 214, 26, '🍩')}{T(100, 18, 20, '🍫')}</>)}</g>;
+        case 'space': return <g>{grad('bgsp', '#1e1b4b', '#312e81')}{box('url(#bgsp)', <>{T(26, 46, 30, '🪐')}{T(176, 200, 26, '🌍')}{T(176, 34, 18, '⭐')}{T(30, 200, 14, '✨')}{T(100, 16, 12, '⭐')}</>)}</g>;
+        case 'rainbow': return <g>{grad('bgra', '#e0f2fe', '#fdf4ff')}{box('url(#bgra)', <>{['#f87171', '#fb923c', '#facc15', '#4ade80', '#60a5fa', '#a78bfa'].map((cl, i) => <path key={i} d={`M${-4 + i * 9} 236 A${104 - i * 9} ${150 - i * 9} 0 0 1 ${204 - i * 9} 236`} fill="none" stroke={cl} strokeWidth="9" />)}{T(24, 30, 22, '☁️')}{T(178, 30, 22, '☁️')}</>)}</g>;
+        case 'castle': return <g>{grad('bgcs', '#0f172a', '#4c1d95')}{box('url(#bgcs)', <>{T(100, 236, 120, '🏰')}{T(26, 40, 24, '🎆')}{T(178, 50, 24, '🎇')}{T(100, 22, 16, '🌙')}{T(150, 14, 12, '⭐')}{T(50, 16, 12, '⭐')}</>)}</g>;
+        default: return null;
+      }
+    }
+
+    function Robot({ color = 'sky', equip = {}, size = 160, happy = false, className = '', withBg = false }) {
+      const uidRef = useRef(null);
+      if (!uidRef.current) uidRef.current = 'rb' + uid();
+      const base = (ROBO_COLORS.find(x => x.id === color) || ROBO_COLORS[0]).c;
+      const paint = bodyPaint(equip.body, base, uidRef.current);
+      const c = paint.fill;
+      const line = paint.line || '#334155';
       const metal = '#94a3b8';
+      const op = paint.op || 1;
       const arm = (side) => {
         const x0 = side === 'l' ? 30 : 150;
         const tr = side === 'l' ? '' : 'translate(200 0) scale(-1 1)';
@@ -590,18 +637,52 @@
       else if (equip.top === 'bolt') top = (<g><line x1="100" y1="38" x2="100" y2="24" stroke={metal} strokeWidth="4" /><path d="M104 0 L90 16 L100 16 L94 30 L112 10 L102 10 L108 0 Z" fill="#facc15" stroke="#a16207" strokeWidth="2" /></g>);
       else if (equip.top === 'prop') top = (<g><line x1="100" y1="38" x2="100" y2="14" stroke={metal} strokeWidth="5" /><g className="spin"><ellipse cx="100" cy="14" rx="40" ry="6" fill="#f87171" stroke="#991b1b" strokeWidth="2" /></g><circle cx="100" cy="14" r="5" fill="#334155" /></g>);
       else top = (<g><line x1="100" y1="38" x2="100" y2="16" stroke={metal} strokeWidth="4" /><circle cx="100" cy="12" r="7" fill="#f87171" stroke="#991b1b" strokeWidth="2" /></g>);
+      // ぼうし（かぶると アンテナは かくれる）
+      const H = {
+        cap: <g><path d="M50 48 Q100 4 150 48 Z" fill="#ef4444" stroke="#991b1b" strokeWidth="2.5" /><ellipse cx="154" cy="48" rx="28" ry="6" fill="#dc2626" stroke="#991b1b" strokeWidth="2" /><circle cx="100" cy="18" r="4" fill="#991b1b" /></g>,
+        beanie: <g><path d="M48 50 Q100 0 152 50 Z" fill="#22c55e" stroke="#166534" strokeWidth="2.5" /><rect x="46" y="40" width="108" height="14" rx="7" fill="#16a34a" stroke="#166534" strokeWidth="2" /><circle cx="100" cy="10" r="10" fill="#fef08a" stroke="#ca8a04" strokeWidth="2" /></g>,
+        straw: <g><ellipse cx="100" cy="44" rx="80" ry="14" fill="#fde68a" stroke="#a16207" strokeWidth="2.5" /><path d="M58 44 Q60 8 100 6 Q140 8 142 44 Z" fill="#fcd34d" stroke="#a16207" strokeWidth="2.5" /><rect x="58" y="32" width="84" height="10" fill="#ef4444" /></g>,
+        party: <g><path d="M72 44 L100 -8 L128 44 Z" fill="#a78bfa" stroke="#5b21b6" strokeWidth="2.5" /><path d="M84 22 L116 22 M78 34 L122 34" stroke="#fde047" strokeWidth="5" /><circle cx="100" cy="-8" r="7" fill="#f472b6" /></g>,
+        chef: <g><rect x="62" y="22" width="76" height="22" rx="4" fill="#fff" stroke="#94a3b8" strokeWidth="2.5" /><circle cx="72" cy="14" r="16" fill="#fff" stroke="#94a3b8" strokeWidth="2.5" /><circle cx="100" cy="6" r="18" fill="#fff" stroke="#94a3b8" strokeWidth="2.5" /><circle cx="128" cy="14" r="16" fill="#fff" stroke="#94a3b8" strokeWidth="2.5" /><rect x="62" y="22" width="76" height="20" fill="#fff" /></g>,
+        tophat: <g><ellipse cx="100" cy="44" rx="58" ry="9" fill="#111827" /><rect x="70" y="-6" width="60" height="50" rx="4" fill="#1f2937" stroke="#000" strokeWidth="2" /><rect x="70" y="28" width="60" height="9" fill="#dc2626" /></g>,
+        witch: <g><ellipse cx="100" cy="44" rx="70" ry="11" fill="#6d28d9" stroke="#3b0764" strokeWidth="2.5" /><path d="M64 44 Q90 20 104 -8 Q112 -14 126 -2 Q112 -2 110 10 L136 44 Z" fill="#7c3aed" stroke="#3b0764" strokeWidth="2.5" /><rect x="70" y="32" width="62" height="8" fill="#facc15" /></g>,
+        helmet: <g><circle cx="100" cy="72" r="72" fill="#bae6fd" opacity=".28" stroke="#e0f2fe" strokeWidth="5" /><path d="M54 30 Q70 10 96 6" stroke="#fff" strokeWidth="6" fill="none" strokeLinecap="round" opacity=".9" /></g>,
+        pirate: <g><path d="M36 46 Q100 -14 164 46 Q100 30 36 46 Z" fill="#111827" stroke="#000" strokeWidth="2" /><circle cx="100" cy="22" r="7" fill="#fff" /><path d="M90 32 L110 14 M90 14 L110 32" stroke="#fff" strokeWidth="3" /></g>,
+        crown: <g><path d="M56 46 L56 10 L78 28 L100 0 L122 28 L144 10 L144 46 Z" fill="#facc15" stroke="#a16207" strokeWidth="2.5" /><circle cx="100" cy="30" r="6" fill="#ef4444" /><circle cx="76" cy="36" r="4.5" fill="#3b82f6" /><circle cx="124" cy="36" r="4.5" fill="#22c55e" /><circle cx="100" cy="0" r="4" fill="#fde68a" /></g>,
+      };
+      const hat = equip.hat ? H[equip.hat] : null;
+      // アクセサリ（うしろ：マント・はね・オーラ　まえ：そのほか）
+      const accBack = {
+        cape: <path d="M56 112 Q20 190 30 226 L170 226 Q180 190 144 112 Z" fill="#dc2626" stroke="#7f1d1d" strokeWidth="2.5" />,
+        wings: <g fill="#fff" stroke="#94a3b8" strokeWidth="2.5"><path d="M56 124 Q0 80 -2 130 Q8 150 24 146 Q10 164 34 168 Q30 182 54 158 Z" /><path d="M144 124 Q200 80 202 130 Q192 150 176 146 Q190 164 166 168 Q170 182 146 158 Z" /></g>,
+        aura: <g>{['#f87171', '#facc15', '#4ade80', '#60a5fa', '#a78bfa'].map((cl, i) => <circle key={i} cx="100" cy="116" r={112 - i * 8} fill="none" stroke={cl} strokeWidth="6" opacity=".55" />)}<text x="16" y="40" fontSize="20">✨</text><text x="168" y="214" fontSize="20">✨</text></g>,
+      };
+      const accFront = {
+        ribbon: <g><path d="M126 36 L108 22 L108 50 Z M126 36 L144 22 L144 50 Z" fill="#f472b6" stroke="#be185d" strokeWidth="2" /><circle cx="126" cy="36" r="6" fill="#ec4899" /></g>,
+        tie: <path d="M94 110 L106 110 L110 118 L104 150 L100 156 L96 150 L90 118 Z" fill="#2563eb" stroke="#1e3a8a" strokeWidth="2" />,
+        scarf: <g><rect x="62" y="104" width="76" height="14" rx="7" fill="#ef4444" stroke="#991b1b" strokeWidth="2" /><path d="M120 114 L132 146 L118 148 L110 116 Z" fill="#ef4444" stroke="#991b1b" strokeWidth="2" /></g>,
+        blush: <g><ellipse cx="60" cy="96" rx="9" ry="5" fill="#fb7185" opacity=".85" /><ellipse cx="140" cy="96" rx="9" ry="5" fill="#fb7185" opacity=".85" /></g>,
+        medal: <g><path d="M84 110 L100 140 L116 110" stroke="#2563eb" strokeWidth="7" fill="none" /><circle cx="100" cy="150" r="13" fill="#facc15" stroke="#a16207" strokeWidth="2.5" /><text x="100" y="156" fontSize="14" textAnchor="middle" fontWeight="bold" fill="#a16207">1</text></g>,
+        lei: <g>{[60, 72, 86, 100, 114, 128, 140].map((x, i) => <circle key={x} cx={x} cy={110 + Math.abs(3 - i) * -2 + 6} r="7" fill={['#f472b6', '#facc15', '#fb923c'][i % 3]} stroke="#fff" strokeWidth="1.5" />)}</g>,
+        bell: <g><path d="M70 110 Q100 128 130 110" stroke="#dc2626" strokeWidth="4" fill="none" /><text x="100" y="134" fontSize="18" textAnchor="middle">🔔</text></g>,
+      };
+      const head = (fill) => <rect x="45" y="36" width="110" height="70" rx="22" fill={fill} stroke={line} strokeWidth="3" opacity={op} />;
       return (
         <svg viewBox="-4 -6 208 242" width={size} height={size * 1.16} className={className}>
+          {paint.def && <defs>{paint.def}</defs>}
+          {withBg && equip.bg && <RobotBg bg={equip.bg} />}
+          {accBack[equip.acc]}
           {feet}
           {arm('l')}{arm('r')}
-          <rect x="50" y="110" width="100" height="72" rx="18" fill={c} stroke={line} strokeWidth="3" />
+          <rect x="50" y="110" width="100" height="72" rx="18" fill={c} stroke={line} strokeWidth="3" opacity={op} />
           {equip.chest === 'star'
             ? <path d="M100 124 l8 16 18 2 -13 12 3 18 -16 -9 -16 9 3 -18 -13 -12 18 -2 z" fill="#facc15" stroke="#a16207" strokeWidth="2" />
             : <g><rect x="78" y="128" width="44" height="28" rx="6" fill="#1e293b" /><circle cx="90" cy="142" r="5" fill="#f87171" /><circle cx="110" cy="142" r="5" fill="#4ade80" /></g>}
           <rect x="90" y="100" width="20" height="12" fill={metal} />
-          {top}
+          {accFront[equip.acc]}
+          {!hat && top}
           <circle cx="42" cy="72" r="9" fill={metal} stroke={line} strokeWidth="2" /><circle cx="158" cy="72" r="9" fill={metal} stroke={line} strokeWidth="2" />
-          <rect x="45" y="36" width="110" height="70" rx="22" fill={c} stroke={line} strokeWidth="3" />
+          {head(c)}
           <rect x="58" y="48" width="84" height="46" rx="14" fill="#0f172a" />
           {equip.eyes === 'shades'
             ? <g><rect x="64" y="58" width="72" height="20" rx="8" fill="#111" stroke="#475569" strokeWidth="2" /><path d="M70 62 L80 62" stroke="#94a3b8" strokeWidth="3" strokeLinecap="round" /></g>
@@ -609,6 +690,8 @@
               ? <g><path d="M74 70 Q82 60 90 70" stroke="#67e8f9" strokeWidth="5" fill="none" strokeLinecap="round" /><path d="M110 70 Q118 60 126 70" stroke="#67e8f9" strokeWidth="5" fill="none" strokeLinecap="round" /></g>
               : <g><circle cx="82" cy="68" r="8" fill="#67e8f9" /><circle cx="118" cy="68" r="8" fill="#67e8f9" /></g>}
           <path d={happy ? 'M86 82 Q100 94 114 82' : 'M88 84 Q100 90 112 84'} stroke="#67e8f9" strokeWidth="4" fill="none" strokeLinecap="round" />
+          {paint.sparkle && <g><text x="40" y="52" fontSize="16">✨</text><text x="150" y="168" fontSize="16">✨</text></g>}
+          {hat}
         </svg>
       );
     }
@@ -1076,7 +1159,7 @@
       return (
         <div className="flex flex-col items-center gap-4 pt-3 w-full max-w-4xl">
           <div className="text-5xl font-bold text-amber-500 pop drop-shadow">{r.stageClear ? '🎉 ほし クリア！ 🎉' : r.game ? '☄️ ミッション せいこう！' : '⭐ よく できました！ ⭐'}</div>
-          <div className="flex items-end gap-4"><Kibo mood="happy" size={170} className="floaty" /><Robot {...robot} size={120} happy /></div>
+          <div className="flex items-end gap-4"><Kibo mood="happy" size={170} className="floaty" /><Robot {...robot} size={120} happy withBg /></div>
           <div className="bg-white rounded-3xl shadow px-8 py-4 text-center text-2xl font-bold grid grid-cols-2 gap-x-8 gap-y-2">
             <div>{r.game ? 'うちおとした' : 'できた もんだい'}</div><div className="text-sky-600">{r.n}</div>
             <div>まちがえずに できた</div><div className="text-sky-600">{r.ok}</div>
@@ -1102,11 +1185,17 @@
       const open = () => {
         const own = new Set(progress.items);
         const rest = ALL_ITEMS.filter(it => !own.has(it.id));
-        const it = rest.length ? pickOne(rest) : null;
+        // ふつうが でやすく、でんせつは めったに でない
+        let it = null;
+        if (rest.length) {
+          let r = Math.random() * rest.reduce((n, x) => n + TIERS[x.tier].w, 0);
+          it = rest.find(x => (r -= TIERS[x.tier].w) < 0) || rest[rest.length - 1];
+        }
         Sound.big();
+        if (it && it.tier >= 2) setTimeout(() => Sound.fanfare(), 1500);
         setItem(it || { e: '🪙', n: 'コイン 10まい', coin: true });
         onOpen(it);
-        kibo.say(it ? `${it.n}が でて きた！ ずかんに いれたよ。` : 'ぜんぶ そろって いるから、コインを 10まい プレゼント！', { mood: 'happy' });
+        kibo.say(it ? `${it.tier === 3 ? 'すごい！ でんせつの ' : it.tier === 2 ? 'やったね！ ちょうごうかな ' : ''}${it.n}が でて きた！ ずかんに いれたよ。` : 'ぜんぶ そろって いるから、コインを 10まい プレゼント！', { mood: 'happy' });
       };
       return (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -1116,7 +1205,8 @@
               <button onClick={open} className="text-[140px] leading-none wiggle">🎁</button>
               <div className="text-2xl">はこを おしてね</div>
             </> : <>
-              <div className="text-[120px] leading-none pop">{item.slot ? <Robot equip={{ [item.slot]: item.v }} size={130} /> : item.e}</div>
+              {!item.coin && <div className="scale-150 pop"><TierChip it={item} /></div>}
+              <div className={`text-[120px] leading-none pop ${item.tier === 3 ? 'glow rounded-3xl' : ''}`}>{item.slot ? <Robot equip={{ [item.slot]: item.v }} size={130} withBg={item.slot === 'bg'} /> : item.e}</div>
               <div className="text-4xl font-bold text-amber-600">{item.n}</div>
               <div className="text-xl">{item.coin ? '' : 'ずかんに いれたよ！'}</div>
               <Btn onClick={onClose} color="#16a34a" light="#dcfce7" className="text-3xl px-10">やったね！</Btn>
@@ -1264,9 +1354,16 @@
     // =====================================================================
     const titlesOf = (items) => ITEM_CATS.filter(c => c.items.every(it => items.includes(it.id))).map(c => c.title);
     const ItemPic = ({ it, size = 56, dark = false }) => it.slot
-      ? <span className="relative inline-block" style={dark ? { filter: 'grayscale(1) brightness(0.3)', opacity: .25 } : {}}><Robot equip={{ [it.slot]: it.v }} size={size} />
+      ? <span className="relative inline-block" style={dark ? { filter: 'grayscale(1) brightness(0.3)', opacity: .25 } : {}}><Robot equip={{ [it.slot]: it.v }} size={size} withBg={it.slot === 'bg'} className="block" />
           <span className="absolute -right-3 -bottom-1" style={{ fontSize: size * 0.4 }}>{it.e}</span></span>
       : <span style={{ fontSize: size, lineHeight: 1, ...(dark ? { filter: 'grayscale(1) brightness(0.3)', opacity: .25 } : {}) }}>{it.e}</span>;
+
+    // ねだんの だんかい（ふつう・ごうか・ちょうごうか・でんせつ）
+    function TierChip({ it, small = false }) {
+      const t = TIERS[it.tier] || TIERS[0];
+      return <span className={`rounded-full font-bold border-2 whitespace-nowrap ${small ? 'text-[10px] px-1' : 'text-xs px-2'} ${it.tier === 3 ? 'glow' : ''}`} style={{ color: t.color, borderColor: t.color, background: t.bg }}>{it.tier === 3 ? '👑 ' : ''}{t.n}</span>;
+    }
+    const tierBorder = (it) => (TIERS[it.tier] || TIERS[0]).color;
 
     function ShopScreen({ progress, onBuy }) {
       const kibo = useKibo();
@@ -1291,12 +1388,13 @@
         const nt = after.find(t => !before.includes(t));
         if (nt) { setAward(nt); Sound.big(); kibo.say(`おめでとう！「${nt}」の しょうごうだ！`, { mood: 'happy' }); }
         else kibo.say(it.slot ? `${it.n}を かったよ。ガレージで ロボットに つけられるよ。` : `${it.n}を ずかんに いれたよ。`, { mood: 'happy' });
+        if (!nt && it.tier === 3) Sound.big();
       };
       return (
         <div className="relative w-full flex-1 flex flex-col items-center gap-3 p-3 space">
           <div className="bg-white/90 rounded-3xl p-2 w-full max-w-5xl"><KiboBar size={90} compact /></div>
           {!c && (
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 w-full max-w-5xl">
+            <div className="grid grid-cols-4 gap-3 w-full max-w-5xl">
               {ITEM_CATS.map(x => {
                 const n = x.items.filter(it => own.has(it.id)).length;
                 return (
@@ -1319,7 +1417,8 @@
                 {c.items.map(it => {
                   const have = own.has(it.id), can = progress.coins >= it.p;
                   return (
-                    <button key={it.id} onClick={() => tap(it)} className={`btn3d rounded-2xl border-4 p-1 flex flex-col items-center bg-white ${have ? 'border-emerald-400' : can ? 'border-amber-400' : 'border-slate-200'}`}>
+                    <button key={it.id} onClick={() => tap(it)} className={`btn3d rounded-2xl border-4 p-1 flex flex-col items-center ${it.tier === 3 ? 'bg-amber-50' : 'bg-white'} ${have ? 'border-emerald-400' : ''}`} style={have ? {} : { borderColor: tierBorder(it) }}>
+                      <TierChip it={it} />
                       <span className={have || can ? '' : 'opacity-60'}><ItemPic it={it} size={60} /></span>
                       <span className="text-base font-bold mt-1 leading-tight h-10 flex items-center text-center">{it.n}</span>
                       <span className={`text-xl font-bold rounded-full px-2 ${have ? 'bg-emerald-100 text-emerald-700' : can ? 'bg-amber-100' : 'bg-slate-100 text-slate-400'}`}>{have ? '✓' : `🪙 ${it.p}`}</span>
@@ -1333,6 +1432,7 @@
             <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
               <div className="bg-white rounded-3xl p-6 flex flex-col items-center gap-3 pop">
                 <ItemPic it={confirm} size={100} />
+                <TierChip it={confirm} />
                 <div className="text-3xl font-bold">{confirm.n}を かいますか？</div>
                 <div className="text-2xl">🪙 {confirm.p}まい（のこり {progress.coins - confirm.p}まい）</div>
                 <div className="flex gap-4 mt-2">
@@ -1374,7 +1474,7 @@
                 <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
                   {c.items.map(it => (
                     <button key={it.id} onClick={() => own.has(it.id) ? kibo.say(it.n) : kibo.say('まだ もって いないよ。おみせで かえるよ。')}
-                      className={`rounded-2xl border-2 aspect-square flex flex-col items-center justify-center ${own.has(it.id) ? 'bg-amber-50 border-amber-300' : 'bg-slate-100 border-slate-200'}`}>
+                      className={`rounded-2xl border-2 aspect-square flex flex-col items-center justify-center ${own.has(it.id) ? 'bg-amber-50' : 'bg-slate-100 border-slate-200'}`} style={own.has(it.id) ? { borderColor: tierBorder(it), borderWidth: it.tier ? 3 : 2 } : {}}>
                       <ItemPic it={it} size={44} dark={!own.has(it.id)} />
                       <span className="text-xs font-bold leading-tight text-center">{own.has(it.id) ? it.n : '？'}</span>
                     </button>
@@ -1390,22 +1490,22 @@
     function GarageScreen({ progress, onChange }) {
       const kibo = useKibo();
       const own = new Set(progress.items);
-      const parts = ITEM_CATS.find(c => c.id === 'buhin').items;
+      const parts = ALL_ITEMS.filter(it => it.slot);
       const eq = progress.equip || {};
-      useEffect(() => { kibo.say('ガレージだよ。ロボットの いろを かえたり、かった ぶひんを つけたり できるよ。'); }, []);
+      useEffect(() => { kibo.say('ガレージだよ。ロボットの いろを かえたり、おみせで かった ものを つけたり できるよ。'); }, []);
       const set = (slot, v) => { Sound.tap(); onChange({ equip: { ...eq, [slot]: v } }); };
       return (
         <div className="w-full max-w-5xl p-3 flex flex-col items-center gap-3">
           <KiboBar size={90} compact />
           <div className="flex gap-4 w-full items-start flex-wrap justify-center">
-            <div className="bg-white rounded-3xl p-4 flex flex-col items-center"><Robot color={progress.color} equip={eq} size={240} happy /></div>
+            <div className="bg-white rounded-3xl p-4 flex flex-col items-center sticky top-16"><Robot color={progress.color} equip={eq} size={240} happy withBg />
+              {eq.hat && <div className="text-sm text-slate-500 mt-1">ぼうしを かぶると アンテナは かくれるよ</div>}</div>
             <div className="flex-1 min-w-[320px] flex flex-col gap-3">
               <div className="bg-white rounded-3xl p-3">
-                <div className="text-2xl font-bold mb-2">🎨 いろ</div>
+                <div className="text-2xl font-bold mb-2">🎨 いろ <span className="text-base text-slate-500">（「からだ」の もようを つけて いる ときは、もようが さきに でるよ）</span></div>
                 <div className="flex flex-wrap gap-2">
-                  {ROBO_COLORS.map(c => <button key={c.id} onClick={() => { Sound.tap(); onChange({ color: c.id, equip: { ...eq, color: null } }); }}
-                    className={`w-14 h-14 rounded-full border-4 ${progress.color === c.id && eq.color !== 'gold' ? 'border-slate-800 scale-110' : 'border-white shadow'}`} style={{ background: c.c }} aria-label={c.n} />)}
-                  {own.has('buhin10') && <button onClick={() => set('color', 'gold')} className={`w-14 h-14 rounded-full border-4 ${eq.color === 'gold' ? 'border-slate-800 scale-110' : 'border-white shadow'}`} style={{ background: 'linear-gradient(135deg,#fde68a,#f59e0b)' }}>👑</button>}
+                  {ROBO_COLORS.map(c => <button key={c.id} onClick={() => { Sound.tap(); onChange({ color: c.id }); }}
+                    className={`w-14 h-14 rounded-full border-4 ${progress.color === c.id ? 'border-slate-800 scale-110' : 'border-white shadow'}`} style={{ background: c.c }} aria-label={c.n} />)}
                 </div>
               </div>
               {SLOTS.map(([slot, label]) => {
@@ -1414,9 +1514,9 @@
                   <div key={slot} className="bg-white rounded-3xl p-3">
                     <div className="text-2xl font-bold mb-2">{label}</div>
                     <div className="flex flex-wrap gap-2">
-                      <button onClick={() => set(slot, null)} className={`btn3d rounded-2xl border-4 px-3 py-2 text-lg font-bold ${!eq[slot] ? 'border-sky-500 bg-sky-100' : 'border-slate-200 bg-white'}`}>ふつう</button>
+                      <button onClick={() => set(slot, null)} className={`btn3d rounded-2xl border-4 px-3 py-2 text-lg font-bold ${!eq[slot] ? 'border-sky-500 bg-sky-100' : 'border-slate-200 bg-white'}`}>{slot === 'bg' || slot === 'acc' || slot === 'hat' ? 'なし' : 'ふつう'}</button>
                       {mine.map(it => <button key={it.id} onClick={() => set(slot, it.v)} className={`btn3d rounded-2xl border-4 px-3 py-1 text-lg font-bold flex items-center gap-1 ${eq[slot] === it.v ? 'border-sky-500 bg-sky-100' : 'border-slate-200 bg-white'}`}><span className="text-2xl">{it.e}</span>{it.n}</button>)}
-                      {!mine.length && <span className="text-slate-400 self-center">おみせの「ロボットの ぶひん」で かえるよ</span>}
+                      {!mine.length && <span className="text-slate-400 self-center">おみせの「{ITEM_CATS.filter(c => c.robo && c.items.some(x => x.slot === slot)).pop().name}」で かえるよ</span>}
                     </div>
                   </div>
                 );
@@ -1868,7 +1968,7 @@
 
     window.TYPING_READY.then(() => {
       R = window.TYPING_ROMAJI;
-      STAGES = window.TYPING_DATA.STAGES; ITEM_CATS = window.TYPING_DATA.ITEM_CATS;
+      STAGES = window.TYPING_DATA.STAGES; ITEM_CATS = window.TYPING_DATA.ITEM_CATS; TIERS = window.TYPING_DATA.TIERS;
       ALL_ITEMS = ITEM_CATS.flatMap(c => c.items);
       ALL_ITEMS.forEach(it => { ITEM[it.id] = it; });
       ReactDOM.createRoot(document.getElementById('root')).render(<App />);
