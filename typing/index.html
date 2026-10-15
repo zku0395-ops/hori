@@ -1,0 +1,1981 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>キャプテン・キーボの タイピング うちゅうりょこう</title>
+
+  <script crossorigin="anonymous" src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+  <script crossorigin="anonymous" src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'BIZ UDPGothic', sans-serif; background: #eef4ff; margin: 0; color: #1e293b;
+      -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+    .btn3d { border-bottom-width: 6px; transition: transform .08s, border-bottom-width .08s; }
+    .btn3d:active:not(:disabled) { transform: translateY(4px); border-bottom-width: 2px; }
+    .pop { animation: pop .45s cubic-bezier(.17,.89,.32,1.28) both; }
+    @keyframes pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .floaty { animation: floaty 3s ease-in-out infinite; }
+    @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    .shake { animation: shake .4s; }
+    @keyframes shake { 0%,100% { transform: translateX(0); } 25%,75% { transform: translateX(-7px); } 50% { transform: translateX(7px); } }
+    .glow { animation: glow 1.1s ease-in-out infinite; }
+    @keyframes glow { 0%,100% { box-shadow: 0 0 0 0 rgba(250,204,21,.95); } 50% { box-shadow: 0 0 0 14px rgba(250,204,21,0); } }
+    .keyglow { animation: keyglow 1s ease-in-out infinite; }
+    @keyframes keyglow { 0%,100% { box-shadow: 0 0 0 3px #f59e0b, 0 0 10px 4px rgba(250,204,21,.9); } 50% { box-shadow: 0 0 0 3px #f59e0b, 0 0 22px 10px rgba(250,204,21,.5); } }
+    .coinfly { animation: coinfly 1.1s ease-out forwards; }
+    @keyframes coinfly { 0% { transform: translateY(0) scale(.6); opacity: 0; } 20% { opacity: 1; transform: translateY(-10px) scale(1.2); } 100% { transform: translateY(-70px) scale(1); opacity: 0; } }
+    .bump { animation: bump .5s; }
+    @keyframes bump { 0%,100% { transform: scale(1); } 40% { transform: scale(1.35); } }
+    .spin { animation: spin 0.6s linear infinite; transform-origin: 100px 14px; }
+    @keyframes spin { from { transform: scaleX(1); } 50% { transform: scaleX(-1); } to { transform: scaleX(1); } }
+    .flame { animation: flame .25s ease-in-out infinite alternate; transform-origin: center top; }
+    @keyframes flame { from { transform: scaleY(.85); } to { transform: scaleY(1.15); } }
+    .wiggle { animation: wiggle 1s ease-in-out infinite; }
+    @keyframes wiggle { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
+    .boom { animation: boom .6s ease-out forwards; }
+    @keyframes boom { from { transform: translate(-50%,-50%) scale(.3); opacity: 1; } to { transform: translate(-50%,-50%) scale(1.8); opacity: 0; } }
+    .space { background-color: #0b1640;
+      background-image: radial-gradient(2px 2px at 20px 30px, #fff, transparent), radial-gradient(1.5px 1.5px at 120px 80px, #fde68a, transparent),
+        radial-gradient(1px 1px at 200px 150px, #fff, transparent), radial-gradient(2px 2px at 300px 60px, #bfdbfe, transparent),
+        radial-gradient(1px 1px at 380px 200px, #fff, transparent), radial-gradient(1.5px 1.5px at 90px 220px, #fff, transparent);
+      background-size: 420px 260px; }
+    .bubble:after { content: ''; position: absolute; left: -14px; top: 22px; border: 8px solid transparent; border-right: 8px solid #fff; }
+    .kibo-img { filter: drop-shadow(0 4px 6px rgba(0,0,0,.25)); }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div style="padding:60px;text-align:center;font-size:28px;color:#1e3a8a;font-weight:bold;">じゅんび ちゅう…</div>
+  </div>
+
+  <!-- 問題のデータ・ローマ字の しくみ・絵は GitHub Pages から読みこみます（このファイルを短くするため） -->
+  <script>
+    (function () {
+      var h = location.hostname;
+      var local = location.protocol === 'file:' || /github\.io$/.test(h) || h === 'localhost' || h === '127.0.0.1';
+      window.TYPING_BASE = local ? '' : 'https://zku0395-ops.github.io/hori/typing/';
+      var V = '1';
+      window.TYPING_READY = Promise.all(['data/romaji.js', 'data/mondai.js'].map(function (p) {
+        return new Promise(function (ok, ng) {
+          var s = document.createElement('script');
+          s.src = window.TYPING_BASE + p + '?v=' + V;
+          s.onload = ok; s.onerror = function () { ng(new Error(p)); };
+          document.head.appendChild(s);
+        });
+      }));
+    })();
+  </script>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
+    const APP_VERSION = '1.0.0';
+    const BASE = window.TYPING_BASE;
+    const IMG = BASE + 'img/';
+
+    // =====================================================================
+    //  1. 小さな道具
+    // =====================================================================
+    const shuffle = (a) => { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+    const pickOne = (a) => a[Math.floor(Math.random() * a.length)];
+    const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    const nowStr = () => {
+      const d = new Date(), p = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    };
+    const safeStore = {
+      get(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
+      set(k, v) { try { window.localStorage.setItem(k, v); } catch (e) {} },
+      del(k) { try { window.localStorage.removeItem(k); } catch (e) {} },
+    };
+    const downloadText = (name, text, type) => {
+      const blob = new Blob([text], { type: type || 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = name; document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
+    };
+    function useWidth() {
+      const [w, setW] = useState(window.innerWidth);
+      useEffect(() => { const f = () => setW(window.innerWidth); window.addEventListener('resize', f); return () => window.removeEventListener('resize', f); }, []);
+      return w;
+    }
+
+    // =====================================================================
+    //  2. こえ と おと
+    // =====================================================================
+    const Speech = {
+      rate: 0.8, pitch: 1.1, voice: null,
+      ok: typeof window !== 'undefined' && 'speechSynthesis' in window,
+      pickVoice() {
+        if (!this.ok) return;
+        const vs = window.speechSynthesis.getVoices().filter(v => (v.lang || '').toLowerCase().replace('_', '-').startsWith('ja'));
+        this.voice = vs.find(v => /google/i.test(v.name)) || vs[0] || null;
+      },
+      say(text, onEnd) {
+        if (!this.ok || !text) { if (onEnd) setTimeout(onEnd, 200); return; }
+        try {
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(text);
+          u.lang = 'ja-JP'; if (this.voice) u.voice = this.voice;
+          u.rate = this.rate; u.pitch = this.pitch;
+          let done = false;
+          const end = () => { if (!done) { done = true; onEnd && onEnd(); } };
+          u.onend = end; u.onerror = end;
+          // 声が出ない端末でも先へ進めるように、長さに合わせて待つ
+          setTimeout(end, 1500 + text.length * 260 / this.rate);
+          // Chrome は cancel の すぐ あとの speak を おとすことが あるので すこし まつ
+          setTimeout(() => window.speechSynthesis.speak(u), 60);
+        } catch (e) { if (onEnd) setTimeout(onEnd, 200); }
+      },
+      stop() { try { this.ok && window.speechSynthesis.cancel(); } catch (e) {} },
+    };
+    if (Speech.ok) { Speech.pickVoice(); window.speechSynthesis.onvoiceschanged = () => Speech.pickVoice(); }
+
+    const Sound = {
+      on: true, ctx: null,
+      get() {
+        if (!this.ctx) { const C = window.AudioContext || window.webkitAudioContext; if (C) this.ctx = new C(); }
+        if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+        return this.ctx;
+      },
+      tone(freq, at, dur, type = 'triangle', vol = 0.16) {
+        const c = this.get(); if (!c || !this.on) return;
+        const o = c.createOscillator(), g = c.createGain(), t = c.currentTime + at;
+        o.type = type; o.frequency.value = freq;
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.05);
+      },
+      // このアプリのための オリジナルの おと
+      fanfare() {
+        [[523, 0], [659, .12], [784, .24]].forEach(([f, t]) => this.tone(f, t, .16, 'triangle', .18));
+        [523, 659, 784, 1046].forEach(f => this.tone(f, .4, .7, 'triangle', .12));
+        this.tone(1318, .4, .7, 'sine', .08);
+      },
+      big() { // ほし クリア
+        [[523, 0], [523, .15], [523, .3], [659, .45], [784, .75], [659, 1.0], [784, 1.15]].forEach(([f, t]) => this.tone(f, t, .2, 'triangle', .18));
+        [523, 659, 784, 1046].forEach(f => this.tone(f, 1.35, 1.1, 'triangle', .12));
+      },
+      retry() { this.tone(330, 0, .14, 'sine', .06); this.tone(294, .12, .2, 'sine', .06); }, // まちがえたとき（小さな音）
+      key() { this.tone(1200, 0, .04, 'sine', .035); },
+      ok() { this.tone(880, 0, .08, 'triangle', .1); this.tone(1320, .07, .14, 'triangle', .1); },
+      tap() { this.tone(660, 0, .06, 'sine', .07); },
+      coin() { this.tone(988, 0, .08, 'square', .05); this.tone(1319, .08, .22, 'square', .05); },
+      buy() { [784, 988, 1175, 1568].forEach((f, i) => this.tone(f, i * .07, .18, 'square', .05)); },
+      beam() { const c = this.get(); if (!c || !this.on) return; [1400, 1100, 800].forEach((f, i) => this.tone(f, i * .04, .08, 'sawtooth', .04)); this.tone(120, .1, .3, 'triangle', .14); },
+    };
+
+    // =====================================================================
+    //  3. キーボードと ゆび
+    // =====================================================================
+    // 学校の Chromebook（JIS の キーボード）の ならび
+    const KB_ROWS = [
+      { off: 0, keys: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', '¥'] },
+      { off: 0.5, keys: ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '@', '['] },
+      { off: 0.75, keys: ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', ':', ']'] },
+      { off: 1.25, keys: ['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', '\\'] },
+    ];
+    const FINGER_OF = {};
+    [['lp', '1qaz'], ['lr', '2wsx'], ['lm', '3edc'], ['li', '45rtfgvb'], ['ri', '67yuhjnm'], ['rm', '8ik,'], ['rr', '9ol.'], ['rp', '0-^¥p@[;:]/\\']]
+      .forEach(([f, ks]) => [...ks].forEach(k => { FINGER_OF[k] = f; }));
+    const FINGER_NAME = { lp: 'ひだりての こゆび', lr: 'ひだりての くすりゆび', lm: 'ひだりての なかゆび', li: 'ひだりての ひとさしゆび',
+      ri: 'みぎての ひとさしゆび', rm: 'みぎての なかゆび', rr: 'みぎての くすりゆび', rp: 'みぎての こゆび' };
+    // ゆびの いろ（こゆび＝ピンク、くすりゆび＝きいろ、なかゆび＝みどり、ひとさしゆび＝あお）
+    const FC = { p: '#f472b6', r: '#facc15', m: '#4ade80', i: '#60a5fa', t: '#cbd5e1' };
+    const FC_LIGHT = { p: '#fce7f3', r: '#fef9c3', m: '#dcfce7', i: '#dbeafe' };
+    const HOME = 'asdfjkl;';
+    const KEY_LABEL = (k) => /[a-z]/.test(k) ? k.toUpperCase() : k;
+    const KEY_NAME = { a: 'エー', b: 'ビー', c: 'シー', d: 'ディー', e: 'イー', f: 'エフ', g: 'ジー', h: 'エイチ', i: 'アイ', j: 'ジェー', k: 'ケー', l: 'エル', m: 'エム',
+      n: 'エヌ', o: 'オー', p: 'ピー', q: 'キュー', r: 'アール', s: 'エス', t: 'ティー', u: 'ユー', v: 'ブイ', w: 'ダブリュー', x: 'エックス', y: 'ワイ', z: 'ゼット',
+      ';': 'セミコロン', '-': 'のばす ぼう', ',': 'コンマ', '.': 'ピリオド',
+      1: 'いち', 2: 'に', 3: 'さん', 4: 'よん', 5: 'ご', 6: 'ろく', 7: 'なな', 8: 'はち', 9: 'きゅう', 0: 'ゼロ' };
+    const keyName = (k) => KEY_NAME[k] || k;
+    // キーの ばしょを ことばで（ヒント1）
+    function whereKey(k) {
+      const r = KB_ROWS.findIndex(x => x.keys.includes(k));
+      const c = r >= 0 ? KB_ROWS[r].keys.indexOf(k) : 0;
+      const row = ['すうじの だん', 'うえの だん', 'まんなかの だん（ホームポジションの だん）', 'したの だん'][r] || '';
+      const side = c < 5 ? 'ひだりがわ' : 'みぎがわ';
+      if (k === 'f' || k === 'j') return `${KEY_LABEL(k)} は でっぱりの ある キー。${side}だよ。`;
+      return `${KEY_LABEL(k)} は ${row}の ${side}に あるよ。`;
+    }
+
+    function Keyboard({ next, wrong, glow = true, finger = true, heat = null, u: uIn, home = false, bumps = false, small = false }) {
+      const w = useWidth();
+      const u = uIn || Math.max(34, Math.min(small ? 44 : 56, Math.floor((w - 40) / 14.2)));
+      const g = Math.round(u * 0.08);
+      const maxHeat = heat ? Math.max(1, ...Object.values(heat)) : 1;
+      const keyStyle = (k) => {
+        const f = FINGER_OF[k];
+        let bg = '#ffffff';
+        if (heat) {
+          const v = (heat[k] || 0) / maxHeat;
+          bg = !heat[k] ? '#ffffff' : `rgba(239,68,68,${0.15 + v * 0.75})`;
+        } else if (finger && f) bg = FC_LIGHT[f[1]];
+        if (home && HOME.includes(k)) bg = FC[FINGER_OF[k][1]];
+        return { width: u, height: u * 0.9, background: bg, fontSize: u * 0.42 };
+      };
+      return (
+        <div className="inline-flex flex-col items-start bg-slate-300 rounded-2xl" style={{ padding: g * 2, gap: g }}>
+          {KB_ROWS.map((row, ri) => (
+            <div key={ri} className="flex" style={{ gap: g, marginLeft: row.off * u }}>
+              {row.keys.map(k => {
+                const isNext = next === k && glow;
+                const isWrong = wrong === k;
+                return (
+                  <div key={k} className={`relative rounded-lg flex items-center justify-center font-bold border-b-4 ${isNext ? 'keyglow' : ''} ${isWrong ? 'shake' : ''}`}
+                    style={{ ...keyStyle(k), borderColor: isWrong ? '#dc2626' : '#94a3b8', background: isWrong ? '#fecaca' : isNext ? '#fde047' : keyStyle(k).background, zIndex: isNext ? 2 : 1 }}>
+                    {KEY_LABEL(k)}
+                    {(k === 'f' || k === 'j') && <span className="absolute rounded-full bg-slate-500" style={{ width: u * 0.3, height: 3, bottom: u * 0.14, ...(bumps ? { background: '#dc2626', height: 5 } : {}) }} />}
+                    {isWrong && <span className="absolute -top-2 -right-2 bg-rose-600 text-white rounded-full w-6 h-6 text-sm flex items-center justify-center">✕</span>}
+                    {heat && heat[k] ? <span className="absolute bottom-0 right-1 text-xs text-rose-900">{heat[k]}</span> : null}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+          <div className="flex w-full justify-center">
+            <div className="rounded-lg border-b-4 border-slate-400 bg-white flex items-center justify-center text-slate-400 font-bold" style={{ width: u * 5.5, height: u * 0.8, fontSize: u * 0.3, marginLeft: u * 1.2 }}>スペース</div>
+          </div>
+        </div>
+      );
+    }
+
+    // 手の 絵（おす ゆびを 光らせる）
+    function Hands({ finger: fingerKey, color = true, size = 260, home = false }) {
+      const fing = (side, f, x, h, rot = 0) => {
+        const id = side + f;
+        const on = fingerKey === id;
+        const dim = fingerKey && !on;
+        const fill = color ? FC[f] : '#fcd9b6';
+        return (
+          <g key={id} transform={`rotate(${rot} ${x + 9} 92)`} opacity={dim ? 0.35 : 1}>
+            <rect x={x} y={92 - h} width="18" height={h + 10} rx="9" fill={fill} stroke={on ? '#b45309' : '#94a3b8'} strokeWidth={on ? 4 : 1.5} />
+            {on && <text x={x + 9} y={92 - h - 8} textAnchor="middle" fontSize="18">⬇</text>}
+          </g>
+        );
+      };
+      return (
+        <svg viewBox="0 0 300 150" width={size} height={size * 0.5}>
+          {/* ひだりて */}
+          <rect x="22" y="88" width="92" height="56" rx="24" fill={color ? '#fde7d0' : '#fcd9b6'} stroke="#94a3b8" strokeWidth="1.5" />
+          {fing('l', 'p', 26, 34)}{fing('l', 'r', 47, 48)}{fing('l', 'm', 68, 54)}{fing('l', 'i', 89, 46)}
+          <g transform="rotate(50 112 118)"><rect x="104" y="96" width="18" height="40" rx="9" fill={color ? FC.t : '#fcd9b6'} stroke="#94a3b8" strokeWidth="1.5" /></g>
+          {/* みぎて */}
+          <rect x="186" y="88" width="92" height="56" rx="24" fill={color ? '#fde7d0' : '#fcd9b6'} stroke="#94a3b8" strokeWidth="1.5" />
+          {fing('r', 'i', 193, 46)}{fing('r', 'm', 214, 54)}{fing('r', 'r', 235, 48)}{fing('r', 'p', 256, 34)}
+          <g transform="rotate(-50 188 118)"><rect x="178" y="96" width="18" height="40" rx="9" fill={color ? FC.t : '#fcd9b6'} stroke="#94a3b8" strokeWidth="1.5" /></g>
+          <text x="68" y="138" textAnchor="middle" fontSize="15" fontWeight="bold" fill="#475569">ひだり</text>
+          <text x="232" y="138" textAnchor="middle" fontSize="15" fontWeight="bold" fill="#475569">みぎ</text>
+          {home && <text x="150" y="30" textAnchor="middle" fontSize="15" fill="#475569">F と J に ひとさしゆび</text>}
+        </svg>
+      );
+    }
+
+    // =====================================================================
+    //  4. データ（ほし・ごほうび）と もんだいづくり
+    // =====================================================================
+    let STAGES = [], ITEM_CATS = [], ALL_ITEMS = [], TIERS = [], R = null;
+    const ITEM = {};
+    const isHatten = (st) => !!st.hatten;
+    const stageNo = (st) => st.hatten ? `はってん${st.id}` : st.id;
+
+    // キー 1つの もんだい（ローマ字の しくみと おなじ つかいかた）
+    function keyTyper(key) {
+      const t = Object.create(R.Typer.prototype);
+      t.text = key; t.u = [{ k: key, show: KEY_LABEL(key), opts: [key], isKey: true }]; t.i = 0; t.buf = ''; t.chosen = [];
+      return t;
+    }
+    const makeTyper = (p) => p.kind === 'key' ? keyTyper(p.t) : new R.Typer(p.t);
+
+    // 1かいぶんの もんだいを つくる
+    function buildProblems(st, n) {
+      const out = [];
+      if (st.kind === 'key') {
+        const keys = [...st.keys], rev = [...(st.review || '')];
+        for (let i = 0; i < n; i++) {
+          let k, tries = 0;
+          do {
+            // はじめの 3もんは、あたらしい キーを じゅんばんに
+            if (i < Math.min(keys.length, 3) && st.id !== '0') k = keys[i];
+            else k = pickOne(rev.length && Math.random() < 0.25 ? rev : keys);
+            tries++;
+          } while (tries < 10 && out.length >= 2 && out[out.length - 1].t === k && out[out.length - 2].t === k);
+          out.push({ kind: 'key', t: k });
+        }
+        return out;
+      }
+      if (st.kind === 'kana') {
+        const nw = Math.round(n / 3), nk = n - nw;
+        const kana = st.kanaList, rev = st.reviewList || [];
+        let bag = [];
+        for (let i = 0; i < nk; i++) {
+          if (rev.length && Math.random() < 0.2) { out.push({ kind: 'kana', t: pickOne(rev) }); continue; }
+          if (!bag.length) bag = shuffle(kana);
+          out.push({ kind: 'kana', t: bag.pop() });
+        }
+        let wb = [];
+        for (let i = 0; i < nw; i++) { if (!wb.length) wb = shuffle(st.words); const w = wb.pop(); out.push({ kind: 'word', t: w.w, e: w.e }); }
+        return out;
+      }
+      let wb = [];
+      for (let i = 0; i < n; i++) { if (!wb.length) wb = shuffle(st.words); const w = wb.pop(); out.push({ kind: st.kind, t: w.w, e: w.e }); }
+      return out;
+    }
+    const sayOf = (p) => p.kind === 'key' ? keyName(p.t) : p.t;
+
+    // =====================================================================
+    //  5. しんちょく（進み具合）
+    // =====================================================================
+    const newProgress = () => ({ v: 1, t: 0, coins: 0, earned: 0, items: [], cleared: {}, best: {}, part: null, boxN: 0, boxes: 0,
+      color: 'sky', equip: {}, speed: 0, unlockAll: false, hatten: false });
+    function parseProgress(s) {
+      let p = null;
+      try { p = typeof s === 'string' ? (s ? JSON.parse(s) : null) : s; } catch (e) { p = null; }
+      return { ...newProgress(), ...(p || {}) };
+    }
+    const stageIdx = (st) => STAGES.findIndex(s => s.id === st.id);
+    const mainStages = () => STAGES.filter(s => !s.hatten);
+    const stageOpen = (p, st) => {
+      if (isHatten(st)) return !!(p.unlockAll || p.hatten);
+      if (p.unlockAll) return true;
+      const ms = mainStages(), i = ms.findIndex(s => s.id === st.id);
+      return i <= 0 || !!p.cleared[ms[i - 1].id];
+    };
+    const currentStage = (p) => mainStages().find(st => stageOpen(p, st) && !p.cleared[st.id]) || mainStages()[mainStages().length - 1];
+    const countOf = (st, settings) => st.count ? Math.min(st.count, Number(settings.count) || 30) : (Number(settings.count) || 30);
+
+    // =====================================================================
+    //  6. データの ほぞん（スプレッドシート／おためしモード）
+    // =====================================================================
+    const HAS_GAS = typeof google !== 'undefined' && google.script && google.script.run;
+    const gas = (fn, ...args) => new Promise((resolve, reject) => {
+      google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
+    });
+    const LOG_HEADER = ['日時', 'なまえ', 'ほし', 'しゅるい', 'もんだい', 'けっか', 'まちがい', 'ヒント', 'まちがえた キー', 'まちがえた おと', 'うった キー', 'びょう', 'ID'];
+    const DEFAULT_SETTINGS = { rate: 0.8, pitch: 1.1, font: 1, sound: true, count: 30, glow: true, finger: true, romaji: true, game: true };
+
+    // まとめ（先生用）— コード.gs の aggregate_ と おなじ しくみ
+    const emptyStu = () => ({ count: 0, ok: 0, keys: 0, miss: 0, pkeys: 0, psecs: 0, last: '', stages: {}, keyMiss: {}, soundMiss: {}, days: {} });
+    function aggregate(rows) {
+      const students = {}, classKey = {}, classSound = {};
+      rows.forEach(r => {
+        const name = String(r[1] || '').trim(); if (!name) return;
+        const st = String(r[2]), kind = String(r[3]), ok = r[5] === '○' ? 1 : 0, miss = Number(r[6]) || 0;
+        const keys = Number(r[10]) || 0, secs = Number(r[11]) || 0;
+        const s = students[name] || (students[name] = emptyStu());
+        const day = String(r[0] instanceof Date ? r[0].toISOString() : r[0]).slice(0, 10).replace(/-/g, '/');
+        if (day > s.last) s.last = day;
+        s.count++; s.ok += ok; s.keys += keys; s.miss += miss;
+        const g = s.stages[st] || (s.stages[st] = [0, 0, 0, 0, 0, 0]);
+        g[0]++; g[1] += ok; g[2] += keys; g[3] += miss;
+        if (kind === 'れんしゅう' && secs > 0) {
+          s.pkeys += keys; s.psecs += secs; g[4] += keys; g[5] += secs;
+          const d = s.days[day] || (s.days[day] = [0, 0]); d[0] += keys; d[1] += secs;
+        }
+        String(r[8] || '').split('・').forEach(x => { const k = x.split('>')[0]; if (k) { s.keyMiss[k] = (s.keyMiss[k] || 0) + 1; classKey[k] = (classKey[k] || 0) + 1; } });
+        String(r[9] || '').split('・').forEach(k => { if (k) { s.soundMiss[k] = (s.soundMiss[k] || 0) + 1; classSound[k] = (classSound[k] || 0) + 1; } });
+      });
+      return { students, classKey, classSound };
+    }
+
+    const Local = {
+      key: 'kibo_typing_local_v1', mem: null,
+      data() {
+        if (this.mem) return this.mem;
+        let d = null; try { d = JSON.parse(safeStore.get(this.key)); } catch (e) {}
+        this.mem = d || { roster: ['たろう', 'はなこ', 'ゆうき'], progress: {}, log: [], pin: '1234', settings: { ...DEFAULT_SETTINGS } };
+        return this.mem;
+      },
+      save() { safeStore.set(this.key, JSON.stringify(this.mem)); },
+    };
+
+    const PENDING_KEY = 'kibo_typing_pending_v1';
+    const COPY_KEY = (name) => 'kibo_typing_copy_' + name;
+    const recRow = (stamp, name, r) => [stamp, name, r.stage, r.kind, r.problem, r.result, r.miss, r.hint, r.wrongKeys, r.wrongSounds, r.keys, r.secs, r.id];
+    const api = {
+      async init() {
+        if (HAS_GAS) return gas('getInitData');
+        const d = Local.data();
+        return { students: d.roster, settings: { ...DEFAULT_SETTINGS, ...d.settings }, demo: true };
+      },
+      async student(name) {
+        if (HAS_GAS) return gas('getStudent', name);
+        return Local.data().progress[name] || '';
+      },
+      async sendOne(p) {
+        if (HAS_GAS) return gas('saveResult', p);
+        const d = Local.data();
+        const old = parseProgress(d.progress[p.name]);
+        const neu = parseProgress(p.progress);
+        if (neu.t >= old.t) d.progress[p.name] = p.progress;
+        const ids = new Set(d.log.map(r => r[12]));
+        p.records.forEach(r => { if (!ids.has(r.id)) d.log.push(recRow(p.stamp, p.name, r)); });
+        Local.save();
+        return { ok: true };
+      },
+      // とどかなかった きろくは たまっておき、つぎの ときに おくりなおす
+      readQueue() { try { return JSON.parse(safeStore.get(PENDING_KEY)) || []; } catch (e) { return []; } },
+      async save(payload) {
+        const queue = api.readQueue().filter(q => !(q.name === payload.name && !q.records.length));
+        queue.push({ ...payload, qid: uid() });
+        safeStore.set(PENDING_KEY, JSON.stringify(queue));
+        return api.flush();
+      },
+      pending() { return api.readQueue().length; },
+      flushing: false,
+      async flush() {
+        if (api.flushing) return;
+        api.flushing = true;
+        try {
+          for (let q = api.readQueue()[0]; q; q = api.readQueue()[0]) {
+            await api.sendOne(q);
+            safeStore.set(PENDING_KEY, JSON.stringify(api.readQueue().filter(x => x.qid !== q.qid)));
+          }
+        } catch (e) { console.warn('きろくを おくれませんでした。あとで おくりなおします。', e); }
+        finally { api.flushing = false; }
+      },
+      async teacher(pin) {
+        if (HAS_GAS) return gas('getTeacherData', pin);
+        const d = Local.data();
+        if (String(pin) !== String(d.pin)) return { ok: false };
+        const agg = aggregate(d.log);
+        return {
+          ok: true, isDefaultPin: d.pin === '1234', demo: true, settings: { ...DEFAULT_SETTINGS, ...d.settings },
+          students: d.roster.map(n => ({ name: n, progress: d.progress[n] || '', ...(agg.students[n] || emptyStu()) })),
+          classKey: agg.classKey, classSound: agg.classSound,
+        };
+      },
+      async setFlag(pin, name, key, val) {
+        if (HAS_GAS) return gas('setFlag', pin, name, key, val);
+        const d = Local.data(); const p = parseProgress(d.progress[name]); p[key] = !!val; p.t = Date.now(); p.flagT = Date.now();
+        d.progress[name] = JSON.stringify(p); Local.save(); return { ok: true, progress: d.progress[name] };
+      },
+      async addCoins(pin, name, delta) {
+        if (HAS_GAS) return gas('addCoins', pin, name, delta);
+        const d = Local.data(); const p = parseProgress(d.progress[name]); p.coins = Math.max(0, p.coins + delta); p.t = Date.now();
+        d.progress[name] = JSON.stringify(p); Local.save(); return { ok: true, progress: d.progress[name] };
+      },
+      async saveSettings(pin, s) {
+        if (HAS_GAS) return gas('saveSettings', pin, s);
+        const d = Local.data(); const { newPin, ...rest } = s;
+        d.settings = { ...d.settings, ...rest }; if (newPin) d.pin = newPin; Local.save(); return { ok: true };
+      },
+      async logRows(pin) {
+        if (HAS_GAS) return gas('getLogRows', pin);
+        return { ok: true, rows: [LOG_HEADER, ...Local.data().log] };
+      },
+      async backup(pin) {
+        if (HAS_GAS) return gas('getBackup', pin);
+        const d = Local.data(); return { ok: true, data: { app: 'typing', roster: d.roster.map(n => [n, d.progress[n] || '']), settings: d.settings } };
+      },
+      async restore(pin, data) {
+        if (HAS_GAS) return gas('restoreBackup', pin, data);
+        const d = Local.data(); (data.roster || []).forEach(([n, p]) => { if (!d.roster.includes(n)) d.roster.push(n); d.progress[n] = p; }); Local.save(); return { ok: true };
+      },
+      async clear(pin, name) {
+        if (HAS_GAS) return gas('clearRecords', pin, name);
+        const d = Local.data();
+        d.log = d.log.filter(r => name && r[1] !== name);
+        (name ? [name] : d.roster).forEach(n => { delete d.progress[n]; safeStore.del(COPY_KEY(n)); });
+        Local.save(); return { ok: true };
+      },
+    };
+
+    // =====================================================================
+    //  7. キャプテン・キーボ と ふきだし
+    // =====================================================================
+    const KiboCtx = createContext(null);
+    const useKibo = () => useContext(KiboCtx);
+
+    // 絵が よみこめない ときの キーボ（自作の 絵）
+    function KiboSvg({ size }) {
+      return (
+        <svg viewBox="0 0 200 220" width={size} height={size}>
+          <rect x="88" y="150" width="24" height="16" fill="#94a3b8" />
+          <rect x="45" y="160" width="110" height="56" rx="20" fill="#1e3a8a" stroke="#0f172a" strokeWidth="3" />
+          <path d="M100 166 L92 200 L100 210 L108 200 Z" fill="#facc15" />
+          <rect x="40" y="62" width="120" height="92" rx="28" fill="#f8fafc" stroke="#334155" strokeWidth="3" />
+          <rect x="54" y="82" width="92" height="56" rx="16" fill="#0f172a" />
+          <circle cx="80" cy="106" r="9" fill="#67e8f9" /><circle cx="120" cy="106" r="9" fill="#67e8f9" />
+          <path d="M84 124 Q100 134 116 124" stroke="#67e8f9" strokeWidth="4" fill="none" strokeLinecap="round" />
+          <path d="M34 70 Q100 8 166 70 Z" fill="#1e3a8a" stroke="#0f172a" strokeWidth="3" />
+          <rect x="30" y="62" width="140" height="14" rx="7" fill="#0f172a" />
+          <path d="M100 30 l6 12 13 2 -9 9 2 13 -12 -6 -12 6 2 -13 -9 -9 13 -2 z" fill="#facc15" />
+        </svg>
+      );
+    }
+    // よみこめなかった 絵（かおの 絵が ない ときは ふつうの 絵、それも ない ときは 自作の 絵）
+    const KIBO_MISSING = new Set();
+    function Kibo({ mood = 'normal', size = 150, className = '' }) {
+      const [, setErr] = useState(0);
+      const want = mood === 'happy' ? 'kibo_happy.webp' : mood === 'think' ? 'kibo_think.webp' : 'kibo.webp';
+      const file = !KIBO_MISSING.has(want) ? want : !KIBO_MISSING.has('kibo.webp') ? 'kibo.webp' : null;
+      if (!file) return <div className={className} style={{ width: size, height: size }}><KiboSvg size={size} /></div>;
+      return <img key={file} src={IMG + file} alt="キャプテン・キーボ" onError={() => { KIBO_MISSING.add(file); setErr(e => e + 1); }} className={`kibo-img select-none ${className}`} style={{ width: size, height: size, objectFit: 'contain' }} draggable={false} />;
+    }
+    function KiboBar({ size = 100, compact = false }) {
+      const kibo = useKibo();
+      return (
+        <div className="flex items-center gap-2 w-full max-w-5xl">
+          <button onClick={() => kibo.repeat()} className="shrink-0 active:scale-95 transition" aria-label="もういちど きく">
+            <Kibo mood={kibo.mood} size={size} className={kibo.talking ? 'floaty' : ''} />
+          </button>
+          <div className={`relative bubble bg-white rounded-3xl shadow px-5 ${compact ? 'py-2 text-xl min-h-[52px]' : 'py-3 text-2xl min-h-[64px]'} font-bold leading-relaxed flex-1 border-2 border-sky-200`}>
+            {kibo.text || '　'}
+          </div>
+          <button onClick={() => kibo.repeat()} className={`btn3d shrink-0 bg-sky-100 border-2 border-sky-500 text-sky-700 rounded-2xl px-3 ${compact ? 'py-1 text-base' : 'py-2 text-lg'} font-bold`}>🔊<br />もういちど</button>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    //  8. こどもの ロボット（自作の 絵。ぶひんを つけかえる）
+    // =====================================================================
+    const ROBO_COLORS = [
+      { id: 'sky', c: '#7dd3fc', n: 'みずいろ' }, { id: 'blue', c: '#60a5fa', n: 'あお' }, { id: 'green', c: '#86efac', n: 'みどり' },
+      { id: 'yellow', c: '#fde047', n: 'きいろ' }, { id: 'orange', c: '#fdba74', n: 'オレンジ' }, { id: 'pink', c: '#f9a8d4', n: 'ピンク' },
+      { id: 'purple', c: '#c4b5fd', n: 'むらさき' }, { id: 'white', c: '#e5e7eb', n: 'しろ' },
+    ];
+    // ガレージで つけかえる ところ
+    const SLOTS = [['body', 'からだ'], ['hat', 'ぼうし'], ['top', 'アンテナ'], ['eyes', 'め'], ['chest', 'むね'], ['arms', 'うで'], ['feet', 'あし'], ['acc', 'アクセサリ'], ['bg', 'はいけい']];
+    // からだの もよう（おみせの「ロボットの からだ」）。g は もようの 中身
+    function bodyPaint(body, c, id) {
+      const P = (inner, w = 20, h = 20) => <pattern id={id} width={w} height={h} patternUnits="userSpaceOnUse">{inner}</pattern>;
+      const L = (stops, x2 = 1, y2 = 1) => <linearGradient id={id} x1="0" y1="0" x2={x2} y2={y2}>{stops.map((s, i) => <stop key={i} offset={`${(i / (stops.length - 1)) * 100}%`} stopColor={s} />)}</linearGradient>;
+      switch (body) {
+        case 'stripe': return { def: P(<><rect width="20" height="20" fill={c} /><rect width="20" height="7" fill="#fff" opacity=".7" /></>), fill: `url(#${id})` };
+        case 'dots': return { def: P(<><rect width="20" height="20" fill={c} /><circle cx="6" cy="6" r="4" fill="#fff" opacity=".8" /><circle cx="16" cy="16" r="4" fill="#fff" opacity=".8" /></>), fill: `url(#${id})` };
+        case 'check': return { def: P(<><rect width="20" height="20" fill={c} /><rect width="10" height="10" fill="#fff" opacity=".55" /><rect x="10" y="10" width="10" height="10" fill="#fff" opacity=".55" /></>), fill: `url(#${id})` };
+        case 'hearts': return { def: P(<><rect width="24" height="24" fill={c} /><path d="M12 19 C4 13 4 7 8 6 C10 6 12 8 12 9 C12 8 14 6 16 6 C20 7 20 13 12 19 Z" fill="#f472b6" /></>, 24, 24), fill: `url(#${id})` };
+        case 'stars': return { def: P(<><rect width="26" height="26" fill="#1e3a8a" /><path d="M13 4 l2.6 5.4 6 .8 -4.4 4.1 1.1 5.9 -5.3 -2.9 -5.3 2.9 1.1 -5.9 -4.4 -4.1 6 -.8 z" fill="#facc15" /></>, 26, 26), fill: `url(#${id})`, line: '#0f172a' };
+        case 'silver': return { def: L(['#f8fafc', '#94a3b8', '#e2e8f0', '#64748b']), fill: `url(#${id})`, line: '#334155' };
+        case 'crystal': return { def: L(['#e0f2fe', '#7dd3fc', '#f0f9ff', '#38bdf8']), fill: `url(#${id})`, line: '#0369a1', op: 0.85 };
+        case 'rainbow': return { def: L(['#f87171', '#fb923c', '#facc15', '#4ade80', '#60a5fa', '#a78bfa'], 1, 0), fill: `url(#${id})` };
+        case 'galaxy': return { def: P(<><rect width="30" height="30" fill="#312e81" /><circle cx="5" cy="6" r="1.5" fill="#fff" /><circle cx="20" cy="12" r="1" fill="#fde68a" /><circle cx="12" cy="24" r="1.6" fill="#fff" /><circle cx="26" cy="26" r="1" fill="#c4b5fd" /><circle cx="24" cy="3" r="3" fill="#a855f7" opacity=".5" /></>, 30, 30), fill: `url(#${id})`, line: '#1e1b4b' };
+        case 'diamond': return { def: L(['#ffffff', '#a5f3fc', '#f5d0fe', '#ffffff', '#bae6fd']), fill: `url(#${id})`, line: '#0e7490', sparkle: true };
+        case 'gold': return { def: L(['#fef3c7', '#fbbf24', '#f59e0b', '#fde68a']), fill: `url(#${id})`, line: '#b45309' };
+        default: return { def: null, fill: c };
+      }
+    }
+    // はいけい（おみせの「ロボットの はいけい」）
+    function RobotBg({ bg }) {
+      const box = (fill, kids) => <g><rect x="-4" y="-6" width="208" height="242" rx="26" fill={fill} />{kids}</g>;
+      const T = (x, y, s, e) => <text x={x} y={y} fontSize={s} textAnchor="middle">{e}</text>;
+      const grad = (id, a, b) => <defs><linearGradient id={id} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={a} /><stop offset="100%" stopColor={b} /></linearGradient></defs>;
+      switch (bg) {
+        case 'sky': return <g>{grad('bgsky', '#7dd3fc', '#e0f2fe')}{box('url(#bgsky)', <>{T(30, 40, 30, '☁️')}{T(170, 70, 26, '☁️')}{T(160, 20, 22, '☀️')}</>)}</g>;
+        case 'grass': return <g>{grad('bggr', '#bae6fd', '#f0fdf4')}{box('url(#bggr)', <><path d="M-4 180 Q100 150 204 180 L204 230 Q204 236 196 236 L4 236 Q-4 236 -4 228 Z" fill="#86efac" />{T(20, 214, 20, '🌼')}{T(182, 206, 20, '🌷')}{T(30, 30, 20, '🦋')}</>)}</g>;
+        case 'sea': return <g>{grad('bgsea', '#7dd3fc', '#0369a1')}{box('url(#bgsea)', <>{T(24, 200, 24, '🐠')}{T(176, 120, 24, '🐟')}{T(170, 216, 22, '🐚')}{T(30, 60, 18, '🫧')}</>)}</g>;
+        case 'sunset': return <g>{grad('bgsun', '#fb923c', '#fde68a')}{box('url(#bgsun)', <><circle cx="100" cy="150" r="60" fill="#f97316" opacity=".5" />{T(30, 40, 20, '🐦')}{T(176, 30, 18, '✨')}</>)}</g>;
+        case 'forest': return <g>{grad('bgfo', '#bbf7d0', '#4ade80')}{box('url(#bgfo)', <>{T(20, 120, 40, '🌲')}{T(184, 150, 40, '🌳')}{T(180, 40, 30, '🌲')}{T(24, 224, 20, '🍄')}</>)}</g>;
+        case 'snow': return <g>{grad('bgsn', '#bfdbfe', '#ffffff')}{box('url(#bgsn)', <><path d="M-4 160 L50 90 L100 150 L150 80 L204 150 L204 236 L-4 236 Z" fill="#e2e8f0" /><path d="M38 105 L50 90 L62 105 Z M138 95 L150 80 L162 95 Z" fill="#fff" />{T(24, 40, 18, '❄️')}{T(176, 30, 18, '❄️')}{T(180, 214, 26, '⛄')}</>)}</g>;
+        case 'candy': return <g>{grad('bgca', '#fbcfe8', '#fef9c3')}{box('url(#bgca)', <>{T(22, 50, 26, '🍭')}{T(178, 60, 26, '🍬')}{T(24, 210, 26, '🧁')}{T(178, 214, 26, '🍩')}{T(100, 18, 20, '🍫')}</>)}</g>;
+        case 'space': return <g>{grad('bgsp', '#1e1b4b', '#312e81')}{box('url(#bgsp)', <>{T(26, 46, 30, '🪐')}{T(176, 200, 26, '🌍')}{T(176, 34, 18, '⭐')}{T(30, 200, 14, '✨')}{T(100, 16, 12, '⭐')}</>)}</g>;
+        case 'rainbow': return <g>{grad('bgra', '#e0f2fe', '#fdf4ff')}{box('url(#bgra)', <>{['#f87171', '#fb923c', '#facc15', '#4ade80', '#60a5fa', '#a78bfa'].map((cl, i) => <path key={i} d={`M${-4 + i * 9} 236 A${104 - i * 9} ${150 - i * 9} 0 0 1 ${204 - i * 9} 236`} fill="none" stroke={cl} strokeWidth="9" />)}{T(24, 30, 22, '☁️')}{T(178, 30, 22, '☁️')}</>)}</g>;
+        case 'castle': return <g>{grad('bgcs', '#0f172a', '#4c1d95')}{box('url(#bgcs)', <>{T(100, 236, 120, '🏰')}{T(26, 40, 24, '🎆')}{T(178, 50, 24, '🎇')}{T(100, 22, 16, '🌙')}{T(150, 14, 12, '⭐')}{T(50, 16, 12, '⭐')}</>)}</g>;
+        default: return null;
+      }
+    }
+
+    function Robot({ color = 'sky', equip = {}, size = 160, happy = false, className = '', withBg = false }) {
+      const uidRef = useRef(null);
+      if (!uidRef.current) uidRef.current = 'rb' + uid();
+      const base = (ROBO_COLORS.find(x => x.id === color) || ROBO_COLORS[0]).c;
+      const paint = bodyPaint(equip.body, base, uidRef.current);
+      const c = paint.fill;
+      const line = paint.line || '#334155';
+      const metal = '#94a3b8';
+      const op = paint.op || 1;
+      const arm = (side) => {
+        const x0 = side === 'l' ? 30 : 150;
+        const tr = side === 'l' ? '' : 'translate(200 0) scale(-1 1)';
+        if (equip.arms === 'hand') return (
+          <g key={side} transform={tr}>
+            <path d="M48 124 L36 136 L46 146 L30 158 L40 168" stroke={metal} strokeWidth="7" fill="none" strokeLinejoin="round" />
+            <ellipse cx="34" cy="178" rx="14" ry="12" fill="#fff" stroke={line} strokeWidth="2.5" />
+            <rect x="22" y="166" width="7" height="12" rx="3" fill="#fff" stroke={line} strokeWidth="2" />
+          </g>);
+        if (equip.arms === 'drill') return (
+          <g key={side} transform={tr}>
+            <rect x="30" y="116" width="20" height="40" rx="10" fill={c} stroke={line} strokeWidth="2.5" />
+            <path d="M28 156 L52 156 L40 192 Z" fill="#cbd5e1" stroke={line} strokeWidth="2.5" />
+            <path d="M31 166 L49 162 M34 176 L46 173" stroke={line} strokeWidth="2" />
+          </g>);
+        return (
+          <g key={side}>
+            <rect x={x0} y="116" width="20" height="46" rx="10" fill={c} stroke={line} strokeWidth="2.5" />
+            <circle cx={x0 + 10} cy="168" r="10" fill={metal} stroke={line} strokeWidth="2.5" />
+          </g>);
+      };
+      let feet;
+      if (equip.feet === 'tracks') feet = (
+        <g>
+          <rect x="52" y="180" width="96" height="36" rx="18" fill="#334155" stroke="#0f172a" strokeWidth="2.5" />
+          {[72, 100, 128].map(x => <circle key={x} cx={x} cy="198" r="10" fill={metal} stroke="#0f172a" strokeWidth="2" />)}
+        </g>);
+      else if (equip.feet === 'jet') feet = (
+        <g>
+          <rect x="66" y="176" width="24" height="26" rx="6" fill="#64748b" stroke={line} strokeWidth="2.5" />
+          <rect x="110" y="176" width="24" height="26" rx="6" fill="#64748b" stroke={line} strokeWidth="2.5" />
+          <g className="flame"><path d="M68 202 Q78 232 88 202 Z" fill="#fb923c" /><path d="M73 202 Q78 220 83 202 Z" fill="#fde047" /></g>
+          <g className="flame"><path d="M112 202 Q122 232 132 202 Z" fill="#fb923c" /><path d="M117 202 Q122 220 127 202 Z" fill="#fde047" /></g>
+        </g>);
+      else feet = (
+        <g>
+          <rect x="70" y="176" width="18" height="30" rx="6" fill={metal} stroke={line} strokeWidth="2" />
+          <rect x="112" y="176" width="18" height="30" rx="6" fill={metal} stroke={line} strokeWidth="2" />
+          <rect x="60" y="202" width="36" height="16" rx="8" fill={c} stroke={line} strokeWidth="2.5" />
+          <rect x="104" y="202" width="36" height="16" rx="8" fill={c} stroke={line} strokeWidth="2.5" />
+        </g>);
+      let top;
+      if (equip.top === 'heart') top = (<g><line x1="100" y1="38" x2="100" y2="20" stroke={metal} strokeWidth="4" /><path d="M100 22 C 86 10, 84 -2, 94 -2 C 98 -2, 100 2, 100 4 C 100 2, 102 -2, 106 -2 C 116 -2, 114 10, 100 22 Z" fill="#f472b6" stroke="#be185d" strokeWidth="2" transform="translate(0 4)" /></g>);
+      else if (equip.top === 'bolt') top = (<g><line x1="100" y1="38" x2="100" y2="24" stroke={metal} strokeWidth="4" /><path d="M104 0 L90 16 L100 16 L94 30 L112 10 L102 10 L108 0 Z" fill="#facc15" stroke="#a16207" strokeWidth="2" /></g>);
+      else if (equip.top === 'prop') top = (<g><line x1="100" y1="38" x2="100" y2="14" stroke={metal} strokeWidth="5" /><g className="spin"><ellipse cx="100" cy="14" rx="40" ry="6" fill="#f87171" stroke="#991b1b" strokeWidth="2" /></g><circle cx="100" cy="14" r="5" fill="#334155" /></g>);
+      else top = (<g><line x1="100" y1="38" x2="100" y2="16" stroke={metal} strokeWidth="4" /><circle cx="100" cy="12" r="7" fill="#f87171" stroke="#991b1b" strokeWidth="2" /></g>);
+      // ぼうし（かぶると アンテナは かくれる）
+      const H = {
+        cap: <g><path d="M50 48 Q100 4 150 48 Z" fill="#ef4444" stroke="#991b1b" strokeWidth="2.5" /><ellipse cx="154" cy="48" rx="28" ry="6" fill="#dc2626" stroke="#991b1b" strokeWidth="2" /><circle cx="100" cy="18" r="4" fill="#991b1b" /></g>,
+        beanie: <g><path d="M48 50 Q100 0 152 50 Z" fill="#22c55e" stroke="#166534" strokeWidth="2.5" /><rect x="46" y="40" width="108" height="14" rx="7" fill="#16a34a" stroke="#166534" strokeWidth="2" /><circle cx="100" cy="10" r="10" fill="#fef08a" stroke="#ca8a04" strokeWidth="2" /></g>,
+        straw: <g><ellipse cx="100" cy="44" rx="80" ry="14" fill="#fde68a" stroke="#a16207" strokeWidth="2.5" /><path d="M58 44 Q60 8 100 6 Q140 8 142 44 Z" fill="#fcd34d" stroke="#a16207" strokeWidth="2.5" /><rect x="58" y="32" width="84" height="10" fill="#ef4444" /></g>,
+        party: <g><path d="M72 44 L100 -8 L128 44 Z" fill="#a78bfa" stroke="#5b21b6" strokeWidth="2.5" /><path d="M84 22 L116 22 M78 34 L122 34" stroke="#fde047" strokeWidth="5" /><circle cx="100" cy="-8" r="7" fill="#f472b6" /></g>,
+        chef: <g><rect x="62" y="22" width="76" height="22" rx="4" fill="#fff" stroke="#94a3b8" strokeWidth="2.5" /><circle cx="72" cy="14" r="16" fill="#fff" stroke="#94a3b8" strokeWidth="2.5" /><circle cx="100" cy="6" r="18" fill="#fff" stroke="#94a3b8" strokeWidth="2.5" /><circle cx="128" cy="14" r="16" fill="#fff" stroke="#94a3b8" strokeWidth="2.5" /><rect x="62" y="22" width="76" height="20" fill="#fff" /></g>,
+        tophat: <g><ellipse cx="100" cy="44" rx="58" ry="9" fill="#111827" /><rect x="70" y="-6" width="60" height="50" rx="4" fill="#1f2937" stroke="#000" strokeWidth="2" /><rect x="70" y="28" width="60" height="9" fill="#dc2626" /></g>,
+        witch: <g><ellipse cx="100" cy="44" rx="70" ry="11" fill="#6d28d9" stroke="#3b0764" strokeWidth="2.5" /><path d="M64 44 Q90 20 104 -8 Q112 -14 126 -2 Q112 -2 110 10 L136 44 Z" fill="#7c3aed" stroke="#3b0764" strokeWidth="2.5" /><rect x="70" y="32" width="62" height="8" fill="#facc15" /></g>,
+        helmet: <g><circle cx="100" cy="72" r="72" fill="#bae6fd" opacity=".28" stroke="#e0f2fe" strokeWidth="5" /><path d="M54 30 Q70 10 96 6" stroke="#fff" strokeWidth="6" fill="none" strokeLinecap="round" opacity=".9" /></g>,
+        pirate: <g><path d="M36 46 Q100 -14 164 46 Q100 30 36 46 Z" fill="#111827" stroke="#000" strokeWidth="2" /><circle cx="100" cy="22" r="7" fill="#fff" /><path d="M90 32 L110 14 M90 14 L110 32" stroke="#fff" strokeWidth="3" /></g>,
+        crown: <g><path d="M56 46 L56 10 L78 28 L100 0 L122 28 L144 10 L144 46 Z" fill="#facc15" stroke="#a16207" strokeWidth="2.5" /><circle cx="100" cy="30" r="6" fill="#ef4444" /><circle cx="76" cy="36" r="4.5" fill="#3b82f6" /><circle cx="124" cy="36" r="4.5" fill="#22c55e" /><circle cx="100" cy="0" r="4" fill="#fde68a" /></g>,
+      };
+      const hat = equip.hat ? H[equip.hat] : null;
+      // アクセサリ（うしろ：マント・はね・オーラ　まえ：そのほか）
+      const accBack = {
+        cape: <path d="M56 112 Q20 190 30 226 L170 226 Q180 190 144 112 Z" fill="#dc2626" stroke="#7f1d1d" strokeWidth="2.5" />,
+        wings: <g fill="#fff" stroke="#94a3b8" strokeWidth="2.5"><path d="M56 124 Q0 80 -2 130 Q8 150 24 146 Q10 164 34 168 Q30 182 54 158 Z" /><path d="M144 124 Q200 80 202 130 Q192 150 176 146 Q190 164 166 168 Q170 182 146 158 Z" /></g>,
+        aura: <g>{['#f87171', '#facc15', '#4ade80', '#60a5fa', '#a78bfa'].map((cl, i) => <circle key={i} cx="100" cy="116" r={112 - i * 8} fill="none" stroke={cl} strokeWidth="6" opacity=".55" />)}<text x="16" y="40" fontSize="20">✨</text><text x="168" y="214" fontSize="20">✨</text></g>,
+      };
+      const accFront = {
+        ribbon: <g><path d="M126 36 L108 22 L108 50 Z M126 36 L144 22 L144 50 Z" fill="#f472b6" stroke="#be185d" strokeWidth="2" /><circle cx="126" cy="36" r="6" fill="#ec4899" /></g>,
+        tie: <path d="M94 110 L106 110 L110 118 L104 150 L100 156 L96 150 L90 118 Z" fill="#2563eb" stroke="#1e3a8a" strokeWidth="2" />,
+        scarf: <g><rect x="62" y="104" width="76" height="14" rx="7" fill="#ef4444" stroke="#991b1b" strokeWidth="2" /><path d="M120 114 L132 146 L118 148 L110 116 Z" fill="#ef4444" stroke="#991b1b" strokeWidth="2" /></g>,
+        blush: <g><ellipse cx="60" cy="96" rx="9" ry="5" fill="#fb7185" opacity=".85" /><ellipse cx="140" cy="96" rx="9" ry="5" fill="#fb7185" opacity=".85" /></g>,
+        medal: <g><path d="M84 110 L100 140 L116 110" stroke="#2563eb" strokeWidth="7" fill="none" /><circle cx="100" cy="150" r="13" fill="#facc15" stroke="#a16207" strokeWidth="2.5" /><text x="100" y="156" fontSize="14" textAnchor="middle" fontWeight="bold" fill="#a16207">1</text></g>,
+        lei: <g>{[60, 72, 86, 100, 114, 128, 140].map((x, i) => <circle key={x} cx={x} cy={110 + Math.abs(3 - i) * -2 + 6} r="7" fill={['#f472b6', '#facc15', '#fb923c'][i % 3]} stroke="#fff" strokeWidth="1.5" />)}</g>,
+        bell: <g><path d="M70 110 Q100 128 130 110" stroke="#dc2626" strokeWidth="4" fill="none" /><text x="100" y="134" fontSize="18" textAnchor="middle">🔔</text></g>,
+      };
+      const head = (fill) => <rect x="45" y="36" width="110" height="70" rx="22" fill={fill} stroke={line} strokeWidth="3" opacity={op} />;
+      return (
+        <svg viewBox="-4 -6 208 242" width={size} height={size * 1.16} className={className}>
+          {paint.def && <defs>{paint.def}</defs>}
+          {withBg && equip.bg && <RobotBg bg={equip.bg} />}
+          {accBack[equip.acc]}
+          {feet}
+          {arm('l')}{arm('r')}
+          <rect x="50" y="110" width="100" height="72" rx="18" fill={c} stroke={line} strokeWidth="3" opacity={op} />
+          {equip.chest === 'star'
+            ? <path d="M100 124 l8 16 18 2 -13 12 3 18 -16 -9 -16 9 3 -18 -13 -12 18 -2 z" fill="#facc15" stroke="#a16207" strokeWidth="2" />
+            : <g><rect x="78" y="128" width="44" height="28" rx="6" fill="#1e293b" /><circle cx="90" cy="142" r="5" fill="#f87171" /><circle cx="110" cy="142" r="5" fill="#4ade80" /></g>}
+          <rect x="90" y="100" width="20" height="12" fill={metal} />
+          {accFront[equip.acc]}
+          {!hat && top}
+          <circle cx="42" cy="72" r="9" fill={metal} stroke={line} strokeWidth="2" /><circle cx="158" cy="72" r="9" fill={metal} stroke={line} strokeWidth="2" />
+          {head(c)}
+          <rect x="58" y="48" width="84" height="46" rx="14" fill="#0f172a" />
+          {equip.eyes === 'shades'
+            ? <g><rect x="64" y="58" width="72" height="20" rx="8" fill="#111" stroke="#475569" strokeWidth="2" /><path d="M70 62 L80 62" stroke="#94a3b8" strokeWidth="3" strokeLinecap="round" /></g>
+            : happy
+              ? <g><path d="M74 70 Q82 60 90 70" stroke="#67e8f9" strokeWidth="5" fill="none" strokeLinecap="round" /><path d="M110 70 Q118 60 126 70" stroke="#67e8f9" strokeWidth="5" fill="none" strokeLinecap="round" /></g>
+              : <g><circle cx="82" cy="68" r="8" fill="#67e8f9" /><circle cx="118" cy="68" r="8" fill="#67e8f9" /></g>}
+          <path d={happy ? 'M86 82 Q100 94 114 82' : 'M88 84 Q100 90 112 84'} stroke="#67e8f9" strokeWidth="4" fill="none" strokeLinecap="round" />
+          {paint.sparkle && <g><text x="40" y="52" fontSize="16">✨</text><text x="150" y="168" fontSize="16">✨</text></g>}
+          {hat}
+        </svg>
+      );
+    }
+
+    // うちゅうの はいけい（Canva の 絵。よみこめない ときは ほしの もようだけ）
+    function SpaceBg() {
+      const [ok, setOk] = useState(true);
+      if (!ok) return null;
+      return <img src={IMG + 'bg_space.webp'} onError={() => setOk(false)} alt="" className="fixed inset-0 w-full h-full object-cover pointer-events-none" style={{ zIndex: -1 }} draggable={false} />;
+    }
+
+    // ほし（自作の 絵）
+    function Planet({ st, size = 96, locked = false, cleared = false }) {
+      const gid = 'pg' + st.id;
+      const ring = ['3', '9', '14', 'A'].includes(st.id);
+      return (
+        <svg viewBox="0 0 120 120" width={size} height={size} style={locked ? { filter: 'grayscale(1) brightness(.7)' } : {}}>
+          <defs>
+            <radialGradient id={gid} cx="35%" cy="30%" r="75%"><stop offset="0%" stopColor="#ffffff" stopOpacity=".9" /><stop offset="35%" stopColor={st.color} /><stop offset="100%" stopColor="#1e1b4b" /></radialGradient>
+          </defs>
+          {ring && <ellipse cx="60" cy="64" rx="58" ry="14" fill="none" stroke="#fde68a" strokeWidth="5" opacity=".8" />}
+          <circle cx="60" cy="60" r="44" fill={`url(#${gid})`} />
+          <circle cx="44" cy="74" r="6" fill="#000" opacity=".12" /><circle cx="76" cy="50" r="4" fill="#000" opacity=".12" />
+          {ring && <path d="M2 64 A58 14 0 0 0 118 64" fill="none" stroke="#fde68a" strokeWidth="5" opacity=".9" />}
+          <text x="60" y="72" textAnchor="middle" fontSize={st.hatten ? 30 : 34} fontWeight="bold" fill="#fff" stroke="#1e1b4b" strokeWidth="1.5">{st.id}</text>
+          {locked && <text x="92" y="100" textAnchor="middle" fontSize="24">🔒</text>}
+          {cleared && <text x="98" y="26" textAnchor="middle" fontSize="26">⭐</text>}
+        </svg>
+      );
+    }
+
+    // =====================================================================
+    //  9. 小さな部品
+    // =====================================================================
+    function Btn({ children, onClick, color = '#0284c7', light = '#e0f2fe', className = '', disabled, style }) {
+      return (
+        <button onClick={onClick} disabled={disabled}
+          className={`btn3d rounded-2xl font-bold px-5 py-3 text-2xl border-2 ${disabled ? 'opacity-40' : ''} ${className}`}
+          style={{ background: light, borderColor: color, color: '#1e293b', ...style }}>
+          {children}
+        </button>
+      );
+    }
+    function CoinFly({ show }) {
+      if (!show) return null;
+      return <div key={show} className="coinfly fixed right-24 top-14 z-40 text-4xl pointer-events-none">🪙＋1</div>;
+    }
+    // キーボードで うつ まえに、がめんを タッチしてもらう
+    function useFocusCheck() {
+      const [lost, setLost] = useState(false);
+      useEffect(() => {
+        const t = setInterval(() => setLost(!document.hasFocus()), 600);
+        return () => clearInterval(t);
+      }, []);
+      return lost;
+    }
+    function FocusBanner({ lost }) {
+      if (!lost) return null;
+      return <div className="fixed inset-x-0 top-24 z-40 flex justify-center pointer-events-none"><div className="bg-amber-100 border-4 border-amber-400 rounded-2xl px-6 py-3 text-2xl font-bold shadow-lg glow">👆 がめんを 1かい タッチしてから うってね</div></div>;
+    }
+
+    // もんだいの ひょうじ（かなと ローマ字）
+    function ProblemView({ p, typer, romaji, hint, wrongAt, small = false }) {
+      if (p.kind === 'key') {
+        const k = p.t;
+        return (
+          <div className="flex flex-col items-center">
+            <div className={`rounded-2xl bg-white border-4 border-b-8 border-slate-400 flex items-center justify-center font-bold ${wrongAt != null ? 'shake' : ''}`} style={{ width: small ? 90 : 130, height: small ? 90 : 120, fontSize: small ? 56 : 84 }}>{KEY_LABEL(k)}</div>
+            <div className="text-xl mt-1 text-slate-500 font-bold">{keyName(k)}</div>
+          </div>
+        );
+      }
+      const big = p.kind === 'kana' ? (small ? 64 : 96) : p.kind === 'sent' ? (small ? 34 : 46) : (small ? 48 : 68);
+      // ことばの とちゅうで 行が かわらないように、すきまで くぎった まとまりごとに ならべる
+      const groups = [[]];
+      typer.u.forEach((u, i) => { if (u.sp) groups.push([]); else groups[groups.length - 1].push(i); });
+      return (
+        <div className="flex flex-wrap items-end justify-center" style={{ rowGap: 8, columnGap: big * 0.45 }}>
+          {groups.filter(g => g.length).map((g, gi) => <div key={gi} className="flex flex-nowrap items-end">{g.map(i => {
+            const u = typer.u[i];
+            const done = i < typer.i, cur = i === typer.i;
+            const shown = typer.shown(i);
+            const typed = cur ? typer.buf.length : done ? shown.length : 0;
+            const showRomaji = romaji || (cur && hint >= 1) || done;
+            return (
+              <div key={i} className={`flex flex-col items-center px-0.5 ${cur && wrongAt === i ? 'shake' : ''}`}>
+                <div className={`font-bold leading-none rounded-xl px-1 ${cur ? 'bg-yellow-100 ring-4 ring-yellow-300' : ''}`}
+                  style={{ fontSize: big, color: done ? '#94a3b8' : '#0f172a' }}>{u.show}</div>
+                <div className="font-bold tracking-wider mt-1" style={{ fontSize: Math.max(20, big * 0.42), minHeight: Math.max(20, big * 0.42) * 1.2, visibility: showRomaji ? 'visible' : 'hidden' }}>
+                  {[...shown].map((ch, j) => (
+                    <span key={j} style={{ color: j < typed ? (done ? '#94a3b8' : '#2563eb') : (cur && j === typed ? '#dc2626' : '#475569'),
+                      textDecoration: cur && j === typed ? 'underline' : 'none', fontSize: cur && hint >= 3 ? '1.25em' : '1em' }}>{ch}</span>
+                  ))}
+                </div>
+              </div>
+            );
+          })}</div>)}
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 10. なかよし星の せつめい（はじめて キーボードを つかう）
+    // =====================================================================
+    function Tutorial({ onDone, settings }) {
+      const kibo = useKibo();
+      const [i, setI] = useState(0);
+      const pages = [
+        { t: 'これが キーボードだよ。もじや すうじの キーが たくさん ならんで いるね。', kb: {} },
+        { t: 'F と J の キーを みて。ちいさな でっぱりが あるよ。ゆびで さわって みよう。', kb: { bumps: true } },
+        { t: 'ひだりての ひとさしゆびを F に、みぎての ひとさしゆびを J に のせよう。ほかの ゆびも となりの キーに ならべるよ。', kb: { home: true }, hands: true },
+        { t: 'これが ホームポジション。キーを おしたら、ゆびは ここに もどって くるよ。キーは やさしく ポンと おそう。', kb: { home: true }, hands: true },
+      ];
+      const pg = pages[i];
+      useEffect(() => { kibo.say(pg.t); }, [i]);
+      return (
+        <div className="w-full max-w-5xl flex flex-col items-center gap-3">
+          <KiboBar size={96} compact />
+          <div className="bg-white rounded-3xl p-4 flex flex-col items-center gap-3 w-full">
+            {pg.hands && <Hands color={settings.finger} size={300} home />}
+            <Keyboard glow={false} finger={settings.finger && i >= 2} {...pg.kb} />
+          </div>
+          <div className="flex gap-4">
+            {i > 0 && <Btn onClick={() => setI(i - 1)} color="#64748b" light="#f1f5f9">◀ もどる</Btn>}
+            {i < pages.length - 1 ? <Btn onClick={() => setI(i + 1)} color="#16a34a" light="#dcfce7" className="text-3xl px-10">つぎへ ▶</Btn>
+              : <Btn onClick={onDone} color="#16a34a" light="#dcfce7" className="text-3xl px-10">やって みる ▶</Btn>}
+            <button onClick={onDone} className="text-lg underline text-slate-500">とばす</button>
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 11. れんしゅう
+    // =====================================================================
+    // ヒント1：ことばで
+    function hintWords(typer) {
+      const u = typer.cur(); if (!u) return '';
+      const nk = typer.next();
+      if (u.isKey) return whereKey(u.k);
+      const rom = typer.shown(typer.i);
+      if (u.k === 'っ') return `ちいさい「っ」は、つぎの もじの はじめの キー（${KEY_LABEL(nk)}）を 2かい おすよ。`;
+      if (u.k === 'ん') return '「ん」は N を 2かい おすよ。';
+      if (u.k === 'ー') return 'のばす ぼう「ー」は、0 の みぎの キーだよ。';
+      if (u.k === '。') return '「。」は ピリオド。M の 2つ みぎの キーだよ。';
+      if (u.k === '、') return '「、」は コンマ。M の すぐ みぎの キーだよ。';
+      if (u.k.length === 2) return `「${u.show}」は、${KEY_LABEL(rom[0])} の あとに Y などが はいるよ。ローマ字を よく みてね。`;
+      if (rom.length === 1) return `「${u.show}」は ${KEY_LABEL(rom)} の キー 1つだよ。`;
+      return `「${u.show}」は、はじめに ${KEY_LABEL(rom[0])}、つぎに あいうえおの ${KEY_LABEL(rom[rom.length - 1])} だよ。`;
+    }
+    // ヒント3：つづりを 1もじずつ よむ
+    function hintSpell(typer) {
+      const u = typer.cur(); if (!u) return '';
+      if (u.isKey) return `ひかって いる ${KEY_LABEL(u.k)} の キーを おそう。`;
+      const rom = typer.shown(typer.i).slice(typer.buf.length) || typer.shown(typer.i);
+      return `「${u.show}」は ${[...typer.shown(typer.i)].map(c => KEY_LABEL(c)).join('、')}。つぎは ${KEY_LABEL(rom[0])} だよ。`;
+    }
+    const hintSpeech = (text) => text.replace(/(^|[^A-Za-z])([A-Z])(?![A-Za-z])/g, (m, a, c) => a + keyName(c.toLowerCase()));
+
+    function Practice({ st, n, intro, settings, onRecord, onCoin, onSave, onFinish, onQuit }) {
+      const kibo = useKibo();
+      const [problems] = useState(() => buildProblems(st, n));
+      const [idx, setIdx] = useState(0);
+      const [, force] = useState(0);
+      const [wrong, setWrong] = useState(null);       // まちがえて おした キー
+      const [wrongAt, setWrongAt] = useState(null);
+      const [hint, setHint] = useState(0);            // いまの おとの ヒント
+      const [unitMiss, setUnitMiss] = useState(0);
+      const [busy, setBusy] = useState(false);
+      const [imeWarn, setImeWarn] = useState(false);
+      const lost = useFocusCheck();
+      const typerRef = useRef(null);
+      const stat = useRef(null);
+      const total = useRef({ ok: 0, keys: 0, miss: 0, secs: 0 });
+      const p = problems[idx];
+      if (!typerRef.current || typerRef.current.pidx !== idx) {
+        typerRef.current = makeTyper(p); typerRef.current.pidx = idx;
+        // はやさ：キーと キーの あいだの じかんを たす（1かい 5びょうまで。かんがえて いる あいだは ふくめすぎない）
+        stat.current = { miss: 0, hint: 0, wk: [], ws: [], last: Date.now(), ms: 0 };
+      }
+      const typer = typerRef.current;
+      const nextKey = typer.next();
+
+      useEffect(() => {
+        // はじめは ほしの せつめい。あとは もんだいを よむ
+        if (idx === 0 && intro) kibo.say(`${intro} さあ、はじめよう！`);
+        else kibo.say(sayOf(p));
+        setHint(0); setUnitMiss(0);
+      }, [idx]);
+
+      const giveHint = (lv) => {
+        const level = Math.min(3, lv);
+        setHint(level);
+        stat.current.hint = Math.max(stat.current.hint, level);
+        const u = typer.cur(); const nk = typer.next();
+        if (level === 1) kibo.say(hintWords(typer), { mood: 'think', speech: hintSpeech(hintWords(typer)) });
+        if (level === 2) kibo.say(`${FINGER_NAME[FINGER_OF[nk]] || ''}で ${KEY_LABEL(nk)} を おそう。`, { mood: 'think', speech: `${FINGER_NAME[FINGER_OF[nk]] || ''}で ${keyName(nk)} を おそう。` });
+        if (level === 3) { const t = hintSpell(typer); kibo.say(t, { mood: 'think', speech: hintSpeech(t) }); }
+        void u;
+      };
+
+      const finishProblem = () => {
+        const s = stat.current;
+        const secs = Math.round(s.ms / 100) / 10;
+        const keys = typer.total();
+        const ok = s.miss === 0 && s.hint === 0;
+        onRecord({ stage: stageNo(st), kind: 'れんしゅう', problem: p.t, result: ok ? '○' : '△', miss: s.miss, hint: s.hint,
+          wrongKeys: s.wk.join('・'), wrongSounds: s.ws.join('・'), keys, secs });
+        total.current.ok += ok ? 1 : 0; total.current.keys += keys; total.current.miss += s.miss; total.current.secs += secs;
+        onCoin();
+        Sound.ok();
+        setBusy(true);
+        setTimeout(() => {
+          setBusy(false);
+          if (idx + 1 >= problems.length) onFinish({ ...total.current, n: problems.length });
+          else {
+            setIdx(idx + 1);
+            if ((idx + 1) % 5 === 0) onSave({ st: st.id, left: problems.length - idx - 1 });
+          }
+        }, p.kind === 'sent' ? 700 : 450);
+      };
+
+      useEffect(() => {
+        const onKey = (e) => {
+          if (e.ctrlKey || e.altKey || e.metaKey || e.repeat) return;
+          if (e.key === 'Process' || e.isComposing) { setImeWarn(true); return; }
+          if (e.key.length !== 1 || e.key === ' ') return;
+          e.preventDefault();
+          if (busy || typer.done()) return;
+          setImeWarn(false);
+          const key = e.key.toLowerCase();
+          const before = typer.i;
+          const expect = typer.next();
+          const now = Date.now();
+          stat.current.ms += Math.min(5000, now - stat.current.last); stat.current.last = now;
+          const r = typer.press(key);
+          if (r.ok) {
+            Sound.key();
+            setWrong(null); setWrongAt(null);
+            if (typer.i !== before) { setHint(0); setUnitMiss(0); }
+            force(x => x + 1);
+            if (typer.done()) finishProblem();
+            return;
+          }
+          // まちがえた
+          Sound.retry();
+          const s = stat.current;
+          s.miss++;
+          s.wk.push(`${expect}>${key}`);
+          const u = typer.cur();
+          if (u && !u.isKey) s.ws.push(u.k);
+          setWrong(key); setWrongAt(typer.i);
+          setTimeout(() => setWrong(w => (w === key ? null : w)), 900);
+          const m = unitMiss + 1;
+          setUnitMiss(m);
+          if (m === 1) kibo.say(`おしいね。いまの キーは ${KEY_LABEL(key)}。${KEY_LABEL(expect)} を さがそう。`, { mood: 'think', speech: `おしいね。${keyName(expect)} を さがそう。` });
+          else if (m === 2) kibo.say('ヒントを おしても いいよ。', { mood: 'think' });
+          else if (hint < 3) giveHint(3);
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+      });
+
+      const fingerKey = FINGER_OF[nextKey];
+      const showGlow = settings.glow || hint >= 2 || wrong != null;
+      return (
+        <div className="w-full max-w-5xl flex flex-col items-center gap-2">
+          <FocusBanner lost={lost} />
+          <KiboBar size={84} compact />
+          <div className="w-full flex items-center gap-2 text-lg font-bold">
+            <span className="bg-white rounded-full px-3 py-1 border-2 border-sky-300">{st.planet}</span>
+            <div className="flex-1 h-4 bg-white rounded-full overflow-hidden border-2 border-sky-200"><div className="h-full bg-sky-400 transition-all" style={{ width: `${(idx / problems.length) * 100}%` }} /></div>
+            <span>{idx + 1} / {problems.length}</span>
+          </div>
+          <div className="w-full bg-white rounded-3xl shadow-sm p-3 flex items-center gap-3" style={{ minHeight: 190 }}>
+            <div className="w-24 text-7xl text-center shrink-0">{p.e || ''}</div>
+            <div className="flex-1 flex justify-center">
+              <ProblemView p={p} typer={typer} romaji={settings.romaji} hint={hint} wrongAt={wrongAt} />
+            </div>
+            <div className="flex flex-col items-center gap-2 shrink-0">
+              {(settings.finger || hint >= 2) && <Hands finger={fingerKey} color={settings.finger || hint >= 2} size={200} />}
+              <div className="flex gap-2">
+                <button onClick={() => giveHint(hint + 1)} className={`btn3d rounded-2xl border-2 border-amber-500 bg-amber-100 px-4 py-2 text-xl font-bold ${unitMiss >= 2 && hint < 2 ? 'glow' : ''}`}>💡 ヒント</button>
+                <button onClick={onQuit} className="btn3d rounded-2xl border-2 border-slate-400 bg-slate-100 px-3 py-2 text-lg font-bold">やめる</button>
+              </div>
+            </div>
+          </div>
+          {imeWarn && <div className="bg-rose-100 border-2 border-rose-400 rounded-xl px-4 py-2 text-xl font-bold">にほんごの モードに なって いるよ。キーボードの「英数」キーを おしてね。</div>}
+          <Keyboard next={showGlow ? nextKey : null} wrong={wrong} glow finger={settings.finger} />
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 12. いんせきを うちおとせ！（ゲーム）
+    // =====================================================================
+    const SPEEDS = [
+      { n: 'とても ゆっくり', i: '🐢🐢', m: 0.5 }, { n: 'ゆっくり', i: '🐢', m: 0.75 }, { n: 'ふつう', i: '🙂', m: 1 },
+      { n: 'はやい', i: '🐇', m: 1.35 }, { n: 'とても はやい', i: '🐇🐇', m: 1.8 },
+    ];
+    function SpeedSelect({ st, speed, onStart, onBack }) {
+      const kibo = useKibo();
+      const [s, setS] = useState(speed || 0);
+      useEffect(() => { kibo.say(`${st.planet}の ちかくに いんせきが きたぞ！ もじを うって ビームで うちおとそう。はやさを えらんでね。`); }, []);
+      return (
+        <div className="w-full max-w-4xl flex flex-col items-center gap-4">
+          <KiboBar size={100} />
+          <div className="text-4xl font-bold text-white drop-shadow">☄️ いんせきを うちおとせ！</div>
+          <div className="text-xl text-sky-100">したまで おちても だいじょうぶ。また うえから でて くるよ。</div>
+          <div className="grid grid-cols-5 gap-3 w-full">
+            {SPEEDS.map((x, i) => (
+              <button key={i} onClick={() => { Sound.tap(); setS(i); }} className={`btn3d rounded-2xl border-4 py-4 flex flex-col items-center font-bold ${s === i ? 'bg-yellow-200 border-yellow-500' : 'bg-white border-slate-300'}`}>
+                <span className="text-4xl">{x.i}</span><span className="text-lg mt-1">{x.n}</span>
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-4">
+            <Btn onClick={() => onStart(s)} color="#16a34a" light="#dcfce7" className="text-3xl px-12">▶ スタート</Btn>
+            <Btn onClick={onBack} color="#64748b" light="#f1f5f9">もどる</Btn>
+          </div>
+        </div>
+      );
+    }
+
+    function Game({ st, n, speed, settings, robot, onRecord, onCoin, onFinish, onQuit }) {
+      const kibo = useKibo();
+      const [, setTick] = useState(0);
+      const [paused, setPaused] = useState(false);
+      const [wrong, setWrong] = useState(null);
+      const lost = useFocusCheck();
+      const G = useRef(null);
+      if (!G.current) {
+        G.current = { list: buildProblems(st, n), meteors: [], spawned: 0, destroyed: 0, last: 0, fx: [], ok: 0, keys: 0, miss: 0, end: false, pauseAt: 0 };
+      }
+      const sp = SPEEDS[speed] || SPEEDS[0];
+      const kindKey = st.kind === 'key' || st.kind === 'kana';
+      const maxAt = kindKey ? [1, 1, 2, 2, 3][speed] : [1, 1, 1, 2, 2][speed];
+      const durOf = (ty, p) => (p.kind === 'key' || p.kind === 'kana' ? 9000 : 5000 + ty.total() * 1100) / sp.m;
+      useEffect(() => { kibo.say('いんせきを うちおとせ！'); }, []);
+      const isPaused = paused || lost;
+
+      useEffect(() => {
+        let raf;
+        const loop = () => {
+          const g = G.current, now = performance.now();
+          if (isPaused) { if (!g.pauseAt) g.pauseAt = now; raf = requestAnimationFrame(loop); return; }
+          if (g.pauseAt) { const d = now - g.pauseAt; g.meteors.forEach(m => { m.t0 += d; }); g.last += d; g.pauseAt = 0; }
+          g.meteors.forEach(m => {
+            m.y = (now - m.t0) / m.dur;
+            if (m.y >= 1) { m.t0 = now; m.y = 0; m.x = 12 + Math.random() * 76; m.fell++; }
+          });
+          const gap = kindKey ? 2600 / sp.m : 3500 / sp.m;
+          if (g.meteors.length < maxAt && g.spawned < g.list.length && (now - g.last > gap || !g.meteors.length)) {
+            const p = g.list[g.spawned++];
+            const ty = makeTyper(p);
+            g.meteors.push({ id: uid(), p, ty, x: 12 + Math.random() * 76, y: 0, t0: now, dur: durOf(ty, p), fell: 0, miss: 0, wk: [], ws: [], k0: 0 });
+            g.last = now;
+          }
+          g.fx = g.fx.filter(f => now - f.t < 700);
+          if (!g.end && g.destroyed >= g.list.length) {
+            g.end = true;
+            setTimeout(() => onFinish({ ok: g.ok, keys: g.keys, miss: g.miss, n: g.list.length, game: true }), 900);
+          }
+          setTick(t => t + 1);
+          raf = requestAnimationFrame(loop);
+        };
+        raf = requestAnimationFrame(loop);
+        return () => cancelAnimationFrame(raf);
+      }, [isPaused]);
+
+      // ねらう いんせき：うちかけの もの → いちばん したの もの
+      const target = () => {
+        const ms = G.current.meteors;
+        return ms.find(m => m.ty.i > 0 || m.ty.buf) || ms.slice().sort((a, b) => b.y - a.y)[0] || null;
+      };
+
+      useEffect(() => {
+        const onKey = (e) => {
+          if (e.ctrlKey || e.altKey || e.metaKey || e.repeat) return;
+          if (e.key.length !== 1 || e.key === ' ' || isPaused) return;
+          e.preventDefault();
+          const m = target(); if (!m) return;
+          const g = G.current;
+          const key = e.key.toLowerCase();
+          const expect = m.ty.next();
+          if (!m.k0) m.k0 = Date.now();
+          const r = m.ty.press(key);
+          if (r.ok) {
+            Sound.key();
+            if (m.ty.done()) {
+              g.meteors = g.meteors.filter(x => x !== m);
+              g.destroyed++;
+              g.fx.push({ x: m.x, y: m.y, t: performance.now() });
+              const ok = m.miss === 0;
+              g.ok += ok ? 1 : 0; g.keys += m.ty.total();
+              onRecord({ stage: stageNo(st), kind: 'ゲーム', problem: m.p.t, result: ok ? '○' : '△', miss: m.miss, hint: 0,
+                wrongKeys: m.wk.join('・'), wrongSounds: m.ws.join('・'), keys: m.ty.total(), secs: Math.round((Date.now() - m.k0) / 100) / 10 });
+              onCoin();
+              Sound.beam();
+            }
+            return;
+          }
+          Sound.retry();
+          m.miss++; g.miss++;
+          m.wk.push(`${expect}>${key}`);
+          const u = m.ty.cur(); if (u && !u.isKey) m.ws.push(u.k);
+          setWrong(key); setTimeout(() => setWrong(w => (w === key ? null : w)), 700);
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+      });
+
+      const g = G.current;
+      const tg = target();
+      const nk = tg ? tg.ty.next() : null;
+      const H = Math.max(300, Math.min(420, window.innerHeight - 380));
+      return (
+        <div className="w-full max-w-5xl flex flex-col items-center gap-2">
+          <FocusBanner lost={lost} />
+          <div className="w-full flex items-center gap-3 text-white font-bold text-xl">
+            <span>☄️ {st.planet}</span><span className="flex-1" />
+            <span>うちおとした：{g.destroyed} / {g.list.length}</span>
+            <button onClick={() => setPaused(!paused)} className="btn3d rounded-xl border-2 border-sky-300 bg-sky-800 px-3 py-1">{paused ? '▶ つづける' : '⏸ ひとやすみ'}</button>
+            <button onClick={onQuit} className="btn3d rounded-xl border-2 border-slate-300 bg-slate-700 px-3 py-1">やめる</button>
+          </div>
+          <div className="relative w-full rounded-3xl overflow-hidden border-4 border-indigo-300 space" style={{ height: H }}>
+            {g.meteors.map(m => {
+              const isT = m === tg;
+              const showR = settings.romaji || m.miss >= 3;
+              return (
+                <div key={m.id} className="absolute flex flex-col items-center" style={{ left: `${m.x}%`, top: m.y * (H - 150) + 4, transform: 'translateX(-50%)' }}>
+                  <div className="text-6xl leading-none" style={{ filter: isT ? 'drop-shadow(0 0 10px #fde047)' : 'none' }}>☄️</div>
+                  <div className={`rounded-2xl px-3 py-1 ${isT ? 'bg-yellow-50 ring-4 ring-yellow-300' : 'bg-white/90'}`}>
+                    <ProblemView p={m.p} typer={m.ty} romaji={showR} hint={0} small />
+                  </div>
+                </div>
+              );
+            })}
+            {g.fx.map((f, i) => (
+              <div key={i}>
+                <svg className="absolute inset-0 pointer-events-none" width="100%" height="100%"><line x1="50%" y1={H - 70} x2={`${f.x}%`} y2={f.y * (H - 150) + 40} stroke="#fde047" strokeWidth="8" strokeLinecap="round" opacity=".85" /></svg>
+                <div className="absolute boom text-7xl" style={{ left: `${f.x}%`, top: f.y * (H - 150) + 40 }}>💥</div>
+              </div>
+            ))}
+            <div className="absolute left-1/2 -translate-x-1/2 bottom-0"><Robot {...robot} size={80} happy={g.fx.length > 0} /></div>
+            {isPaused && !g.end && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-4xl font-bold text-white">{lost ? '👆 がめんを タッチしてね' : '⏸ ひとやすみ ちゅう'}</div>}
+          </div>
+          <Keyboard next={settings.glow || (tg && tg.miss >= 2) ? nk : null} wrong={wrong} glow finger={settings.finger} small />
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 13. けっか と プレゼントボックス
+    // =====================================================================
+    function ResultScreen({ view, coins, onAgain, onGame, onMap, onNext, robot }) {
+      const kibo = useKibo();
+      const r = view.result;
+      const acc = r.keys + r.miss ? Math.round((r.keys / (r.keys + r.miss)) * 100) : 100;
+      const cpm = r.secs > 0 ? Math.round((r.keys / r.secs) * 60) : 0;
+      useEffect(() => {
+        if (r.stageClear) { Sound.big(); kibo.say(`${view.st.planet}を クリア！ ボーナスで コイン 5まい！${r.gameOpen ? ' いんせきの ゲームも あそべるように なったよ。' : ''}`, { mood: 'happy' }); }
+        else { Sound.fanfare(); kibo.say(r.game ? `いんせきを ${r.n}こ うちおとした！ すごいぞ！` : `${r.n}もん できたね！ よく がんばった！`, { mood: 'happy' }); }
+      }, []);
+      return (
+        <div className="flex flex-col items-center gap-4 pt-3 w-full max-w-4xl">
+          <div className="text-5xl font-bold text-amber-500 pop drop-shadow">{r.stageClear ? '🎉 ほし クリア！ 🎉' : r.game ? '☄️ ミッション せいこう！' : '⭐ よく できました！ ⭐'}</div>
+          <div className="flex items-end gap-4"><Kibo mood="happy" size={170} className="floaty" /><Robot {...robot} size={120} happy withBg /></div>
+          <div className="bg-white rounded-3xl shadow px-8 py-4 text-center text-2xl font-bold grid grid-cols-2 gap-x-8 gap-y-2">
+            <div>{r.game ? 'うちおとした' : 'できた もんだい'}</div><div className="text-sky-600">{r.n}</div>
+            <div>まちがえずに できた</div><div className="text-sky-600">{r.ok}</div>
+            <div>せいかくさ</div><div className="text-sky-600">{acc}%</div>
+            {!r.game && <><div>はやさ（1ぷんに おした キー）</div><div className="text-sky-600">{cpm}</div></>}
+            <div>もらった コイン</div><div className="text-amber-500">🪙 {r.n + (r.bonus || 0)}</div>
+            <div className="col-span-2 text-xl text-slate-500">いま もって いる コイン：🪙 {coins}</div>
+          </div>
+          <div className="flex gap-3 flex-wrap justify-center">
+            {onNext && <Btn onClick={onNext} color="#16a34a" light="#dcfce7" className="text-3xl px-8">つぎの ほしへ ▶</Btn>}
+            <Btn onClick={onAgain} color="#0284c7" light="#e0f2fe">🔁 もういちど</Btn>
+            {onGame && <Btn onClick={onGame} color="#7c3aed" light="#ede9fe">☄️ いんせき ゲーム</Btn>}
+            <Btn onClick={onMap} color="#64748b" light="#f1f5f9">🌌 ちずへ</Btn>
+          </div>
+        </div>
+      );
+    }
+
+    function BoxModal({ progress, onOpen, onClose }) {
+      const kibo = useKibo();
+      const [item, setItem] = useState(null);
+      useEffect(() => { kibo.say('30もん がんばったね。プレゼントボックスだよ！ おして あけてね。', { mood: 'happy' }); }, []);
+      const open = () => {
+        const own = new Set(progress.items);
+        const rest = ALL_ITEMS.filter(it => !own.has(it.id));
+        // ふつうが でやすく、でんせつは めったに でない
+        let it = null;
+        if (rest.length) {
+          let r = Math.random() * rest.reduce((n, x) => n + TIERS[x.tier].w, 0);
+          it = rest.find(x => (r -= TIERS[x.tier].w) < 0) || rest[rest.length - 1];
+        }
+        Sound.big();
+        if (it && it.tier >= 2) setTimeout(() => Sound.fanfare(), 1500);
+        setItem(it || { e: '🪙', n: 'コイン 10まい', coin: true });
+        onOpen(it);
+        kibo.say(it ? `${it.tier === 3 ? 'すごい！ でんせつの ' : it.tier === 2 ? 'やったね！ ちょうごうかな ' : ''}${it.n}が でて きた！ ずかんに いれたよ。` : 'ぜんぶ そろって いるから、コインを 10まい プレゼント！', { mood: 'happy' });
+      };
+      return (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-8 flex flex-col items-center gap-4 pop min-w-[340px]">
+            {!item ? <>
+              <div className="text-3xl font-bold">🎁 プレゼントボックス</div>
+              <button onClick={open} className="text-[140px] leading-none wiggle">🎁</button>
+              <div className="text-2xl">はこを おしてね</div>
+            </> : <>
+              {!item.coin && <div className="scale-150 pop"><TierChip it={item} /></div>}
+              <div className={`text-[120px] leading-none pop ${item.tier === 3 ? 'glow rounded-3xl' : ''}`}>{item.slot ? <Robot equip={{ [item.slot]: item.v }} size={130} withBg={item.slot === 'bg'} /> : item.e}</div>
+              <div className="text-4xl font-bold text-amber-600">{item.n}</div>
+              <div className="text-xl">{item.coin ? '' : 'ずかんに いれたよ！'}</div>
+              <Btn onClick={onClose} color="#16a34a" light="#dcfce7" className="text-3xl px-10">やったね！</Btn>
+            </>}
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 14. がめん：ログイン・ちず・ほし
+    // =====================================================================
+    function LoginScreen({ students, onSelect, onTeacher, demo }) {
+      return (
+        <div className="min-h-screen flex flex-col items-center gap-5 p-6 space relative isolate">
+          <SpaceBg />
+          <div className="relative flex flex-col items-center gap-5 w-full">
+          <div className="flex items-center gap-4 mt-2 bg-indigo-950/60 rounded-3xl px-6 py-3">
+            <Kibo size={170} className="floaty" />
+            <div className="text-white">
+              <div className="text-2xl font-bold text-sky-200">キャプテン・キーボの</div>
+              <div className="text-5xl font-bold">タイピング うちゅうりょこう</div>
+              <div className="text-xl mt-1 text-sky-100">キーボードで もじを うって、ほしを めぐろう！</div>
+            </div>
+          </div>
+          {demo && <div className="bg-yellow-100 border-2 border-yellow-400 rounded-xl px-4 py-2 text-lg">おためしモード（スプレッドシートに つながって いません。きろくは この たんまつだけに のこります）</div>}
+          <div className="text-3xl font-bold text-white drop-shadow">じぶんの なまえを おしてね</div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full max-w-3xl">
+            {students.map(n => (
+              <button key={n} onClick={() => onSelect(n)} className="btn3d bg-white border-4 border-sky-400 rounded-3xl py-6 text-4xl font-bold">{n}</button>
+            ))}
+          </div>
+          {!students.length && <div className="text-2xl bg-white rounded-xl p-4">「名簿」シートに なまえを いれてください。</div>}
+          </div>
+          <button onClick={onTeacher} className="fixed right-3 bottom-3 bg-white/90 border-2 border-slate-300 rounded-xl px-3 py-2 text-lg font-bold">🔒 せんせい</button>
+          <div className="fixed left-3 bottom-2 text-xs text-slate-300">ver {APP_VERSION}</div>
+        </div>
+      );
+    }
+
+    function TopBar({ name, coins, bump, onHome, onLogout, onTeacher, soundOn, onSound }) {
+      return (
+        <div className="w-full flex items-center gap-2 px-3 py-2 bg-white/95 border-b-2 border-sky-200 sticky top-0 z-30">
+          {onHome && <button onClick={onHome} className="btn3d bg-sky-50 border-2 border-sky-400 rounded-2xl px-3 py-1 text-xl font-bold">🌌 ちず</button>}
+          <div className="text-2xl font-bold ml-1">{name} さん</div>
+          <div className="flex-1" />
+          <div key={bump} className={`flex items-center gap-1 bg-amber-100 border-2 border-amber-400 rounded-full px-4 py-1 text-2xl font-bold ${bump ? 'bump' : ''}`}>🪙 {coins}</div>
+          <button onClick={onSound} className="text-3xl px-2" aria-label="おと">{soundOn ? '🔊' : '🔇'}</button>
+          <button onClick={onTeacher} className="text-lg px-2 border-2 border-slate-300 rounded-xl bg-white">🔒</button>
+          <button onClick={onLogout} className="text-lg px-3 py-1 border-2 border-slate-300 rounded-xl bg-white font-bold">おわる</button>
+        </div>
+      );
+    }
+
+    function SpaceMap({ name, progress, settings, onPlanet, onContinue, onShop, onZukan, onGarage, onWelcome }) {
+      const kibo = useKibo();
+      const cur = currentStage(progress);
+      const first = !progress.welcome;
+      const robot = { color: progress.color, equip: progress.equip };
+      const [color, setColor] = useState(progress.color || 'sky');
+      useEffect(() => {
+        if (first) kibo.say(`${name}さん、うちゅうせんへ ようこそ！ わたしは せんちょうの キャプテン・キーボ。きみの ロボットと いっしょに、キーボードの ほしを めぐろう。まずは ロボットの いろを えらんでね。`, { mood: 'happy' });
+        else kibo.say(`${name}さん、キャプテン・キーボだ！ きょうは どの ほしへ いく？`);
+      }, [first]);
+      const list = STAGES.filter(st => !st.hatten || stageOpen(progress, st));
+      const rows = [];
+      for (let i = 0; i < list.length; i += 5) rows.push(list.slice(i, i + 5));
+      return (
+        <div className="relative isolate w-full flex-1 flex flex-col items-center gap-3 p-3 space">
+          <SpaceBg />
+          {first && (
+            <div className="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4">
+              <div className="bg-white rounded-3xl p-6 flex flex-col items-center gap-3 pop max-w-2xl text-center">
+                <div className="flex items-end gap-4"><Kibo size={150} /><Robot color={color} size={140} happy /></div>
+                <div className="text-3xl font-bold">きみの ロボットだよ！</div>
+                <div className="text-xl">いろを えらんでね（あとで ガレージで かえられるよ）</div>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {ROBO_COLORS.map(c => <button key={c.id} onClick={() => { Sound.tap(); setColor(c.id); }} className={`w-14 h-14 rounded-full border-4 ${color === c.id ? 'border-slate-800 scale-110' : 'border-white'}`} style={{ background: c.c }} aria-label={c.n} />)}
+                </div>
+                <Btn onClick={() => onWelcome(color)} color="#16a34a" light="#dcfce7" className="text-3xl px-10">🚀 しゅっぱつ！</Btn>
+              </div>
+            </div>
+          )}
+          <div className="bg-white/90 rounded-3xl p-2 w-full max-w-5xl"><KiboBar size={90} compact /></div>
+          <div className="flex gap-3 flex-wrap justify-center">
+            <Btn onClick={onContinue} color="#16a34a" light="#dcfce7" className="text-3xl px-8 glow">▶ つづきから（{cur.planet}）</Btn>
+            <Btn onClick={onShop} color="#e11d48" light="#ffe4e6">🛒 おみせ</Btn>
+            <Btn onClick={onZukan} color="#ca8a04" light="#fef9c3">📖 ずかん</Btn>
+            <Btn onClick={onGarage} color="#2563eb" light="#dbeafe">🔧 ガレージ</Btn>
+          </div>
+          <div className="w-full max-w-5xl flex flex-col gap-1">
+            {rows.map((row, ri) => (
+              <div key={ri} className={`flex justify-around ${ri % 2 ? 'flex-row-reverse' : ''}`}>
+                {row.map(st => {
+                  const open = stageOpen(progress, st), cleared = !!progress.cleared[st.id];
+                  const here = st.id === cur.id;
+                  return (
+                    <button key={st.id} onClick={() => { Sound.tap(); onPlanet(st); }} className="relative flex flex-col items-center w-40 active:scale-95 transition">
+                      {here && <div className="absolute -left-3 top-2 floaty z-10"><Robot {...robot} size={50} /></div>}
+                      <Planet st={st} size={98} locked={!open} cleared={cleared} />
+                      <div className={`text-base font-bold rounded-full px-3 -mt-1 ${here ? 'bg-yellow-300' : 'bg-white/90'}`} style={{ wordBreak: 'keep-all' }}>{st.planet}</div>
+                      {cleared && settings.game && <div className="text-sm text-yellow-200 font-bold">☄️ ゲーム OK</div>}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    function PlanetModal({ st, progress, settings, onPractice, onResume, onGame, onClose }) {
+      const kibo = useKibo();
+      const open = stageOpen(progress, st), cleared = !!progress.cleared[st.id];
+      const part = progress.part && progress.part.st === st.id ? progress.part : null;
+      const best = progress.best[st.id];
+      useEffect(() => {
+        if (!open) kibo.say(st.hatten ? 'この ほしは、せんせいが ひらいて くれると いけるよ。' : 'まえの ほしを クリアすると いけるよ。', { mood: 'think' });
+        else kibo.say(`${st.planet}。${st.sub.replace(/[A-Z;]/g, c => keyName(c.toLowerCase()) + ' ')}を れんしゅうするよ。`);
+      }, []);
+      return (
+        <div className="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4" onClick={onClose}>
+          <div className="bg-white rounded-3xl p-6 flex flex-col items-center gap-3 pop min-w-[420px]" onClick={e => e.stopPropagation()}>
+            <Planet st={st} size={140} locked={!open} cleared={cleared} />
+            <div className="text-4xl font-bold">{st.planet}</div>
+            <div className="text-2xl text-slate-600">{st.sub}</div>
+            {best && <div className="text-lg bg-sky-50 rounded-xl px-4 py-1">さいこう：せいかくさ {best.acc}%・はやさ {best.cpm}</div>}
+            {open ? (
+              <div className="flex flex-col gap-3 w-full">
+                {part && <Btn onClick={onResume} color="#16a34a" light="#dcfce7" className="text-3xl glow">▶ つづきから（のこり {part.left}もん）</Btn>}
+                <Btn onClick={onPractice} color="#0284c7" light="#e0f2fe" className="text-3xl">⌨️ れんしゅう</Btn>
+                {cleared && settings.game && <Btn onClick={onGame} color="#7c3aed" light="#ede9fe" className="text-2xl">☄️ いんせきを うちおとせ！</Btn>}
+                {!cleared && settings.game && <div className="text-center text-slate-500">クリアすると ☄️ いんせきの ゲームが あそべるよ</div>}
+              </div>
+            ) : <div className="text-2xl">🔒 まだ いけないよ</div>}
+            <button onClick={onClose} className="text-xl underline mt-1">とじる</button>
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 15. おみせ・ずかん・ガレージ
+    // =====================================================================
+    const titlesOf = (items) => ITEM_CATS.filter(c => c.items.every(it => items.includes(it.id))).map(c => c.title);
+    const ItemPic = ({ it, size = 56, dark = false }) => it.slot
+      ? <span className="relative inline-block" style={dark ? { filter: 'grayscale(1) brightness(0.3)', opacity: .25 } : {}}><Robot equip={{ [it.slot]: it.v }} size={size} withBg={it.slot === 'bg'} className="block" />
+          <span className="absolute -right-3 -bottom-1" style={{ fontSize: size * 0.4 }}>{it.e}</span></span>
+      : <span style={{ fontSize: size, lineHeight: 1, ...(dark ? { filter: 'grayscale(1) brightness(0.3)', opacity: .25 } : {}) }}>{it.e}</span>;
+
+    // ねだんの だんかい（ふつう・ごうか・ちょうごうか・でんせつ）
+    function TierChip({ it, small = false }) {
+      const t = TIERS[it.tier] || TIERS[0];
+      return <span className={`rounded-full font-bold border-2 whitespace-nowrap ${small ? 'text-[10px] px-1' : 'text-xs px-2'} ${it.tier === 3 ? 'glow' : ''}`} style={{ color: t.color, borderColor: t.color, background: t.bg }}>{it.tier === 3 ? '👑 ' : ''}{t.n}</span>;
+    }
+    const tierBorder = (it) => (TIERS[it.tier] || TIERS[0]).color;
+
+    function ShopScreen({ progress, onBuy }) {
+      const kibo = useKibo();
+      const [cat, setCat] = useState(null);
+      const [confirm, setConfirm] = useState(null);
+      const [award, setAward] = useState(null);
+      const own = new Set(progress.items);
+      const c = cat && ITEM_CATS.find(x => x.id === cat);
+      useEffect(() => { kibo.say('うちゅうステーションの おみせだよ。どの たなを みる？'); }, []);
+      const enter = (id) => { Sound.tap(); setCat(id); kibo.say(`${ITEM_CATS.find(x => x.id === id).name}の たなだよ。`); };
+      const tap = (it) => {
+        Sound.tap();
+        if (own.has(it.id)) { kibo.say(`${it.n}は もう ずかんに あるよ。`); return; }
+        if (progress.coins < it.p) { kibo.say(`${it.n}は コイン ${it.p}まい。あと ${it.p - progress.coins}まい あつめよう！`, { mood: 'think' }); return; }
+        kibo.say(`${it.n}を かいますか？`);
+        setConfirm(it);
+      };
+      const buy = () => {
+        const it = confirm; setConfirm(null);
+        const before = titlesOf(progress.items), after = titlesOf([...progress.items, it.id]);
+        onBuy(it); Sound.buy();
+        const nt = after.find(t => !before.includes(t));
+        if (nt) { setAward(nt); Sound.big(); kibo.say(`おめでとう！「${nt}」の しょうごうだ！`, { mood: 'happy' }); }
+        else kibo.say(it.slot ? `${it.n}を かったよ。ガレージで ロボットに つけられるよ。` : `${it.n}を ずかんに いれたよ。`, { mood: 'happy' });
+        if (!nt && it.tier === 3) Sound.big();
+      };
+      return (
+        <div className="relative isolate w-full flex-1 flex flex-col items-center gap-3 p-3 space">
+          <SpaceBg />
+          <div className="bg-white/90 rounded-3xl p-2 w-full max-w-5xl"><KiboBar size={90} compact /></div>
+          {!c && (
+            <div className="grid grid-cols-4 gap-3 w-full max-w-5xl">
+              {ITEM_CATS.map(x => {
+                const n = x.items.filter(it => own.has(it.id)).length;
+                return (
+                  <button key={x.id} onClick={() => enter(x.id)} className="btn3d rounded-2xl border-4 bg-white flex flex-col items-center py-2" style={{ borderColor: x.color }}>
+                    <span className="text-6xl">{x.icon}</span>
+                    <span className="text-lg font-bold leading-tight mt-1 text-center" style={{ wordBreak: 'keep-all' }}>{x.name}</span>
+                    <span className="text-sm font-bold rounded-full px-2 mt-1 bg-slate-100">{n === x.items.length ? '🏆 ' : ''}{n} / {x.items.length}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {c && (
+            <div className="w-full max-w-5xl flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <button onClick={() => { Sound.tap(); setCat(null); }} className="btn3d shrink-0 bg-white border-2 border-slate-300 rounded-2xl px-4 py-2 text-xl font-bold">◀ もどる</button>
+                <div className="flex-1 text-center text-3xl font-bold py-2 rounded-2xl bg-white border-4" style={{ borderColor: c.color }}>{c.icon} {c.name}</div>
+              </div>
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 bg-white/90 rounded-3xl p-3">
+                {c.items.map(it => {
+                  const have = own.has(it.id), can = progress.coins >= it.p;
+                  return (
+                    <button key={it.id} onClick={() => tap(it)} className={`btn3d rounded-2xl border-4 p-1 flex flex-col items-center ${it.tier === 3 ? 'bg-amber-50' : 'bg-white'} ${have ? 'border-emerald-400' : ''}`} style={have ? {} : { borderColor: tierBorder(it) }}>
+                      <TierChip it={it} />
+                      <span className={have || can ? '' : 'opacity-60'}><ItemPic it={it} size={60} /></span>
+                      <span className="text-base font-bold mt-1 leading-tight h-10 flex items-center text-center">{it.n}</span>
+                      <span className={`text-xl font-bold rounded-full px-2 ${have ? 'bg-emerald-100 text-emerald-700' : can ? 'bg-amber-100' : 'bg-slate-100 text-slate-400'}`}>{have ? '✓' : `🪙 ${it.p}`}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {confirm && (
+            <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-3xl p-6 flex flex-col items-center gap-3 pop">
+                <ItemPic it={confirm} size={100} />
+                <TierChip it={confirm} />
+                <div className="text-3xl font-bold">{confirm.n}を かいますか？</div>
+                <div className="text-2xl">🪙 {confirm.p}まい（のこり {progress.coins - confirm.p}まい）</div>
+                <div className="flex gap-4 mt-2">
+                  <Btn onClick={buy} color="#16a34a" light="#dcfce7" className="text-3xl px-10">かう</Btn>
+                  <Btn onClick={() => setConfirm(null)} color="#64748b" light="#f1f5f9">やめる</Btn>
+                </div>
+              </div>
+            </div>
+          )}
+          {award && (
+            <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setAward(null)}>
+              <div className="bg-white rounded-3xl p-8 flex flex-col items-center gap-3 pop">
+                <div className="text-7xl">🏆</div>
+                <div className="text-4xl font-bold text-amber-600">「{award}」</div>
+                <div className="text-2xl">の しょうごうを もらったよ！</div>
+                <Btn onClick={() => setAward(null)} color="#16a34a" light="#dcfce7">やったね！</Btn>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    function ZukanScreen({ progress }) {
+      const kibo = useKibo();
+      const own = new Set(progress.items);
+      const titles = titlesOf(progress.items);
+      useEffect(() => { kibo.say(`ずかんだよ。ぜんぶで ${ALL_ITEMS.length}こ。いま ${progress.items.length}こ あつまったよ。`); }, []);
+      return (
+        <div className="w-full max-w-5xl p-3 flex flex-col items-center gap-3">
+          <KiboBar size={90} compact />
+          <div className="text-2xl font-bold">あつめた もの：{progress.items.length} / {ALL_ITEMS.length}</div>
+          {titles.length > 0 && <div className="flex flex-wrap gap-2 justify-center">{titles.map(t => <span key={t} className="bg-amber-100 border-2 border-amber-400 rounded-full px-4 py-1 text-xl font-bold">🏆 {t}</span>)}</div>}
+          {ITEM_CATS.map(c => {
+            const n = c.items.filter(it => own.has(it.id)).length;
+            return (
+              <div key={c.id} className="w-full bg-white rounded-3xl shadow-sm p-3">
+                <div className="text-2xl font-bold mb-2">{c.icon} {c.name} <span className="text-lg text-slate-500">{n} / {c.items.length}</span> {n === c.items.length && <span className="text-amber-600">🏆 {c.title}</span>}</div>
+                <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+                  {c.items.map(it => (
+                    <button key={it.id} onClick={() => own.has(it.id) ? kibo.say(it.n) : kibo.say('まだ もって いないよ。おみせで かえるよ。')}
+                      className={`rounded-2xl border-2 aspect-square flex flex-col items-center justify-center ${own.has(it.id) ? 'bg-amber-50' : 'bg-slate-100 border-slate-200'}`} style={own.has(it.id) ? { borderColor: tierBorder(it), borderWidth: it.tier ? 3 : 2 } : {}}>
+                      <ItemPic it={it} size={44} dark={!own.has(it.id)} />
+                      <span className="text-xs font-bold leading-tight text-center">{own.has(it.id) ? it.n : '？'}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    function GarageScreen({ progress, onChange }) {
+      const kibo = useKibo();
+      const own = new Set(progress.items);
+      const parts = ALL_ITEMS.filter(it => it.slot);
+      const eq = progress.equip || {};
+      useEffect(() => { kibo.say('ガレージだよ。ロボットの いろを かえたり、おみせで かった ものを つけたり できるよ。'); }, []);
+      const set = (slot, v) => { Sound.tap(); onChange({ equip: { ...eq, [slot]: v } }); };
+      return (
+        <div className="w-full max-w-5xl p-3 flex flex-col items-center gap-3">
+          <KiboBar size={90} compact />
+          <div className="flex gap-4 w-full items-start flex-wrap justify-center">
+            <div className="bg-white rounded-3xl p-4 flex flex-col items-center sticky top-16"><Robot color={progress.color} equip={eq} size={240} happy withBg />
+              {eq.hat && <div className="text-sm text-slate-500 mt-1">ぼうしを かぶると アンテナは かくれるよ</div>}</div>
+            <div className="flex-1 min-w-[320px] flex flex-col gap-3">
+              <div className="bg-white rounded-3xl p-3">
+                <div className="text-2xl font-bold mb-2">🎨 いろ <span className="text-base text-slate-500">（「からだ」の もようを つけて いる ときは、もようが さきに でるよ）</span></div>
+                <div className="flex flex-wrap gap-2">
+                  {ROBO_COLORS.map(c => <button key={c.id} onClick={() => { Sound.tap(); onChange({ color: c.id }); }}
+                    className={`w-14 h-14 rounded-full border-4 ${progress.color === c.id ? 'border-slate-800 scale-110' : 'border-white shadow'}`} style={{ background: c.c }} aria-label={c.n} />)}
+                </div>
+              </div>
+              {SLOTS.map(([slot, label]) => {
+                const mine = parts.filter(it => it.slot === slot && own.has(it.id));
+                return (
+                  <div key={slot} className="bg-white rounded-3xl p-3">
+                    <div className="text-2xl font-bold mb-2">{label}</div>
+                    <div className="flex flex-wrap gap-2">
+                      <button onClick={() => set(slot, null)} className={`btn3d rounded-2xl border-4 px-3 py-2 text-lg font-bold ${!eq[slot] ? 'border-sky-500 bg-sky-100' : 'border-slate-200 bg-white'}`}>{slot === 'bg' || slot === 'acc' || slot === 'hat' ? 'なし' : 'ふつう'}</button>
+                      {mine.map(it => <button key={it.id} onClick={() => set(slot, it.v)} className={`btn3d rounded-2xl border-4 px-3 py-1 text-lg font-bold flex items-center gap-1 ${eq[slot] === it.v ? 'border-sky-500 bg-sky-100' : 'border-slate-200 bg-white'}`}><span className="text-2xl">{it.e}</span>{it.n}</button>)}
+                      {!mine.length && <span className="text-slate-400 self-center">おみせの「{ITEM_CATS.filter(c => c.robo && c.items.some(x => x.slot === slot)).pop().name}」で かえるよ</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 16. 先生用画面
+    // =====================================================================
+    function PinPad({ onSubmit, onClose, error }) {
+      const [v, setV] = useState('');
+      const press = (d) => { const n = (v + d).slice(0, 4); setV(n); if (n.length === 4) { onSubmit(n); setTimeout(() => setV(''), 300); } };
+      return (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-3xl p-6 w-80 flex flex-col items-center gap-3">
+            <div className="text-2xl font-bold">🔒 せんせい用</div>
+            <div className="text-base">暗証番号（4けた）を入れてください</div>
+            <div className="flex gap-2">{[0, 1, 2, 3].map(i => <div key={i} className="w-10 h-12 border-2 rounded-lg flex items-center justify-center text-2xl">{v[i] ? '●' : ''}</div>)}</div>
+            {error > 0 && <div className="text-rose-600 font-bold">番号がちがいます</div>}
+            <div className="grid grid-cols-3 gap-2">
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].map((d, i) => d === '' ? <div key={i} /> :
+                <button key={i} onClick={() => d === '⌫' ? setV(v.slice(0, -1)) : press(d)} className="btn3d w-16 h-14 rounded-xl bg-slate-100 border-2 border-slate-300 text-2xl font-bold">{d}</button>)}
+            </div>
+            <button onClick={onClose} className="text-lg underline mt-1">とじる</button>
+          </div>
+        </div>
+      );
+    }
+
+    const pct = (a, b) => b ? `${Math.round((a / b) * 100)}%` : '－';
+    const accOf = (s) => s.keys + s.miss ? pct(s.keys, s.keys + s.miss) : '－';
+    const cpmOf = (keys, secs) => secs > 0 ? Math.round((keys / secs) * 60) : '－';
+    const topOf = (m, n = 5) => Object.entries(m || {}).sort((a, b) => b[1] - a[1]).slice(0, n);
+
+    function TeacherView({ data, pin, onClose, onChanged, onSettings }) {
+      const [tab, setTab] = useState('class');
+      const [sel, setSel] = useState(data.students[0] ? data.students[0].name : null);
+      const [s, setS] = useState({ ...DEFAULT_SETTINGS, ...data.settings });
+      const [newPin, setNewPin] = useState('');
+      const [msg, setMsg] = useState('');
+      const [pending, setPending] = useState(api.pending());
+      const student = data.students.find(x => x.name === sel);
+      const prog = student ? parseProgress(student.progress) : null;
+      const cleared = (p) => STAGES.filter(st => p.cleared[st.id]).length;
+      const flash = (t) => { setMsg(t); setTimeout(() => setMsg(''), 3500); };
+      const act = async (fn, okText) => {
+        try { const r = await fn(); if (r && r.ok === false) flash('うまく いきませんでした'); else { flash(okText); onChanged(); } }
+        catch (e) { flash('うまく いきませんでした：' + e.message); }
+      };
+      const saveSettings = async () => {
+        if (newPin && !/^\d{4}$/.test(newPin)) { flash('暗証番号は4けたの数字にしてください'); return; }
+        await act(() => api.saveSettings(pin, { ...s, newPin: newPin || '' }), '設定を保存しました');
+        onSettings(s); setNewPin('');
+      };
+      const csv = async () => {
+        const r = await api.logRows(pin);
+        if (!r || !r.ok) { flash('うまく いきませんでした'); return; }
+        const text = '﻿' + r.rows.map(row => row.map(v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+        downloadText(`タイピング_きろく_${nowStr().slice(0, 10).replace(/\//g, '')}.csv`, text, 'text/csv');
+        flash('CSVを書き出しました（ダウンロードフォルダ）');
+      };
+      const backup = async () => {
+        const r = await api.backup(pin);
+        if (!r || !r.ok) { flash('うまく いきませんでした'); return; }
+        downloadText(`タイピング_バックアップ_${nowStr().slice(0, 10).replace(/\//g, '')}.json`, JSON.stringify(r.data), 'application/json');
+        flash('バックアップを保存しました（ダウンロードフォルダ）');
+      };
+      const restore = (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        const rd = new FileReader();
+        rd.onload = async () => {
+          let d = null; try { d = JSON.parse(rd.result); } catch (err) {}
+          if (!d || d.app !== 'typing') { flash('このアプリのバックアップではありません'); return; }
+          if (!confirm('バックアップから、子どもの進み具合・コインを元にもどします。よろしいですか？')) return;
+          await act(() => api.restore(pin, d), 'バックアップから元にもどしました');
+        };
+        rd.readAsText(f);
+      };
+      const opt = (key, list) => list.map(([v, t]) =>
+        <button key={String(v)} onClick={() => setS({ ...s, [key]: v })} className={`ml-2 mt-1 rounded-lg px-3 py-1 border-2 ${s[key] === v ? 'bg-sky-200 border-sky-500' : 'bg-white'}`}>{t}</button>);
+
+      return (
+        <div className="fixed inset-0 bg-slate-50 z-50 overflow-auto">
+          <div className="max-w-6xl mx-auto p-4 text-base">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="text-2xl font-bold flex-1">🔒 先生用画面 <span className="text-sm text-slate-500">ver {APP_VERSION}{data.demo ? '（おためしモード）' : ''}</span></div>
+              <button onClick={onClose} className="btn3d bg-white border-2 border-slate-400 rounded-xl px-4 py-2 font-bold">とじる</button>
+            </div>
+            {data.isDefaultPin && <div className="bg-rose-100 border-2 border-rose-400 rounded-xl p-2 mb-2">暗証番号が はじめの「1234」のままです。「せってい」で変えてください。</div>}
+            {msg && <div className="fixed top-3 left-1/2 -translate-x-1/2 bg-sky-700 text-white rounded-xl px-4 py-2 z-50">{msg}</div>}
+            <div className="flex gap-2 mb-3">
+              {[['class', 'クラス全体'], ['child', '子どもごと'], ['settings', 'せってい'], ['data', 'データ']].map(([id, t]) => (
+                <button key={id} onClick={() => setTab(id)} className={`rounded-xl px-4 py-2 font-bold border-2 ${tab === id ? 'bg-sky-200 border-sky-500' : 'bg-white border-slate-300'}`}>{t}</button>
+              ))}
+            </div>
+
+            {tab === 'class' && (
+              <div className="flex flex-col gap-4">
+                <table className="w-full bg-white rounded-xl overflow-hidden text-left">
+                  <thead className="bg-sky-100"><tr><th className="p-2">なまえ</th><th>クリア</th><th>コイン</th><th>集めた数</th><th>うった問題</th><th>正しく打てた割合</th><th>はやさ</th><th>さいご</th><th>まちがえやすい キー</th><th>まちがえやすい 音</th></tr></thead>
+                  <tbody>
+                    {data.students.map(st => {
+                      const p = parseProgress(st.progress);
+                      return (
+                        <tr key={st.name} className="border-t cursor-pointer hover:bg-sky-50" onClick={() => { setSel(st.name); setTab('child'); }}>
+                          <td className="p-2 font-bold">{st.name}</td>
+                          <td>{cleared(p)} / {STAGES.length}</td>
+                          <td>🪙 {p.coins}</td>
+                          <td>{p.items.length}</td>
+                          <td>{st.count}</td>
+                          <td>{accOf(st)}</td>
+                          <td>{cpmOf(st.pkeys, st.psecs)}</td>
+                          <td>{st.last || '－'}</td>
+                          <td className="font-bold">{topOf(st.keyMiss, 3).map(([k]) => KEY_LABEL(k)).join(' ') || '－'}</td>
+                          <td className="font-bold">{topOf(st.soundMiss, 3).map(([k]) => k).join(' ') || '－'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                <div className="text-sm text-slate-500">はやさ：れんしゅうで、1分間に おした キーの数（ゲームは ふくみません）。正しく打てた割合：おした キーのうち、まちがえなかった キーの割合。</div>
+                <div className="bg-white rounded-xl p-3">
+                  <div className="font-bold mb-2">クラス全体の まちがえやすい キー（まちがいが多いキーほど赤い。数字は まちがえた回数）</div>
+                  <Keyboard heat={data.classKey || {}} glow={false} finger={false} u={46} />
+                  <div className="font-bold mt-3">クラス全体の まちがえやすい 音</div>
+                  <div className="flex flex-wrap gap-2 mt-1">{topOf(data.classSound, 20).map(([k, n]) => <span key={k} className="rounded-lg px-2 py-1 border bg-rose-50"><b className="text-xl">{k}</b> {n}回</span>)}{!Object.keys(data.classSound || {}).length && <span className="text-slate-500">まだ ありません</span>}</div>
+                </div>
+              </div>
+            )}
+
+            {tab === 'child' && (
+              <div className="flex flex-col gap-3">
+                <div className="flex gap-2 flex-wrap">
+                  {data.students.map(st => <button key={st.name} onClick={() => setSel(st.name)} className={`rounded-xl px-4 py-2 font-bold border-2 ${sel === st.name ? 'bg-sky-200 border-sky-500' : 'bg-white border-slate-300'}`}>{st.name}</button>)}
+                </div>
+                {student && prog && (
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <div className="bg-white rounded-xl p-3">
+                      <div className="font-bold text-xl mb-1">{student.name}</div>
+                      <div>クリア：{cleared(prog)} / {STAGES.length}　コイン：🪙 {prog.coins}（これまでに {prog.earned}まい）　集めた数：{prog.items.length}</div>
+                      <div>うった問題：{student.count}　正しく打てた割合：{accOf(student)}　はやさ：{cpmOf(student.pkeys, student.psecs)}　さいご：{student.last || '－'}</div>
+                      <div className="mt-2 font-bold">ほしごとの結果</div>
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-100"><tr><th className="p-1">ほし</th><th>問題</th><th>まちがえずに</th><th>正しく打てた割合</th><th>はやさ</th></tr></thead>
+                        <tbody>
+                          {STAGES.map(st => {
+                            const g = student.stages[stageNo(st)];
+                            if (!g) return null;
+                            return <tr key={st.id} className="border-t"><td className="p-1">{st.planet}{prog.cleared[st.id] ? ' ⭐' : ''}</td><td>{g[0]}</td><td>{pct(g[1], g[0])}</td><td>{pct(g[2], g[2] + g[3])}</td><td>{cpmOf(g[4], g[5])}</td></tr>;
+                          })}
+                        </tbody>
+                      </table>
+                      <div className="mt-2 font-bold">はやさの のび（日ごと）</div>
+                      <div className="flex items-end gap-1 h-24 border-b">
+                        {Object.entries(student.days || {}).sort().slice(-14).map(([d, [k, sec]]) => {
+                          const v = sec > 0 ? Math.round((k / sec) * 60) : 0;
+                          return <div key={d} className="flex flex-col items-center justify-end h-full" title={d}><span className="text-xs">{v}</span><div className="w-6 bg-sky-400 rounded-t" style={{ height: `${Math.min(100, v / 1.5)}%` }} /><span className="text-[10px] text-slate-500">{d.slice(5)}</span></div>;
+                        })}
+                        {!Object.keys(student.days || {}).length && <span className="text-slate-500 text-sm">まだ ありません</span>}
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button onClick={() => act(() => api.setFlag(pin, student.name, 'unlockAll', !prog.unlockAll), prog.unlockAll ? 'ほしの開放をやめました' : 'すべてのほしを開きました')} className="rounded-xl px-3 py-2 border-2 bg-white font-bold">{prog.unlockAll ? '🔓 全部開く：オン' : '🔒 全部開く：オフ'}</button>
+                        <button onClick={() => act(() => api.setFlag(pin, student.name, 'hatten', !prog.hatten), prog.hatten ? 'はってんを閉じました' : 'はってんを開きました')} className="rounded-xl px-3 py-2 border-2 bg-white font-bold">{prog.hatten ? '✨ はってん：開いている' : '✨ はってん：閉じている'}</button>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2 items-center">
+                        <span className="font-bold">コイン：</span>
+                        {[-5, -1, 1, 5, 10].map(dv => <button key={dv} onClick={() => act(() => api.addCoins(pin, student.name, dv), `コインを ${dv > 0 ? '+' : ''}${dv} しました`)} className="rounded-lg px-3 py-1 border-2 bg-white font-bold">{dv > 0 ? '+' : ''}{dv}</button>)}
+                      </div>
+                      <div className="mt-3">
+                        <button onClick={() => { if (confirm(`${student.name} さんの記録・進み具合・コイン・集めたものを、すべて消します。元にはもどせません。よろしいですか？`)) act(() => api.clear(pin, student.name), `${student.name} さんの記録を消しました`); }} className="rounded-xl px-3 py-2 border-2 border-rose-400 bg-rose-50 font-bold">🗑 この子の記録を消す</button>
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-xl p-3">
+                      <div className="font-bold mb-1">まちがえやすい キー（数字は まちがえた回数）</div>
+                      <Keyboard heat={student.keyMiss || {}} glow={false} finger={false} u={40} />
+                      <div className="text-sm mt-1">{topOf(student.keyMiss, 8).map(([k, n]) => `${KEY_LABEL(k)}（${n}回・${FINGER_NAME[FINGER_OF[k]] || ''}）`).join('、') || 'まだ ありません'}</div>
+                      <div className="font-bold mt-3">まちがえやすい 音</div>
+                      <div className="flex flex-wrap gap-2 mt-1">{topOf(student.soundMiss, 16).map(([k, n]) => <span key={k} className="rounded-lg px-2 py-1 border bg-rose-50"><b className="text-xl">{k}</b> {n}回</span>)}{!Object.keys(student.soundMiss || {}).length && <span className="text-slate-500">まだ ありません</span>}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {tab === 'settings' && (
+              <div className="bg-white rounded-xl p-4 flex flex-col gap-3 max-w-3xl">
+                <label className="flex items-center gap-3">よみあげの はやさ：<input type="range" min="0.5" max="1.2" step="0.05" value={s.rate} onChange={e => setS({ ...s, rate: Number(e.target.value) })} /> {s.rate}倍
+                  <button className="border rounded px-2" onClick={() => { Speech.rate = s.rate; Speech.say('キャプテン・キーボの タイピング うちゅうりょこうだよ。'); }}>ためす</button></label>
+                <div>もじの おおきさ：{opt('font', [[0.9, 'ちいさめ'], [1, 'ふつう'], [1.15, 'おおきめ'], [1.3, 'とても おおきい']])}</div>
+                <div>1回の 問題の数：{opt('count', [[10, '10問'], [20, '20問'], [30, '30問']])}</div>
+                <div>つぎに おす キーを 光らせる：{opt('glow', [[true, '光らせる'], [false, '光らせない']])}</div>
+                <div>ゆびの いろわけ（キーボードと 手の絵）：{opt('finger', [[true, 'だす'], [false, 'ださない']])}</div>
+                <div>ひらがなの 下の ローマ字：{opt('romaji', [[true, 'だす'], [false, 'ださない']])}</div>
+                <div>いんせきの ゲーム：{opt('game', [[true, 'ひらく'], [false, 'とじる']])}</div>
+                <div>こうかおん：{opt('sound', [[true, 'ならす'], [false, 'ならさない']])}</div>
+                <div className="text-sm text-slate-500">「光らせない」「ださない」に しても、まちがえて ヒントを 出したときは 見えます。上達してきたら、キーボードを 見ないで 打つ 練習に 使えます。</div>
+                <label>暗証番号を変える（4けた）：<input value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))} className="border-2 rounded px-2 py-1 w-24 ml-2" inputMode="numeric" placeholder="----" /></label>
+                <div><button onClick={saveSettings} className="btn3d rounded-xl px-6 py-2 border-2 border-emerald-500 bg-emerald-100 font-bold text-xl">保存する</button>
+                  <span className="text-sm text-slate-500 ml-2">（全員の画面に反映されます。子どもの画面は開き直すと変わります）</span></div>
+              </div>
+            )}
+
+            {tab === 'data' && (
+              <div className="bg-white rounded-xl p-4 flex flex-col gap-3 max-w-2xl">
+                <div>この端末に たまっている、まだ送れていない記録：<b>{pending}</b> 件
+                  <button onClick={async () => { await api.flush(); setPending(api.pending()); flash(api.pending() ? 'まだ送れていません。ネットのつながりを確かめてください' : '送りました'); onChanged(); }} className="ml-2 rounded-xl px-3 py-1 border-2 bg-white font-bold">📤 スプレッドシートへ送る</button></div>
+                <div><button onClick={csv} className="rounded-xl px-3 py-2 border-2 bg-white font-bold">📄 記録をCSVで書き出す</button>
+                  <div className="text-sm text-slate-500">ダウンロードできないときは、スプレッドシートの「きろく」シートを開き、ファイル → ダウンロード → CSV を選んでください。</div></div>
+                <div className="flex gap-2 flex-wrap items-center">
+                  <button onClick={backup} className="rounded-xl px-3 py-2 border-2 bg-white font-bold">💾 バックアップを保存</button>
+                  <label className="rounded-xl px-3 py-2 border-2 bg-white font-bold cursor-pointer">📂 バックアップから元にもどす<input type="file" accept=".json" className="hidden" onChange={restore} /></label>
+                </div>
+                <div><button onClick={() => { if (confirm('全員の記録・進み具合・コイン・集めたものを、すべて消します。元にはもどせません。よろしいですか？') && confirm('ほんとうに全員の記録を消しますか？')) act(() => api.clear(pin, ''), '全員の記録を消しました'); }} className="rounded-xl px-3 py-2 border-2 border-rose-400 bg-rose-50 font-bold">🗑 全員の記録を消す</button></div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 17. アプリ ぜんたい
+    // =====================================================================
+    function App() {
+      const [boot, setBoot] = useState(null);
+      const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+      const [name, setName] = useState(null);
+      const [progress, setProgress] = useState(newProgress());
+      const [view, setView] = useState({ v: 'login' });
+      const [planet, setPlanet] = useState(null);
+      const [pin, setPin] = useState(null);
+      const [pinOpen, setPinOpen] = useState(false);
+      const [pinError, setPinError] = useState(0);
+      const [teacher, setTeacher] = useState(null);
+      const [kibo, setKibo] = useState({ text: '', mood: 'normal', talking: false });
+      const [coinFx, setCoinFx] = useState(0);
+      const [soundOn, setSoundOn] = useState(true);
+      const [busy, setBusy] = useState(false);
+      const [box, setBox] = useState(0);         // プレゼントボックス（0：とじて いる）
+      const lastSay = useRef(null);
+      const sayId = useRef(0);
+      const records = useRef([]);
+      const progRef = useRef(progress);
+      progRef.current = progress;
+
+      const kiboApi = useMemo(() => {
+        const run = (text, opts = {}) => new Promise(resolve => {
+          const id = ++sayId.current;
+          lastSay.current = { text, opts };
+          setKibo({ text, mood: opts.mood || 'normal', talking: true });
+          Speech.say(opts.speech || text, () => { if (sayId.current === id) setKibo(p => ({ ...p, talking: false })); resolve(); });
+        });
+        return { say: run, repeat: () => lastSay.current && run(lastSay.current.text, lastSay.current.opts), stop: () => Speech.stop() };
+      }, []);
+      const kiboCtx = { ...kiboApi, ...kibo };
+
+      const applySettings = (s) => {
+        const v = { ...DEFAULT_SETTINGS, ...s };
+        ['glow', 'finger', 'romaji', 'game', 'sound'].forEach(k => { v[k] = v[k] !== false && v[k] !== 'false'; });
+        v.count = Number(v.count) || 30;
+        setSettings(v);
+        Speech.rate = Number(v.rate) || 0.8; Speech.pitch = Number(v.pitch) || 1.1;
+        Sound.on = v.sound; setSoundOn(Sound.on);
+        document.documentElement.style.fontSize = `${16 * (Number(v.font) || 1)}px`;
+      };
+
+      useEffect(() => {
+        api.init().then(d => { applySettings(d.settings || {}); setBoot(d); api.flush(); })
+          .catch(e => setBoot({ error: String(e && e.message || e) }));
+        const on = () => api.flush();
+        window.addEventListener('online', on);
+        return () => window.removeEventListener('online', on);
+      }, []);
+
+      // しんちょくを ほぞんする（この たんまつ ＋ スプレッドシート）
+      const persist = (p) => {
+        p = { ...p, t: Date.now() };
+        progRef.current = p;
+        setProgress(p);
+        const json = JSON.stringify(p);
+        safeStore.set(COPY_KEY(name), json);
+        const recs = records.current; records.current = [];
+        api.save({ name, progress: json, records: recs, stamp: nowStr(), time: Date.now() });
+        return p;
+      };
+      const updateProg = (fn) => { progRef.current = fn(progRef.current); setProgress(progRef.current); return progRef.current; };
+
+      const login = async (n) => {
+        Sound.get(); Speech.say('');
+        setBusy(true);
+        let server = '';
+        try { server = await api.student(n); } catch (e) {}
+        const a = parseProgress(server), b = parseProgress(safeStore.get(COPY_KEY(n)));
+        // あたらしい ほうを つかう。先生が変えた フラグ（全部開く・はってん）は スプレッドシートの ほうを つかう
+        let p = b.t > a.t ? b : a;
+        if ((a.flagT || 0) > (p.flagT || 0)) p = { ...p, unlockAll: !!a.unlockAll, hatten: !!a.hatten, flagT: a.flagT };
+        progRef.current = p;
+        setProgress(p); setName(n); setBusy(false);
+        setView({ v: 'map' });
+      };
+      const logout = () => { kiboApi.stop(); setName(null); setView({ v: 'login' }); };
+
+      const startPractice = (st, left) => {
+        setPlanet(null);
+        records.current = [];
+        const n = left || countOf(st, settings);
+        if (st.id === '0' && !left) setView({ v: 'tutorial', st, n, key: uid() });
+        else setView({ v: 'practice', st, n, intro: left ? 'つづきから はじめよう。' : st.intro, key: uid() });
+      };
+      const startGame = (st) => { setPlanet(null); records.current = []; setView({ v: 'speed', st }); };
+
+      const onRecord = (r) => { records.current.push({ ...r, id: uid() }); };
+      const onCoin = () => {
+        setCoinFx(x => x + 1); Sound.coin();
+        updateProg(p => {
+          let boxN = (p.boxN || 0) + 1, boxes = p.boxes || 0;
+          if (boxN >= 30) { boxN -= 30; boxes++; }
+          return { ...p, coins: p.coins + 1, earned: p.earned + 1, boxN, boxes };
+        });
+      };
+      const onSave = (part) => persist({ ...progRef.current, part });
+
+      const finish = (st, result) => {
+        let p = { ...progRef.current };
+        let bonus = 0, stageClear = false, gameOpen = false;
+        if (!result.game) {
+          p.part = null;
+          const acc = result.keys + result.miss ? Math.round((result.keys / (result.keys + result.miss)) * 100) : 100;
+          const cpm = result.secs > 0 ? Math.round((result.keys / result.secs) * 60) : 0;
+          const b = p.best[st.id] || { acc: 0, cpm: 0 };
+          p.best = { ...p.best, [st.id]: { acc: Math.max(b.acc, acc), cpm: Math.max(b.cpm, cpm) } };
+          if (!p.cleared[st.id]) {
+            p.cleared = { ...p.cleared, [st.id]: 1 };
+            bonus = 5; stageClear = true; gameOpen = settings.game;
+            p.coins += bonus; p.earned += bonus;
+          }
+        }
+        p = persist(p);
+        let next = null;
+        const ms = mainStages(), i = ms.findIndex(s => s.id === st.id);
+        if (!st.hatten && i >= 0 && ms[i + 1] && stageOpen(p, ms[i + 1])) next = () => setPlanet(ms[i + 1]) || setView({ v: 'map' });
+        setView({ v: 'result', st, result: { ...result, bonus, stageClear, gameOpen }, next });
+        if (p.boxes > 0) setTimeout(() => setBox(1), 2600);
+      };
+      const quit = () => {
+        kiboApi.stop();
+        persist(progRef.current);
+        setView({ v: 'map' });
+      };
+      const openBox = (it) => {
+        const p = progRef.current;
+        persist({ ...p, boxes: Math.max(0, p.boxes - 1), items: it ? [...p.items, it.id] : p.items, coins: it ? p.coins : p.coins + 10 });
+      };
+      const buy = (it) => {
+        const p = progRef.current;
+        if (p.coins < it.p || p.items.includes(it.id)) return;
+        persist({ ...p, coins: p.coins - it.p, items: [...p.items, it.id] });
+      };
+
+      const openTeacher = () => { setPinError(0); setPinOpen(true); };
+      const submitPin = async (v) => {
+        try {
+          await api.flush();
+          const d = await api.teacher(v);
+          if (!d || !d.ok) { setPinError(e => e + 1); return; }
+          setPin(v); setTeacher(d); setPinOpen(false);
+        } catch (e) { setPinError(e => e + 1); }
+      };
+      const reloadTeacher = async () => {
+        await api.flush();
+        const d = await api.teacher(pin);
+        if (d && d.ok) {
+          setTeacher(d);
+          if (name) {
+            const me = d.students.find(x => x.name === name);
+            if (me) {
+              const sp = parseProgress(me.progress);
+              const p = { ...progRef.current, unlockAll: !!sp.unlockAll, hatten: !!sp.hatten, flagT: sp.flagT, coins: sp.coins || 0, t: sp.t || Date.now() };
+              if (!me.progress) Object.assign(p, newProgress());
+              progRef.current = p; setProgress(p); safeStore.set(COPY_KEY(name), JSON.stringify(p));
+            }
+          }
+        }
+      };
+
+      if (!boot) return <div className="p-16 text-center text-3xl font-bold text-indigo-800">じゅんび ちゅう…</div>;
+      if (boot.error) return <div className="p-10 text-2xl">ひらけませんでした。ページを よみこみなおして ください。<div className="text-base text-slate-500 mt-2">{boot.error}</div></div>;
+
+      const robot = { color: progress.color, equip: progress.equip || {} };
+      const bar = (home = true) => (
+        <TopBar name={name} coins={progress.coins} bump={coinFx} onHome={home ? () => { kiboApi.stop(); if (view.v === 'practice' || view.v === 'game') quit(); else setView({ v: 'map' }); } : null}
+          onLogout={logout} onTeacher={openTeacher} soundOn={soundOn} onSound={() => { Sound.on = !Sound.on; setSoundOn(Sound.on); }} />
+      );
+
+      let body = null;
+      if (!name || view.v === 'login') {
+        body = <LoginScreen students={boot.students || []} onSelect={login} onTeacher={openTeacher} demo={boot.demo} />;
+      } else if (view.v === 'map') {
+        body = <div className="min-h-screen flex flex-col">{bar(false)}
+          <SpaceMap name={name} progress={progress} settings={settings} onPlanet={setPlanet}
+            onContinue={() => { const st = currentStage(progress); const part = progress.part && progress.part.st === st.id ? progress.part : null; startPractice(st, part ? part.left : 0); }}
+            onShop={() => setView({ v: 'shop' })} onZukan={() => setView({ v: 'zukan' })} onGarage={() => setView({ v: 'garage' })}
+            onWelcome={(c) => { Sound.buy(); persist({ ...progRef.current, welcome: 1, color: c }); }} />
+          {planet && <PlanetModal st={planet} progress={progress} settings={settings} onClose={() => setPlanet(null)}
+            onPractice={() => startPractice(planet)} onResume={() => startPractice(planet, progress.part.left)} onGame={() => startGame(planet)} />}</div>;
+      } else if (view.v === 'tutorial') {
+        body = <div className="min-h-screen flex flex-col items-center">{bar()}<div className="w-full flex justify-center p-3">
+          <Tutorial settings={settings} onDone={() => setView({ ...view, v: 'practice', intro: 'F と J を おして みよう。', key: uid() })} /></div></div>;
+      } else if (view.v === 'practice') {
+        body = <div className="min-h-screen flex flex-col items-center relative">{bar()}<CoinFly show={coinFx} />
+          <div className="w-full flex justify-center p-2"><Practice key={view.key} st={view.st} n={view.n} intro={view.intro} settings={settings}
+            onRecord={onRecord} onCoin={onCoin} onSave={onSave} onFinish={(r) => finish(view.st, r)} onQuit={quit} /></div></div>;
+      } else if (view.v === 'speed') {
+        body = <div className="min-h-screen flex flex-col items-center space">{bar()}<div className="w-full flex justify-center p-3">
+          <SpeedSelect st={view.st} speed={progress.speed} onBack={() => setView({ v: 'map' })}
+            onStart={(s) => { updateProg(p => ({ ...p, speed: s })); setView({ v: 'game', st: view.st, speed: s, key: uid() }); }} /></div></div>;
+      } else if (view.v === 'game') {
+        body = <div className="min-h-screen flex flex-col items-center space relative">{bar()}<CoinFly show={coinFx} />
+          <div className="w-full flex justify-center p-2"><Game key={view.key} st={view.st} n={countOf(view.st, settings)} speed={view.speed} settings={settings} robot={robot}
+            onRecord={onRecord} onCoin={onCoin} onFinish={(r) => finish(view.st, r)} onQuit={quit} /></div></div>;
+      } else if (view.v === 'result') {
+        const st = view.st;
+        body = <div className="min-h-screen flex flex-col items-center">{bar()}<ResultScreen view={view} coins={progress.coins} robot={robot}
+          onAgain={() => view.result.game ? startGame(st) : startPractice(st)}
+          onGame={settings.game && progress.cleared[st.id] && !view.result.game ? () => startGame(st) : null}
+          onMap={() => setView({ v: 'map' })} onNext={view.next} /></div>;
+      } else if (view.v === 'shop') {
+        body = <div className="min-h-screen flex flex-col">{bar()}<ShopScreen progress={progress} onBuy={buy} /></div>;
+      } else if (view.v === 'zukan') {
+        body = <div className="min-h-screen flex flex-col items-center">{bar()}<ZukanScreen progress={progress} /></div>;
+      } else if (view.v === 'garage') {
+        body = <div className="min-h-screen flex flex-col items-center">{bar()}<GarageScreen progress={progress} onChange={(ch) => persist({ ...progRef.current, ...ch })} /></div>;
+      }
+
+      return (
+        <KiboCtx.Provider value={kiboCtx}>
+          {body}
+          {box > 0 && name && <BoxModal key={box} progress={progress} onOpen={openBox} onClose={() => setBox(progRef.current.boxes > 0 ? box + 1 : 0)} />}
+          {busy && <div className="fixed inset-0 bg-white/60 z-40 flex items-center justify-center text-3xl font-bold">よみこみ ちゅう…</div>}
+          {pinOpen && <PinPad onSubmit={submitPin} onClose={() => setPinOpen(false)} error={pinError} />}
+          {teacher && <TeacherView data={teacher} pin={pin} onClose={() => setTeacher(null)} onChanged={reloadTeacher} onSettings={applySettings} />}
+        </KiboCtx.Provider>
+      );
+    }
+
+    window.TYPING_READY.then(() => {
+      R = window.TYPING_ROMAJI;
+      STAGES = window.TYPING_DATA.STAGES; ITEM_CATS = window.TYPING_DATA.ITEM_CATS; TIERS = window.TYPING_DATA.TIERS;
+      ALL_ITEMS = ITEM_CATS.flatMap(c => c.items);
+      ALL_ITEMS.forEach(it => { ITEM[it.id] = it; });
+      ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    }).catch(e => {
+      document.getElementById('root').innerHTML = '<div style="padding:40px;font-size:24px;line-height:1.8">もんだいの データを よみこめませんでした。<br>ネットに つながって いるか たしかめて、ページを よみこみなおして ください。<div style="font-size:14px;color:#888">' + e.message + '</div></div>';
+    });
+  </script>
+</body>
+</html>
