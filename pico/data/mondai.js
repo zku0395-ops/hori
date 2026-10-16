@@ -165,7 +165,7 @@
   ];
 
   // Canva の 絵が ある ファイル（img/ に おいたら ここに たす）
-  const IMAGES = ['pico.webp', 'bg_1.webp', 'bg_2.webp', 'bg_3.webp', 'bg_4.webp', 'bg_5.webp', 'bg_6.webp', 'bg_7.webp', 'bg_8.webp', 'bg_9.webp', 'bg_10.webp', 'bg_11.webp', 'bg_12.webp', 'bg_13.webp', 'bg_14.webp', 'bg_15.webp', 'bg_A.webp', 'bg_B.webp', 'pico_happy.webp', 'pico_think.webp', 'c_1_1.webp', 'c_1_2.webp', 'c_1_3.webp', 'c_1_4.webp', 'c_1_5.webp', 'c_2_1.webp', 'c_2_2.webp', 'c_2_3.webp', 'c_2_4.webp', 'c_2_5.webp', 'c_3_1.webp', 'c_3_2.webp', 'c_3_3.webp', 'c_3_4.webp', 'c_3_5.webp', 'c_4_1.webp', 'c_4_2.webp', 'c_4_3.webp', 'c_4_4.webp', 'c_4_5.webp'];
+  const IMAGES = ['pico.webp', 'bg_1.webp', 'bg_2.webp', 'bg_3.webp', 'bg_4.webp', 'bg_5.webp', 'bg_6.webp', 'bg_7.webp', 'bg_8.webp', 'bg_9.webp', 'bg_10.webp', 'bg_11.webp', 'bg_12.webp', 'bg_13.webp', 'bg_14.webp', 'bg_15.webp', 'bg_A.webp', 'bg_B.webp', 'pico_happy.webp', 'pico_think.webp', 'c_1_1.webp', 'c_1_2.webp', 'c_1_3.webp', 'c_1_4.webp', 'c_1_5.webp', 'c_2_1.webp', 'c_2_2.webp', 'c_2_3.webp', 'c_2_4.webp', 'c_2_5.webp', 'c_3_1.webp', 'c_3_2.webp', 'c_3_3.webp', 'c_3_4.webp', 'c_3_5.webp', 'c_4_1.webp', 'c_4_2.webp', 'c_4_3.webp', 'c_4_4.webp', 'c_4_5.webp', 'c_5_1.webp', 'c_5_2.webp', 'c_5_3.webp', 'c_5_4.webp', 'c_5_5.webp', 'c_6_1.webp', 'c_6_2.webp', 'c_6_3.webp', 'c_6_4.webp', 'c_6_5.webp'];
 
   window.PICO_DATA = { STAGES, ITEM_CATS, TIERS, FX, LEVELS, IMAGES };
 })();
