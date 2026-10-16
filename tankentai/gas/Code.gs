@@ -29,10 +29,12 @@ const NUMS = ['①', '②', '③', '④', '⑤'];
 const PAPER_HEADER = ['更新日時', 'なまえ', '都道府県', 'できた項目']
   .concat(ITEM_LABELS.reduce(function (a, l, i) { return a.concat([NUMS[i] + ' ' + l + '：写真', NUMS[i] + ' 書いた文']); }, []))
   .concat(['ID']);
+// 6つめの わく（しんぶん② など、わくが 6つ ある しんぶん）は、ID の 列の うしろに 書く
+const EXTRA_HEADER = ['⑥ 写真', '⑥ 書いた文'];
 const LOG_HEADER = ['日時', 'なまえ', '都道府県', '項目', '問い', '正しい答え', '答えた内容', '結果', 'まちがえた回数', 'ヒントの段階', 'かかった時間(秒)', '記録ID'];
 const MAX_RECORDS_PER_POST = 300;
 const MAX_SHEETS_PER_POST = 60;
-const PREF_RE = /^[a-z]{1,20}$/;
+const PREF_RE = /^[a-z0-9]{1,20}$/;
 
 /* ---------- 入口ページ ---------- */
 function doGet() {
@@ -139,7 +141,7 @@ function updateSummary() {
   sh.setColumnWidth(7, 130);
   sh.getRange(values.length + 2, 1, 1, 1).setValues([[
     people.length
-      ? 'クイズの列：まちがえずヒントも使わずに答えた割合（赤＝50%未満、黄＝80%未満）。書いた文は「しんぶん」シート、クイズの1問ずつの結果は「きろく」シートにあります。'
+      ? 'クイズの列：まちがえずヒントも使わずに答えた割合（赤＝50%未満、黄＝80%未満）。書いた文は「しんぶん」シート、クイズの1問ずつの結果は「きろく」シートにあります。しんぶん②の6つめのわく（ゆうめいな ひと（いま））は、「しんぶん」シートのいちばん右（ID の右）にあります。'
       : 'まだ記録がありません。子どもがアプリで調べ学習をすると、ここに表示されます。',
   ]]);
 }
@@ -186,18 +188,22 @@ function upsertPapers_(name, sheets) {
     const id = name + '|' + p.prefId;
     const items = Array.isArray(p.items) ? p.items : [];
     const row = [new Date(), name, str_(p.pref, 20), num_(p.done) + ' / ' + num_(p.total)];
+    // しんぶん②など、見出しと わくの 名前が ちがう ときは、写真の 前に わくの 名前を つける
+    const photo = function (it) { return str_((p.sub && it.name ? it.name + '：' : '') + (it.photo || ''), 80); };
     for (let i = 0; i < ITEM_LABELS.length; i++) {
       const it = items[i] || {};
-      row.push(it.done ? str_(it.photo, 60) : '', it.done ? str_(it.text, 300) : '');
+      row.push(it.done ? photo(it) : '', it.done ? str_(it.text, 300) : '');
     }
     row.push(str_(id, 80));
+    const it6 = items[ITEM_LABELS.length] || {};
+    row.push(it6.done ? photo(it6) : '', it6.done ? str_(it6.text, 300) : '');
     let idx = ids.indexOf(id);
     let r;
     if (idx >= 0) r = idx + 2;
     else { last += 1; r = last; ids.push(id); }
     sh.getRange(r, 1, 1, 1).setNumberFormat('yyyy/mm/dd hh:mm');
-    sh.getRange(r, 2, 1, PAPER_HEADER.length - 2).setNumberFormat('@');
-    sh.getRange(r, 1, 1, PAPER_HEADER.length).setValues([row]);
+    sh.getRange(r, 2, 1, row.length - 1).setNumberFormat('@');
+    sh.getRange(r, 1, 1, row.length).setValues([row]);
     n++;
   });
   return n;
@@ -229,6 +235,13 @@ function setup_() {
       paper.setColumnWidth(5 + i * 2, 130);
       paper.setColumnWidth(6 + i * 2, 320);
     }
+  }
+  // 6つめの わくの 見出し（前の 版で 作った シートにも 足す）
+  const ex = paper.getRange(1, PAPER_HEADER.length + 1, 1, EXTRA_HEADER.length);
+  if (String(ex.getValues()[0][0]) !== EXTRA_HEADER[0]) {
+    ex.setValues([EXTRA_HEADER]).setFontWeight('bold').setBackground('#bbf7d0');
+    paper.setColumnWidth(PAPER_HEADER.length + 1, 130);
+    paper.setColumnWidth(PAPER_HEADER.length + 2, 320);
   }
   let log = ss.getSheetByName(SHEET_LOG);
   if (!log) {
