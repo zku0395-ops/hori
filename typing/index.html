@@ -188,7 +188,7 @@
     const FC = { p: '#f472b6', r: '#facc15', m: '#4ade80', i: '#60a5fa', t: '#cbd5e1' };
     const FC_LIGHT = { p: '#fce7f3', r: '#fef9c3', m: '#dcfce7', i: '#dbeafe' };
     const HOME = 'asdfjkl;';
-    const KEY_LABEL = (k) => /[a-z]/.test(k) ? k.toUpperCase() : k;
+    const KEY_LABEL = (k) => k;  // Chromebook の キーと おなじ 小文字で 出す
     const KEY_NAME = { a: 'エー', b: 'ビー', c: 'シー', d: 'ディー', e: 'イー', f: 'エフ', g: 'ジー', h: 'エイチ', i: 'アイ', j: 'ジェー', k: 'ケー', l: 'エル', m: 'エム',
       n: 'エヌ', o: 'オー', p: 'ピー', q: 'キュー', r: 'アール', s: 'エス', t: 'ティー', u: 'ユー', v: 'ブイ', w: 'ダブリュー', x: 'エックス', y: 'ワイ', z: 'ゼット',
       ';': 'セミコロン', '-': 'のばす ぼう', ',': 'コンマ', '.': 'ピリオド',
@@ -204,43 +204,94 @@
       return `${KEY_LABEL(k)} は ${row}の ${side}に あるよ。`;
     }
 
+    // 学校の Chromebook の キーボードと おなじ ならび（つかわない キーは うすい はいいろ）
+    // x は u（ふつうの キーの はば）で ならべる。f は のこりの はばを ぜんぶ つかう キー
+    const KB_FULL = [
+      { h: 0.62, keys: [{ l: 'esc', w: 1.3 }, ...['←', '→', '↻', '⛶', '▭▯', '☀−', '☀＋', '🔇', '🔉', '🔊'].map(l => ({ l, w: 'eq' })), { l: '🔒', w: 'eq' }] },
+      { h: 0.88, keys: [{ l: 'かな\n英数', w: 1, s: 0.24 }, ...'1234567890-^¥'.split(''), { l: '⌫', w: 'f' }] },
+      { h: 0.88, keys: [{ l: '⇥', w: 1.5 }, ...'qwertyuiop@['.split(''), { l: '', w: 'f', enter: 'top' }] },
+      { h: 0.88, keys: [{ l: '🔍', w: 1.75, s: 0.34 }, ...'asdfghjkl;:]'.split(''), { l: '↵', w: 'f', enter: 'bottom' }] },
+      { h: 0.88, keys: [{ l: '⇧', w: 2.25 }, ...'zxcvbnm,./\\'.split(''), { l: '⇧', w: 'f' }] },
+      { h: 0.88, keys: [{ l: 'ctrl', w: 1.5, s: 0.3 }, { l: 'alt', w: 1.5, s: 0.3 }, { l: '英数', w: 1, s: 0.26 }, { l: 'スペース', w: 'f', space: true },
+        { l: 'かな', w: 1, s: 0.26 }, { l: 'alt', w: 1, s: 0.3 }, { l: 'ctrl', w: 1, s: 0.3 }, { l: 'arrows', w: 3 }] },
+    ];
+    const KB_W = 15.5;    // いちばん ながい だん（1〜0 の だん）の はば（u。すきまは べつ）
+    const KB_GAP = 0.08;
+    // キーボード ぜんたいの おおきさ（u から）
+    const kbSize = (u) => {
+      const g = Math.round(u * KB_GAP);
+      return { w: Math.round(KB_W * u + 14 * g + g * 4), h: Math.round(KB_FULL.reduce((s, r) => s + r.h * u, 0) + g * 5 + g * 4) };
+    };
+    const kbUnit = (w, small) => Math.max(30, Math.min(small ? 46 : 54, Math.floor((w - (small ? 300 : 40)) / 16.8)));
+
     function Keyboard({ next, wrong, glow = true, finger = true, heat = null, u: uIn, home = false, bumps = false, small = false }) {
       const w = useWidth();
-      const u = uIn || Math.max(34, Math.min(small ? 44 : 56, Math.floor((w - 40) / 14.2)));
-      const g = Math.round(u * 0.08);
+      const u = uIn || kbUnit(w, small);
+      const g = Math.round(u * KB_GAP);
+      const rowW = KB_W * u + 14 * g;
       const maxHeat = heat ? Math.max(1, ...Object.values(heat)) : 1;
-      const keyStyle = (k) => {
+      const keyBg = (k) => {
         const f = FINGER_OF[k];
-        let bg = '#ffffff';
-        if (heat) {
-          const v = (heat[k] || 0) / maxHeat;
-          bg = !heat[k] ? '#ffffff' : `rgba(239,68,68,${0.15 + v * 0.75})`;
-        } else if (finger && f) bg = FC_LIGHT[f[1]];
-        if (home && HOME.includes(k)) bg = FC[FINGER_OF[k][1]];
-        return { width: u, height: u * 0.9, background: bg, fontSize: u * 0.42 };
+        if (heat) { const v = (heat[k] || 0) / maxHeat; return !heat[k] ? '#ffffff' : `rgba(239,68,68,${0.15 + v * 0.75})`; }
+        if (home && HOME.includes(k)) return FC[f[1]];
+        return finger && f ? FC_LIGHT[f[1]] : '#ffffff';
       };
+      // だんごとに キーの ばしょ（x・はば）を きめる
+      let y = g * 2;
+      const items = [];
+      KB_FULL.forEach((row, ri) => {
+        const hh = row.h * u;
+        const ks = row.keys.map(k => typeof k === 'string' ? { k, w: 1 } : k);
+        const n = ks.length;
+        const fixed = ks.reduce((s, k) => s + (typeof k.w === 'number' ? k.w * u : 0), 0);
+        const eqN = ks.filter(k => k.w === 'eq').length;
+        const eqW = eqN ? (rowW - fixed - (n - 1) * g) / eqN : 0;
+        const fW = rowW - fixed - (n - 1) * g;
+        let x = g * 2;
+        ks.forEach((k, ci) => {
+          const kw = k.w === 'eq' ? eqW : k.w === 'f' ? fW : k.w * u;
+          items.push({ ...k, key: `${ri}-${ci}`, x, y, kw, hh, ri });
+          x += kw + g;
+        });
+        y += hh + g;
+      });
+      const { w: W, h: H } = kbSize(u);
+      const dimSty = { background: '#e2e8f0', color: '#94a3b8', borderColor: '#cbd5e1' };
       return (
-        <div className="inline-flex flex-col items-start bg-slate-300 rounded-2xl" style={{ padding: g * 2, gap: g }}>
-          {KB_ROWS.map((row, ri) => (
-            <div key={ri} className="flex" style={{ gap: g, marginLeft: row.off * u }}>
-              {row.keys.map(k => {
-                const isNext = next === k && glow;
-                const isWrong = wrong === k;
-                return (
-                  <div key={k} className={`relative rounded-lg flex items-center justify-center font-bold border-b-4 ${isNext ? 'keyglow' : ''} ${isWrong ? 'shake' : ''}`}
-                    style={{ ...keyStyle(k), borderColor: isWrong ? '#dc2626' : '#94a3b8', background: isWrong ? '#fecaca' : isNext ? '#fde047' : keyStyle(k).background, zIndex: isNext ? 2 : 1 }}>
-                    {KEY_LABEL(k)}
-                    {(k === 'f' || k === 'j') && <span className="absolute rounded-full bg-slate-500" style={{ width: u * 0.3, height: 3, bottom: u * 0.14, ...(bumps ? { background: '#dc2626', height: 5 } : {}) }} />}
-                    {isWrong && <span className="absolute -top-2 -right-2 bg-rose-600 text-white rounded-full w-6 h-6 text-sm flex items-center justify-center">✕</span>}
-                    {heat && heat[k] ? <span className="absolute bottom-0 right-1 text-xs text-rose-900">{heat[k]}</span> : null}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-          <div className="flex w-full justify-center">
-            <div className="rounded-lg border-b-4 border-slate-400 bg-white flex items-center justify-center text-slate-400 font-bold" style={{ width: u * 5.5, height: u * 0.8, fontSize: u * 0.3, marginLeft: u * 1.2 }}>スペース</div>
-          </div>
+        <div className="relative bg-slate-300 rounded-2xl shrink-0" style={{ width: W, height: H }}>
+          {items.map(it => {
+            const base = { position: 'absolute', left: it.x, top: it.y, width: it.kw, height: it.hh };
+            if (it.l === 'arrows') {
+              const aw = (it.kw - 2 * g) / 3, ah = (it.hh - g) / 2;
+              return [['←', 0, 1], ['↑', 1, 0], ['↓', 1, 1], ['→', 2, 1]].map(([l, cx, cy]) => (
+                <div key={it.key + l} className="flex items-center justify-center font-bold"
+                  style={{ ...dimSty, borderRadius: 6, borderBottom: '2px solid #cbd5e1', position: 'absolute', left: it.x + cx * (aw + g), top: it.y + cy * (ah + g), width: aw, height: ah, fontSize: u * 0.26 }}>{l}</div>
+              ));
+            }
+            if (it.enter === 'top') {
+              // ↵ キーは 2だんに またがる（うえの ぶぶんは したまで のばす）
+              return <div key={it.key} style={{ ...base, ...dimSty, height: it.hh + g + 2, borderRadius: '8px 8px 0 0' }} />;
+            }
+            if (it.k == null) {
+              const sty = it.space ? { background: next === ' ' && glow ? '#fde047' : '#ffffff', color: '#94a3b8', borderColor: '#94a3b8' } : dimSty;
+              return (
+                <div key={it.key} className="flex items-center justify-center font-bold border-b-4 text-center"
+                  style={{ ...base, ...sty, borderRadius: it.enter === 'bottom' ? '8px 0 8px 8px' : 8, whiteSpace: 'pre', lineHeight: 1.05, fontSize: u * (it.s || (it.ri === 0 ? 0.3 : 0.4)) }}>{it.l}</div>
+              );
+            }
+            const k = it.k;
+            const isNext = next === k && glow;
+            const isWrong = wrong === k;
+            return (
+              <div key={it.key} className={`rounded-lg flex items-center justify-center font-bold border-b-4 ${isNext ? 'keyglow' : ''} ${isWrong ? 'shake' : ''}`}
+                style={{ ...base, fontSize: u * 0.46, borderColor: isWrong ? '#dc2626' : '#94a3b8', background: isWrong ? '#fecaca' : isNext ? '#fde047' : keyBg(k), zIndex: isNext ? 2 : 1 }}>
+                {KEY_LABEL(k)}
+                {(k === 'f' || k === 'j') && <span className="absolute rounded-full bg-slate-500" style={{ width: u * 0.3, height: 3, bottom: u * 0.12, ...(bumps ? { background: '#dc2626', height: 5 } : {}) }} />}
+                {isWrong && <span className="absolute -top-2 -right-2 bg-rose-600 text-white rounded-full w-6 h-6 text-sm flex items-center justify-center">✕</span>}
+                {heat && heat[k] ? <span className="absolute bottom-0 right-1 text-xs text-rose-900">{heat[k]}</span> : null}
+              </div>
+            );
+          })}
         </div>
       );
     }
@@ -271,7 +322,7 @@
           <g transform="rotate(-50 188 118)"><rect x="178" y="96" width="18" height="40" rx="9" fill={color ? FC.t : '#fcd9b6'} stroke="#94a3b8" strokeWidth="1.5" /></g>
           <text x="68" y="138" textAnchor="middle" fontSize="15" fontWeight="bold" fill="#475569">ひだり</text>
           <text x="232" y="138" textAnchor="middle" fontSize="15" fontWeight="bold" fill="#475569">みぎ</text>
-          {home && <text x="150" y="30" textAnchor="middle" fontSize="15" fill="#475569">F と J に ひとさしゆび</text>}
+          {home && <text x="150" y="30" textAnchor="middle" fontSize="15" fill="#475569">f と j に ひとさしゆび</text>}
         </svg>
       );
     }
@@ -801,8 +852,8 @@
       const [i, setI] = useState(0);
       const pages = [
         { t: 'これが キーボードだよ。もじや すうじの キーが たくさん ならんで いるね。', kb: {} },
-        { t: 'F と J の キーを みて。ちいさな でっぱりが あるよ。ゆびで さわって みよう。', kb: { bumps: true } },
-        { t: 'ひだりての ひとさしゆびを F に、みぎての ひとさしゆびを J に のせよう。ほかの ゆびも となりの キーに ならべるよ。', kb: { home: true }, hands: true },
+        { t: 'f と j の キーを みて。ちいさな でっぱりが あるよ。ゆびで さわって みよう。', kb: { bumps: true } },
+        { t: 'ひだりての ひとさしゆびを f に、みぎての ひとさしゆびを j に のせよう。ほかの ゆびも となりの キーに ならべるよ。', kb: { home: true }, hands: true },
         { t: 'これが ホームポジション。キーを おしたら、ゆびは ここに もどって くるよ。キーは やさしく ポンと おそう。', kb: { home: true }, hands: true },
       ];
       const pg = pages[i];
@@ -812,7 +863,7 @@
           <KiboBar size={96} compact />
           <div className="bg-white rounded-3xl p-4 flex flex-col items-center gap-3 w-full">
             {pg.hands && <Hands color={settings.finger} size={300} home />}
-            <Keyboard glow={false} finger={settings.finger && i >= 2} {...pg.kb} />
+            <Keyboard glow={false} finger={settings.finger && i >= 2} {...pg.kb} u={Math.max(28, Math.min(kbUnit(window.innerWidth, false), Math.floor((window.innerHeight - (pg.hands ? 450 : 300)) / 5.8)))} />
           </div>
           <div className="flex gap-4">
             {i > 0 && <Btn onClick={() => setI(i - 1)} color="#64748b" light="#f1f5f9">◀ もどる</Btn>}
@@ -834,11 +885,11 @@
       if (u.isKey) return whereKey(u.k);
       const rom = typer.shown(typer.i);
       if (u.k === 'っ') return `ちいさい「っ」は、つぎの もじの はじめの キー（${KEY_LABEL(nk)}）を 2かい おすよ。`;
-      if (u.k === 'ん') return '「ん」は N を 2かい おすよ。';
+      if (u.k === 'ん') return '「ん」は n を 2かい おすよ。';
       if (u.k === 'ー') return 'のばす ぼう「ー」は、0 の みぎの キーだよ。';
-      if (u.k === '。') return '「。」は ピリオド。M の 2つ みぎの キーだよ。';
-      if (u.k === '、') return '「、」は コンマ。M の すぐ みぎの キーだよ。';
-      if (u.k.length === 2) return `「${u.show}」は、${KEY_LABEL(rom[0])} の あとに Y などが はいるよ。ローマ字を よく みてね。`;
+      if (u.k === '。') return '「。」は ピリオド。m の 2つ みぎの キーだよ。';
+      if (u.k === '、') return '「、」は コンマ。m の すぐ みぎの キーだよ。';
+      if (u.k.length === 2) return `「${u.show}」は、${KEY_LABEL(rom[0])} の あとに y などが はいるよ。ローマ字を よく みてね。`;
       if (rom.length === 1) return `「${u.show}」は ${KEY_LABEL(rom)} の キー 1つだよ。`;
       return `「${u.show}」は、はじめに ${KEY_LABEL(rom[0])}、つぎに あいうえおの ${KEY_LABEL(rom[rom.length - 1])} だよ。`;
     }
@@ -980,7 +1031,7 @@
             </div>
           </div>
           {imeWarn && <div className="bg-rose-100 border-2 border-rose-400 rounded-xl px-4 py-2 text-xl font-bold">にほんごの モードに なって いるよ。キーボードの「英数」キーを おしてね。</div>}
-          <Keyboard next={showGlow ? nextKey : null} wrong={wrong} glow finger={settings.finger} />
+          <Keyboard next={showGlow ? nextKey : null} wrong={wrong} glow finger={settings.finger} u={Math.max(30, Math.min(kbUnit(window.innerWidth, false), Math.floor((window.innerHeight - 420) / 5.8)))} />
         </div>
       );
     }
@@ -1107,7 +1158,9 @@
       const g = G.current;
       const tg = target();
       const nk = tg ? tg.ty.next() : null;
-      const H = Math.max(300, Math.min(420, window.innerHeight - 380));
+      // キーボードは Chromebook と おなじ 6だん。よこはばと たかさの りょうほうに おさまる 大きさに する
+      const ku = Math.max(28, Math.min(kbUnit(window.innerWidth, true), Math.floor((window.innerHeight - 170 - 260) / 5.8)));
+      const H = Math.max(260, Math.min(420, window.innerHeight - kbSize(ku).h - 170));
       return (
         <div className="w-full max-w-5xl flex flex-col items-center gap-2">
           <FocusBanner lost={lost} />
@@ -1139,7 +1192,7 @@
             <div className="absolute left-1/2 -translate-x-1/2 bottom-0"><Robot {...robot} size={80} happy={g.fx.length > 0} /></div>
             {isPaused && !g.end && <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-4xl font-bold text-white">{lost ? '👆 がめんを タッチしてね' : '⏸ ひとやすみ ちゅう'}</div>}
           </div>
-          <Keyboard next={settings.glow || (tg && tg.miss >= 2) ? nk : null} wrong={wrong} glow finger={settings.finger} small />
+          <Keyboard next={settings.glow || (tg && tg.miss >= 2) ? nk : null} wrong={wrong} glow finger={settings.finger} small u={ku} />
         </div>
       );
     }
@@ -1929,7 +1982,7 @@
             onPractice={() => startPractice(planet)} onResume={() => startPractice(planet, progress.part.left)} onGame={() => startGame(planet)} />}</div>;
       } else if (view.v === 'tutorial') {
         body = <div className="min-h-screen flex flex-col items-center">{bar()}<div className="w-full flex justify-center p-3">
-          <Tutorial settings={settings} onDone={() => setView({ ...view, v: 'practice', intro: 'F と J を おして みよう。', key: uid() })} /></div></div>;
+          <Tutorial settings={settings} onDone={() => setView({ ...view, v: 'practice', intro: 'f と j を おして みよう。', key: uid() })} /></div></div>;
       } else if (view.v === 'practice') {
         body = <div className="min-h-screen flex flex-col items-center relative">{bar()}<CoinFly show={coinFx} />
           <div className="w-full flex justify-center p-2"><Practice key={view.key} st={view.st} n={view.n} intro={view.intro} settings={settings}
