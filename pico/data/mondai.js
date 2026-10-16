@@ -165,7 +165,7 @@
   ];
 
   // Canva の 絵が ある ファイル（img/ に おいたら ここに たす）
-  const IMAGES = ['pico.webp', 'bg_1.webp', 'bg_2.webp', 'bg_3.webp', 'bg_4.webp', 'bg_5.webp'];
+  const IMAGES = ['pico.webp', 'bg_1.webp', 'bg_2.webp', 'bg_3.webp', 'bg_4.webp', 'bg_5.webp', 'bg_6.webp'];
 
   window.PICO_DATA = { STAGES, ITEM_CATS, TIERS, FX, LEVELS, IMAGES };
 })();
