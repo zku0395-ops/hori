@@ -69,7 +69,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.2.0';
+    const APP_VERSION = '1.3.0';
     const BASE = window.ROMAJI_BASE;
     const IMG = BASE + 'img/';
 
@@ -1048,7 +1048,7 @@
       const T = `«${target}»`;
       const ask = byV ? `さいごの あかい ピースが ${T} の もじを、${need}つ さがそう。` : `はじめの あおい ピースが ${T} の もじを、${need}つ さがそう。`;
       const doHint = (lv) => {
-        if (lv === 1) gaji.say(byV ? `${T} で おわる もじは『${R.VOWEL_KANA[target]}』の おとで おわるよ。` : `${T} で はじまる もじは『${pickRow(target)}』の なかまだよ。`, { mood: 'think' });
+        if (lv === 1) gaji.say(byV ? `ローマ字を だしたよ。さいごの あかい ピースが ${T} の もじを さがそう。${T} で おわる もじは『${R.VOWEL_KANA[target]}』の おとで おわるよ。` : `ローマ字を だしたよ。はじめの あおい ピースが ${T} の もじを さがそう。『${pickRow(target)}』の なかまだよ。`, { mood: 'think' });
         if (lv === 2) { setTable(true); gaji.say(byV ? `ひょうの ${T} の たての れつを みてね。` : `ひょうの ${T} の よこの れつを みてね。`, { mood: 'think' }); }
         if (lv === 3) { setTable(false); gaji.say('ひかって いる もじだよ。', { mood: 'think' }); }
       };
@@ -1090,7 +1090,8 @@
                 <button key={k} onClick={() => tap(k)} disabled={ng}
                   className={`btn3d rounded-3xl border-4 w-40 py-2 flex flex-col items-center gap-1 ${ok ? 'bg-yellow-100 border-amber-500 pop' : ng ? 'bg-slate-100 border-slate-200 opacity-40' : 'bg-white border-amber-300'} ${m.hint >= 3 && match(k) && !ok ? 'glow' : ''}`}>
                   <span className="text-6xl font-bold">{k}</span>
-                  <RomaPieces k={k} st={st} h={40} />
+                  {/* ローマ字は、ヒントを おしたとき・みつけたとき・まちがえたときに だす */}
+                  {m.hint >= 1 || ok || ng ? <RomaPieces k={k} st={st} h={40} /> : <div style={{ height: 44 }} />}
                 </button>
               );
             })}
