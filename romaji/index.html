@@ -69,7 +69,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.1.0';
+    const APP_VERSION = '1.2.0';
     const BASE = window.ROMAJI_BASE;
     const IMG = BASE + 'img/';
 
@@ -187,7 +187,8 @@
     const vowelOf = (r) => { const p = [...r]; const v = p.filter(c => R.isVowel(c)).pop(); return v ? R.plainVowel(v) : ''; };
     const stageNo = (st) => st.id === 'seisaku' ? 'せいさくべや' : st.hatten ? `はってん${st.id.slice(1)}` : st.id;
     const stageLabel = (st) => st.id === 'seisaku' ? '🛠️' : st.hatten ? `はってん${'①②③④⑤⑥'[Number(st.id.slice(1)) - 1]}` : st.id;
-    const LONG_N = 30;   // チャレンジ・せいさくべやの もんだいの かず
+    const LONG_N = 30;   // せいさくべやの もんだいの かず
+    const CHAL_N = 10;   // チャレンジの もんだいの かず（1セット。何回でも できる）
     const STEP = {
       make: { n: 'くみたてる', icon: '🧩' }, read: { n: 'よむ', icon: '👀' }, word: { n: 'ことば', icon: '🏗️' },
       mate_v: { n: 'なかまさがし（さいごの ピース）', icon: '🔍' }, mate_c: { n: 'なかまさがし（はじめの ピース）', icon: '🔎' },
@@ -1365,8 +1366,8 @@
                 <button onClick={() => open && onStep('challenge')} disabled={!open}
                   className={`btn3d rounded-3xl border-4 px-6 py-3 flex items-center gap-3 ${open ? 'bg-yellow-50 border-amber-500' : 'bg-stone-200 border-stone-300 opacity-60'}`}>
                   <span className="text-4xl">{open ? '🏅' : '🔒'}</span>
-                  <span className="text-left"><span className="text-2xl font-bold block">{NUM[st.steps.length]} チャレンジ（{LONG_N}もん）</span>
-                    <span className="text-base">{open ? `ランダムに ${LONG_N}もん。1もん できたら コイン 1まい` : '① くみたてる が できると ひらくよ'}{stepDone(progress, st, 'challenge') ? '　⭐ できた' : ''}</span></span>
+                  <span className="text-left"><span className="text-2xl font-bold block">{NUM[st.steps.length]} チャレンジ（{CHAL_N}もん）</span>
+                    <span className="text-base">{open ? `ランダムに ${CHAL_N}もん。なんかいでも できるよ。1もん できたら コイン 1まい` : '① くみたてる が できると ひらくよ'}{stepDone(progress, st, 'challenge') ? '　⭐ できた' : ''}</span></span>
                 </button>
               );
             })()}
@@ -2028,7 +2029,7 @@
         setStageSel(null);
         records.current = [];
         titleStart.current = titlesOf(progRef.current);
-        const n = left || (step === 'challenge' || step === 'seisaku' ? LONG_N : Number(settings.count) || 5);
+        const n = left || (step === 'challenge' ? CHAL_N : step === 'seisaku' ? LONG_N : Number(settings.count) || 5);
         setView({ v: 'practice', st, step, n, intro: left ? 'つづきから はじめよう。' : null, key: uid() });
       };
       const onRecord = (r) => { records.current.push({ ...r, id: uid() }); };
