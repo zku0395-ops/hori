@@ -71,5 +71,14 @@ D.ITEM_CATS.forEach(c => {
   });
 });
 
+// 4. せいさくべや（ざいりょうと せっけいず）
+const mats = new Set((D.MATERIALS || []).map(m => m.id));
+if (mats.size !== 8) ng('ざいりょうは 8しゅるい の はずです');
+(D.MATERIALS || []).forEach(m => { if (!m.e && !m.svg) ng(`ざいりょう ${m.n} に 絵が ありません`); if (!(m.p > 0)) ng(`ざいりょう ${m.n} の 値段が ありません`); });
+(D.BUILDINGS || []).forEach(b => {
+  if (!b.e) ng(`${b.n} に 絵が ありません`);
+  Object.keys(b.need).forEach(m => { if (!mats.has(m)) ng(`${b.n}：ざいりょう ${m} が ありません`); });
+});
+
 console.log(bad ? `\n${bad}こ の もんだいが あります` : '✔ データは だいじょうぶです');
 process.exit(bad ? 1 : 0);
