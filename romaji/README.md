@@ -87,7 +87,7 @@ romaji/index.html          アプリ本体（Apps Script の HTML ファイル�
 romaji/コード.gs            スプレッドシートとつなぐプログラム（Apps Script の「コード.gs」に貼り付けます）
 romaji/data/kana.js        ローマ字のしくみ（かな → ローマ字、ピースに分ける、ローマじ ひょう）
 romaji/data/mondai.js      ステージ・ことば・絵・おみせの品物のデータ
-romaji/img/                ガジガジせんせいの絵（Canva で作成）
+romaji/img/                ガジガジせんせいの絵（ふつう・よろこぶ・かんがえる。Canva で作成、背景をすかした 600×600）
 romaji/tools/check.js      問題データの点検（node romaji/tools/check.js）
 romaji/tools/test_gas.js   コード.gs のテスト（node romaji/tools/test_gas.js）
 ```
@@ -193,7 +193,6 @@ romaji/tools/test_gas.js   コード.gs のテスト（node romaji/tools/test_ga
 ## これから相談して決めること
 
 - ことばの見直し（子どもの生活に合わせて入れかえる。`data/mondai.js` を見て、合わないものを教えてください）
-- ガジガジせんせいの「よろこぶ」「かんがえる」顔の絵（Canva で作る）
 - ピースをドラッグして はめる操作も入れるか（いまは押すだけ）
 - 「ん」のあとに あ行・や行・な行が続く ことば（例：きんえん＝kin'en）の書き方を入れるか
 - 大文字は、ことばの はじめだけ大文字（例：Tôkyô）にするか、全部大文字にするか（いまは全部大文字）
