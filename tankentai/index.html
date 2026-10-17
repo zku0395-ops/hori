@@ -207,6 +207,7 @@
 
   <!-- 地図と 都道府県の データ（Babel を 通さないので 速く 読みこめる） -->
   <script src="data/japan-map.js"></script>
+  <script src="data/hokkaido.js"></script>
   <script src="data/tokyo.js"></script>
   <script src="data/tokyo2.js"></script>
 
@@ -614,7 +615,7 @@
     function sheetPayload(st, kid, name, pref) {
       const kp = kidPref(st, kid, pref.id);
       return {
-        uid: `${name}|${pref.id}`, prefId: pref.id, pref: sheetLabel(pref), sub: pref.parent ? 1 : 0, done: doneCount(st, kid, pref), total: pref.items.length,
+        uid: `${name}|${pref.id}`, prefId: pref.id, pref: sheetLabel(pref), sub: pref.id === 'tokyo' ? 0 : 1, done: doneCount(st, kid, pref), total: pref.items.length,
         updatedAt: Date.now(),
         items: pref.items.map(it => {
           const ip = itemProg(st, kid, pref.id, it.id);
@@ -639,7 +640,10 @@
       ALL_SHEETS.forEach(p => p.items.forEach(it => { lastAt = Math.max(lastAt, itemProg(st, kid, p.id, it.id).doneAt || 0); }));
       const t = titleOf(st, kid);
       const cand = ALL_SHEETS.map(p => ({ p, it: nextItem(st, kid, p) }));
-      const now = cand.find(x => x.it && doneCount(st, kid, x.p) > 0) || cand.find(x => x.it);
+      // いま しらべている ところ：さいごに しらべた 都道府県の、まだ できていない しんぶんを えらぶ
+      const lastTouch = p => Math.max(0, ...sheetsOf(mainOf(p)).flatMap(s => s.items.map(it => itemProg(st, kid, s.id, it.id).doneAt || 0)));
+      const openC = cand.filter(x => x.it && isSheetOpen(st, kid, x.p));
+      const now = openC.filter(x => lastTouch(x.p) > 0).sort((a, b) => lastTouch(b.p) - lastTouch(a.p))[0] || openC[0] || cand.find(x => x.it);
       return {
         title: `${t.icon} ${t.name}`, visited: visitedCount(st, kid), stickers: stickerCount(st, kid), allStickers: ALL_STICKERS,
         quizN: n, quizFirst: first, lastAt,
@@ -1381,7 +1385,7 @@
       );
     }
     function PickStep({ app, kid, pref, item, ip, onNext }) {
-      const text = item.free ? item.intro : 'しんぶんに はる しゃしんを 1まい えらぼう。じぶんで さがした しゃしんでも いいよ。';
+      const text = item.free ? item.intro : (item.pickText || 'しんぶんに はる しゃしんを 1まい えらぼう。じぶんで さがした しゃしんでも いいよ。');
       const ownSrc = useOwnPhoto(kid, pref.id, item.id, ip.ownRev);
       useEffect(() => { const id = setTimeout(() => TTS.speak(text), 300); return () => { clearTimeout(id); TTS.cancel(); }; }, []);
       const pick = (c) => {
@@ -1402,7 +1406,7 @@
           <div onClick={pickOwn} style={{ cursor: ip.ownRev ? 'pointer' : 'default' }}>
             {ownSrc ? <img src={ownSrc} alt="" style={{ objectFit: 'contain', background: '#f1f5f9' }} />
               : <div style={{ width: '100%', aspectRatio: '4 / 3', borderRadius: '.8rem', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3.5rem' }}>📷</div>}
-            <span className="kw tc" style={{ display: 'block' }}>じぶんの しゃしん</span>
+            <span className="kw tc" style={{ display: 'block' }}>{item.ownLabel || 'じぶんの しゃしん'}</span>
           </div>
           <OwnPhotoButtons onData={useOwn} size={item.free ? "md" : "sm"} />
           {ownOn && <span className="check">✓</span>}
@@ -1524,8 +1528,8 @@
             </div>
             <div className="col">
               <div className="sentbox col" data-own-write="1">
-                <TextField k="name" label={`① ${item.ownName || 'しゃしんの なまえ'}`} value={own.name} max={20} placeholder={item.free ? 'れい：やまだ たろう' : 'れい：めいじじんぐう'} onChange={v => setOwn({ name: v })} />
-                <TextField k="desc" label={`② ${item.ownDesc || 'しらべた こと（1〜2ぶん）'}`} value={own.desc} max={80} placeholder={item.free ? 'れい：やきゅうの せんしゅです。' : 'れい：おおきな じんじゃです。'} onChange={v => setOwn({ desc: v })} />
+                <TextField k="name" label={`① ${item.ownName || 'しゃしんの なまえ'}`} value={own.name} max={20} placeholder={item.ownNamePh || (item.free ? 'れい：やまだ たろう' : 'れい：めいじじんぐう')} onChange={v => setOwn({ name: v })} />
+                <TextField k="desc" label={`② ${item.ownDesc || 'しらべた こと（1〜2ぶん）'}`} value={own.desc} max={80} placeholder={item.ownDescPh || (item.free ? 'れい：やきゅうの せんしゅです。' : 'れい：おおきな じんじゃです。')} onChange={v => setOwn({ desc: v })} />
                 <TextField k="src" label="③ でどころ（どこの しゃしんか）" note="かかなくても いいよ" value={own.src} max={40} placeholder="れい：がっこうの ほん、じぶんで とった" onChange={v => setOwn({ src: v })} />
               </div>
               <FeelBox app={app} kid={kid} pref={pref} item={item} ip={ip} setPad={setPad} />
@@ -1762,13 +1766,15 @@
     }
     function Sheet({ st, kid, pref }) {
       const k = st.roster.find(x => x.id === kid) || { name: '' };
+      // わくが 6つ ある ときは、地図の わくを やめて、見出しに 小さな 地図を 出す
+      const mapBox = !pref.parent && pref.items.length <= 5;
       const dates = pref.items.map(it => itemProg(st, kid, pref.id, it.id).doneAt).filter(Boolean);
       const day = dates.length ? Math.max(...dates) : 0;
       return (
         <div className="sheet" data-sheet="1">
           <div className="sh-head">
             <div className="sh-title"><span className="emoji">📰</span><R t={pref.sheetTitle} /></div>
-            {pref.parent && <div style={{ height: '25mm', alignSelf: 'center' }} className="sh-headmap"><MiniMap pref={pref} /></div>}
+            {!mapBox && <div style={{ height: '25mm', alignSelf: 'center' }} className="sh-headmap"><MiniMap pref={pref} /></div>}
             <div style={{ width: '24mm', alignSelf: 'center' }}><TsubasaArt pose="happy" /></div>
             <div className="sh-meta">
               <div className="ln">なまえ <span className="v">{k.name}</span></div>
@@ -1776,7 +1782,7 @@
             </div>
           </div>
           <div className="sh-grid">
-            {!pref.parent && <div className="sh-box" style={{ borderColor: '#e11d48' }}>
+            {mapBox && <div className="sh-box" style={{ borderColor: '#e11d48' }}>
               <div className="sh-band" style={{ background: '#e11d48' }}><span className="emoji">📍</span><R t={pref.name} />は ここ！</div>
               <div className="sh-mapbox">
                 <MiniMap pref={pref} />
