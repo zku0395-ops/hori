@@ -1723,7 +1723,7 @@
           {done ? (
             <div className="sh-body">
               <div className="sh-photo">
-                {own ? (ownSrc ? <img src={ownSrc} alt="" style={{ objectFit: 'contain', background: '#f1f5f9' }} data-own-photo="1" /> : <div style={{ width: '52mm', height: '39mm', background: '#f1f5f9' }} />)
+                {own ? (ownSrc ? <img src={ownSrc} alt="" style={{ objectFit: 'contain', background: '#f1f5f9' }} data-own-photo="1" /> : <div style={{ width: '52mm', height: '39mm', background: '#f1f5f9' }} data-own-wait="1" />)
                   : <CardImg pref={pref} card={card} ngStyle={{ width: '52mm', height: '39mm', fontSize: '4mm' }} />}
                 <div className="sh-cap kw">{own ? o.name : <R t={card.title} />}</div>
                 <div className="sh-note kw">{own ? (o.src ? `でどころ：${o.src}` : 'じぶんで いれた しゃしん') : '※しゃしんは イメージです'}</div>
@@ -1798,6 +1798,64 @@
         </div>
       );
     }
+    /* ---- しんぶんを PDF に する（jsPDF と html2canvas は、ボタンを おした ときに 読みこむ） ---- */
+    function loadScript(src, test) {
+      if (test()) return Promise.resolve();
+      return new Promise((ok, ng) => {
+        const s = document.createElement('script'); s.src = src;
+        s.onload = () => test() ? ok() : ng(new Error('load')); s.onerror = () => ng(new Error('load'));
+        document.head.appendChild(s);
+      });
+    }
+    function loadPdfLibs() {
+      return Promise.all([
+        loadScript('https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js', () => !!window.jspdf),
+        loadScript('https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js', () => !!window.html2canvas),
+      ]);
+    }
+    function waitImages(el) {
+      const imgs = [...el.querySelectorAll('img')];
+      return Promise.all(imgs.map(im => im.complete ? null : new Promise(r => { im.onload = r; im.onerror = r; setTimeout(r, 8000); })));
+    }
+    function pdfFileName(k, pref, ts) {
+      const d = new Date(ts);
+      const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const mark = /②/.test(pref.sheetTitle || '') ? '②' : '';
+      const safe = s => String(s || '').replace(/[\\/:*?"<>|\s]+/g, '');
+      return `${safe(k.name) || 'なまえ'}_${safe(plain(pref.name))}_しんぶん${mark}_${ymd}.pdf`;
+    }
+    async function sheetToPdf(el, fileName) {
+      await loadPdfLibs();
+      if (document.fonts && document.fonts.ready) await document.fonts.ready;
+      // じぶんの 写真は 端末の 中から 読みこむので、出て くるまで すこし まつ
+      for (let i = 0; i < 30 && el.querySelector('[data-own-wait]'); i++) await new Promise(r => setTimeout(r, 100));
+      await waitImages(el);
+      const w = el.offsetWidth, h = el.offsetHeight;
+      const canvas = await window.html2canvas(el, {
+        scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false,
+        x: 0, y: 0, width: w, height: h, scrollX: 0, scrollY: 0, windowWidth: w + 40, windowHeight: h + 40,
+        onclone: doc => {
+          const c = doc.querySelector('[data-pdf-sheet]');
+          if (!c) return;
+          c.style.left = '0px'; c.style.top = '0px';
+          // html2canvas は object-fit を あつかえないので、写真を 背景の 画像に おきかえる
+          c.querySelectorAll('.sh-photo img').forEach(im => {
+            const cs = doc.defaultView.getComputedStyle(im);
+            const d = doc.createElement('div');
+            d.style.cssText = `width:${cs.width};height:${cs.height};border-radius:${cs.borderRadius};background-color:${cs.backgroundColor};background-image:url("${im.src}");background-size:${cs.objectFit === 'contain' ? 'contain' : 'cover'};background-position:center;background-repeat:no-repeat;`;
+            im.replaceWith(d);
+          });
+        },
+      });
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [364, 257] });
+      pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 364, 257);
+      const url = URL.createObjectURL(pdf.output('blob'));
+      const a = document.createElement('a'); a.href = url; a.download = fileName;
+      document.body.appendChild(a); a.click();
+      setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 4000);
+    }
+
     function SheetPage({ app, kid, pid, go, back }) {
       const st = app.state;
       const pref = PREF_MAP[pid];
@@ -1813,7 +1871,21 @@
         return () => { window.removeEventListener('resize', fit); document.removeEventListener('fullscreenchange', fit); };
       }, []);
       const big = () => { const el = ref.current; if (!el) return; if (document.fullscreenElement) document.exitFullscreen(); else if (el.requestFullscreen) el.requestFullscreen(); };
-      const text = 'しんぶんだよ。「いんさつ」で かみに できるよ。「おおきく」で がめんに おおきく だせるよ。';
+      const [pdf, setPdf] = useState('');   // '' / 'busy' / 'ok' / 'ng'
+      const pdfRef = useRef(null);
+      const makePdf = async () => {
+        if (pdf === 'busy') return;
+        setPdf('busy'); TTS.speak('PDFを つくって いるよ。すこし まってね。', { force: true });
+        await new Promise(r => setTimeout(r, 100));
+        try {
+          const k = st.roster.find(x => x.id === kid) || { name: '' };
+          await sheetToPdf(pdfRef.current, pdfFileName(k, pref, Date.now()));
+          setPdf('ok'); TTS.speak('PDFで ほぞん したよ。「ダウンロード」の フォルダに あるよ。', { force: true });
+        } catch (e) {
+          console.error(e); setPdf('ng');
+        }
+      };
+      const text = 'しんぶんだよ。「いんさつ」で かみに できるよ。「PDFで ほぞん」で ファイルに できるよ。「おおきく」で がめんに おおきく だせるよ。';
       useEffect(() => { const id = setTimeout(() => TTS.speak(text), 300); return () => { clearTimeout(id); TTS.cancel(); }; }, []);
       return (
         <div className="wrap" style={{ maxWidth: 1500 }}>
@@ -1823,8 +1895,12 @@
             right={<>
               <Btn color="violet" size="sm" onClick={big} data-big="1">🔍 おおきく</Btn>
               <Btn color="navy" size="sm" onClick={() => window.print()} data-print="1">🖨️ いんさつ</Btn>
+              <Btn color="green" size="sm" onClick={makePdf} disabled={pdf === 'busy'} data-pdf="1">📄 PDFで ほぞん</Btn>
             </>}
           />
+          {pdf === 'busy' && <div className="no-print" style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(255,255,255,.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem', fontWeight: 700, color: 'var(--navy)' }} data-pdf-busy="1">📄 PDFを つくって いるよ…</div>}
+          {pdf === 'ok' && <div className="card no-print" style={{ marginBottom: '.5rem', background: '#ecfdf5', borderColor: '#10b981' }} data-pdf-ok="1">✅ PDFで ほぞん したよ。「ダウンロード」の フォルダに あるよ。</div>}
+          {pdf === 'ng' && <div className="card no-print" style={{ marginBottom: '.5rem', background: '#fff7ed', borderColor: '#f97316' }} data-pdf-ng="1">PDFを つくれませんでした。インターネットに つながって いるか たしかめてください。<br /><span className="muted" style={{ fontSize: '.9rem' }}>先生へ：「🖨️ いんさつ」を押し、送り先（プリンタ）で「PDFに保存」をえらんでも保存できます（用紙サイズ B4・横・余白なし）。</span></div>}
           <div className="muted no-print" style={{ fontSize: '.9rem', marginBottom: '.4rem' }}>先生へ：いんさつの画面で、用紙サイズを「B4」、向きを「横」にしてください。余白は「なし」がおすすめです。</div>
           <div ref={outer}>
             <div ref={ref} className="print-area" style={{ background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100%' }}>
@@ -1835,6 +1911,7 @@
               </div>
             </div>
           </div>
+          {pdf === 'busy' && <div ref={pdfRef} className="no-print" style={{ position: 'fixed', left: -20000, top: 0, width: '364mm', height: '257mm' }} data-pdf-sheet="1" aria-hidden="true"><Sheet st={st} kid={kid} pref={pref} /></div>}
         </div>
       );
     }
