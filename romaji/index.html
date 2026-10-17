@@ -69,7 +69,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.0.0';
+    const APP_VERSION = '1.1.0';
     const BASE = window.ROMAJI_BASE;
     const IMG = BASE + 'img/';
 
@@ -185,12 +185,14 @@
     const piecesOf = (k, st) => R.pieces(romaOf(k, st));
     const headOf = (r) => { const p = [...r]; return p.filter(c => !R.isVowel(c)).join(''); };
     const vowelOf = (r) => { const p = [...r]; const v = p.filter(c => R.isVowel(c)).pop(); return v ? R.plainVowel(v) : ''; };
-    const stageNo = (st) => st.hatten ? `はってん${st.id.slice(1)}` : st.id;
-    const stageLabel = (st) => st.hatten ? `はってん${'①②③④⑤⑥'[Number(st.id.slice(1)) - 1]}` : st.id;
+    const stageNo = (st) => st.id === 'seisaku' ? 'せいさくべや' : st.hatten ? `はってん${st.id.slice(1)}` : st.id;
+    const stageLabel = (st) => st.id === 'seisaku' ? '🛠️' : st.hatten ? `はってん${'①②③④⑤⑥'[Number(st.id.slice(1)) - 1]}` : st.id;
+    const LONG_N = 30;   // チャレンジ・せいさくべやの もんだいの かず
     const STEP = {
       make: { n: 'くみたてる', icon: '🧩' }, read: { n: 'よむ', icon: '👀' }, word: { n: 'ことば', icon: '🏗️' },
       mate_v: { n: 'なかまさがし（さいごの ピース）', icon: '🔍' }, mate_c: { n: 'なかまさがし（はじめの ピース）', icon: '🔎' },
       readword: { n: 'ことばを よむ', icon: '📖' },
+      challenge: { n: 'チャレンジ', icon: '🏅' }, seisaku: { n: 'もんだい', icon: '📝' },
     };
     const NUM = '①②③④⑤';
     // まちがえやすい しいん（となりに 出す ピース）
@@ -218,6 +220,23 @@
     // =====================================================================
     function buildProblems(st, step, n) {
       const out = [];
+      // チャレンジ・せいさくべや：くみたてるを ランダムに（チャレンジは 7わり その ステージ、3わり それまでの もじ）
+      if (step === 'challenge' || step === 'seisaku') {
+        const rev = st.review30 || [];
+        const nr = rev.length ? Math.round(n * 0.3) : 0;
+        const flags = shuffle(Array.from({ length: n }, (_, i) => i < nr));
+        let bag = [], rbag = [];
+        flags.forEach(useRev => {
+          let k;
+          for (let t = 0; t < 6; t++) {
+            if (useRev) { if (!rbag.length) rbag = shuffle(rev); k = rbag.pop(); }
+            else { if (!bag.length) bag = shuffle(st.kana); k = bag.pop(); }
+            if (!out.length || out[out.length - 1].k !== k) break;
+          }
+          out.push({ kind: 'make', k });
+        });
+        return out;
+      }
       if (step === 'make' || step === 'read') {
         let bag = [];
         const first = st.ordered ? [...st.kana] : [];
@@ -248,6 +267,26 @@
         return out;
       }
       return out;
+    }
+    // チャレンジの ふくしゅうに まぜる もじ（それまでに ならった もじ）
+    function withReview(st) {
+      if (st.review30) return st;
+      let rev = [];
+      if (!st.hatten) {
+        const ms = STAGES.filter(s => !s.hatten), i = ms.findIndex(s => s.id === st.id);
+        rev = uniq(ms.slice(0, i).flatMap(s => s.kana));
+      } else if (st.id === 'h2') rev = STAGES.find(s => s.id === 'h1').kana;
+      else if (st.id !== 'h6') rev = D.ALL_SEION.split('');
+      return { ...st, review30: rev.filter(k => !st.kana.includes(k)) };
+    }
+    // せいさくべやの もんだい：クリアした ステージの もじ ぜんぶ
+    function seisakuStage(p) {
+      const done = STAGES.filter(s => p.cleared[s.id] && s.steps.includes('make') && !s.alt && !s.upper);
+      const kana = uniq(done.flatMap(s => s.kana));
+      return {
+        id: 'seisaku', title: 'せいさくべや', steps: ['seisaku'], kana: kana.length ? kana : STAGES[0].kana,
+        cons: done.some(s => s.hatten) ? 'kstnhmyrwgzdbp' : MAIN_CONS,
+      };
     }
     const problemLabel = (p) => p.k || (p.w ? wordKana(p.w) : p.v ? `${p.v} の なかま` : p.c ? `${p.c} の なかま` : '');
 
@@ -283,13 +322,13 @@
     //  5. しんちょく（進み具合）
     // =====================================================================
     const newProgress = () => ({ v: 1, t: 0, coins: 0, earned: 0, items: [], steps: {}, cleared: {}, table: {}, part: null,
-      equip: {}, room: [], theme: '', titles: [], welcome: 0, unlockAll: false, hatten: false });
+      equip: {}, room: [], theme: '', titles: [], welcome: 0, unlockAll: false, hatten: false, mats: {}, town: [] });
     function parseProgress(s) {
       let p = null;
       try { p = typeof s === 'string' ? (s ? JSON.parse(s) : null) : s; } catch (e) { p = null; }
       const q = { ...newProgress(), ...(p || {}) };
-      ['items', 'room', 'titles'].forEach(k => { if (!Array.isArray(q[k])) q[k] = []; });
-      ['steps', 'cleared', 'table', 'equip'].forEach(k => { if (!q[k] || typeof q[k] !== 'object') q[k] = {}; });
+      ['items', 'room', 'titles', 'town'].forEach(k => { if (!Array.isArray(q[k])) q[k] = []; });
+      ['steps', 'cleared', 'table', 'equip', 'mats'].forEach(k => { if (!q[k] || typeof q[k] !== 'object') q[k] = {}; });
       return q;
     }
     const mainStages = () => STAGES.filter(s => !s.hatten);
@@ -687,13 +726,14 @@
       return { slots: cur.slots, setSlots: upd('slots'), removed: cur.removed, setRemoved: upd('removed'), shake, setShake };
     }
 
+    const vowelOnly = (st) => st.kana.every(k => R.KANA_VOWEL[k]);
     function MakeQ({ p, st, ctx }) {
       const gaji = useGaji();
       const ans = useMemo(() => piecesOf(p.k, st), [p.k]);
       const types = ans.map(typeOf);
       const cons = useMemo(() => {
         const need = ans.filter(c => !R.isVowel(c));
-        if (st.id === '1') return [];
+        if (vowelOnly(st)) return [];
         return consChoices(need, st.cons);
       }, [p.k]);
       const vows = st.long ? ['a', 'i', 'u', 'e', 'o', 'â', 'î', 'û', 'ê', 'ô'] : R.VOWELS;
@@ -762,7 +802,7 @@
               <div className={`w-28 h-28 rounded-3xl border-4 flex items-center justify-center text-7xl font-bold ${pop ? 'bg-yellow-100 border-amber-500 pop' : 'bg-slate-50 border-slate-300 text-slate-300'}`}>{pop ? p.k : '？'}</div>
             </div>
           </div>
-          <Palette cons={cons} vows={vows} removed={b.removed} glow={glowSet} onTap={tap} upper={st.upper} disabled={phase !== 'play'} hideCons={st.id === '1'} />
+          <Palette cons={cons} vows={vows} removed={b.removed} glow={glowSet} onTap={tap} upper={st.upper} disabled={phase !== 'play'} hideCons={vowelOnly(st)} />
           <div className="flex gap-3">
             <HintButton level={m.hint} glow={m.miss >= 2 && m.hint < 3} onClick={() => { const lv = Math.min(3, m.hint + 1); m.setHint(lv); doHint(lv); }} />
             {m.hint >= 2 && <button onClick={() => setTable(true)} className="btn3d rounded-2xl border-2 border-sky-500 bg-sky-50 px-4 py-2 text-xl font-bold">📋 ひょう</button>}
@@ -1113,7 +1153,7 @@
     // 1かいぶん（5もん）の すすめかた
     function Practice({ st, step, n, intro, settings, onRecord, onCoin, onFill, onSave, onFinish, onQuit }) {
       const gaji = useGaji();
-      const problems = useMemo(() => buildProblems(st, step, n), []);
+      const problems = useMemo(() => buildProblems(step === 'challenge' ? withReview(st) : st, step, n), []);
       const [i, setI] = useState(-1);
       const [seikai, setSeikai] = useState(0);
       const stats = useRef({ ok: 0, all: 0, coins: 0 });
@@ -1153,12 +1193,13 @@
         },
       };
       const p = problems[i];
-      const Q = { make: MakeQ, read: ReadQ, word: WordQ, mate_v: MateQ, mate_c: MateQ, readword: ReadWordQ }[step];
+      const Q = { make: MakeQ, read: ReadQ, word: WordQ, mate_v: MateQ, mate_c: MateQ, readword: ReadWordQ, challenge: MakeQ, seisaku: MakeQ }[step];
       return (
         <div className="w-full max-w-6xl flex flex-col items-center gap-3">
           <GajiBar size={96} compact />
           <div className="flex items-center gap-3 w-full">
             <div className="text-xl font-bold bg-white rounded-2xl px-3 py-1 border-2 border-amber-300">{stageLabel(st)} <Rb t={st.title} />・{STEP[step].icon} {STEP[step].n}</div>
+            {problems.length > 10 && <div className="text-xl font-bold shrink-0">{Math.max(0, i) + 1} / {problems.length}</div>}
             <div className="flex gap-1 flex-1">{problems.map((_, j) => <div key={j} className={`h-4 flex-1 rounded-full ${j < i ? 'bg-amber-400' : j === i ? 'bg-amber-200 ring-2 ring-amber-400' : 'bg-white border border-amber-200'}`} />)}</div>
             <button onClick={onQuit} className="btn3d bg-white border-2 border-slate-300 rounded-2xl px-3 py-1 text-lg font-bold">✋ やめる</button>
           </div>
@@ -1171,7 +1212,7 @@
     // =====================================================================
     // 11. けっか
     // =====================================================================
-    function ResultScreen({ view, onAgain, onNext, onHome }) {
+    function ResultScreen({ view, onAgain, onNext, onHome, homeLabel }) {
       const gaji = useGaji();
       const r = view.result;
       useEffect(() => {
@@ -1184,14 +1225,14 @@
           <GajiBar size={110} />
           <div className="bg-white rounded-3xl border-4 border-amber-400 p-6 flex flex-col items-center gap-3 pop w-full">
             <div className="text-5xl font-bold text-amber-700">{r.stageClear ? '🏆 ステージ クリア！' : '⭐ よく できました！'}</div>
-            <div className="text-6xl">{Array.from({ length: r.n }, () => '⭐').join('')}</div>
+            <div className="text-6xl">{r.n > 10 ? `⭐ × ${r.n}` : Array.from({ length: r.n }, () => '⭐').join('')}</div>
             <div className="text-3xl font-bold">🪙 ＋{r.coins + (r.bonus || 0)}まい</div>
             {r.newTitle && <div className="text-2xl font-bold bg-amber-100 rounded-2xl px-4 py-2">🎖️ あたらしい しょうごう「{r.newTitle}」</div>}
           </div>
           <div className="flex flex-wrap gap-4 justify-center">
             {onNext && <Btn onClick={onNext} color="#16a34a" light="#dcfce7" className="text-3xl px-8">つぎへ ▶</Btn>}
             <Btn onClick={onAgain} color="#0284c7" light="#e0f2fe">🔁 もういちど</Btn>
-            <Btn onClick={onHome} color="#b45309" light="#fef3c7">🏠 こうぼうの ちず</Btn>
+            <Btn onClick={onHome} color="#b45309" light="#fef3c7">{homeLabel || '🏠 こうぼうの ちず'}</Btn>
           </div>
         </div>
       );
@@ -1255,7 +1296,7 @@
       );
     }
 
-    function MapScreen({ name, progress, onStage, onContinue, onShop, onRoom, onTable, onWelcome }) {
+    function MapScreen({ name, progress, onStage, onContinue, onShop, onRoom, onTable, onSeisaku, onWelcome }) {
       const gaji = useGaji();
       const cur = currentStage(progress);
       useEffect(() => {
@@ -1273,6 +1314,7 @@
             <Btn onClick={onTable} color="#0284c7" light="#e0f2fe">📋 ローマじ ひょう</Btn>
             <Btn onClick={onShop} color="#db2777" light="#fce7f3">🛒 おみせ</Btn>
             <Btn onClick={onRoom} color="#b45309" light="#fef3c7">🏠 こうぼう</Btn>
+            <Btn onClick={onSeisaku} color="#7c3aed" light="#ede9fe">🛠️ せいさくべや</Btn>
           </div>
           <div className="board rounded-3xl p-3 w-full max-w-5xl">
             <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
@@ -1317,6 +1359,17 @@
                 );
               })}
             </div>
+            {st.steps.includes('make') && (() => {
+              const open = stepDone(progress, st, 'make') || !!progress.cleared[st.id] || !!progress.unlockAll;
+              return (
+                <button onClick={() => open && onStep('challenge')} disabled={!open}
+                  className={`btn3d rounded-3xl border-4 px-6 py-3 flex items-center gap-3 ${open ? 'bg-yellow-50 border-amber-500' : 'bg-stone-200 border-stone-300 opacity-60'}`}>
+                  <span className="text-4xl">{open ? '🏅' : '🔒'}</span>
+                  <span className="text-left"><span className="text-2xl font-bold block">{NUM[st.steps.length]} チャレンジ（{LONG_N}もん）</span>
+                    <span className="text-base">{open ? `ランダムに ${LONG_N}もん。1もん できたら コイン 1まい` : '① くみたてる が できると ひらくよ'}{stepDone(progress, st, 'challenge') ? '　⭐ できた' : ''}</span></span>
+                </button>
+              );
+            })()}
             <div className="flex gap-3">
               {part && <Btn onClick={onResume} color="#16a34a" light="#dcfce7">▶ つづきから（あと {part.left}もん）</Btn>}
               <Btn onClick={onClose} color="#64748b" light="#f1f5f9">とじる</Btn>
@@ -1364,6 +1417,15 @@
           <rect x="30" y="54" width="40" height="22" rx="4" fill="#b45309" stroke="#78350f" strokeWidth="3" /><path d="M42 54 V44 M58 54 V46" stroke="#475569" strokeWidth="4" /><circle cx="42" cy="42" r="3" fill="#94a3b8" /></svg>);
       if (id === 'cape') return (
         <svg viewBox="0 0 100 100" style={s}><path d="M30 6 Q50 14 70 6 L92 92 Q50 100 8 92 Z" fill="#dc2626" stroke="#7f1d1d" strokeWidth="3" /><path d="M50 14 L50 92" stroke="#b91c1c" strokeWidth="2" /><circle cx="50" cy="10" r="6" fill="#facc15" stroke="#a16207" strokeWidth="2" /></svg>);
+      if (id === 'roof') return (
+        <svg viewBox="0 0 100 100" style={s}><path d="M6 70 L50 18 L94 70 Z" fill="#dc2626" stroke="#7f1d1d" strokeWidth="4" strokeLinejoin="round" />
+          <path d="M22 52 H78 M36 36 H64" stroke="#fca5a5" strokeWidth="4" /><rect x="10" y="68" width="80" height="8" rx="3" fill="#7f1d1d" /></svg>);
+      if (id === 'steel') return (
+        <svg viewBox="0 0 100 100" style={s}><g transform="rotate(-20 50 50)"><rect x="8" y="36" width="84" height="8" fill="#64748b" stroke="#334155" strokeWidth="2" /><rect x="8" y="58" width="84" height="8" fill="#64748b" stroke="#334155" strokeWidth="2" />
+          <rect x="8" y="44" width="84" height="14" fill="#94a3b8" stroke="#334155" strokeWidth="2" />{[20, 40, 60, 80].map(x => <circle key={x} cx={x} cy="51" r="3" fill="#334155" />)}</g></svg>);
+      if (id === 'glass') return (
+        <svg viewBox="0 0 100 100" style={s}><rect x="16" y="14" width="68" height="72" rx="6" fill="#bae6fd" fillOpacity=".75" stroke="#0369a1" strokeWidth="4" />
+          <path d="M28 30 L46 22 M28 46 L60 30" stroke="#fff" strokeWidth="5" strokeLinecap="round" /></svg>);
       const th = THEMES[id];
       if (th) return <div style={{ ...s, borderRadius: size * .12, overflow: 'hidden', border: '2px solid #92400e' }}><div style={{ height: '64%', background: th.wall }} /><div style={{ height: '36%', background: th.floor }} /></div>;
       return <span style={{ fontSize: size * .8 }}>❓</span>;
@@ -1391,13 +1453,19 @@
       return <span className={`rounded-full font-bold border-2 whitespace-nowrap text-xs px-2 ${it.tier === 3 ? 'glow' : ''}`} style={{ color: t.color, borderColor: t.color, background: t.bg }}>{it.tier === 3 ? '👑 ' : ''}{t.n}</span>;
     }
 
-    function ShopScreen({ progress, onBuy }) {
+    function ShopScreen({ progress, onBuy, onBuyMat, startCat }) {
       const gaji = useGaji();
-      const [cat, setCat] = useState(null);
+      const [cat, setCat] = useState(startCat || null);
       const [confirm, setConfirm] = useState(null);
       const own = new Set(progress.items);
       const c = cat && D.ITEM_CATS.find(x => x.id === cat);
-      useEffect(() => { gaji.say('こうぼうの おみせだよ。コインで かぐや どうぐ、ぼくの ふくを かえるよ。どの たなを みる？'); }, []);
+      useEffect(() => { gaji.say(startCat ? 'ざいりょうの たなだよ。おすと 1こ かえるよ。' : 'こうぼうの おみせだよ。コインで かぐや どうぐ、ぼくの ふく、いえを たてる ざいりょうを かえるよ。どの たなを みる？'); }, []);
+      const buyMat = (m) => {
+        Sound.tap();
+        if (progress.coins < m.p) { gaji.say(`${m.n}は コイン ${m.p}まい。あと ${m.p - progress.coins}まい あつめよう！`, { mood: 'think' }); return; }
+        onBuyMat(m); Sound.buy();
+        gaji.say(`${m.n}を 1こ かったよ。いま ${((progress.mats || {})[m.id] || 0) + 1}こ。`, { mood: 'happy' });
+      };
       const enter = (id) => { Sound.tap(); setCat(id); gaji.say(`${D.ITEM_CATS.find(x => x.id === id).name}の たなだよ。`); };
       const tap = (it) => {
         Sound.tap();
@@ -1414,7 +1482,7 @@
       return (
         <div className="w-full flex-1 flex flex-col items-center gap-3 p-3 wood">
           <div className="bg-white/90 rounded-3xl p-2 w-full max-w-5xl"><GajiBar size={90} compact equip={progress.equip} /></div>
-          {!c && (
+          {!cat && (
             <div className="grid grid-cols-3 gap-3 w-full max-w-4xl">
               {D.ITEM_CATS.map(x => {
                 const n = x.items.filter(it => own.has(it.id)).length;
@@ -1426,6 +1494,31 @@
                   </button>
                 );
               })}
+              <button onClick={() => { Sound.tap(); setCat('zairyo'); gaji.say('ざいりょうの たなだよ。おすと 1こ かえるよ。せいさくべやで いえや ビルを たてよう。'); }} className="btn3d rounded-2xl border-4 bg-white flex flex-col items-center py-3 col-span-3" style={{ borderColor: '#7c3aed' }}>
+                <span className="text-6xl">🧱🪵🪟</span>
+                <span className="text-2xl font-bold mt-1">ざいりょう（いえや ビルを たてる）</span>
+              </button>
+            </div>
+          )}
+          {cat === 'zairyo' && (
+            <div className="w-full max-w-5xl flex flex-col gap-3">
+              <div className="flex items-center gap-3">
+                <button onClick={() => { Sound.tap(); setCat(null); }} className="btn3d shrink-0 bg-white border-2 border-slate-300 rounded-2xl px-4 py-2 text-xl font-bold">◀ もどる</button>
+                <div className="flex-1 text-center text-3xl font-bold py-2 rounded-2xl bg-white border-4" style={{ borderColor: '#7c3aed' }}>🧱 ざいりょう</div>
+              </div>
+              <div className="grid grid-cols-4 gap-3 bg-white/90 rounded-3xl p-3">
+                {D.MATERIALS.map(m => {
+                  const can = progress.coins >= m.p, have = (progress.mats || {})[m.id] || 0;
+                  return (
+                    <button key={m.id} onClick={() => buyMat(m)} className="btn3d rounded-2xl border-4 border-violet-300 bg-white p-2 flex flex-col items-center">
+                      <span className={`h-16 flex items-center ${can ? '' : 'opacity-60'}`}><ItemPic it={m} size={60} /></span>
+                      <span className="text-lg font-bold">{m.n}</span>
+                      <span className={`text-xl font-bold rounded-full px-2 ${can ? 'bg-amber-100' : 'bg-slate-100 text-slate-400'}`}>🪙 {m.p}</span>
+                      <span className="text-base font-bold text-violet-700">もって いる：{have}こ</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
           {c && (
@@ -1537,6 +1630,110 @@
       );
     }
 
+
+    // =====================================================================
+    // 13b. せいさくべや（もんだい・せっけいず・まち）
+    // =====================================================================
+    const TOWN_W = 8, TOWN_H = 4;
+    const BLD = (id) => D.BUILDINGS.find(b => b.id === id);
+    const MAT = (id) => D.MATERIALS.find(m => m.id === id);
+    const canBuild = (p, b) => Object.entries(b.need).every(([m, n]) => ((p.mats || {})[m] || 0) >= n);
+    function TownView({ town, sel, onCell }) {
+      return (
+        <div className="grid gap-1 p-2 rounded-3xl border-8 border-emerald-700 w-full max-w-3xl mx-auto" style={{ gridTemplateColumns: `repeat(${TOWN_W}, minmax(0, 1fr))`, background: 'repeating-linear-gradient(100deg,#86efac 0 12px,#6ee7a0 12px 16px)' }}>
+          {Array.from({ length: TOWN_W * TOWN_H }, (_, ci) => {
+            const t = town.find(x => x.c === ci), b = t && BLD(t.b);
+            const on = t && t.id === sel;
+            return (
+              <button key={ci} onClick={() => onCell(ci)} aria-label={b ? b.n : 'あいて いる マス'}
+                className={`aspect-square rounded-xl flex items-center justify-center ${b ? 'bg-white/30' : 'border-2 border-dashed border-white/70'} ${on ? 'ring-4 ring-amber-400 bg-amber-100/70 glow' : ''} ${sel && !t ? 'bg-white/40' : ''}`}>
+                {b && <span className="text-5xl leading-none">{b.e}</span>}
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
+    function SeisakuScreen({ progress, onQuiz, onBuild, onTown, onShopMats }) {
+      const gaji = useGaji();
+      const [sel, setSel] = useState(null);
+      const town = progress.town || [];
+      const tray = town.filter(t => t.c == null);
+      useEffect(() => { gaji.say('ここは せいさくべや。もんだいを といて コインを ためよう。おみせで ざいりょうを かって、せっけいずの たてものを たてよう。'); }, []);
+      const build = (b) => {
+        Sound.tap();
+        if (!canBuild(progress, b)) {
+          const lack = Object.entries(b.need).filter(([m, n]) => ((progress.mats || {})[m] || 0) < n).map(([m, n]) => `${MAT(m).n} あと ${n - ((progress.mats || {})[m] || 0)}こ`);
+          gaji.say(`${b.n}を たてるには、${lack.join('、')} ひつようだよ。`, { mood: 'think' });
+          return;
+        }
+        const id = onBuild(b);
+        setSel(id); Sound.big();
+        gaji.say(`${b.n}が できたよ！ まちの すきな マスを おしてね。`, { mood: 'happy' });
+      };
+      const cellTap = (ci) => {
+        const occ = town.find(t => t.c === ci);
+        if (sel) {
+          const me = town.find(t => t.id === sel);
+          if (!me) { setSel(null); return; }
+          if (occ && occ.id === sel) { setSel(null); Sound.tap(); return; }
+          onTown(town.map(t => t.id === sel ? { ...t, c: ci } : occ && t.id === occ.id ? { ...t, c: me.c } : t));
+          setSel(null); Sound.snap();
+          gaji.say(`${BLD(me.b).n}を おいたよ。`, { mood: 'happy' });
+          return;
+        }
+        if (occ) { setSel(occ.id); Sound.tap(); gaji.say(`${BLD(occ.b).n}を うごかす ときは、すきな マスを おしてね。しまう ときは「しまう」を おしてね。`); }
+      };
+      const putAway = () => { Sound.tap(); onTown(town.map(t => t.id === sel ? { ...t, c: null } : t)); setSel(null); };
+      const selT = town.find(t => t.id === sel);
+      return (
+        <div className="w-full flex-1 flex flex-col items-center gap-3 p-3 wood">
+          <div className="bg-white/90 rounded-3xl p-2 w-full max-w-5xl"><GajiBar size={90} compact equip={progress.equip} /></div>
+          <div className="flex flex-wrap gap-3 justify-center items-center">
+            <Btn onClick={onQuiz} color="#16a34a" light="#dcfce7" className="text-3xl px-8 glow">📝 もんだい（{LONG_N}もん）</Btn>
+            <Btn onClick={onShopMats} color="#7c3aed" light="#ede9fe">🛒 ざいりょうを かう</Btn>
+          </div>
+          <div className="bg-white/90 rounded-2xl px-3 py-2 flex flex-wrap gap-2 items-center justify-center w-full max-w-5xl">
+            <span className="font-bold text-lg">もって いる ざいりょう：</span>
+            {D.MATERIALS.map(m => <span key={m.id} className="flex items-center gap-1 rounded-full border-2 border-violet-200 px-2 bg-violet-50"><ItemPic it={m} size={28} /><b className="text-lg">{(progress.mats || {})[m.id] || 0}</b></span>)}
+          </div>
+          <div className="w-full max-w-5xl">
+            <div className="text-2xl font-bold mb-2">📐 せっけいず</div>
+            <div className="grid grid-cols-3 gap-3">
+              {D.BUILDINGS.map(b => {
+                const ok = canBuild(progress, b), n = town.filter(t => t.b === b.id).length;
+                return (
+                  <div key={b.id} className={`rounded-2xl border-4 p-2 flex flex-col items-center gap-1 ${ok ? 'bg-yellow-50 border-amber-400' : 'bg-white border-slate-200'}`}>
+                    <div className="flex items-center gap-2"><span className="text-5xl">{b.e}</span><span className="text-2xl font-bold">{b.n}</span>{n > 0 && <span className="text-sm font-bold bg-emerald-100 rounded-full px-2">{n}こ</span>}</div>
+                    <div className="flex flex-wrap gap-1 justify-center">
+                      {Object.entries(b.need).map(([m, k]) => {
+                        const have = (progress.mats || {})[m] || 0;
+                        return <span key={m} className={`flex items-center gap-1 rounded-full px-2 border-2 ${have >= k ? 'border-emerald-400 bg-emerald-50' : 'border-rose-300 bg-rose-50'}`}><ItemPic it={MAT(m)} size={24} /><b>{Math.min(have, k)}/{k}</b></span>;
+                      })}
+                    </div>
+                    <button onClick={() => build(b)} className={`btn3d rounded-xl border-2 px-4 py-1 text-xl font-bold ${ok ? 'bg-emerald-100 border-emerald-500' : 'bg-slate-100 border-slate-300 text-slate-400'}`}>🔨 たてる</button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div className="w-full max-w-5xl">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="text-2xl font-bold">🏙️ まち</div>
+              {selT && <span className="text-lg font-bold bg-amber-100 rounded-full px-3">{BLD(selT.b).e} {BLD(selT.b).n}：すきな マスを おしてね</span>}
+              {selT && selT.c != null && <button onClick={putAway} className="btn3d rounded-xl border-2 border-slate-400 bg-white px-3 py-1 text-lg font-bold">📦 しまう</button>}
+            </div>
+            <TownView town={town} sel={sel} onCell={cellTap} />
+            <div className="flex flex-wrap gap-2 items-center mt-2 bg-white/90 rounded-2xl p-2">
+              <span className="font-bold">📦 まだ おいて いない たてもの：</span>
+              {tray.map(t => <button key={t.id} onClick={() => { Sound.tap(); setSel(sel === t.id ? null : t.id); }} className={`btn3d rounded-xl border-2 px-2 text-4xl ${sel === t.id ? 'bg-amber-100 border-amber-500 glow' : 'bg-white border-slate-300'}`} aria-label={BLD(t.b).n}>{BLD(t.b).e}</button>)}
+              {!tray.length && <span className="text-slate-500">なし</span>}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     // =====================================================================
     // 14. 先生用画面
     // =====================================================================
@@ -1610,7 +1807,7 @@
       };
       const opt = (key, list) => list.map(([v, t]) =>
         <button key={String(v)} onClick={() => setS({ ...s, [key]: v })} className={`ml-2 mt-1 rounded-lg px-3 py-1 border-2 ${s[key] === v ? 'bg-amber-200 border-amber-500' : 'bg-white'}`}>{t}</button>);
-      const allStages = [...mainStages(), ...hattenStages()];
+      const allStages = [...mainStages(), ...hattenStages(), { id: 'seisaku', title: 'せいさくべや', steps: [] }];
 
       return (
         <div className="fixed inset-0 bg-slate-50 z-50 overflow-auto">
@@ -1674,7 +1871,7 @@
                   <div className="grid md:grid-cols-2 gap-3">
                     <div className="bg-white rounded-xl p-3">
                       <div className="font-bold text-xl mb-1">{student.name}　<span className="text-base">🎖️ {titleOf(prog)}</span></div>
-                      <div>クリア：{cleared(prog)} / {mainStages().length}　ひょう：{tableCount(prog)} / {SEION_CELLS().length}　コイン：🪙 {prog.coins}（これまでに {prog.earned}まい）　買った品物：{prog.items.length}</div>
+                      <div>クリア：{cleared(prog)} / {mainStages().length}　ひょう：{tableCount(prog)} / {SEION_CELLS().length}　コイン：🪙 {prog.coins}（これまでに {prog.earned}まい）　買った品物：{prog.items.length}　たてた もの：{(prog.town || []).length}</div>
                       <div>問題：{student.count}　まちがえずに：{pct(student.ok, student.count)}　しいんの まちがい：{student.cmiss}　ぼいんの まちがい：{student.vmiss}　さいご：{student.last || '－'}</div>
                       <div className="mt-2 font-bold">ステージごとの結果</div>
                       <table className="w-full text-left text-sm">
@@ -1831,7 +2028,7 @@
         setStageSel(null);
         records.current = [];
         titleStart.current = titlesOf(progRef.current);
-        const n = left || Number(settings.count) || 5;
+        const n = left || (step === 'challenge' || step === 'seisaku' ? LONG_N : Number(settings.count) || 5);
         setView({ v: 'practice', st, step, n, intro: left ? 'つづきから はじめよう。' : null, key: uid() });
       };
       const onRecord = (r) => { records.current.push({ ...r, id: uid() }); };
@@ -1840,9 +2037,14 @@
         if (progRef.current.table[k]) return;
         updateProg(p => ({ ...p, table: { ...p.table, [k]: 1 } }));
       };
-      const onSave = (part) => persist({ ...progRef.current, part });
+      const onSave = (part) => persist({ ...progRef.current, part: part.st === 'seisaku' ? progRef.current.part : part });
 
       const finish = (st, step, result) => {
+        if (step === 'seisaku') {
+          persist(progRef.current);
+          setView({ v: 'result', st, step, result: { ...result, bonus: 0, stageClear: false, newTitle: null }, next: null });
+          return;
+        }
         let p = { ...progRef.current, part: null };
         p.steps = { ...p.steps, [st.id]: { ...(p.steps[st.id] || {}), [step]: 1 } };
         let bonus = 0, stageClear = false;
@@ -1856,14 +2058,29 @@
         if (newTitle) setTimeout(() => { setAward(newTitle); Sound.big(); }, 3500);
         let next = null;
         const si = st.steps.indexOf(step);
-        if (si + 1 < st.steps.length && stepOpen(p, st, st.steps[si + 1])) next = () => startStep(st, st.steps[si + 1]);
+        if (step === 'challenge') next = null;
+        else if (si + 1 < st.steps.length && stepOpen(p, st, st.steps[si + 1])) next = () => startStep(st, st.steps[si + 1]);
         else {
           const list = st.hatten ? hattenStages() : mainStages(), i = list.findIndex(s => s.id === st.id);
           if (list[i + 1] && stageOpen(p, list[i + 1])) next = () => { setView({ v: 'map' }); setStageSel(list[i + 1]); };
         }
         setView({ v: 'result', st, step, result: { ...result, bonus, stageClear, newTitle }, next });
       };
-      const quit = () => { gajiApi.stop(); persist(progRef.current); setView({ v: 'map' }); };
+      const quit = () => { gajiApi.stop(); persist(progRef.current); setView({ v: view.step === 'seisaku' ? 'seisaku' : 'map' }); };
+      const buyMat = (m) => {
+        const p = progRef.current;
+        if (p.coins < m.p) return;
+        persist({ ...p, coins: p.coins - m.p, mats: { ...(p.mats || {}), [m.id]: ((p.mats || {})[m.id] || 0) + 1 } });
+      };
+      const build = (b) => {
+        const p = progRef.current;
+        if (!canBuild(p, b)) return null;
+        const mats = { ...(p.mats || {}) };
+        Object.entries(b.need).forEach(([m, n]) => { mats[m] -= n; });
+        const id = uid();
+        persist({ ...p, mats, town: [...(p.town || []), { id, b: b.id, c: null }] });
+        return id;
+      };
       const buy = (it) => {
         const p = progRef.current;
         if (p.coins < it.p || p.items.includes(it.id)) return;
@@ -1917,7 +2134,7 @@
       } else if (view.v === 'map') {
         body = <div className="min-h-screen flex flex-col">{bar(false)}
           <MapScreen name={name} progress={progress} onStage={(st) => { Sound.tap(); setStageSel(st); }} onContinue={cont}
-            onShop={() => setView({ v: 'shop' })} onRoom={() => setView({ v: 'room' })} onTable={() => setView({ v: 'table' })}
+            onShop={() => setView({ v: 'shop' })} onRoom={() => setView({ v: 'room' })} onTable={() => setView({ v: 'table' })} onSeisaku={() => setView({ v: 'seisaku' })}
             onWelcome={() => persist({ ...progRef.current, welcome: 1 })} />
           {stageSel && <StageModal key={stageSel.id} st={stageSel} progress={progress} onClose={() => setStageSel(null)}
             onStep={(s) => startStep(stageSel, s)} onResume={() => startStep(stageSel, progress.part.step, progress.part.left)} />}</div>;
@@ -1927,9 +2144,13 @@
             onRecord={onRecord} onCoin={onCoin} onFill={onFill} onSave={onSave} onFinish={(r) => finish(view.st, view.step, r)} onQuit={quit} /></div></div>;
       } else if (view.v === 'result') {
         body = <div className="min-h-screen flex flex-col items-center">{bar()}<ResultScreen view={view}
-          onAgain={() => startStep(view.st, view.step)} onNext={view.next} onHome={() => setView({ v: 'map' })} /></div>;
+          onAgain={() => startStep(view.step === 'seisaku' ? seisakuStage(progRef.current) : view.st, view.step)} onNext={view.next}
+          onHome={() => setView({ v: view.step === 'seisaku' ? 'seisaku' : 'map' })} homeLabel={view.step === 'seisaku' ? '🛠️ せいさくべや' : null} /></div>;
       } else if (view.v === 'shop') {
-        body = <div className="min-h-screen flex flex-col">{bar()}<ShopScreen progress={progress} onBuy={buy} /></div>;
+        body = <div className="min-h-screen flex flex-col">{bar()}<ShopScreen key={view.cat || 'shop'} progress={progress} onBuy={buy} onBuyMat={buyMat} startCat={view.cat} /></div>;
+      } else if (view.v === 'seisaku') {
+        body = <div className="min-h-screen flex flex-col">{bar()}<SeisakuScreen progress={progress} onBuild={build} onTown={(town) => persist({ ...progRef.current, town })}
+          onQuiz={() => startStep(seisakuStage(progRef.current), 'seisaku')} onShopMats={() => setView({ v: 'shop', cat: 'zairyo' })} /></div>;
       } else if (view.v === 'room') {
         body = <div className="min-h-screen flex flex-col">{bar()}<RoomScreen progress={progress} onChange={(ch) => persist({ ...progRef.current, ...ch })} /></div>;
       } else if (view.v === 'table') {

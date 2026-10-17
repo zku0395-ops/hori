@@ -169,5 +169,30 @@
     { n: 'ローマじ めいじん', allClear: true },
   ];
 
-  root.ROMAJI_DATA = { ALL_SEION, PICS, STAGES, TIERS, ITEM_CATS, TITLES };
+  // せいさくべや：ざいりょう（おみせの「ざいりょう」の たなで 1こずつ かう。たてると なくなる）
+  // e＝絵文字、svg＝自作の 絵（合う 絵文字が ない もの）
+  const MATERIALS = [
+    { id: 'wood', n: 'きの いた', e: '🪵', p: 2 },
+    { id: 'brick', n: 'レンガ', e: '🧱', p: 3 },
+    { id: 'stone', n: 'いし', e: '🪨', p: 3 },
+    { id: 'window', n: 'まど', e: '🪟', p: 4 },
+    { id: 'door', n: 'ドア', e: '🚪', p: 5 },
+    { id: 'roof', n: 'やね', svg: 'roof', p: 5 },
+    { id: 'steel', n: 'てっこつ', svg: 'steel', p: 6 },
+    { id: 'glass', n: 'ガラス', svg: 'glass', p: 6 },
+  ];
+  // せっけいず（ひつような ざいりょうと かず）
+  const BUILDINGS = [
+    { id: 'koya', n: 'こや', e: '🛖', need: { wood: 3, door: 1 } },
+    { id: 'ie', n: 'いえ', e: '🏠', need: { wood: 4, window: 2, door: 1, roof: 1 } },
+    { id: 'niwa', n: 'にわつきの いえ', e: '🏡', need: { wood: 4, window: 2, door: 1, roof: 1, stone: 2 } },
+    { id: 'mise', n: 'おみせ', e: '🏪', need: { brick: 4, window: 2, door: 1 } },
+    { id: 'gakkou', n: 'がっこう', e: '🏫', need: { brick: 8, window: 4, door: 2, roof: 1 } },
+    { id: 'byouin', n: 'びょういん', e: '🏥', need: { brick: 6, glass: 2, window: 4, door: 2 } },
+    { id: 'biru', n: 'ビル', e: '🏢', need: { steel: 6, glass: 6, door: 1 } },
+    { id: 'tower', n: 'タワー', e: '🗼', need: { steel: 12, glass: 2 } },
+    { id: 'oshiro', n: 'おしろ', e: '🏰', need: { stone: 12, window: 4, door: 2, roof: 2 } },
+  ];
+
+  root.ROMAJI_DATA = { ALL_SEION, PICS, STAGES, TIERS, ITEM_CATS, TITLES, MATERIALS, BUILDINGS };
 })(typeof window !== 'undefined' ? window : globalThis);
