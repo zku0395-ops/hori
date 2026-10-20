@@ -78,6 +78,8 @@
     .pic { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 1.2rem; border: 4px solid #fff; box-shadow: 0 4px 14px rgba(0,0,0,.12); background: #e2e8f0; display: block; }
     .imgnote { font-size: .8rem; color: #64748b; text-align: right; margin-top: .2rem; }
     .ctitle { font-size: 2rem; font-weight: 700; line-height: 1.9; }
+    .cbadge { display: inline-block; margin-left: .5em; padding: .05em .55em; border-radius: 999px; background: #e0f2fe; color: #0369a1; border: 2px solid #7dd3fc; font-size: .55em; font-weight: 700; vertical-align: middle; line-height: 1.6; white-space: nowrap; }
+    .sheet .cbadge { font-size: 2.6mm; border-width: .3mm; margin-left: 1mm; }
     .ctext { font-size: 1.7rem; line-height: 2.3; letter-spacing: .02em; }
     .ctext .sent { display: block; padding: 0 .3rem; border-radius: .6rem; transition: background .2s; }
     .ctext .sent.reading { background: #fef3c7; }
@@ -211,6 +213,7 @@
   <script src="data/tokyo.js"></script>
   <script src="data/tokyo2.js"></script>
   <script src="data/osaka.js"></script>
+  <script src="data/niigata.js"></script>
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, useCallback } = React;
@@ -1136,6 +1139,8 @@
       if (ng) return <div className={className} style={{ ...style, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9', color: '#94a3b8', fontWeight: 700, textAlign: 'center', ...ngStyle }} data-img-ng="1">しゃしんは<br />じゅんびちゅう</div>;
       return <img className={className} style={style} src={imgOf(pref, card)} alt={plain(card.title)} onError={() => setNg(true)} />;
     }
+    // カードの しるし（例：🏝️ さどがしま）。データの badge に 書く
+    function Badge({ card }) { return card && card.badge ? <span className="cbadge" data-badge="1">{card.badge}</span> : null; }
     function Photo({ pref, card, style, own, src }) {
       return (
         <div style={style}>
@@ -1180,7 +1185,7 @@
             <Photo pref={pref} card={card} />
             <div className="col" style={{ gap: '.3rem' }}>
               <div className="row between">
-                <div className="ctitle kw" style={{ color: item.color }} data-card-title="1"><R t={card.title} /></div>
+                <div className="ctitle kw" style={{ color: item.color }} data-card-title="1"><R t={card.title} /><Badge card={card} /></div>
                 <button className="speak" style={{ fontSize: '1.2rem' }} onClick={() => readCard(false)} data-read="1">🔊 よむ</button>
               </div>
               <CardText card={card} reading={reading} />
@@ -1209,7 +1214,7 @@
           <div className="readgrid">
             <Photo pref={pref} card={card} />
             <div className="col">
-              <div className="ctitle kw" style={{ color: item.color }}><R t={card.title} /></div>
+              <div className="ctitle kw" style={{ color: item.color }}><R t={card.title} /><Badge card={card} /></div>
               <CardText card={card} />
             </div>
           </div>
@@ -1423,7 +1428,7 @@
                 {item.cards.map(c => (
                   <button key={c.id} className={`pickbtn ${ip.pick === c.id ? 'on' : ''}`} onClick={() => pick(c)} data-pick={c.id}>
                     <CardImg pref={pref} card={c} ngStyle={{ width: '100%', aspectRatio: '4 / 3', borderRadius: '.8rem' }} />
-                    <span className="kw tc"><R t={c.title} /></span>
+                    <span className="kw tc"><R t={c.title} /><Badge card={c} /></span>
                     {ip.pick === c.id && <span className="check">✓</span>}
                   </button>
                 ))}
@@ -1564,7 +1569,7 @@
           <div className="writegrid">
             <div className="col">
               <Photo pref={pref} card={card} />
-              <div className="ctitle tc kw" style={{ color: item.color, fontSize: '1.5rem' }}><R t={card.title} /></div>
+              <div className="ctitle tc kw" style={{ color: item.color, fontSize: '1.5rem' }}><R t={card.title} /><Badge card={card} /></div>
               <Btn color="white" size="sm" onClick={() => updItem(app, kid, pref.id, item.id, { step: 'pick' })}>🖼️ しゃしんを えらびなおす</Btn>
             </div>
             <div className="col">
@@ -1725,7 +1730,7 @@
               <div className="sh-photo">
                 {own ? (ownSrc ? <img src={ownSrc} alt="" style={{ objectFit: 'contain', background: '#f1f5f9' }} data-own-photo="1" /> : <div style={{ width: '52mm', height: '39mm', background: '#f1f5f9' }} data-own-wait="1" />)
                   : <CardImg pref={pref} card={card} ngStyle={{ width: '52mm', height: '39mm', fontSize: '4mm' }} />}
-                <div className="sh-cap kw">{own ? o.name : <R t={card.title} />}</div>
+                <div className="sh-cap kw">{own ? o.name : <><R t={card.title} /><Badge card={card} /></>}</div>
                 <div className="sh-note kw">{own ? (o.src ? `でどころ：${o.src}` : 'じぶんで いれた しゃしん') : '※しゃしんは イメージです'}</div>
               </div>
               <div className="sh-text kw"><div><R t={sentence1(item, ip)} /></div><div><R t={sentence2(ip)} /></div></div>
