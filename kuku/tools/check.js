@@ -40,6 +40,16 @@ if (D.TREASURES.length !== 10) ng(`たからものは 10こ の はずです（$
 D.FLOORS.forEach(f => { if (!tid.has(f.treasure)) ng(`${f.f}かい：たからもの ${f.treasure} が ありません`); if (!f.karakuri) ng(`${f.f}かい：からくりが ありません`); });
 if (!tid.has('shachihoko')) ng('てんしゅかくの たからもの（shachihoko）が ありません');
 
+// 3b. たたかう あいて（9かい＋てんしゅかく に 1たいずつ）
+if (D.ENEMIES.length !== 10) ng(`あいては 10たい の はずです（${D.ENEMIES.length}）`);
+const eid = new Set(D.ENEMIES.map(en => en.id));
+if (eid.size !== D.ENEMIES.length) ng('あいての id が かさなって います');
+[...D.FLOORS.map(f => f.f), 'T'].forEach(f => { if (D.ENEMIES.filter(en => en.f === f).length !== 1) ng(`${f}かい：あいてが 1たい では ありません`); });
+D.ENEMIES.forEach(en => {
+  if (!en.name || !en.e || !en.hello || !en.escape || !en.room) ng(`${en.id}：なまえ・絵文字・ことば・へやが たりません`);
+  if (/[一-鿿]/.test(en.name + en.hello + en.escape)) ng(`${en.id}：ことばに ふりがなの ない 漢字が あります`);
+});
+
 // 4. いろ・よろずや・しょうごう
 if (D.COLORS.length !== 6) ng(`はじめの いろは 6しゅるいの はずです（${D.COLORS.length}）`);
 const P = [5, 5, 5, 5, 15, 15, 15, 30, 30, 60];
@@ -56,5 +66,5 @@ D.ITEM_CATS.forEach(c => {
 });
 if (!D.TITLES.some(t => t.all)) ng('はってん ぜんぶの しょうごうが ありません');
 
-console.log(bad ? `✖ ${bad}けん` : `✔ ステージ ${D.STAGES.length}・たからもの ${D.TREASURES.length}・よろずや ${iid.size}こ・となえかた 81こ。もんだい なし`);
+console.log(bad ? `✖ ${bad}けん` : `✔ ステージ ${D.STAGES.length}・あいて ${D.ENEMIES.length}・たからもの ${D.TREASURES.length}・よろずや ${iid.size}こ・となえかた 81こ。もんだい なし`);
 process.exit(bad ? 1 : 0);

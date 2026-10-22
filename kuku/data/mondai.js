@@ -28,6 +28,22 @@
     { f: 9, a: 1, color: '#14b8a6', treasure: 'katana', karakuri: 'さいごの とびらが ひらいた！ てんしゅかくへ いけるよ！' },
   ];
 
+  // ---- たたかう あいて（④にんじゃ しけん・てんしゅかく）と へやの絵 ----
+  // f：階（T＝てんしゅかく）、e：絵が ないときの 絵文字、room：へやの説明（絵は img/room_<f>.webp、あいては img/enemy_<id>.webp）
+  // hello：はじめの ことば、escape：にげる ときの ことば
+  const ENEMIES = [
+    { id: 'mihari', f: 1, name: 'みはりの にんじゃ', e: '🥷', room: '明るい 板の間の ろうか', hello: 'くせものだ！ ここは とおさんぞ！', escape: 'ふん、きょうは みのがして やる！' },
+    { id: 'karakasa', f: 2, name: 'からかさおばけ', e: '☂️', room: 'しょうじが ならぶ ろうか', hello: 'けけけ！ おどろかして やるぞ〜！', escape: 'けけっ、また あそぼうな〜！' },
+    { id: 'kotengu', f: 3, name: 'こてんぐ', e: '🐦', room: '太い はりと 階段の ある 広間', hello: 'わしの はやわざに ついて こられるかな？', escape: 'まだまだ しゅぎょうが たりんのう！' },
+    { id: 'rokuro', f: 4, name: 'ろくろくび', e: '👻', room: 'ふすまに 月の絵の ある たたみの へや', hello: 'くびが のびるぞ〜。こわいか〜？', escape: 'くびを ながく して まって おるぞ〜' },
+    { id: 'akaoni', f: 5, name: 'あかおに', e: '👹', room: 'うす暗い たたみの へや', hello: 'がおー！ おれさまと しょうぶだ！', escape: 'がはは！ つぎは まけんぞ！' },
+    { id: 'musha', f: 6, name: 'よろいの むしゃ', e: '🛡️', room: '武具が かざって ある へや', hello: 'いざ じんじょうに しょうぶ！', escape: 'みごとな こころいき。また まいれ！' },
+    { id: 'hannya', f: 7, name: 'はんにゃ', e: '🎭', room: '夜の ろうか', hello: 'ふっふっふ……この おめんが こわいか？', escape: 'ふっふっふ……また あおう……' },
+    { id: 'daitengu', f: 8, name: 'だいてんぐ', e: '👺', room: 'ろうそくの 明かりの 広間', hello: 'わしが この やまの だいてんぐじゃ！', escape: 'かっかっか！ でなおして まいれ！' },
+    { id: 'kashira', f: 9, name: 'くろにんじゃの かしら', e: '🥷', room: '金の ふすまの 大広間', hello: 'ここまで きたか。だが、ここで おわりだ！', escape: 'その うででは まだ とおせんな。' },
+    { id: 'shogun', f: 'T', name: 'からくり だいしょうぐん', e: '🤖', room: 'てんしゅかくの 最上階（まどの外に 満月）', hello: 'ガシャン！ ワレハ からくり だいしょうぐん。しろの たからを まもる！', escape: 'ガシャン……また ちょうせん セヨ……' },
+  ];
+
   // ---- たからもの（9かい ＋ てんしゅかく） ----
   const TREASURES = [
     { id: 'makimono', name: 'ひみつの まきもの', e: '📜', where: '1かい（5の だん）' },
@@ -58,7 +74,7 @@
     (a) => `${a}の だんを となえよう。わたしの こえを きいて、いっしょに こえに だしてね。`,
     (a) => `${a} × 1 から じゅんばんに こたえよう。1つ まえの こたえに ${a}を たすと、つぎの こたえだよ。`,
     (a) => `こんどは ${a}の だんが ばらばらに でるよ。しのびあしで すすもう。`,
-    (a) => `にんじゃ しけん！ ${a}の だんを ばらばらに 9もん。ごうかく したら、たからばこが ひらくよ。`,
+    (a, en) => `にんじゃ しけん！ ${en.name}が まちかまえて いるよ。${a}の だんを ばらばらに 9もん。まちがえずに こたえると、しゅりけんが あたるよ。たおしたら、たからばこが ひらくよ。`,
   ];
   const STAGES = [
     { id: '0-1', iri: true, title: '1つ分は いくつ？', kind: 'per', as: [2, 3, 4, 5], bs: [2, 3, 4, 5],
@@ -69,10 +85,10 @@
       intro: '「3まいの 4つ分」は、しきで 3 × 4 と かくよ。ぜんぶで なんまいかも かんがえよう。' },
   ];
   FLOORS.forEach(fl => STEP.forEach(sp => {
-    STAGES.push({ id: `${fl.a}-${sp.s}`, f: fl.f, a: fl.a, s: sp.s, title: sp.title, kind: sp.kind, intro: INTRO[sp.s](fl.a) });
+    STAGES.push({ id: `${fl.a}-${sp.s}`, f: fl.f, a: fl.a, s: sp.s, title: sp.title, kind: sp.kind, intro: INTRO[sp.s](fl.a, ENEMIES.find(en => en.f === fl.f)) });
   }));
   STAGES.push({ id: 'T', tenshu: true, title: 'てんしゅかくの しけん', kind: 'mix', all: true,
-    intro: 'てんしゅかくに ついたよ！ さいごの しけんは、1から 9の だんが ぜんぶ まざって でるよ。' });
+    intro: 'てんしゅかくに ついたよ！ からくり だいしょうぐんが まって いるよ。1から 9の だんが ぜんぶ まざって でるよ。' });
   STAGES.push({ id: 'R', review: true, title: 'ふくしゅうの へや', kind: 'mix',
     intro: 'ふくしゅうの へやだよ。これまでに ごうかく した だんが まざって でるよ。にがてな くくが すこし おおめに でるよ。' });
   STAGES.push({ id: 'H1', hatten: true, title: 'こたえから しきを さがす', kind: 'findEq',
@@ -147,5 +163,5 @@
     { n: 'にんじゃ マスター', all: true },
   ];
 
-  (typeof window !== 'undefined' ? window : globalThis).KUKU_DATA = { TONAE, FLOORS, TREASURES, STEP, STAGES, COLORS, ITEM_CATS, TITLES };
+  (typeof window !== 'undefined' ? window : globalThis).KUKU_DATA = { TONAE, FLOORS, ENEMIES, TREASURES, STEP, STAGES, COLORS, ITEM_CATS, TITLES };
 })();
