@@ -91,7 +91,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.1.1';
+    const APP_VERSION = '1.1.2';
     const BASE = window.KUKU_BASE;
     const IMG = BASE + 'img/';
 
@@ -190,6 +190,8 @@
       .replace(/忍者/g, 'にんじゃ').replace(/九九/g, 'くく').replace(/修行/g, 'しゅぎょう')
       .replace(/[＝=]\s*□/g, ' は いくつ').replace(/×/g, ' かける ').replace(/[＝=]/g, ' は ').replace(/＋/g, ' たす ')
       .replace(/□/g, 'しかく')
+      // くくの「ごは しじゅう」などの「は」を「わ」と よまないように、カタカナに する（ゴハ）
+      .replace(/(^|[\s　、。「…？?！!])(ご|し|ろく|しち|く)は(?=$|[\s　、。」…？?！!])/g, (m, p, w) => p + [...w].map(c => String.fromCharCode(c.charCodeAt(0) + 0x60)).join('') + 'ハ')
       // 絵文字と まるすうじは よまない
       .replace(/[⓪①②③④⑤]/g, '').replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE0F}]/gu, '');
     // こどもの がめんの 漢字には ふりがなを つける
