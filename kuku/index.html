@@ -26,6 +26,19 @@
     .glow { animation: glow 1.1s ease-in-out infinite; }
     @keyframes glow { 0%,100% { box-shadow: 0 0 0 0 rgba(250,204,21,.95); } 50% { box-shadow: 0 0 0 14px rgba(250,204,21,0); } }
     .coinfly { animation: coinfly 1.1s ease-out forwards; }
+    .fly { animation: fly .5s ease-in forwards; }
+    @keyframes fly { 0% { left: 18%; transform: rotate(0); opacity: 1; } 90% { left: 72%; transform: rotate(810deg); opacity: 1; } 100% { left: 74%; transform: rotate(900deg); opacity: 0; } }
+    .fade-out { animation: fadeout 2.6s forwards; }
+    @keyframes fadeout { 0% { transform: scale(.4); opacity: 0; } 10% { transform: scale(1); opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+    .ouch { animation: ouch .5s .45s; }
+    @keyframes ouch { 0%,100% { transform: translateX(0); filter: none; } 20% { transform: translateX(14px); filter: brightness(1.8); } 50% { transform: translateX(-8px); } 75% { transform: translateX(5px); } }
+    .smoke { animation: smoke 1.4s ease-out forwards; }
+    @keyframes smoke { 0% { transform: scale(.3); opacity: 0; } 30% { opacity: 1; } 100% { transform: scale(2.2); opacity: 0; } }
+    .vanish { transition: opacity .9s .3s, transform .9s .3s; opacity: 0; transform: scale(.5); }
+    .runaway { transition: transform 1.2s ease-in, opacity 1.2s; transform: translateX(160%); opacity: 0; }
+    .enemy-idle { animation: eidle 2.2s ease-in-out infinite; }
+    .spot { background: radial-gradient(circle at 50% 42%, #94a3b8 0%, #475569 38%, #1e293b 75%); }
+    @keyframes eidle { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
     @keyframes coinfly { 0% { transform: translateY(0) scale(.6); opacity: 0; } 20% { opacity: 1; transform: translateY(-10px) scale(1.2); } 100% { transform: translateY(-70px) scale(1); opacity: 0; } }
     .bump { animation: bump .5s; }
     @keyframes bump { 0%,100% { transform: scale(1); } 40% { transform: scale(1.35); } }
@@ -78,7 +91,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.0.1';
+    const APP_VERSION = '1.1.1';
     const BASE = window.KUKU_BASE;
     const IMG = BASE + 'img/';
 
@@ -186,7 +199,7 @@
     // =====================================================================
     //  3. データ（data/mondai.js から）
     // =====================================================================
-    let D = null, STAGES = [], ITEM = {}, ALL_ITEMS = [], COLOR = {}, TREASURE = {}, FLOOR_OF = {};
+    let D = null, STAGES = [], ITEM = {}, ALL_ITEMS = [], COLOR = {}, TREASURE = {}, FLOOR_OF = {}, ENEMY = {};
     const DAN_ORDER = () => D.FLOORS.map(f => f.a);
     const iriStages = () => STAGES.filter(s => s.iri);
     const floorStages = (a) => STAGES.filter(s => s.a === a);
@@ -198,6 +211,9 @@
     const STEP_NUM = '⓪①②③④';
     const stageLabel = (st) => st.iri ? `いりぐち ${'①②③'[Number(st.id.slice(2)) - 1]}` : st.a ? `${st.a}の だん ${STEP_NUM[st.s]}` : st.tenshu ? '🏯' : st.review ? '🔁' : `はってん${st.id === 'H1' ? '①' : '②'}`;
     const stepName = (st) => st.iri ? 'しのびの いりぐち' : st.a ? `${FLOOR_OF[st.a].f}かい ${st.a}の だん ${STEP_NUM[st.s]}${st.title}` : st.tenshu ? 'てんしゅかく' : st.review ? 'ふくしゅう' : 'はってん';
+    // たたかう あいて（④にんじゃ しけん・てんしゅかく）
+    const enemyOf = (st) => st.tenshu ? D.ENEMIES.find(en => en.f === 'T') : st.kind === 'shiken' && st.a ? D.ENEMIES.find(en => en.f === FLOOR_OF[st.a].f) : null;
+    const roomFile = (en) => `room_${en.f === 'T' ? 't' : en.f}.webp`;
     const tonae = (a, b) => D.TONAE[a][b - 1];
     const tonaeText = (a, b) => tonae(a, b).join(' ');
     const kukuKey = (a, b) => `${a}×${b}`;
@@ -298,13 +314,13 @@
     // =====================================================================
     //  5. しんちょく（進み具合）
     // =====================================================================
-    const newProgress = () => ({ v: 1, t: 0, coins: 0, earned: 0, items: [], cleared: {}, treasures: [], part: null, weak: {},
+    const newProgress = () => ({ v: 1, t: 0, coins: 0, earned: 0, items: [], cleared: {}, treasures: [], enemies: [], part: null, weak: {},
       welcome: 0, unlockAll: false, hatten: false, skipIri: false, look: null });
     function parseProgress(s) {
       let p = null;
       try { p = typeof s === 'string' ? (s ? JSON.parse(s) : null) : s; } catch (e) { p = null; }
       const q = { ...newProgress(), ...(p || {}) };
-      ['items', 'treasures'].forEach(k => { if (!Array.isArray(q[k])) q[k] = []; });
+      ['items', 'treasures', 'enemies'].forEach(k => { if (!Array.isArray(q[k])) q[k] = []; });
       ['cleared', 'weak'].forEach(k => { if (!q[k] || typeof q[k] !== 'object') q[k] = {}; });
       return q;
     }
@@ -621,6 +637,38 @@
             <rect x="52" y="66" width="16" height="22" rx="3" fill="#facc15" stroke="#451a03" strokeWidth="3" />
             <g className={open ? 'lid-open' : ''} style={{ transformBox: 'fill-box', transformOrigin: '0% 100%' }}><path d="M14 58 q0 -30 46 -30 q46 0 46 30z" fill="#d97706" stroke="#451a03" strokeWidth="4" /><rect x="52" y="30" width="16" height="28" fill="#facc15" /></g>
           </svg>
+        </div>
+      );
+    }
+
+    // たたかう あいて（Canva の 絵 enemy_id.webp。なければ 絵文字）
+    function EnemyFace({ en, size = 150, got = true, className = '' }) {
+      const [, setErr] = useState(0);
+      const file = `enemy_${en.id}.webp`;
+      if (!got) return <div className={`flex items-center justify-center rounded-2xl bg-slate-700 text-slate-400 font-bold ${className}`} style={{ width: size, height: size, fontSize: size * 0.5 }}>？</div>;
+      if (MISSING.has(file)) return <div className={`flex items-center justify-center ${className}`} style={{ width: size, height: size, fontSize: size * 0.72, lineHeight: 1 }}>{en.e}</div>;
+      return <img src={IMG + file} alt={en.name} onError={() => { MISSING.add(file); setErr(x => x + 1); }} className={`chara-img select-none ${className}`} style={{ width: size, height: size, objectFit: 'contain' }} draggable={false} />;
+    }
+    // たたかいの 場面（へやの絵・にんじゃ・あいて・たいりょく）
+    function BattleScene({ en, look, hp, max, hit, miss, end, bubble }) {
+      return (
+        <div className="relative w-full rounded-2xl border-4 border-slate-700 overflow-hidden" style={{ height: 168 }}>
+          <Bg file={roomFile(en)} style={{ position: 'absolute', inset: 0 }} fallback={<div className="absolute inset-0" style={{ background: 'linear-gradient(#3b2f2f, #6b4f3a 60%, #a0764e)' }} />} />
+          <div className="absolute inset-0 bg-black/20" />
+          <div className="absolute" style={{ right: '1%', bottom: -20, width: 220, height: 170, background: 'radial-gradient(ellipse at 50% 55%, rgba(255,240,210,.5), rgba(255,240,210,0) 68%)' }} />
+          <div className="absolute bottom-1" style={{ left: '6%' }}><Ninja look={look} size={108} /></div>
+          {hit > 0 && <div key={hit} className="absolute fly" style={{ top: 60 }}><Shuriken s={42} color="#cbd5e1" /></div>}
+          <div style={{ right: '6%' }} className={`absolute bottom-1 flex flex-col items-center ${end === 'win' ? 'vanish' : end === 'escape' ? 'runaway' : ''}`}>
+            <div className="bg-black/60 rounded-full px-2 py-1 mb-1 flex items-center gap-1">
+              <span className="text-xs font-bold text-white">{en.name}</span>
+              {Array.from({ length: max }, (_, j) => <span key={j} className={`inline-block w-4 h-3 rounded-sm ${j < hp ? 'bg-red-500' : 'bg-slate-500'}`} />)}
+              {hp === 0 && !end && <span className="text-xs font-bold text-amber-300 ml-1">ふらふら…</span>}
+            </div>
+            <div key={'h' + hit} className={hit > 0 ? 'ouch' : ''}><EnemyFace en={en} size={124} className={end ? '' : 'enemy-idle'} /></div>
+          </div>
+          {end === 'win' && <div className="absolute bottom-4 text-8xl smoke" style={{ right: '8%' }}>💨</div>}
+          {bubble && <div key={bubble.k} className={`absolute bg-white rounded-2xl border-4 border-slate-700 px-3 py-1 text-xl font-bold ${end ? 'pop' : 'fade-out'}`} style={{ right: '20%', top: 44, maxWidth: '45%' }}>{bubble.t}</div>}
+          {miss > 0 && !end && <div key={'m' + miss} className="absolute top-14 fade-out text-2xl font-bold text-white bg-slate-800/70 rounded-xl px-2" style={{ right: '3%' }}>ひらり！</div>}
         </div>
       );
     }
@@ -942,7 +990,7 @@
         ctx.done(resultOf(m));
       };
       const wrong = (x) => {
-        Sound.retry(); setShake(s => s + 1);
+        Sound.retry(); setShake(s => s + 1); ctx.onMiss && ctx.onMiss();
         if (blank) {
           const d = p.pos ? a : b;
           m.add(MT.other, x);
@@ -1055,15 +1103,31 @@
       const stats = useRef({ ok: 0, all: 0, coins: 0, weak: {} });
       const t0 = useRef(Date.now());
       const alive = useRef(true);
+      // たたかい（④にんじゃ しけん・てんしゅかく）：まちがえずに こたえると あいての たいりょくが へる
+      const en = useMemo(() => enemyOf(st), []);
+      const need = Number(settings.pass) || 0;
+      const maxHp = need > 0 ? need : problems.length;
+      const [hp, setHp] = useState(maxHp);
+      const [hit, setHit] = useState(0);
+      const [missFx, setMissFx] = useState(0);
+      const [end, setEnd] = useState(null);
+      const [bubble, setBubble] = useState(null);
+      const enemySay = (t, voice = true) => new Promise(res => {
+        setBubble({ t, k: uid() });
+        if (!voice) { setTimeout(res, 900); return; }
+        const pitch = Speech.pitch; Speech.pitch = 0.55; Speech.say(fmtSpeech(t), res); Speech.pitch = pitch;
+      });
       useEffect(() => () => { alive.current = false; }, []);
       useEffect(() => {
         (async () => {
           await talk.say(intro || st.intro, { mood: 'cheer' });
+          if (en && alive.current) { await enemySay(en.hello); await wait(300); }
           if (alive.current) { t0.current = Date.now(); setI(0); }
         })();
       }, []);
       const ctx = {
         mode, settings,
+        onMiss: () => { if (en) { setMissFx(x => x + 1); setBubble({ t: 'まだまだ！', k: uid() }); } },
         celebrate: async (text, speech) => {
           setSeikai(x => x + 1); Sound.fanfare(); onCoin(); stats.current.coins++;
           await talk.say(text, { mood: 'happy', speech });
@@ -1085,7 +1149,22 @@
           });
           t0.current = Date.now();
           Sound.step();
-          if (i + 1 >= problems.length) { onFinish({ ...stats.current, n: problems.length }); return; }
+          if (en && (result === '○' || need === 0)) { setHit(x => x + 1); Sound.whoosh(); setTimeout(() => Sound.hit(), 450); setHp(h => Math.max(0, h - 1)); }
+          if (i + 1 >= problems.length) {
+            if (!en) { onFinish({ ...stats.current, n: problems.length }); return; }
+            // さいごの 1もん：たおしたら「まいった〜」と けむりで きえる。たりなければ にげる
+            const won = need === 0 || stats.current.ok >= need;
+            setI(problems.length);
+            (async () => {
+              await wait(700);
+              if (!alive.current) return;
+              setEnd(won ? 'win' : 'escape');
+              await enemySay(won ? 'まいった〜！' : en.escape);
+              await wait(900);
+              if (alive.current) onFinish({ ...stats.current, n: problems.length, enemy: en.id, won });
+            })();
+            return;
+          }
           // しけん・てんしゅかくは とちゅうから に しない（ごうかくを きめる ため）
           if (st.kind !== 'shiken' && !st.tenshu) onSave({ st: st.id, left: problems.length - i - 1, start: ['deai', 'tonae', 'junban'].includes(st.kind) ? p.b + 1 : 0 }, stats.current.weak);
           setI(i + 1);
@@ -1096,12 +1175,14 @@
       const fl = st.a ? FLOOR_OF[st.a] : null;
       return (
         <div className="w-full max-w-6xl flex flex-col items-center gap-3">
-          <KagemaruBar size={92} compact />
+          <KagemaruBar size={en ? 64 : 92} compact />
           <div className="flex items-center gap-3 w-full">
             <div className="text-xl font-bold bg-white rounded-2xl px-3 py-1 border-2 border-indigo-300 shrink-0">{stageLabel(st)} <Rb t={st.title} /></div>
-            <div className="flex-1"><Rouka n={problems.length} i={Math.max(0, i)} look={progress.look} color={fl ? fl.color : st.tenshu ? '#d97706' : '#6366f1'} box={!!st.a || !!st.tenshu} /></div>
+            {en ? <div className="flex-1 text-xl font-bold text-slate-600">{Math.min(problems.length, Math.max(0, i) + 1)} / {problems.length}もん</div>
+              : <div className="flex-1"><Rouka n={problems.length} i={Math.max(0, i)} look={progress.look} color={fl ? fl.color : st.tenshu ? '#d97706' : '#6366f1'} box={!!st.a || !!st.tenshu} /></div>}
             <button onClick={onQuit} className="btn3d bg-white border-2 border-slate-300 rounded-2xl px-3 py-1 text-lg font-bold shrink-0">✋ やめる</button>
           </div>
+          {en && <BattleScene en={en} look={progress.look} hp={hp} max={maxHp} hit={hit} miss={missFx} end={end} bubble={bubble} />}
           {Q && <Q key={i} p={p} st={st} ctx={ctx} />}
           <Seikai show={seikai} />
         </div>
@@ -1118,10 +1199,13 @@
       const exam = st.kind === 'shiken' || st.tenshu;
       const tr = r.newTreasure && TREASURE[r.newTreasure];
       const fl = st.a ? FLOOR_OF[st.a] : null;
+      const en = r.enemy && ENEMY[r.enemy];
       const [open, setOpen] = useState(false);
       useEffect(() => {
         Sound.big();
         (async () => {
+          if (en && r.won) await talk.say(`${en.name}を たおした！ こばんを 10まい てに いれたよ。${r.newEnemy ? 'あいて ずかんに くわわったよ。' : ''}`, { mood: 'happy' });
+          if (en && !r.won) await talk.say(`${en.name}は にげて しまった！`, { mood: 'surprise' });
           if (exam && !r.passed) { await talk.say(`おしい！ まちがえずに できたのは ${r.ok}もん。ごうかくは ${r.need}もん いじょう だよ。${st.tenshu ? 'ふくしゅうの へや' : '③ばらばら'}で しゅぎょう して、もういちど ちょうせん しよう。こばんを ${r.coins}まい あげるよ。`, { mood: 'cheer' }); return; }
           if (exam) await talk.say(st.tenshu ? 'すごい！ てんしゅかくの しけんに ごうかく！' : `ごうかく！ ${st.a}の だんの にんじゃ しけん クリア！`, { mood: 'cheer' });
           else if (r.stageClear) await talk.say(`やったね！『${st.title}』クリア！ ボーナスで こばんを ${r.bonus}まい あげるよ。`, { mood: 'happy' });
@@ -1142,6 +1226,12 @@
             {exam && <div className="text-3xl font-bold text-center">まちがえずに {r.ok}もん ／ {r.n}もん{r.need ? <div className="text-xl text-slate-600">（ごうかくは {r.need}もん いじょう）</div> : null}</div>}
             <div className="text-5xl">{Array.from({ length: r.n }, (_, j) => j < r.ok ? '⭐' : '✩').join('')}</div>
             <div className="text-3xl font-bold flex items-center gap-1"><Koban s={36} /> ＋{r.coins + (r.bonus || 0)}まい</div>
+            {en && (
+              <div className={`flex items-center gap-4 rounded-3xl px-5 py-2 border-4 ${r.won ? 'spot border-amber-400 text-white' : 'bg-slate-100 border-slate-300'}`}>
+                <EnemyFace en={en} size={90} className={r.won ? 'opacity-60 grayscale' : ''} />
+                <div>{r.won ? <><div className="text-2xl font-bold text-amber-300">⚔️ {en.name}を たおした！</div><div className="text-lg">こばん ＋10まい{r.newEnemy ? '　📖 あいて ずかんに くわわった' : ''}</div></> : <div className="text-2xl font-bold">💨 {en.name}は にげて しまった…</div>}</div>
+              </div>
+            )}
             {tr && (
               <div className="flex items-center gap-5 bg-yellow-50 border-4 border-yellow-300 rounded-3xl px-6 py-3">
                 <TreasureBox size={130} open={open}><TreasureIcon id={tr.id} size={90} className="hop" /></TreasureBox>
@@ -1282,7 +1372,7 @@
           <div className="flex flex-wrap gap-3 justify-center">
             <Btn onClick={onContinue} color="#16a34a" light="#dcfce7" className="text-3xl px-8 glow">▶ {progress.part ? 'つづきから' : <>{stageLabel(cur)} <Rb t={cur.title} /></>}</Btn>
             <Btn onClick={onRoom} color="#4338ca" light="#e0e7ff">🥷 にんじゃの へや</Btn>
-            <Btn onClick={onZukan} color="#0284c7" light="#e0f2fe">💎 おたから ずかん</Btn>
+            <Btn onClick={onZukan} color="#0284c7" light="#e0f2fe">📖 ずかん</Btn>
             <Btn onClick={onShop} color="#b45309" light="#fef3c7">🏮 よろずや</Btn>
           </div>
           <div className="flex flex-wrap gap-3 justify-center">
@@ -1305,6 +1395,7 @@
             <div className="text-lg font-bold text-indigo-800">{st.a ? `${FLOOR_OF[st.a].f}かい ・ ${st.a}の だん` : st.iri ? 'しのびの いりぐち' : st.hatten ? '✨ はってん' : ''}</div>
             <div className="text-4xl font-bold">{stageLabel(st)} <Rb t={st.title} /></div>
             <div className="flex items-start gap-3"><Kagemaru size={90} /><div className="text-2xl bg-white rounded-2xl px-4 py-3 leading-loose font-bold"><Rb t={st.intro} /></div></div>
+            {enemyOf(st) && <div className="flex items-center gap-3 spot text-white rounded-2xl px-4 py-1"><EnemyFace en={enemyOf(st)} size={80} /><div className="text-2xl font-bold">あいて：{enemyOf(st).name}</div></div>}
             {progress.cleared[st.id] && <div className="text-xl font-bold text-amber-700">⭐ クリアずみ（なんかいでも できるよ）</div>}
             <div className="flex gap-3 flex-wrap justify-center">
               {part && <Btn onClick={onResume} color="#16a34a" light="#dcfce7">▶ つづきから（あと {part.left}もん）</Btn>}
@@ -1364,12 +1455,35 @@
     // おたから ずかん
     function ZukanScreen({ progress }) {
       const talk = useTalk();
+      const [tab, setTab] = useState('tr');
       useEffect(() => { talk.say(`おたから ずかんだよ。いま ${progress.treasures.length}こ。ぜんぶで ${D.TREASURES.length}こ あるよ。`); }, []);
+      const show = (t) => { Sound.tap(); setTab(t); talk.say(t === 'tr' ? `おたから ずかんだよ。いま ${progress.treasures.length}こ。` : `あいて ずかんだよ。たおした あいては ${progress.enemies.length}たい。ぜんぶで ${D.ENEMIES.length}たい いるよ。`); };
       return (
         <div className="w-full max-w-5xl p-3 flex flex-col items-center gap-3">
           <KagemaruBar size={90} compact />
-          <div className="text-2xl font-bold bg-white rounded-2xl px-4 py-1 border-2 border-indigo-300">💎 {progress.treasures.length} / {D.TREASURES.length}　🎖️ {titleOf(progress)}</div>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 w-full">
+          <div className="flex gap-2">
+            <button onClick={() => show('tr')} className={`btn3d rounded-2xl border-2 px-4 py-2 text-xl font-bold ${tab === 'tr' ? 'bg-amber-100 border-amber-500' : 'bg-white border-slate-300'}`}>💎 おたから ずかん</button>
+            <button onClick={() => show('en')} className={`btn3d rounded-2xl border-2 px-4 py-2 text-xl font-bold ${tab === 'en' ? 'bg-slate-700 text-white border-slate-900' : 'bg-white border-slate-300'}`}>⚔️ あいて ずかん</button>
+          </div>
+          {tab === 'en' && (
+            <>
+              <div className="text-2xl font-bold bg-white rounded-2xl px-4 py-1 border-2 border-slate-400">⚔️ {progress.enemies.length} / {D.ENEMIES.length}</div>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 w-full">
+                {D.ENEMIES.map(en => {
+                  const got = progress.enemies.includes(en.id);
+                  return (
+                    <button key={en.id} onClick={() => got && talk.say(`${en.name}だよ。「${en.hello}」`)} className={`rounded-3xl border-4 p-2 flex flex-col items-center ${got ? 'spot border-amber-400 text-white' : 'bg-stone-100 border-stone-300'}`}>
+                      <EnemyFace en={en} size={110} got={got} />
+                      <div className="text-lg font-bold text-center leading-tight mt-1">{got ? en.name : '？？？'}</div>
+                      <div className={`text-xs ${got ? 'text-slate-300' : 'text-stone-500'}`}>{en.f === 'T' ? 'てんしゅかく' : `${en.f}かい`}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
+          {tab === 'tr' && <div className="text-2xl font-bold bg-white rounded-2xl px-4 py-1 border-2 border-indigo-300">💎 {progress.treasures.length} / {D.TREASURES.length}　🎖️ {titleOf(progress)}</div>}
+          {tab === 'tr' && <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 w-full">
             {D.TREASURES.map(t => {
               const got = progress.treasures.includes(t.id);
               return (
@@ -1380,7 +1494,7 @@
                 </button>
               );
             })}
-          </div>
+          </div>}
           <div className="flex flex-wrap gap-2 justify-center">
             {D.TITLES.map(t => { const on = titlesOf(progress).includes(t.n); return <span key={t.n} className={`rounded-full px-3 py-1 border-2 font-bold ${on ? 'bg-amber-100 border-amber-400' : 'bg-white border-slate-200 text-slate-400'}`}>{on ? '🎖️' : '🔒'} {t.n}{t.all ? '（はってん ぜんぶ）' : t.f ? `（${t.f}かい ごうかく）` : ''}</span>; })}
           </div>
@@ -1869,6 +1983,9 @@
           const tr = st.a && st.kind === 'shiken' ? FLOOR_OF[st.a].treasure : st.tenshu ? 'shachihoko' : null;
           if (tr && !p.treasures.includes(tr)) { p.treasures = [...p.treasures, tr]; newTreasure = tr; bonus += st.tenshu ? 20 : 10; }
         }
+        // あいてを たおしたら こばん＋10、あいて ずかんに あつまる
+        let newEnemy = null;
+        if (result.enemy && result.won) { bonus += 10; if (!p.enemies.includes(result.enemy)) { p.enemies = [...p.enemies, result.enemy]; newEnemy = result.enemy; } }
         p.coins += bonus; p.earned += bonus;
         p = persist(p);
         const newTitle = titlesOf(p).filter(t => !titleStart.current.includes(t)).pop() || null;
@@ -1879,7 +1996,7 @@
         }
         let nextLabel = null;
         if (exam && !passed && st.a) { const bara = STAGES.find(s => s.a === st.a && s.s === 3); next = () => startStage(bara); nextLabel = '③ ばらばらで しゅぎょう ▶'; }
-        setView({ v: 'result', st, result: { ...result, bonus, stageClear, newTreasure, newTitle, passed, need }, next, nextLabel });
+        setView({ v: 'result', st, result: { ...result, bonus, stageClear, newTreasure, newTitle, passed, need, newEnemy }, next, nextLabel });
       };
       const quit = () => { talkApi.stop(); persist({ ...progRef.current, weak: mergeWeak(progRef.current.weak, pendingWeak.current) }); pendingWeak.current = {}; setView({ v: 'map' }); };
       const buy = (it) => {
@@ -1977,6 +2094,7 @@
       [...D.COLORS, ...ALL_ITEMS.filter(it => it.color).map(it => it.color)].forEach(c => { COLOR[c.id] = c; });
       D.TREASURES.forEach(t => { TREASURE[t.id] = t; });
       D.FLOORS.forEach(f => { FLOOR_OF[f.a] = f; });
+      D.ENEMIES.forEach(en => { ENEMY[en.id] = en; });
       ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     }).catch(e => {
       document.getElementById('root').innerHTML = '<div style="padding:40px;font-size:24px;line-height:1.8">もんだいの データを よみこめませんでした。<br>ネットに つながって いるか たしかめて、ページを よみこみなおして ください。<div style="font-size:14px;color:#888">' + e.message + '</div></div>';
