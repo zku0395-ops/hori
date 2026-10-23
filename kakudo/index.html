@@ -692,10 +692,36 @@
         </g>
       );
     }
+    // ワニワニ先生の絵（Canva で 作った 画像）。読みこめない ときは 上の SVG の 絵を 使う
+    const WANI_IMG = 'img/wani.webp';
+    const WANI_STATE = { failed: false, subs: new Set() };
+    function WaniImg({ mood = 'normal', talking = false, mouth }) {
+      const [failed, setFailed] = useState(WANI_STATE.failed);
+      useEffect(() => { const f = () => setFailed(true); WANI_STATE.subs.add(f); return () => WANI_STATE.subs.delete(f); }, []);
+      if (failed) return <WaniBody mood={mood} talking={talking} mouth={mouth} />;
+      const onError = () => { WANI_STATE.failed = true; WANI_STATE.subs.forEach(f => f()); };
+      const happy = mood === 'happy' || mood === 'eat';
+      const think = mood === 'think';
+      return (
+        <g>
+          {happy
+            ? <animateTransform attributeName="transform" type="translate" values="0 0; 0 -14; 0 0" dur="0.5s" repeatCount="3" />
+            : <animateTransform attributeName="transform" type="translate" values="0 0; 0 -4; 0 0" dur="3.2s" repeatCount="indefinite" />}
+          <g transform={think ? 'rotate(-7 110 236)' : undefined}>
+            <g>
+              {talking && <animateTransform attributeName="transform" type="scale" additive="sum" values="1 1; 1.015 0.985; 1 1" dur="0.4s" repeatCount="indefinite" />}
+              <image href={WANI_IMG} x="24" y="2" width="173" height="236" onError={onError} preserveAspectRatio="xMidYMid meet" />
+            </g>
+          </g>
+          {think && <text x="200" y="40" fontSize="44" fontWeight="900" fill="#f97316">?</text>}
+          {happy && <g fill="#fbbf24"><text x="0" y="40" fontSize="28">✨</text><text x="196" y="130" fontSize="24">✨</text></g>}
+        </g>
+      );
+    }
     function WaniSensei({ mood = 'normal', talking = false, size = 140, mouth, className = '' }) {
       return (
         <svg viewBox="0 0 220 240" width={size} height={size * 240 / 220} className={className} style={{ overflow: 'visible', flex: 'none' }} aria-hidden="true">
-          <WaniBody mood={mood} talking={talking} mouth={mouth} />
+          <WaniImg mood={mood} talking={talking} mouth={mouth} />
         </svg>
       );
     }
@@ -873,19 +899,20 @@
       const lower = `M 0 0 L ${len - 18} 0 Q ${len + 2} 0 ${len + 4} 14 Q ${len} 32 ${len - 36} 34 L 40 42 Q -6 42 -24 22 Q -30 0 0 0 Z`;
       const upper = `M 0 0 L ${len - 18} 0 Q ${len + 4} 0 ${len + 6} -16 Q ${len} -34 ${len - 40} -38 L 90 -42 Q 66 -78 20 -74 Q -34 -66 -34 -24 Q -30 0 0 0 Z`;
       const hlc = '#f43f5e';
+      const MG = '#A9CC2E', MD = '#4E7A10';
       return (
         <g transform={`translate(${f1(x)} ${f1(y)}) rotate(${f1(-base)})`}>
           {/* からだ（つけねの うしろ）*/}
-          <ellipse cx="-70" cy="30" rx="70" ry="52" fill={GREEN} stroke={GREEN_D} strokeWidth="4" />
-          <ellipse cx="-62" cy="44" rx="40" ry="26" fill="#bbf7d0" />
+          <ellipse cx="-70" cy="30" rx="70" ry="52" fill={MG} stroke={MD} strokeWidth="4" />
+          <ellipse cx="-62" cy="44" rx="40" ry="26" fill="#F1E27A" />
           {open > 2 && <path d={sectorD(0, 0, len * 0.9, 0, open)} fill="#fda4af" />}
           {arc && open > 2 && <path d={arcD(0, 0, arcR, 0, open)} fill="none" stroke="#f97316" strokeWidth="5" />}
           {/* 下あご */}
-          <path d={lower} fill={GREEN} stroke={GREEN_D} strokeWidth="4" strokeLinejoin="round" />
+          <path d={lower} fill={MG} stroke={MD} strokeWidth="4" strokeLinejoin="round" />
           {teeth.map(t => <polygon key={t} points={`${t},0 ${t + 14},0 ${t + 7},-12`} fill="#fff" stroke="#cbd5e1" strokeWidth="1" />)}
           {/* 上あご */}
           <g transform={`rotate(${f1(-open)})`}>
-            <path d={upper} fill={GREEN} stroke={GREEN_D} strokeWidth="4" strokeLinejoin="round" />
+            <path d={upper} fill={MG} stroke={MD} strokeWidth="4" strokeLinejoin="round" />
             {teeth.map(t => <polygon key={t} points={`${t},0 ${t + 14},0 ${t + 7},12`} fill="#fff" stroke="#cbd5e1" strokeWidth="1" />)}
             <ellipse cx={len - 10} cy="-24" rx="4" ry="2.8" fill="#166534" />
             {hat && (
@@ -897,7 +924,7 @@
                 <rect x="-20" y="0" width="50" height="16" rx="4" fill="#fff" stroke="#cbd5e1" strokeWidth="2.5" />
               </g>
             )}
-            <circle cx="16" cy="-60" r="19" fill="#fff" stroke={GREEN_D} strokeWidth="3" />
+            <circle cx="16" cy="-60" r="19" fill="#fff" stroke={MD} strokeWidth="3" />
             <circle cx="21" cy="-59" r="8.5" fill="#1e293b" /><circle cx="24" cy="-62" r="2.6" fill="#fff" />
             {rays && <line x1="0" y1="0" x2={len} y2="0" stroke={hlEdges ? hlc : rayColor} strokeWidth={hlEdges ? 9 : 5} strokeLinecap="round" />}
           </g>
@@ -1047,7 +1074,7 @@
           <PlantPot x={110} y={575} s={1.1} />
           {/* ワニワニ先生 */}
           <g transform="translate(684 274) scale(1.3)" onClick={onWani} style={{ cursor: onWani ? 'pointer' : 'default' }}>
-            <WaniBody mood={waniMood} talking={talking} />
+            <WaniImg mood={waniMood} talking={talking} />
           </g>
         </svg>
       );
@@ -2846,7 +2873,7 @@
         make: <PizzaSlice x={20} y={86} r={72} a1={0} sweep={60} />,
         reflex: <><path d={arcD(50, 50, 18, 0, 240)} fill="none" stroke="#f97316" strokeWidth="5" /><AngleFig x={50} y={50} a1={0} sweep={240} len={42} arc={0} w={4} color="#fde68a" /></>,
         guess: <text x="50" y="58" textAnchor="middle" dominantBaseline="central" fontSize="56">🤔</text>,
-        feed: <g transform="translate(-2 -10) scale(.5)"><WaniBody mood="eat" /></g>,
+        feed: <g transform="translate(-6 -12) scale(.5)"><WaniImg mood="normal" /></g>,
       }[kind];
       return <svg viewBox="0 0 100 100" width={size} height={size} style={{ flex: 'none', overflow: 'visible' }} aria-hidden="true">{k}</svg>;
     }
