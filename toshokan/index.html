@@ -68,7 +68,7 @@
     .phead h2 { margin: 0; font-size: 1.4em; flex: 1; }
     .books { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
     .book { display: flex; gap: 12px; align-items: center; text-align: left; cursor: pointer; padding: 12px; border-radius: 16px; color: var(--ink);
-      background: rgba(255,255,255,.06); border: 1px solid rgba(127,233,255,.3); border-left: 8px solid var(--c); position: relative; }
+      background: rgba(255,255,255,.06); border: 1px solid rgba(127,233,255,.3); border-left: 8px solid var(--c); position: relative; padding-right: 34px; }
     .book:hover { background: rgba(127,233,255,.12); }
     .cover { width: 72px; height: 72px; flex: none; border-radius: 14px; display: grid; place-items: center; font-size: 40px; overflow: hidden;
       background: radial-gradient(circle at 30% 25%, #ffffff, #cfe9f7); }
@@ -126,7 +126,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useMemo, useRef } = React;
-    const APP_VERSION = '1.0.0';
+    const APP_VERSION = '1.1.0';
 
     // =====================================================================
     //  1. リポジトリと 本の もくろく
@@ -181,7 +181,28 @@
       'shokuinshitsu': { subject: 'komu', kind: 'gas', emoji: '🏫', chara: '係のキャラクター' },
       'toshokan': { subject: 'komu', kind: 'gas', img: 'toshokan/img/shoko.webp', emoji: '🤖', chara: 'ショコ' },
     };
-    const KIND_LABEL = { pages: 'アプリ', gas: 'アプリ（Apps Script）', print: 'プリント' };
+    const KIND_LABEL = { pages: 'アプリ', gas: 'アプリ（Apps Script）', print: 'プリント', res: 'しりょう' };
+
+    // しりょう（Canva のデザイン・Google の ファイルなど）。URL から しゅるいを 見分ける
+    const RES_TYPES = [
+      { id: 'canva', name: 'Canva', icon: '🎨', test: u => /(^|\.)canva\.(com|link)$/.test(u.hostname) },
+      { id: 'doc', name: 'Google ドキュメント', icon: '📄', test: u => u.hostname === 'docs.google.com' && u.pathname.startsWith('/document') },
+      { id: 'slide', name: 'Google スライド', icon: '📽️', test: u => u.hostname === 'docs.google.com' && u.pathname.startsWith('/presentation') },
+      { id: 'sheet', name: 'Google スプレッドシート', icon: '📊', test: u => u.hostname === 'docs.google.com' && u.pathname.startsWith('/spreadsheets') },
+      { id: 'form', name: 'Google フォーム', icon: '📝', test: u => (u.hostname === 'docs.google.com' && u.pathname.startsWith('/forms')) || u.hostname === 'forms.gle' },
+      { id: 'pdf', name: 'PDF・ドライブ', icon: '📕', test: u => u.hostname === 'drive.google.com' || /\.pdf$/i.test(u.pathname) },
+      { id: 'youtube', name: 'YouTube', icon: '▶️', test: u => /(^|\.)youtube\.com$/.test(u.hostname) || u.hostname === 'youtu.be' },
+      { id: 'link', name: 'リンク', icon: '🔗', test: () => true },
+    ];
+    const resTypeOf = (id) => RES_TYPES.find(t => t.id === id) || RES_TYPES[RES_TYPES.length - 1];
+    const detectType = (url) => { try { return RES_TYPES.find(t => t.test(new URL(String(url).trim()))).id; } catch (e) { return 'link'; } };
+    const okUrl = (u) => /^https:\/\/\S+$/.test(String(u).trim());
+    const RES = 'res:';   // おきにいり・さいきん では、しりょうを「res:ID」と書く
+    const appKey = (dir) => dir === '' ? '/' : dir;   // しりょうの「つかう アプリ」：いちばん上（音読）は '/'
+    const newResId = () => 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    // たなの 中の しぼりこみ
+    const groupOf = (b) => b.isRes ? 'res' : b.kind === 'print' ? 'print' : 'app';
+    const FILTERS = [['all', 'ぜんぶ'], ['app', 'アプリ'], ['print', 'プリント'], ['res', 'しりょう']];
     // README の見出しが読めなかったときの なまえ
     const FALLBACK_TITLE = { '': 'おんどくはかせの ちょうせんじょう' };
 
@@ -250,7 +271,7 @@
     const LS = 'toshokan_v1';
     const lsGet = (k, d) => { try { const v = JSON.parse(localStorage.getItem(LS + '_' + k)); return v == null ? d : v; } catch (e) { return d; } };
     const lsSet = (k, v) => { try { localStorage.setItem(LS + '_' + k, JSON.stringify(v)); } catch (e) {} };
-    const DEFAULT_STATE = { books: {}, favorites: [], recent: [], settings: { voice: false, rate: 0.9, font: 1 } };
+    const DEFAULT_STATE = { books: {}, resources: [], favorites: [], recent: [], settings: { voice: false, rate: 0.9, font: 1 } };
 
     const store = {
       async load() {
@@ -260,6 +281,8 @@
       async saveBook(dir, data) { if (HAS_GAS) return gas('saveBook', dir, data); },
       async saveList(key, list) { if (HAS_GAS) return gas('saveList', key, list); },
       async saveSettings(s) { if (HAS_GAS) return gas('saveSettings', s); },
+      async saveResource(r) { if (HAS_GAS) return gas('saveResource', r); },
+      async deleteResource(id) { if (HAS_GAS) return gas('deleteResource', id); },
       local(state) { if (!HAS_GAS) lsSet('state', state); },
     };
 
@@ -360,7 +383,7 @@
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 700, lineHeight: 1.4 }}>{title.main}</div>
             <div className="muted" style={{ marginTop: 4 }}>
-              <span className="badge">{KIND_LABEL[book.kind]}</span>{s.name}
+              <span className="badge">{book.isRes ? resTypeOf(book.type).name : KIND_LABEL[book.kind]}</span>{s.name}
             </div>
           </div>
           <span className="star" role="button" title="おきにいり" onClick={e => { e.stopPropagation(); onFav(); }}>{fav ? '⭐' : '☆'}</span>
@@ -437,6 +460,13 @@
         });
       }, [tree, state]);
 
+      // しりょう（先生が 登録した Canva・Google の ファイルなど）も 本と おなじ 形に する
+      const resItems = useMemo(() => ((state && state.resources) || []).map(r => ({
+        isRes: true, dir: RES + r.id, id: r.id, title: r.title, url: r.url, type: r.type || 'link', app: r.app || '',
+        subject: r.subject || 'new', memo: r.memo || '', kind: 'res', meta: { emoji: resTypeOf(r.type).icon },
+      })).sort((a, b) => a.title.localeCompare(b.title, 'ja')), [state]);
+      const items = useMemo(() => books.concat(resItems), [books, resItems]);
+
       // README の 見出しを 読む（まだ 読んで いない 本だけ）
       useEffect(() => {
         if (!books.length) return;
@@ -456,7 +486,8 @@
           });
       }, [books.length]);
 
-      const titleOf = (b) => splitTitle(titles[b.dir] || (tree && tree.titles && tree.titles[b.dir]), b.dir);
+      const titleOf = (b) => b.isRes ? { main: b.title, sub: '' }
+        : splitTitle(titles[b.dir] || (tree && tree.titles && tree.titles[b.dir]), b.dir);
 
       // 保存
       const update = (fn) => setState(prev => { const next = fn(JSON.parse(JSON.stringify(prev))); store.local(next); return next; });
@@ -481,20 +512,38 @@
         setTimeout(() => store.saveSettings(next), 0);
       };
 
+      const saveResource = (r) => {
+        update(s => { const i = s.resources.findIndex(x => x.id === r.id); if (i >= 0) s.resources[i] = r; else s.resources.push(r); return s; });
+        store.saveResource(r).then(() => flash('💾 ほぞん しました')).catch(() => flash('⚠ ほぞん できませんでした'));
+      };
+      // けすと、おきにいり・さいきん からも けす（スプレッドシートの 方は コード.gs が けす）
+      const deleteResource = (id) => {
+        update(s => {
+          s.resources = s.resources.filter(x => x.id !== id);
+          s.favorites = s.favorites.filter(d => d !== RES + id);
+          s.recent = s.recent.filter(d => d !== RES + id);
+          return s;
+        });
+        store.deleteResource(id).then(() => flash('🗑️ けしました')).catch(() => flash('⚠ けせませんでした'));
+      };
+
       const isFav = (dir) => state && state.favorites.includes(dir);
 
       // 検索
       const hits = useMemo(() => {
         const q = query.trim().toLowerCase();
         if (!q) return [];
-        return books.filter(b => {
+        return items.filter(b => {
           const t = titleOf(b), s = subjectOf(b.subject);
-          return [t.main, t.sub, b.dir, b.meta.chara, s.name, KIND_LABEL[b.kind], b.memo].join(' ').toLowerCase().includes(q);
+          const a = b.isRes && b.app && books.find(x => appKey(x.dir) === b.app);
+          const extra = b.isRes ? [resTypeOf(b.type).name, a ? titleOf(a).main : '']
+            : [b.dir, b.meta.chara];
+          return [t.main, t.sub, s.name, KIND_LABEL[b.kind], b.memo].concat(extra).join(' ').toLowerCase().includes(q);
         });
-      }, [query, books, titles]);
+      }, [query, items, titles]);
 
       const openShelf = (id) => {
-        setView({ name: 'shelf', id });
+        setView({ name: 'shelf', id, filter: 'all' });
         const msg = {
           fav: '⭐ おきにいりの たなです。よく つかう 本を あつめました。',
           recent: '🕘 さいきん ひらいた 本です。',
@@ -504,20 +553,27 @@
       };
       const openBook = (b) => { setView({ name: 'book', dir: b.dir, from: view }); talk(`「${titleOf(b).main}」です。`); };
       const back = () => {
-        if (view.name === 'book' && view.from && view.from.name === 'shelf') setView(view.from);
+        if (view.from && ['shelf', 'book'].includes(view.from.name)) setView(view.from);
         else { setView({ name: 'hall' }); talk('よみたい たなを えらんでね。'); }
       };
+      // しりょうを ふやす・なおす（preset：はじめから 入れて おく たな・アプリ）
+      const openResForm = (preset, id) => {
+        setView({ name: 'resform', id, preset: preset || {}, from: view });
+        talk(id ? 'しりょうを なおします。' : 'URL を 貼り付けてね。しゅるいは わたしが 見分けます。');
+      };
+      const openUrl = (b) => { markRecent(b.dir); window.open(b.url, '_blank', 'noopener'); };
 
       if (!state) return <div style={{ padding: 60, textAlign: 'center', fontSize: 24, color: '#7fe9ff' }}>じゅんび ちゅう…</div>;
 
-      const shelfBooks = (id) => id === 'fav' ? state.favorites.map(d => books.find(b => b.dir === d)).filter(Boolean)
-        : id === 'recent' ? state.recent.map(d => books.find(b => b.dir === d)).filter(Boolean)
-        : books.filter(b => b.subject === id);
+      const shelfBooks = (id) => id === 'fav' ? state.favorites.map(d => items.find(b => b.dir === d)).filter(Boolean)
+        : id === 'recent' ? state.recent.map(d => items.find(b => b.dir === d)).filter(Boolean)
+        : items.filter(b => b.subject === id);
       const newCount = shelfBooks('new').length;
       const shelfList = SUBJECTS.concat(newCount ? [NEW_SUBJECT] : [])
         .concat([{ id: 'fav', name: 'おきにいり', icon: '⭐', c: '#ffd36a' }, { id: 'recent', name: 'さいきん ひらいた', icon: '🕘', c: '#9fb4ff' }]);
 
-      const book = view.name === 'book' && books.find(b => b.dir === view.dir);
+      const book = view.name === 'book' && items.find(b => b.dir === view.dir);
+      const appTitles = books.map(b => [appKey(b.dir), titleOf(b).main, b.subject]);
 
       return (
         <>
@@ -525,9 +581,10 @@
           <div className="top">
             <div className="logo">📚 ショコの まなびの としょかん</div>
             <label className="search">🔍
-              <input value={query} onChange={e => setQuery(e.target.value)} placeholder="さがす（れい：かんじ、プリント、ワンダ）" aria-label="さがす" />
+              <input value={query} onChange={e => setQuery(e.target.value)} placeholder="さがす（れい：かんじ、プリント、指導案）" aria-label="さがす" />
               {query && <button className="btn gray" style={{ padding: '.2em .6em' }} onClick={() => setQuery('')}>✕</button>}
             </label>
+            <button className="btn gold" onClick={() => openResForm({})}>＋ しりょう</button>
             <button className="btn ghost" onClick={() => refresh(true)} title="GitHub から 読みなおす">🔄 さいしん</button>
             <button className="btn ghost" onClick={() => setView({ name: 'settings' })}>⚙️ せってい</button>
           </div>
@@ -566,14 +623,25 @@
           {/* たな */}
           {view.name === 'shelf' && !query.trim() && (() => {
             const s = shelfList.find(x => x.id === view.id) || NEW_SUBJECT;
-            const list = shelfBooks(view.id);
+            const all = shelfBooks(view.id);
+            const filter = view.filter || 'all';
+            const list = filter === 'all' ? all : all.filter(b => groupOf(b) === filter);
+            const isSubject = SUBJECTS.some(x => x.id === view.id);
             return (
               <div className="layer" onClick={e => { if (e.target === e.currentTarget) back(); }}>
                 <div className="panel glass pop" style={{ borderColor: s.c }}>
-                  <div className="phead"><h2>{s.icon} {s.name}の たな</h2><button className="btn" onClick={back}>◀ ホールへ もどる</button></div>
+                  <div className="phead"><h2>{s.icon} {s.name}の たな</h2>
+                    {isSubject && <button className="btn gold" onClick={() => openResForm({ subject: view.id })}>＋ しりょうを ふやす</button>}
+                    <button className="btn" onClick={back}>◀ ホールへ もどる</button></div>
+                  <div className="row" style={{ marginBottom: 12 }}>
+                    {FILTERS.map(([id, name]) => {
+                      const n = id === 'all' ? all.length : all.filter(b => groupOf(b) === id).length;
+                      return <button key={id} className={'btn' + (filter === id ? ' gold' : ' ghost')} onClick={() => setView(Object.assign({}, view, { filter: id }))}>{name}（{n}）</button>;
+                    })}
+                  </div>
                   {list.length ? <div className="books">{list.map(b => (
                     <BookCard key={b.dir} book={b} title={titleOf(b)} fav={isFav(b.dir)} onFav={() => toggleFav(b.dir)} onOpen={() => openBook(b)} />
-                  ))}</div> : <p>{view.id === 'fav' ? '本の ☆ を 押すと、ここに 入ります。' : view.id === 'recent' ? 'まだ ありません。' : 'この たなには まだ 本が ありません。'}</p>}
+                  ))}</div> : <p>{filter !== 'all' ? 'この しゅるいの 本は ありません。' : view.id === 'fav' ? '本の ☆ を 押すと、ここに 入ります。' : view.id === 'recent' ? 'まだ ありません。' : 'この たなには まだ 本が ありません。'}</p>}
                 </div>
               </div>
             );
@@ -582,15 +650,39 @@
           {/* 本 */}
           {book && !query.trim() && (
             <div className="layer" onClick={e => { if (e.target === e.currentTarget) back(); }}>
-              <BookView book={book} title={titleOf(book)} fav={isFav(book.dir)} onFav={() => toggleFav(book.dir)}
-                onBack={back} onSave={(patch) => saveBook(book.dir, patch)} onOpened={() => markRecent(book.dir)} talk={talk} flash={flash} />
+              {book.isRes ? (
+                <ResourceView item={book} app={books.find(b => appKey(b.dir) === book.app)} appTitle={book.app ? (appTitles.find(a => a[0] === book.app) || [, book.app])[1] : ''}
+                  fav={isFav(book.dir)} onFav={() => toggleFav(book.dir)} onBack={back} onOpen={() => openUrl(book)}
+                  onEdit={() => openResForm({}, book.id)} onOpenApp={(b) => openBook(b)}
+                  onDelete={() => { deleteResource(book.id); talk('しりょうを けしました。'); back(); }} />
+              ) : (
+                <BookView book={book} title={titleOf(book)} fav={isFav(book.dir)} onFav={() => toggleFav(book.dir)}
+                  onBack={back} onSave={(patch) => saveBook(book.dir, patch)} onOpened={() => markRecent(book.dir)} talk={talk} flash={flash}
+                  related={resItems.filter(r => r.app === appKey(book.dir))} onOpenRes={(r) => openBook(r)}
+                  onAddRes={() => openResForm({ app: appKey(book.dir), subject: book.subject !== 'new' ? book.subject : '' })} />
+              )}
+            </div>
+          )}
+
+          {/* しりょうを ふやす・なおす */}
+          {view.name === 'resform' && !query.trim() && (
+            <div className="layer" onClick={e => { if (e.target === e.currentTarget) back(); }}>
+              <ResourceForm initial={view.id ? state.resources.find(r => r.id === view.id) : null} preset={view.preset} apps={appTitles}
+                onCancel={back}
+                onSave={(r) => {
+                  saveResource(r);
+                  talk(`「${r.title}」を ${subjectOf(r.subject).name}の たなに 入れました。`);
+                  const from = view.from || { name: 'hall' };
+                  if (from.name === 'book') setView(from);
+                  else setView({ name: 'book', dir: RES + r.id, from });
+                }} />
             </div>
           )}
 
           {/* せってい */}
           {view.name === 'settings' && !query.trim() && (
             <div className="layer" onClick={e => { if (e.target === e.currentTarget) setView({ name: 'hall' }); }}>
-              <Settings settings={settings} onChange={saveSettings} books={books} titleOf={titleOf} tree={tree}
+              <Settings settings={settings} onChange={saveSettings} books={books} resCount={state.resources.length} titleOf={titleOf} tree={tree}
                 onSaveBook={saveBook} onBack={() => setView({ name: 'hall' })} talk={talk} />
             </div>
           )}
@@ -608,7 +700,7 @@
     // =====================================================================
     //  6. 本の 画面
     // =====================================================================
-    function BookView({ book, title, fav, onFav, onBack, onSave, onOpened, talk, flash }) {
+    function BookView({ book, title, fav, onFav, onBack, onSave, onOpened, talk, flash, related, onOpenRes, onAddRes }) {
       const s = subjectOf(book.subject);
       const [tab, setTab] = useState(null);         // readme / code / pdf / img
       const [appUrl, setAppUrl] = useState(book.appUrl);
@@ -699,11 +791,156 @@
           </div>
 
           <div className="sec">
+            <div className="row" style={{ marginBottom: 10 }}>
+              <h3 style={{ margin: 0, flex: 1 }}>📎 かんけいする しりょう（{related.length}）</h3>
+              <button className="btn gold" onClick={onAddRes}>＋ しりょうを ふやす</button>
+            </div>
+            {related.length ? (
+              <div className="books">{related.map(r => (
+                <div key={r.dir} className="book" style={{ '--c': subjectOf(r.subject).c }} role="button" tabIndex={0} onClick={() => onOpenRes(r)}>
+                  <div className="cover" style={{ width: 52, height: 52, fontSize: 30 }}>{resTypeOf(r.type).icon}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700 }}>{r.title}</div>
+                    <div className="muted">{resTypeOf(r.type).name}</div>
+                  </div>
+                </div>
+              ))}</div>
+            ) : <div className="muted">指導案（Google ドキュメント）・授業の スライド・Canva の デザインなどを、この アプリに 結びつけて 登録できます。</div>}
+          </div>
+
+          <div className="sec">
             <h3>📝 メモ</h3>
             <div className="row">
               <input className="inp" value={memo} onChange={e => setMemo(e.target.value)} placeholder="れい：2学期に つかう。Aさんは ステージ3から。" />
               <button className="btn gold" disabled={memo === book.memo} onClick={() => onSave({ memo })}>💾 ほぞん</button>
             </div>
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    //  6-2. しりょうの 本の 画面
+    // =====================================================================
+    function ResourceView({ item, app, appTitle, fav, onFav, onBack, onOpen, onEdit, onDelete, onOpenApp }) {
+      const s = subjectOf(item.subject), t = resTypeOf(item.type);
+      const [asking, setAsking] = useState(false);
+      useEffect(() => setAsking(false), [item.id]);
+      return (
+        <div className="panel glass pop" style={{ borderColor: s.c }}>
+          <div className="phead">
+            <button className="btn" onClick={onBack}>◀ もどる</button>
+            <span style={{ flex: 1 }} />
+            <button className="btn ghost" onClick={onFav}>{fav ? '⭐ おきにいり' : '☆ おきにいりに 入れる'}</button>
+          </div>
+          <div className="row" style={{ alignItems: 'flex-start', gap: 18 }}>
+            <div className="cover l">{t.icon}</div>
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <h2 style={{ margin: '0 0 6px', fontSize: '1.5em' }}>{item.title}</h2>
+              <div className="muted"><span className="badge">{t.name}</span>{s.icon} {s.name}の たな</div>
+              <div className="row" style={{ marginTop: 14 }}>
+                <button className="btn big" onClick={onOpen}>▶ ひらく（あたらしい タブ）</button>
+              </div>
+              <div className="muted" style={{ marginTop: 6, wordBreak: 'break-all' }}>{item.url}</div>
+            </div>
+          </div>
+          {item.app && (
+            <div className="sec">
+              <h3>📎 つかう アプリ</h3>
+              {app ? <button className="btn ghost" onClick={() => onOpenApp(app)}>📚 {appTitle} を みる</button>
+                : <div className="muted">{appTitle}（いまは 見つかりません）</div>}
+            </div>
+          )}
+          {item.memo && <div className="sec"><h3>📝 メモ</h3><div style={{ whiteSpace: 'pre-wrap' }}>{item.memo}</div></div>}
+          <div className="sec">
+            <div className="row">
+              <button className="btn" onClick={onEdit}>✏️ なおす</button>
+              {!asking ? <button className="btn pink" onClick={() => setAsking(true)}>🗑️ けす</button> : (
+                <>
+                  <b>ほんとうに けしますか？（{t.name}の ファイルそのものは けしません）</b>
+                  <button className="btn pink" onClick={onDelete}>🗑️ けす</button>
+                  <button className="btn gray" onClick={() => setAsking(false)}>やめる</button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    //  6-3. しりょうを ふやす・なおす
+    // =====================================================================
+    function ResourceForm({ initial, preset, apps, onSave, onCancel }) {
+      const r0 = initial || {};
+      const [url, setUrl] = useState(r0.url || '');
+      const [title, setTitle] = useState(r0.title || '');
+      const [type, setType] = useState(r0.type || '');          // '' のときは URL から 見分ける
+      const [app, setApp] = useState(r0.app || preset.app || '');
+      const [subject, setSubject] = useState(r0.subject || preset.subject || '');
+      const [memo, setMemo] = useState(r0.memo || '');
+      const [touched, setTouched] = useState(!!(r0.subject || preset.subject));
+      const auto = detectType(url);
+      const t = resTypeOf(type || auto);
+      const badUrl = url.trim() !== '' && !okUrl(url);
+      const ready = okUrl(url) && title.trim() && SUBJECTS.some(x => x.id === subject);
+      const pickApp = (dir) => {
+        setApp(dir);
+        const a = apps.find(x => x[0] === dir);
+        if (a && !touched && a[2] !== 'new') setSubject(a[2]); // アプリと おなじ たなに する
+      };
+      const save = () => onSave({
+        id: r0.id || newResId(), url: url.trim(), title: title.trim().slice(0, 100), type: type || auto,
+        subject, app, memo: memo.trim().slice(0, 500),
+      });
+      return (
+        <div className="panel glass pop">
+          <div className="phead"><h2>{initial ? '✏️ しりょうを なおす' : '＋ しりょうを ふやす'}</h2><button className="btn gray" onClick={onCancel}>やめる</button></div>
+          <div className="sec">
+            <h3>① URL を 貼り付ける</h3>
+            <input className="inp" style={{ width: '100%', boxSizing: 'border-box' }} value={url} onChange={e => setUrl(e.target.value)} placeholder="https://docs.google.com/…　や　https://www.canva.com/…" />
+            <div className="muted" style={{ marginTop: 6 }}>
+              {badUrl ? '⚠ https:// で はじまる URL を 入れてください。'
+                : 'Canva は「共有 → リンクをコピー」、Google の ファイルは「共有 → リンクをコピー」で URL が コピーできます。'}
+            </div>
+            {okUrl(url) && (
+              <div className="row" style={{ marginTop: 10 }}>
+                <span style={{ fontSize: '1.6em' }}>{t.icon}</span><b>{t.name}</b>
+                <span className="muted">（ちがう ときは えらびなおせます）</span>
+                <select className="inp" value={type} onChange={e => setType(e.target.value)}>
+                  <option value="">じどう（{resTypeOf(auto).name}）</option>
+                  {RES_TYPES.map(x => <option key={x.id} value={x.id}>{x.icon} {x.name}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
+          <div className="sec">
+            <h3>② なまえ</h3>
+            <input className="inp" style={{ width: '100%', boxSizing: 'border-box' }} value={title} maxLength={100} onChange={e => setTitle(e.target.value)} placeholder="れい：かんじ マーケットの 指導案（1学期）" />
+          </div>
+          <div className="sec">
+            <h3>③ つかう アプリ（なくても よい）</h3>
+            <select className="inp" value={app} onChange={e => pickApp(e.target.value)}>
+              <option value="">（えらばない）</option>
+              {apps.map(([dir, name]) => <option key={dir} value={dir}>{name}</option>)}
+            </select>
+            <div className="muted" style={{ marginTop: 6 }}>えらぶと、その アプリの 本の 画面にも 出ます。</div>
+          </div>
+          <div className="sec">
+            <h3>④ たな</h3>
+            <div className="row">
+              {SUBJECTS.map(x => (
+                <button key={x.id} className={'btn' + (subject === x.id ? ' gold' : ' ghost')} onClick={() => { setSubject(x.id); setTouched(true); }}>{x.icon} {x.name}</button>
+              ))}
+            </div>
+          </div>
+          <div className="sec">
+            <h3>⑤ メモ（なくても よい）</h3>
+            <textarea className="inp" style={{ width: '100%', boxSizing: 'border-box', minHeight: 70 }} value={memo} maxLength={500} onChange={e => setMemo(e.target.value)} placeholder="れい：6月の 研究授業で つかった。" />
+          </div>
+          <div className="row" style={{ marginTop: 16 }}>
+            <button className="btn big gold" disabled={!ready} onClick={save}>💾 とうろく</button>
+            {!ready && <span className="muted">{!okUrl(url) ? 'URL を 入れてください。' : !title.trim() ? 'なまえを 入れてください。' : 'たなを えらんでください。'}</span>}
           </div>
         </div>
       );
@@ -795,7 +1032,7 @@
     // =====================================================================
     //  7. せってい
     // =====================================================================
-    function Settings({ settings, onChange, books, titleOf, tree, onSaveBook, onBack, talk }) {
+    function Settings({ settings, onChange, books, resCount, titleOf, tree, onSaveBook, onBack, talk }) {
       const [urls, setUrls] = useState(() => Object.fromEntries(books.map(b => [b.dir, b.kind === 'pages' ? b.entryUrl : b.appUrl])));
       const [check, setCheck] = useState(null);
       const need = books.filter(b => b.kind === 'gas' || (b.kind === 'pages' && b.hasEntry));
@@ -808,6 +1045,7 @@
         try { const r = await fetch(rawUrl('README.md'), { cache: 'no-cache' }); rows.push(['コードの 読みこみ', r.ok ? 'よめます' : `よめません（${r.status}）`, r.ok]); }
         catch (e) { rows.push(['コードの 読みこみ', 'つながりません', false]); }
         rows.push(['本の かず', `${books.length}さつ（ファイル ${tree ? tree.paths.length : 0}こ）`, books.length > 0]);
+        rows.push(['しりょうの かず', `${resCount}こ`, true]);
         const FROM = { github: 'GitHub', mokuroku: '目録（mokuroku.json）', server: 'Apps Script', cache: 'この 端末に 保存した もの', old: 'まえに 読んだ もの（古いかも しれません）' };
         rows.push(['一覧の 読みこみ元', tree ? FROM[tree.from] || tree.from : 'まだ', !!tree && tree.from !== 'old']);
         const miss = need.filter(b => !(b.kind === 'pages' ? b.entryUrl : b.appUrl));
