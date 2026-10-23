@@ -254,7 +254,9 @@
       return <span className={className} style={style}>{out}</span>;
     }
     // 読み上げ用の 文
-    const speechText = s => toYomi(s).replace(/(\d+)°/g, '$1ど').replace(/°/g, 'ど').replace(/□/g, 'しかく').replace(/\n/g, '　');
+    // 「3つ分」を「さんつぶん」と よまないように、ひらがなに する（みっつぶん）
+    const KANA_TSU = ['', 'ひとつ', 'ふたつ', 'みっつ', 'よっつ', 'いつつ', 'むっつ', 'ななつ', 'やっつ', 'ここのつ', 'とお'];
+    const speechText = s => toYomi(s).replace(/(\d+)つ/g, (m, n) => KANA_TSU[Number(n)] || m).replace(/(\d+)°/g, '$1ど').replace(/°/g, 'ど').replace(/□/g, 'しかく').replace(/\n/g, '　');
 
     /* =========================================================
        ほぞん（localStorage と IndexedDB）
