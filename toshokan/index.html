@@ -126,7 +126,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useMemo, useRef } = React;
-    const APP_VERSION = '1.1.0';
+    const APP_VERSION = '1.2.0';
 
     // =====================================================================
     //  1. リポジトリと 本の もくろく
@@ -137,6 +137,9 @@
     const BLOB = `https://github.com/${OWNER}/${REPO}/blob/${BRANCH}/`;
     const TREE_API = `https://api.github.com/repos/${OWNER}/${REPO}/git/trees/${BRANCH}?recursive=1`;
     const IMG = window.TOSHO_BASE + 'img/';
+    // ショコの 表情：ふつう・よろこぶ・かんがえる・びっくり・ごあいさつ
+    const MOODS = { normal: 'shoko.webp', happy: 'shoko_happy.webp', think: 'shoko_think.webp', surprise: 'shoko_surprise.webp', bow: 'shoko_bow.webp' };
+    Object.values(MOODS).forEach(f => { const im = new Image(); im.src = IMG + f; }); // さきに 読みこんで、かわるときに ちらつかないように
 
     const SUBJECTS = [
       { id: 'kokugo', name: '国語', icon: '📕', c: '#ff6b81' },
@@ -409,6 +412,7 @@
       const [view, setView] = useState({ name: 'hall' }); // hall / shelf / book / settings
       const [query, setQuery] = useState('');
       const [say, setSay] = useState('こんにちは。ショコです。よみたい たなを えらんでね。');
+      const [mood, setMood] = useState('bow');
       const [toast, setToast] = useState('');
       const [bubbleOn, setBubbleOn] = useState(true);
       const bgOk = useRef(true);
@@ -416,7 +420,13 @@
       const settings = (state && state.settings) || DEFAULT_STATE.settings;
       useEffect(() => { document.documentElement.style.setProperty('--fs', settings.font || 1); }, [settings.font]);
 
-      const talk = (t) => { setSay(t); setBubbleOn(true); speak(t, settings); };
+      // mood：ショコの 表情（MOODS）。ふつう いがいの 表情は、すこし たつと ふつうに もどる
+      const talk = (t, m) => { setSay(t); setMood(m || 'normal'); setBubbleOn(true); speak(t, settings); };
+      useEffect(() => {
+        if (mood === 'normal') return;
+        const id = setTimeout(() => setMood('normal'), 4500);
+        return () => clearTimeout(id);
+      }, [mood, say]);
       // 本や たなを ひらいて いる ときは、ふきだしを すこしで けす（ボタンに かさならないように）
       const layerOpen = view.name !== 'hall' || !!query.trim();
       useEffect(() => {
@@ -432,10 +442,11 @@
         try {
           const t = await loadTree(force);
           setTree(t);
-          if (t.error) setTreeErr('GitHub に つながらなかったので、まえに 読んだ 一覧を 出しています。');
+          if (t.error) { setTreeErr('GitHub に つながらなかったので、まえに 読んだ 一覧を 出しています。'); talk('GitHub に つながらなかったので、まえの 一覧を 出しています。', 'think'); }
           if (force) flash('🔄 さいしんの 一覧に しました');
         } catch (e) {
           setTreeErr('GitHub の ファイルの 一覧が 読めませんでした。インターネットに つながっているか 確かめて、🔄 を 押してください。');
+          talk('ファイルの 一覧が 読めませんでした。インターネットを 確かめてね。', 'think');
         }
       };
       useEffect(() => {
@@ -494,10 +505,11 @@
       const saveBook = (dir, patch) => {
         update(s => { s.books[dir] = Object.assign({}, s.books[dir] || {}, patch); return s; });
         const cur = Object.assign({}, (state.books[dir] || {}), patch);
-        store.saveBook(dir, cur).then(() => flash('💾 ほぞん しました')).catch(() => flash('⚠ ほぞん できませんでした'));
+        store.saveBook(dir, cur).then(() => flash('💾 ほぞん しました')).catch(() => { flash('⚠ ほぞん できませんでした'); talk('ほぞん できませんでした。インターネットを 確かめてね。', 'think'); });
       };
       const toggleFav = (dir) => {
         let list;
+        if (!state.favorites.includes(dir)) talk('⭐ おきにいりに 入れました。', 'happy');
         update(s => { const i = s.favorites.indexOf(dir); if (i >= 0) s.favorites.splice(i, 1); else s.favorites.unshift(dir); list = s.favorites; return s; });
         setTimeout(() => store.saveList('favorites', list), 0);
       };
@@ -514,7 +526,7 @@
 
       const saveResource = (r) => {
         update(s => { const i = s.resources.findIndex(x => x.id === r.id); if (i >= 0) s.resources[i] = r; else s.resources.push(r); return s; });
-        store.saveResource(r).then(() => flash('💾 ほぞん しました')).catch(() => flash('⚠ ほぞん できませんでした'));
+        store.saveResource(r).then(() => flash('💾 ほぞん しました')).catch(() => { flash('⚠ ほぞん できませんでした'); talk('ほぞん できませんでした。インターネットを 確かめてね。', 'think'); });
       };
       // けすと、おきにいり・さいきん からも けす（スプレッドシートの 方は コード.gs が けす）
       const deleteResource = (id) => {
@@ -541,6 +553,8 @@
           return [t.main, t.sub, s.name, KIND_LABEL[b.kind], b.memo].concat(extra).join(' ').toLowerCase().includes(q);
         });
       }, [query, items, titles]);
+      const noHit = !!query.trim() && !hits.length;
+      useEffect(() => { if (noHit) talk('みつからないなあ。ほかの ことばで さがしてみてね。', 'think'); }, [noHit]);
 
       const openShelf = (id) => {
         setView({ name: 'shelf', id, filter: 'all' });
@@ -654,6 +668,7 @@
                 <ResourceView item={book} app={books.find(b => appKey(b.dir) === book.app)} appTitle={book.app ? (appTitles.find(a => a[0] === book.app) || [, book.app])[1] : ''}
                   fav={isFav(book.dir)} onFav={() => toggleFav(book.dir)} onBack={back} onOpen={() => openUrl(book)}
                   onEdit={() => openResForm({}, book.id)} onOpenApp={(b) => openBook(b)}
+                  onAsk={() => talk('えっ、ほんとうに けしますか？', 'surprise')}
                   onDelete={() => { deleteResource(book.id); talk('しりょうを けしました。'); back(); }} />
               ) : (
                 <BookView book={book} title={titleOf(book)} fav={isFav(book.dir)} onFav={() => toggleFav(book.dir)}
@@ -671,7 +686,7 @@
                 onCancel={back}
                 onSave={(r) => {
                   saveResource(r);
-                  talk(`「${r.title}」を ${subjectOf(r.subject).name}の たなに 入れました。`);
+                  talk(`「${r.title}」を ${subjectOf(r.subject).name}の たなに 入れました。`, 'happy');
                   const from = view.from || { name: 'hall' };
                   if (from.name === 'book') setView(from);
                   else setView({ name: 'book', dir: RES + r.id, from });
@@ -689,8 +704,8 @@
 
           <div className={'shoko' + (layerOpen ? ' mini' : '')}>
             {say && bubbleOn && <div className="bubble pop" key={say} onClick={() => speak(say, Object.assign({}, settings, { voice: true }))}>{say}</div>}
-            <img className="floaty" src={IMG + 'shoko.webp'} alt="ショコ" onClick={() => talk(say || 'こんにちは。ショコです。')}
-              onError={e => { e.target.style.display = 'none'; }} />
+            <img className="floaty" src={IMG + MOODS[mood]} alt="ショコ" onClick={() => talk(say || 'こんにちは。ショコです。', mood)}
+              onError={e => { if (mood !== 'normal') setMood('normal'); else e.target.style.display = 'none'; }} />
           </div>
           {toast && <div className="toast pop">{toast}</div>}
         </>
@@ -719,7 +734,7 @@
             {book[key] ? <button className="btn big" onClick={() => open(book[key])}>▶ ひらく</button> : null}
             <input className="inp" value={value} onChange={e => setValue(e.target.value)} placeholder="https://script.google.com/macros/s/……/exec" />
             <button className="btn gold" disabled={value.trim() === book[key] || (value.trim() !== '' && !okUrl(value))}
-              onClick={() => { onSave({ [key]: value.trim() }); talk(value.trim() ? 'URL を とうろく しました。' : 'URL を けしました。'); }}>💾 とうろく</button>
+              onClick={() => { onSave({ [key]: value.trim() }); talk(value.trim() ? 'URL を とうろく しました。' : 'URL を けしました。', value.trim() ? 'happy' : 'normal'); }}>💾 とうろく</button>
           </div>
           <div className="muted" style={{ marginTop: 4 }}>{value.trim() !== '' && !okUrl(value) ? '⚠ https:// で はじまる URL を 入れてください。' : hint}</div>
         </div>
@@ -743,7 +758,7 @@
               </div>
               <div className="row" style={{ marginTop: 10 }}>
                 <span className="muted">たな：</span>
-                <select className="inp" value={book.subject} onChange={e => { onSave({ subject: e.target.value }); talk(`${subjectOf(e.target.value).name}の たなに 入れました。`); }}>
+                <select className="inp" value={book.subject} onChange={e => { onSave({ subject: e.target.value }); talk(`${subjectOf(e.target.value).name}の たなに 入れました。`, 'happy'); }}>
                   {book.subject === 'new' && <option value="new">✨ あたらしい本（まだ きめて いない）</option>}
                   {SUBJECTS.map(x => <option key={x.id} value={x.id}>{x.icon} {x.name}</option>)}
                 </select>
@@ -822,7 +837,7 @@
     // =====================================================================
     //  6-2. しりょうの 本の 画面
     // =====================================================================
-    function ResourceView({ item, app, appTitle, fav, onFav, onBack, onOpen, onEdit, onDelete, onOpenApp }) {
+    function ResourceView({ item, app, appTitle, fav, onFav, onBack, onOpen, onEdit, onDelete, onOpenApp, onAsk }) {
       const s = subjectOf(item.subject), t = resTypeOf(item.type);
       const [asking, setAsking] = useState(false);
       useEffect(() => setAsking(false), [item.id]);
@@ -855,7 +870,7 @@
           <div className="sec">
             <div className="row">
               <button className="btn" onClick={onEdit}>✏️ なおす</button>
-              {!asking ? <button className="btn pink" onClick={() => setAsking(true)}>🗑️ けす</button> : (
+              {!asking ? <button className="btn pink" onClick={() => { setAsking(true); onAsk(); }}>🗑️ けす</button> : (
                 <>
                   <b>ほんとうに けしますか？（{t.name}の ファイルそのものは けしません）</b>
                   <button className="btn pink" onClick={onDelete}>🗑️ けす</button>
