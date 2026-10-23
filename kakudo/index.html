@@ -692,29 +692,32 @@
         </g>
       );
     }
-    // ワニワニ先生の絵（Canva で 作った 画像）。読みこめない ときは 上の SVG の 絵を 使う
-    const WANI_IMG = 'img/wani.webp';
-    const WANI_STATE = { failed: false, subs: new Set() };
+    // ワニワニ先生の絵（Canva で 作った 画像）。表情ごとに 1まい。
+    // 表情の 画像が 読みこめない ときは ふつうの 画像、それも だめな ときは 上の SVG の 絵を 使う
+    const WANI_IMGS = { normal: 'img/wani.webp', happy: 'img/wani_happy.webp', think: 'img/wani_think.webp' };
+    const WANI_STATE = { failed: {}, subs: new Set() };
     function WaniImg({ mood = 'normal', talking = false, mouth }) {
-      const [failed, setFailed] = useState(WANI_STATE.failed);
-      useEffect(() => { const f = () => setFailed(true); WANI_STATE.subs.add(f); return () => WANI_STATE.subs.delete(f); }, []);
-      if (failed) return <WaniBody mood={mood} talking={talking} mouth={mouth} />;
-      const onError = () => { WANI_STATE.failed = true; WANI_STATE.subs.forEach(f => f()); };
-      const happy = mood === 'happy' || mood === 'eat';
-      const think = mood === 'think';
+      const [, setTick] = useState(0);
+      useEffect(() => { const f = () => setTick(t => t + 1); WANI_STATE.subs.add(f); return () => WANI_STATE.subs.delete(f); }, []);
+      const want = mood === 'happy' || mood === 'eat' ? 'happy' : mood === 'think' ? 'think' : 'normal';
+      const key = WANI_STATE.failed[want] ? 'normal' : want;
+      if (WANI_STATE.failed.normal) return <WaniBody mood={mood} talking={talking} mouth={mouth} />;
+      const onError = () => { WANI_STATE.failed[key] = true; WANI_STATE.subs.forEach(f => f()); };
+      const happy = want === 'happy';
+      const think = want === 'think';
       return (
         <g>
           {happy
             ? <animateTransform attributeName="transform" type="translate" values="0 0; 0 -14; 0 0" dur="0.5s" repeatCount="3" />
             : <animateTransform attributeName="transform" type="translate" values="0 0; 0 -4; 0 0" dur="3.2s" repeatCount="indefinite" />}
-          <g transform={think ? 'rotate(-7 110 236)' : undefined}>
+          <g transform={think && key !== 'think' ? 'rotate(-7 110 236)' : undefined}>
             <g>
               {talking && <animateTransform attributeName="transform" type="scale" additive="sum" values="1 1; 1.015 0.985; 1 1" dur="0.4s" repeatCount="indefinite" />}
-              <image href={WANI_IMG} x="24" y="2" width="173" height="236" onError={onError} preserveAspectRatio="xMidYMid meet" />
+              <image key={key} href={WANI_IMGS[key]} x="-8" y="2" width="236" height="236" onError={onError} preserveAspectRatio="xMidYMax meet" />
             </g>
           </g>
-          {think && <text x="200" y="40" fontSize="44" fontWeight="900" fill="#f97316">?</text>}
-          {happy && <g fill="#fbbf24"><text x="0" y="40" fontSize="28">✨</text><text x="196" y="130" fontSize="24">✨</text></g>}
+          {think && <text x="198" y="38" fontSize="44" fontWeight="900" fill="#f97316">?</text>}
+          {happy && key !== 'happy' && <g fill="#fbbf24"><text x="0" y="40" fontSize="28">✨</text><text x="196" y="130" fontSize="24">✨</text></g>}
         </g>
       );
     }
@@ -742,9 +745,19 @@
       { id: 'pine', name: 'パイナップル', draw: () => <path d="M -10 8 Q -11 10 -8 10 L 8 10 Q 11 10 10 8 L 1 -9 Q 0 -11 -1 -9 Z" fill="#fde047" stroke="#ca8a04" strokeWidth="1.8" strokeLinejoin="round" /> },
     ];
     const TOP_MAP = Object.fromEntries(TOPPINGS.map(t => [t.id, t]));
+    // トッピングの 絵（Canva で 作った 画像）。読みこめない ときは 上の SVG の 絵を 使う
+    const TOP_STATE = { failed: {}, subs: new Set() };
+    function ToppingArt({ id, size = 34 }) {
+      const [, setTick] = useState(0);
+      useEffect(() => { const f = () => setTick(t => t + 1); TOP_STATE.subs.add(f); return () => TOP_STATE.subs.delete(f); }, []);
+      const t = TOP_MAP[id]; if (!t) return null;
+      if (TOP_STATE.failed[id]) return t.draw();
+      const onError = () => { TOP_STATE.failed[id] = true; TOP_STATE.subs.forEach(f => f()); };
+      return <image href={`img/top_${id}.webp`} x={-size / 2} y={-size / 2} width={size} height={size} onError={onError} preserveAspectRatio="xMidYMid meet" />;
+    }
     function ToppingIcon({ id, size = 40 }) {
       const t = TOP_MAP[id]; if (!t) return null;
-      return <svg viewBox="-17 -17 34 34" width={size} height={size} aria-hidden="true">{t.draw()}</svg>;
+      return <svg viewBox="-17 -17 34 34" width={size} height={size} aria-hidden="true"><ToppingArt id={id} /></svg>;
     }
 
     // ---- ピザ（まるごと）----
@@ -771,7 +784,7 @@
           {baked && spots.map((s, i) => <ellipse key={i} cx={s.x} cy={s.y} rx={s.rx} ry={s.ry} fill="#f59e0b" opacity=".45" />)}
           {toppings.map((id, i) => {
             const t = TOP_MAP[id]; if (!t) return null;
-            return <g key={i}>{pieces[i].map((p, j) => <g key={j} transform={`translate(${f1(p.x)} ${f1(p.y)}) rotate(${Math.round(p.rot)})`}>{t.draw()}</g>)}</g>;
+            return <g key={i}>{pieces[i].map((p, j) => <g key={j} transform={`translate(${f1(p.x)} ${f1(p.y)}) rotate(${Math.round(p.rot)})`}><ToppingArt id={id} size={30} /></g>)}</g>;
           })}
           {baked && <g stroke="rgba(120,53,15,.35)" strokeWidth="2">{[0, 45, 90, 135].map(a => { const [x1, y1] = P(0, 0, 92, a), [x2, y2] = P(0, 0, 92, a + 180); return <line key={a} x1={x1} y1={y1} x2={x2} y2={y2} />; })}</g>}
         </g>
