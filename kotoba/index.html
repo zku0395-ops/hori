@@ -43,6 +43,10 @@
     @keyframes slash { 0% { transform: scale(.3) rotate(-30deg); opacity: 0; } 30% { transform: scale(1.3) rotate(0); opacity: 1; } 100% { transform: scale(1.6) rotate(10deg); opacity: 0; } }
     .hurt { animation: hurt .5s .15s; }
     @keyframes hurt { 0%,100% { transform: translateX(0); filter: none; } 25% { transform: translateX(12px); filter: brightness(2); } 50% { transform: translateX(-8px); } 75% { transform: translateX(4px); filter: brightness(1.5); } }
+    @keyframes warpin { 0% { transform: translateY(-70px) scale(.15, 2.4); opacity: 0; filter: brightness(4); } 35% { transform: translateY(0) scale(1.3, .75); opacity: 1; filter: brightness(2.2); } 60% { transform: scale(.9, 1.12); filter: brightness(1.2); } 80% { transform: scale(1.05, .96); } 100% { transform: scale(1); filter: none; } }
+    .warpin { animation: warpin .5s cubic-bezier(.2,.9,.3,1.2) both; transform-origin: 50% 100%; }
+    @keyframes warpring { 0% { transform: scale(.2); opacity: 1; } 100% { transform: scale(2.2); opacity: 0; } }
+    .warpring { animation: warpring .5s ease-out both; pointer-events: none; }
     .defeat { transition: opacity 1s .3s, transform 1s .3s, filter 1s .3s; opacity: 0; transform: scale(.4) translateY(30px); filter: brightness(3); }
     .dmg { animation: dmg 1s ease-out forwards; }
     @keyframes dmg { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(-46px); opacity: 0; } }
@@ -85,7 +89,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.0.2';
+    const APP_VERSION = '1.0.3';
     const BASE = window.KOTOBA_BASE;
     const IMG = BASE + 'img/';
 
@@ -184,6 +188,7 @@
         [262, 330, 392, 523].forEach(f => this.tone(f, 1.0, 1.0, 'triangle', .07));
       },
       levelup() { [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => this.tone(f, i * .09, .12, 'square', .05)); },
+      pyu() { const c = this.get(); if (!c || !this.on) return; const t = c.currentTime, o = c.createOscillator(), g = c.createGain(); o.type = 'square'; o.frequency.setValueAtTime(300, t); o.frequency.exponentialRampToValueAtTime(1800, t + .16); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.05, t + .02); g.gain.exponentialRampToValueAtTime(.0001, t + .2); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + .25); this.tone(1568, .17, .1, 'square', .035); }, // モンスターが あらわれる「ピュッ」
       nakama() { [[659, 0], [784, .12], [988, .24], [1319, .4]].forEach(([f, t]) => this.tone(f, t, .2, 'triangle', .1)); },
       retry() { this.tone(330, 0, .12, 'sine', .06); this.tone(294, .11, .18, 'sine', .06); }, // まちがえた とき（小さな おと）
       tap() { this.tone(880, 0, .05, 'square', .035); },
@@ -864,7 +869,7 @@
     // 10. たたかい（1かい ぶん）
     // =====================================================================
     // たたかいの 場面（その 場所の 絵の 上で、ぼうけんしゃと モンスターが むかいあう）
-    function BattleField({ place, look, party, mon, hp, max, hit, crit, missFx, end, bubble }) {
+    function BattleField({ place, look, party, mon, shown = true, hp, max, hit, crit, missFx, end, bubble }) {
       const file = place ? `place_${place.id}.webp` : 'place_inn.webp';
       const fallback = <div className="absolute inset-0" style={{ background: `linear-gradient(${place ? place.bg : '#fde68a'} 0 62%, ${place ? place.color : '#b45309'}66 62% 100%)` }} />;
       return (
@@ -874,8 +879,9 @@
             <div key={'a' + hit} className={hit ? 'lunge' : ''}><Hero look={look} size={128} /></div>
             <Party ids={party} size={66} />
           </div>
-          {mon && (
-            <div className={`absolute bottom-2 flex flex-col items-center ${end === 'win' ? 'defeat' : ''}`} style={{ right: '6%' }}>
+          {mon && shown && <div className="absolute warpring rounded-full" style={{ right: 'calc(6% + 10px)', bottom: 20, width: 120, height: 120, border: '6px solid #fff', boxShadow: '0 0 18px #fde047' }} />}
+          {mon && shown && (
+            <div className={`absolute bottom-2 flex flex-col items-center ${end === 'win' ? 'defeat' : 'warpin'}`} style={{ right: '6%' }}>
               <div className="bg-blue-950/85 rounded-full px-3 py-1 mb-1 flex items-center gap-1">
                 <span className="text-base font-bold text-white">{mon.name}</span>
                 {Array.from({ length: max }, (_, j) => <span key={j} className={`inline-block w-5 h-3.5 rounded-sm ${j < hp ? 'bg-emerald-400' : 'bg-slate-500'}`} />)}
@@ -887,7 +893,7 @@
           {hit > 0 && mon && <div key={'d' + hit} className="absolute dmg text-4xl font-bold" style={{ right: '24%', top: 40, color: crit ? '#dc2626' : '#1e3a8a', textShadow: '2px 2px 0 #fff, -2px -2px 0 #fff' }}>{crit ? 'かいしんの いちげき！' : 'こうげき！'}</div>}
           {missFx > 0 && mon && !end && <div key={'m' + missFx} className="absolute dmg text-3xl font-bold text-white bg-blue-950/75 rounded-xl px-3" style={{ right: '24%', top: 50 }}>ひらり！</div>}
           {bubble && mon && <div key={bubble.k} className="absolute pop bg-white rounded-2xl border-4 border-blue-950 px-3 py-1 text-xl font-bold" style={{ right: '25%', top: 16, maxWidth: '50%' }}>{bubble.t}</div>}
-          {!mon && <div className="absolute bottom-3 text-6xl floaty" style={{ right: '8%' }}>{place ? place.icon : '🛏️'}</div>}
+          {(!mon || !shown) && <div className="absolute bottom-3 text-6xl floaty" style={{ right: '8%' }}>{place ? place.icon : '🛏️'}</div>}
         </Bg>
       );
     }
@@ -904,6 +910,7 @@
       const mon = useMemo(() => monsterOf(st), []);
       const [hp, setHp] = useState(problems.length);
       const [hit, setHit] = useState(0);
+      const [shown, setShown] = useState(false); // モンスターは「あらわれた！」の ときに ピュッと 出る
       const [crit, setCrit] = useState(false);
       const [missFx, setMissFx] = useState(0);
       const [end, setEnd] = useState(null);
@@ -918,7 +925,7 @@
       useEffect(() => {
         (async () => {
           await talk.say(intro || st.intro, { mood: 'happy' });
-          if (mon && alive.current) { await monSay(`${mon.name}が あらわれた！ 「${mon.hello}」`); await wait(200); }
+          if (mon && alive.current) { setShown(true); Sound.pyu(); await wait(450); await monSay(`${mon.name}が あらわれた！ 「${mon.hello}」`); await wait(200); }
           if (alive.current) { t0.current = Date.now(); setI(0); }
         })();
       }, []);
@@ -973,7 +980,7 @@
             <div className="flex-1 text-xl font-bold text-slate-600">{Math.min(problems.length, Math.max(0, i) + 1)} / {problems.length}もん</div>
             <button onClick={onQuit} className="btn3d bg-white border-2 border-slate-300 rounded-2xl px-3 py-1 text-lg font-bold shrink-0">✋ やめる</button>
           </div>
-          <BattleField place={place} look={progress.look} party={progress.party} mon={mon} hp={hp} max={problems.length} hit={hit} crit={crit} missFx={missFx} end={end} bubble={bubble} />
+          <BattleField place={place} look={progress.look} party={progress.party} mon={mon} shown={shown} hp={hp} max={problems.length} hit={hit} crit={crit} missFx={missFx} end={end} bubble={bubble} />
           {p && <WordQ key={i} p={p} ctx={ctx} />}
           <Seikai show={seikai} />
         </div>
