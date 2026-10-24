@@ -52,7 +52,7 @@
   <script type="text/babel">
     const { useState, useEffect, useRef, useMemo, useContext, createContext } = React;
 
-    const APP_VERSION = '2.0.0';
+    const APP_VERSION = '2.0.1';
 
     // =====================================================================
     //  1. こまかい どうぐ
@@ -64,7 +64,9 @@
 
     // ふりがな：「{三角形|さんかくけい}」と 書くと ルビに なり、読み上げは「さんかくけい」に なる
     const RUBY_RE = /\{([^|}]+)\|([^}]+)\}/g;
-    const speechOf = (s) => String(s || '').replace(RUBY_RE, '$2');
+    // 読み上げだけ 直す ことば（「はし」は「は」を「わ」と 読まれないよう、声では「端」に する）
+    const SPEAK_FIX = [[/はし(?=の|から|まで|を|に|へ|と|で|は|が)/g, '端']];
+    const speechOf = (s) => SPEAK_FIX.reduce((t, [re, to]) => t.replace(re, to), String(s || '').replace(RUBY_RE, '$2'));
     const plainOf = (s) => String(s || '').replace(RUBY_RE, '$1');
     function Txt({ s }) {
       const str = String(s || ''), out = [];
