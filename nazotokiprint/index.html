@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>なぞとき プリント</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4 landscape; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { font-family: 'BIZ UDPGothic', 'IPAGothic', sans-serif; color: #111; background: #e7e5e4; }
+  .sheet { word-break: keep-all; overflow-wrap: anywhere; }
+  rt { font-size: 0.5em; font-weight: 400; }
+  .red { color: #dc2626; }
+
+  /* 画面だけに 出す ところ */
+  .bar { position: sticky; top: 0; z-index: 5; background: #fff7ed; border-bottom: 2px solid #fdba74; padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .bar h1 { font-size: 18px; margin: 0 10px 0 0; }
+  .bar a, .bar button { font: inherit; font-size: 15px; font-weight: 700; padding: 8px 12px; border-radius: 10px; border: 2px solid #c2410c; background: #fff; color: #9a3412; text-decoration: none; cursor: pointer; }
+  .bar a.on { background: #c2410c; color: #fff; }
+  .bar .sp { flex: 1; }
+  .bar .pdf { width: 100%; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 14px; font-weight: 700; }
+  .bar .pdf a { font-size: 13px; padding: 4px 8px; border-width: 1px; }
+  .pages { padding: 16px 0 40px; }
+
+  /* 1まい */
+  .sheet { width: 297mm; height: 210mm; margin: 0 auto 16px; background: #fff; padding: 8mm 10mm 7mm; display: flex; flex-direction: column; overflow: hidden; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+  @media print {
+    body { background: #fff; }
+    .bar { display: none; }
+    .pages { padding: 0; }
+    .sheet { margin: 0; box-shadow: none; page-break-after: always; break-after: page; }
+    .sheet:last-child { page-break-after: auto; break-after: auto; }
+  }
+
+  /* 上の 帯 */
+  .head { display: flex; align-items: stretch; gap: 3mm; height: 17mm; }
+  .ttl { display: flex; align-items: center; gap: 2mm; border: 0.6mm solid #111; border-radius: 3mm; padding: 0 3mm; }
+  .ttl img { width: 13mm; height: 13mm; object-fit: contain; }
+  .ttl .t1 { font-size: 11pt; font-weight: 700; line-height: 1.2; }
+  .ttl .t2 { font-size: 14pt; font-weight: 700; line-height: 1.2; }
+  .tag { display: inline-block; border: 0.5mm solid #111; border-radius: 2mm; padding: 0 2mm; font-size: 10pt; margin-left: 1mm; }
+  .tag.test { background: #111; color: #fff; }
+  .box { border: 0.6mm solid #111; border-radius: 3mm; display: flex; align-items: center; padding: 0 3mm; font-size: 13pt; font-weight: 700; }
+  .date { gap: 1mm; }
+  .date .blank { display: inline-block; width: 11mm; }
+  .name { flex: 1; }
+  .name .lbl { font-size: 11pt; margin-right: 3mm; white-space: nowrap; }
+  .self { gap: 2mm; font-size: 10pt; }
+  .self .f { font-size: 17pt; width: 11mm; height: 11mm; border: 0.4mm dashed #888; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
+  .stamp { margin-left: auto; transform: rotate(6deg); border: 1mm solid #dc2626; color: #dc2626; border-radius: 3mm; padding: 0 4mm; font-size: 16pt; font-weight: 700; background: #fff; }
+
+  .lead { display: flex; align-items: center; gap: 3mm; margin: 2.5mm 0 2mm; font-size: 13pt; font-weight: 700; }
+  .lead .no { border: 0.5mm solid #111; border-radius: 50%; min-width: 9mm; height: 9mm; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; }
+  .lead .note { font-weight: 400; font-size: 10.5pt; }
+
+  .body { flex: 1; display: flex; gap: 6mm; min-height: 0; }
+  .left { width: 120mm; display: flex; flex-direction: column; gap: 3mm; }
+  .pic { width: 120mm; height: 90mm; border: 0.5mm solid #111; border-radius: 3mm; overflow: hidden; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12pt; }
+  .pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .text { flex: 1; border: 0.5mm solid #111; border-radius: 3mm; padding: 3mm 4mm; font-size: 19pt; line-height: 2.1; }
+  .text.s { font-size: 16.5pt; line-height: 2; }
+  .text p { margin: 0; }
+  .left.xs .text { font-size: 15.5pt; line-height: 1.95; padding: 2mm 3.5mm; }
+  /* ながい ぶんしょう（5文・7文）：挿絵を 小さくし、文に ①②… の 番号を 付ける */
+  .left.long { width: 150mm; }
+  .left.long .pic { width: 100mm; height: 75mm; align-self: center; flex: none; }
+  .left.long .text { font-size: 17.5pt; line-height: 1.9; padding: 2mm 3.5mm; min-height: 0; overflow: hidden; }
+  .text p.n { padding-left: 1.25em; text-indent: -1.25em; }
+  .text p.n .sn { display: inline-block; width: 1.25em; text-indent: 0; font-weight: 700; }
+
+  .right { flex: 1; display: flex; flex-direction: column; gap: 2.4mm; min-width: 0; }
+  .q { flex: 1; border: 0.5mm solid #111; border-radius: 3mm; padding: 1.8mm 3mm 2mm; display: flex; flex-direction: column; min-height: 0; }
+  .qh { display: flex; align-items: center; gap: 2.5mm; font-size: 13.5pt; font-weight: 700; line-height: 1.75; }
+  .mk { flex: none; display: inline-flex; align-items: center; gap: 1mm; border: 0.5mm solid #111; border-radius: 5mm; padding: 0.3mm 2.5mm 0.3mm 1.5mm; font-size: 11pt; line-height: 1.4; }
+  .mk .e { font-size: 13pt; }
+  .ch { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 1mm 4mm; align-content: center; padding-left: 2mm; }
+  .ch .o { font-size: 13.5pt; line-height: 1.7; padding: 0 3mm; border: 0.6mm solid transparent; border-radius: 6mm; justify-self: start; white-space: nowrap; }
+  .ch.s .o { font-size: 12pt; }
+  .ch .o .k { font-weight: 700; margin-right: 1.5mm; }
+  .ch .o.ok { border-color: #dc2626; color: #dc2626; font-weight: 700; }
+  .wr { flex: 1; display: flex; align-items: center; flex-wrap: wrap; gap: 1.2mm; padding-left: 4mm; font-size: 15pt; line-height: 1.9; }
+  .cell { width: 14.5mm; height: 14.5mm; border: 0.5mm solid #111; position: relative; display: inline-flex; align-items: center; justify-content: center; font-size: 22pt; font-weight: 700; line-height: 1; }
+  .wr.s .cell { width: 12.5mm; height: 12.5mm; font-size: 19pt; }
+  .cell::before, .cell::after { content: ''; position: absolute; border-color: #bbb; border-style: dashed; border-width: 0; }
+  .cell::before { left: 50%; top: 0; bottom: 0; border-left-width: 0.25mm; }
+  .cell::after { top: 50%; left: 0; right: 0; border-top-width: 0.25mm; }
+  .cell b { position: relative; z-index: 1; color: #dc2626; }
+  .cells { display: inline-flex; gap: 0; }
+  .cells .cell + .cell { border-left: 0; }
+  .foot { position: absolute; bottom: 2.5mm; right: 10mm; font-size: 8pt; color: #888; }
+</style>
+</head>
+<body>
+<div class="bar" id="bar"></div>
+<div class="pages" id="pages"></div>
+<script src="data/print.js"></script>
+<script>
+(function () {
+  var D = window.NAZOPRINT;
+  var KEYS = ['itsu', 'doko', 'dare', 'nani'];
+  var MARK = { itsu: ['🕐', 'いつ'], doko: ['📍', 'どこで'], dare: ['👤', 'だれが'], nani: ['🏃', 'なにを した'] };
+  var KANA = ['ア', 'イ', 'ウ', 'エ'];
+  var SN = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨'];
+  // set：どの プリントか。kind 1 は ○を つける、2 は 書く
+  var SETS = {
+    practice1: { kind: 1, test: false, name: 'れんしゅう', sub: 'えらぶ', file: 'れんしゅう_えらぶ' },
+    practice2: { kind: 2, test: false, name: 'れんしゅう', sub: 'かく', file: 'れんしゅう_かく' },
+    practice3: { kind: 2, test: false, long: true, name: 'れんしゅう', sub: 'ながい ぶんしょう', file: 'れんしゅう_ながいぶんしょう' },
+    test1: { kind: 1, test: true, name: 'テスト', sub: 'えらぶ', file: 'テスト_えらぶ' },
+    test2: { kind: 2, test: true, name: 'テスト', sub: 'かく', file: 'テスト_かく' }
+  };
+  var ORDER = ['practice1', 'practice2', 'practice3', 'test1', 'test2'];
+  // PDF の ファイル（tools/make-pdf.js が 使います）
+  window.NAZOPRINT_FILES = [];
+  ORDER.forEach(function (s) {
+    window.NAZOPRINT_FILES.push({ set: s, ans: 0, file: 'なぞときプリント_' + SETS[s].file + '.pdf' });
+    window.NAZOPRINT_FILES.push({ set: s, ans: 1, file: 'なぞときプリント_' + SETS[s].file + '_こたえ.pdf' });
+  });
+
+  var P = new URLSearchParams(location.search);
+  var set = SETS[P.get('set')] ? P.get('set') : 'practice1';
+  var ans = P.get('ans') === '1';
+  var only = P.get('n') ? Number(P.get('n')) : 0;
+  var S = SETS[set];
+
+  var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var ruby = function (s) { return esc(s).replace(/\{([^|}]+)\|([^}]+)\}/g, '<ruby>$1<rt>$2</rt></ruby>'); };
+  var plain = function (s) { return s.replace(/\{([^|}]+)\|[^}]+\}/g, '$1'); };
+  // いつも 同じ 順に まぜる（プリントと こたえで 順番が かわらないように）
+  function seeded(str) { var h = 2166136261; for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return function () { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 100000) / 100000; }; }
+  function shuffle(arr, key) { var r = seeded(key), a = arr.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(r() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+
+  // 画面の 上の ボタン
+  var bar = '<h1>🔎 なぞとき プリント</h1>';
+  ORDER.forEach(function (s) {
+    [0, 1].forEach(function (a) {
+      var on = s === set && (a === 1) === ans;
+      bar += '<a class="' + (on ? 'on' : '') + '" href="?set=' + s + (a ? '&ans=1' : '') + '">' + SETS[s].name + '（' + SETS[s].sub + '）' + (a ? 'こたえ' : '') + '</a>';
+    });
+  });
+  bar += '<span class="sp"></span><button onclick="print()">🖨 いんさつ</button>';
+  bar += '<div class="pdf">できあがった PDF：' + window.NAZOPRINT_FILES.map(function (f) { return '<a href="pdf/' + encodeURIComponent(f.file) + '" target="_blank">' + esc(f.file.replace('なぞときプリント_', '').replace('.pdf', '')) + '</a>'; }).join('') + '</div>';
+  document.getElementById('bar').innerHTML = bar;
+
+  function head(m, i, n) {
+    var h = '<div class="head">';
+    h += '<div class="ttl"><img src="../nazotoki/img/wanda.webp" alt=""><div><div class="t1">ワンダせんせいの</div><div class="t2">なぞとき プリント'
+      + '<span class="tag' + (S.test ? ' test' : '') + '">' + S.name + '</span>' + (S.long ? '<span class="tag">ながい ぶんしょう</span>' : '') + '</div></div></div>';
+    h += '<div class="box date"><span class="blank"></span>がつ<span class="blank"></span>にち</div>';
+    h += '<div class="box name"><span class="lbl">なまえ</span></div>';
+    h += '<div class="box self">できたかな？<span class="f">😊</span><span class="f">😐</span><span class="f">😟</span></div>';
+    h += '</div>';
+    return h;
+  }
+
+  function choices(m, k) {
+    var x = m.qs[k];
+    var list = shuffle([x.a].concat(x.ng.slice(0, 3)), m.id + k);
+    var long = list.some(function (t) { return plain(t).length > 11; });
+    var h = '<div class="ch' + (long ? ' s' : '') + '">';
+    list.forEach(function (t, i) {
+      h += '<div class="o' + (ans && t === x.a ? ' ok' : '') + '"><span class="k">' + KANA[i] + '</span>' + ruby(t) + '</div>';
+    });
+    return h + '</div>';
+  }
+
+  function writing(m, k) {
+    var x = m.qs[k];
+    var ch = Array.from(x.a);
+    var parts = x.f.split('＿');
+    var cells = '<span class="cells">' + ch.map(function (c) { return '<span class="cell">' + (ans ? '<b>' + esc(c) + '</b>' : '') + '</span>'; }).join('') + '</span>';
+    var s = ch.length + plain(x.f).length > 12;
+    return '<div class="wr' + (s ? ' s' : '') + '">' + (parts[0] ? '<span>' + ruby(parts[0]) + '</span>' : '') + cells + (parts[1] ? '<span>' + ruby(parts[1]) + '</span>' : '') + '</div>';
+  }
+
+  function sheet(m, i, n) {
+    var h = '<section class="sheet">' + head(m, i, n);
+    var lead = S.kind === 1 ? 'ぶんしょうを よんで、こたえに ○を つけよう。' : 'ぶんしょうを よんで、□に じを かこう。';
+    var note = S.kind === 1 ? '（ア・イ・ウ・エ から 1つ）' : '（ひとつの □ に 1じ）';
+    h += '<div class="lead"><span class="no">' + (i + 1) + '</span>' + lead + '<span class="note">' + note + '</span>' + (ans ? '<span class="stamp">こたえ</span>' : '') + '</div>';
+    var img = /^T/.test(m.id) ? 'img/' + m.id + '.webp' : '../nazotoki/img/' + m.id + '.webp';
+    var len = plain(m.t.join('')).length;
+    var num = m.t.length >= 5;
+    h += '<div class="body"><div class="left' + (num ? ' long' : len > 60 ? ' xs' : '') + '"><div class="pic"><img src="' + img + '" alt="" onerror="this.parentNode.textContent=\'（さしえ）\'"></div>';
+    h += '<div class="text' + (!num && len > 50 ? ' s' : '') + '">' + m.t.map(function (t, j) { return num ? '<p class="n"><span class="sn">' + SN[j] + '</span>' + ruby(t) + '</p>' : '<p>' + ruby(t) + '</p>'; }).join('') + '</div></div>';
+    h += '<div class="right">';
+    KEYS.forEach(function (k) {
+      h += '<div class="q"><div class="qh"><span class="mk"><span class="e">' + MARK[k][0] + '</span>' + MARK[k][1] + '</span><span>' + ruby(m.qs[k].q) + '</span></div>';
+      h += S.kind === 1 ? choices(m, k) : writing(m, k);
+      h += '</div>';
+    });
+    h += '</div></div><div class="foot">' + m.id + '</div></section>';
+    return h;
+  }
+
+  var list = D[set];
+  var html = '';
+  list.forEach(function (m, i) { if (!only || only === i + 1) html += sheet(m, i, list.length); });
+  document.getElementById('pages').innerHTML = html;
+  document.title = 'なぞときプリント_' + S.file + (ans ? '_こたえ' : '');
+
+  // 絵と フォントが そろったら 合図を 出す（PDF を 作るとき 使います）
+  var imgs = Array.prototype.slice.call(document.images);
+  Promise.all(imgs.map(function (im) { return im.complete ? 0 : new Promise(function (r) { im.addEventListener('load', r); im.addEventListener('error', r); }); }))
+    .then(function () { return document.fonts ? Promise.all([document.fonts.load('400 17pt "BIZ UDPGothic"', 'あ'), document.fonts.load('700 17pt "BIZ UDPGothic"', 'あ')]).catch(function () {}).then(function () { return document.fonts.ready; }) : 0; })
+    .then(function () {
+      // ながい ぶんしょうが 枠に 入りきらないときは、字を 少しずつ 小さくする
+      Array.prototype.forEach.call(document.querySelectorAll('.left.long .text'), function (el) {
+        var pt = 17.5;
+        while (el.scrollHeight > el.clientHeight + 1 && pt > 13) { pt -= 0.5; el.style.fontSize = pt + 'pt'; }
+      });
+      document.body.setAttribute('data-ready', '1');
+    });
+})();
+</script>
+</body>
+</html>

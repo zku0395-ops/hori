@@ -1,0 +1,2684 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>クルミせんせいの どんぐり ぎんこう</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+  <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+  <style>
+    :root {
+      --bg: #f3f7ec; --ink: #1e293b; --sub: #64748b; --line: #e2e8f0;
+      --wood: #7c4a1e; --wood-l: #d6c4a8; --leaf: #16a34a; --cream: #fffdf6;
+      --c-hikareru: #dc2626; --c-hiku: #2563eb; --c-ten: #059669;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body { font-family: 'BIZ UDPGothic', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif; background: var(--bg); color: var(--ink); -webkit-tap-highlight-color: transparent; }
+    button { font-family: inherit; touch-action: manipulation; cursor: pointer; }
+    input, select { font-family: inherit; }
+    ruby rt { font-size: .5em; color: #475569; font-weight: 400; }
+    .bubble, .mitem, .qhead, .board, .choice, .kids, .rule { word-break: keep-all; overflow-wrap: anywhere; }
+    .loading { display: flex; align-items: center; justify-content: center; min-height: 100vh; font-size: 28px; color: var(--wood); }
+    .emoji { font-family: 'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif; line-height: 1; }
+
+    /* 立体ボタン */
+    .btn3d { word-break: keep-all; border: 0; border-bottom: 6px solid rgba(0,0,0,.28); border-radius: 1.1rem; font-weight: 700; transition: transform .08s, border-bottom-width .08s, filter .15s; display: inline-flex; align-items: center; justify-content: center; gap: .4em; user-select: none; line-height: 1.25; }
+    .btn3d:active:not(:disabled) { transform: translateY(3px); border-bottom-width: 3px; }
+    .btn3d:disabled { opacity: .4; cursor: not-allowed; }
+    .btn3d:hover:not(:disabled) { filter: brightness(1.05); }
+    .c-sky { background: #0ea5e9; color: #fff; border-bottom-color: #0369a1; }
+    .c-red { background: #f43f5e; color: #fff; border-bottom-color: #be123c; }
+    .c-green { background: #16a34a; color: #fff; border-bottom-color: #166534; }
+    .c-amber { background: #fbbf24; color: #451a03; border-bottom-color: #d97706; }
+    .c-violet { background: #8b5cf6; color: #fff; border-bottom-color: #6d28d9; }
+    .c-wood { background: #a0612b; color: #fff; border-bottom-color: #6b3a14; }
+    .c-slate { background: #475569; color: #fff; border-bottom-color: #1e293b; }
+    .c-white { background: #fff; color: #334155; border: 2px solid #cbd5e1; border-bottom: 6px solid #cbd5e1; }
+    .c-orange { background: #f97316; color: #fff; border-bottom-color: #c2410c; }
+    .s-sm { padding: .45rem .8rem; font-size: 1rem; }
+    .s-md { padding: .7rem 1.2rem; font-size: 1.25rem; }
+    .s-lg { padding: .9rem 1.5rem; font-size: 1.6rem; }
+    .s-xl { padding: 1.1rem 2rem; font-size: 2rem; }
+
+    /* レイアウト */
+    .wrap { max-width: 1200px; margin: 0 auto; padding: .75rem; }
+    .row { display: flex; align-items: center; gap: .6rem; }
+    .col { display: flex; flex-direction: column; gap: .6rem; }
+    .wrapflex { flex-wrap: wrap; }
+    .grow { flex: 1 1 auto; min-width: 0; }
+    .center { justify-content: center; }
+    .between { justify-content: space-between; }
+    .card { background: #fff; border-radius: 1.4rem; border: 4px solid var(--wood-l); box-shadow: 0 2px 8px rgba(0,0,0,.05); padding: 1rem; }
+    .muted { color: var(--sub); }
+    .bold { font-weight: 700; }
+    .tc { text-align: center; }
+
+    /* ヘッダー */
+    .hdr { position: sticky; top: 0; z-index: 30; background: rgba(255,255,255,.96); box-shadow: 0 1px 6px rgba(0,0,0,.08); }
+    .hdr-in { max-width: 1400px; margin: 0 auto; padding: 0 .75rem; display: flex; align-items: center; gap: .5rem; height: 56px; overflow: hidden; }
+    .logo { display: flex; align-items: center; gap: .4rem; font-weight: 900; color: var(--wood); font-size: 1.3rem; background: none; border: 0; padding: 0; white-space: nowrap; }
+    .tbtn { font-size: .85rem; color: #94a3b8; border: 1px solid #e2e8f0; border-radius: .6rem; padding: .3rem .55rem; background: #fff; white-space: nowrap; }
+    .acornpill { display: inline-flex; align-items: center; gap: .25rem; background: #fffbeb; border: 3px solid #e7c58f; border-radius: 999px; padding: .05rem .7rem .05rem .3rem; font-weight: 900; font-size: 1.3rem; color: #7c4a1e; white-space: nowrap; }
+    .acornpill.bump { animation: bump .5s ease; }
+    @keyframes bump { 30% { transform: scale(1.25); } }
+    @media (max-width: 760px) { .logo .lt { display: none; } }
+
+    /* ホーム */
+    .home { max-width: 1400px; margin: 0 auto; padding: .6rem .75rem; display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 32%); gap: .8rem; height: calc(100vh - 56px); height: calc(100dvh - 56px); }
+    .home-scene { border-radius: 1.4rem; overflow: hidden; background: #dcfce7; display: flex; align-items: center; justify-content: center; min-height: 0; box-shadow: 0 4px 14px rgba(0,0,0,.12); }
+    .home-scene svg { width: 100%; height: 100%; }
+    .home-side { min-height: 0; overflow-y: auto; padding-bottom: .5rem; }
+    @media (max-width: 900px) { .home { grid-template-columns: 1fr; height: auto; } .home-scene { aspect-ratio: 1000 / 750; } }
+
+    /* 問題の画面 */
+    .play { max-width: 1400px; margin: 0 auto; padding: .6rem .75rem; display: grid; grid-template-columns: minmax(0, 1fr) minmax(340px, 34%); gap: .75rem; height: calc(100vh - 56px); height: calc(100dvh - 56px); }
+    .work { position: relative; background: var(--cream); border-radius: 1.4rem; border: 4px solid var(--wood-l); box-shadow: inset 0 0 0 3px #fff, 0 2px 8px rgba(0,0,0,.05); overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+    .work svg.ws { flex: 1 1 auto; width: 100%; height: 100%; min-height: 0; touch-action: manipulation; user-select: none; -webkit-user-select: none; display: block; }
+    .panel { display: flex; flex-direction: column; gap: .55rem; min-height: 0; overflow-y: auto; padding-bottom: .5rem; }
+    .qhead { padding: .5rem .9rem .2rem; font-size: 1.05rem; font-weight: 700; color: var(--wood); display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+    .rule { margin: .1rem .9rem 0; padding: .3rem .8rem; border: 3px solid #93c5fd; border-radius: .9rem; background: #eff6ff; font-size: 1.05rem; font-weight: 700; line-height: 1.75; color: #1e3a8a; }
+    .story { margin: .2rem .9rem 0; padding: .5rem .9rem; border: 3px solid #e7c58f; border-radius: 1rem; background: #fffbeb; font-size: 1.45rem; font-weight: 700; line-height: 2; }
+    @media (max-width: 900px) {
+      .play { grid-template-columns: 1fr; height: auto; }
+      .work { height: 64vh; }
+    }
+
+    /* ふきだし */
+    .bubble { position: relative; background: #fff; border: 4px solid #e7c58f; border-radius: 1.3rem; padding: .75rem 1rem .6rem; font-size: 1.4rem; line-height: 1.95; font-weight: 700; color: #1e293b; }
+    .bubble::before { content: ''; position: absolute; left: -16px; top: 26px; border-top: 11px solid transparent; border-bottom: 11px solid transparent; border-right: 15px solid #e7c58f; }
+
+    /* 数字の ボタン */
+    .keypad { display: grid; grid-template-columns: repeat(5, 1fr); gap: .45rem; }
+    .key { font-size: 2.3rem; padding: .45rem 0 .35rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+    .key.gone { opacity: .22; }
+    .choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: .6rem; }
+    .choice { font-size: 1.9rem; padding: .8rem .4rem; }
+    .choice.gone { opacity: .25; text-decoration: line-through; }
+
+    /* すすみぐあい */
+    .dots { display: flex; gap: .35rem; align-items: center; }
+    .dot { width: 2.2rem; height: 2.2rem; border-radius: 999px; border: 3px dashed #e7c58f; display: flex; align-items: center; justify-content: center; background: #fff; font-weight: 700; color: var(--wood); }
+    .dot.now { border-style: solid; border-color: #a0612b; box-shadow: 0 0 0 4px #fde9c8; }
+    .dot.done { border-style: solid; border-color: #fcd34d; background: #fffbeb; }
+
+    /* 動き */
+    .pop { animation: popup .45s cubic-bezier(.175,.885,.32,1.275) both; }
+    @keyframes popup { 0% { transform: scale(.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+    .shake { animation: shake .4s; }
+    @keyframes shake { 20%, 60% { transform: translateX(-10px); } 40%, 80% { transform: translateX(10px); } }
+    .pulse { animation: pulse 1.1s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity: .35; } }
+    .glow { animation: glow 1.2s ease-in-out infinite; }
+    @keyframes glow { 50% { box-shadow: 0 0 0 8px rgba(251,191,36,.6); } }
+    .confetti { position: fixed; top: -60px; z-index: 60; pointer-events: none; animation: fall linear forwards; }
+    @keyframes fall { to { transform: translateY(115vh) rotate(540deg); } }
+    .fadein { animation: fadein .5s ease both; }
+    @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+    .okburst { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 5; animation: okburst 2.2s ease forwards; }
+    .okburst .t { font-size: 5.5rem; font-weight: 900; color: #16a34a; -webkit-text-stroke: 3px #fff; paint-order: stroke; text-shadow: 0 0 0 #fff, 0 6px 0 #166534, 0 10px 24px rgba(22,101,52,.35); letter-spacing: .06em; }
+    @keyframes okburst { 0% { transform: scale(.3); opacity: 0; } 14% { transform: scale(1.15); opacity: 1; } 24% { transform: scale(1); } 78% { opacity: 1; } 100% { transform: scale(1.05); opacity: 0; } }
+    .bagup { position: fixed; inset: 0; z-index: 65; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+    .bagup > div { background: rgba(255,255,255,.96); border: 6px solid #e7c58f; border-radius: 2rem; padding: 1rem 2rem; box-shadow: 0 12px 30px rgba(0,0,0,.18); animation: bagup 3.4s ease forwards; text-align: center; }
+    @keyframes bagup { 0% { transform: scale(.4); opacity: 0; } 10% { transform: scale(1.05); opacity: 1; } 16% { transform: scale(1); } 86% { opacity: 1; } 100% { opacity: 0; } }
+    .flyacorn { position: fixed; z-index: 70; pointer-events: none; }
+    .kurumi { display: block; user-select: none; -webkit-user-drag: none; animation: bob 3.2s ease-in-out infinite; transform-origin: 50% 100%; }
+    image.kurumi { transform-box: fill-box; }
+    .kurumi.talking { animation: talk .45s ease-in-out infinite; }
+    @keyframes bob { 50% { transform: translateY(-4px); } }
+    @keyframes talk { 50% { transform: translateY(-3px) scale(1.02, .98); } }
+    .scene-wrap { position: relative; width: 100%; height: 100%; }
+    .wiggle { animation: wiggle 1s ease-in-out infinite; transform-origin: 50% 90%; }
+    @keyframes wiggle { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+
+    /* メニュー */
+    .board { background: #fff; border: 10px solid #c79a62; border-radius: 1.6rem; box-shadow: 0 10px 24px rgba(124,74,30,.14); padding: 1rem 1rem 1.2rem; }
+    .board-title { text-align: center; font-size: 2rem; font-weight: 900; letter-spacing: .15em; color: var(--wood); margin-bottom: .6rem; }
+    .grp-title { font-size: 1.15rem; font-weight: 900; color: var(--wood); margin: .8rem 0 .4rem; }
+    .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: .7rem; }
+    .mitem { display: flex; align-items: center; gap: .8rem; text-align: left; border-radius: 1.1rem; border: 3px solid #e7d5b8; background: #fffaf2; color: #1e293b; padding: .55rem .8rem; font-size: 1.35rem; font-weight: 700; line-height: 1.75; min-height: 96px; }
+    .mitem:hover:not(:disabled) { background: #fdf3e2; }
+    .mitem.next { border-color: #f59e0b; box-shadow: 0 0 0 4px rgba(251,191,36,.35); }
+    .mitem:disabled { opacity: .5; cursor: not-allowed; }
+    .tag { display: inline-block; font-size: .85rem; border-radius: 999px; padding: .05rem .6rem; font-weight: 700; line-height: 1.6; }
+    .minibar { height: 8px; background: #f3e6d1; border-radius: 99px; overflow: hidden; margin-top: .2rem; }
+    .minibar > div { height: 100%; background: #a0612b; border-radius: 99px; }
+
+    /* もりの おうち・アルバム */
+    .house { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 36%); gap: .8rem; }
+    @media (max-width: 900px) { .house { grid-template-columns: 1fr; } }
+    .cats { display: flex; gap: .45rem; flex-wrap: wrap; margin-bottom: .7rem; }
+    .cat { border-radius: 1rem; padding: .45rem .9rem; font-size: 1.15rem; font-weight: 700; border: 3px solid #e7d5b8; background: #fff; color: var(--wood); display: inline-flex; align-items: center; gap: .35rem; }
+    .cat.on { background: #a0612b; color: #fff; border-color: #6b3a14; }
+    .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: .6rem; }
+    .item { position: relative; display: flex; flex-direction: column; align-items: center; gap: .15rem; background: #fff; border: 3px solid #e7d5b8; border-bottom-width: 6px; border-radius: 1.1rem; padding: .5rem .3rem .4rem; font-weight: 700; color: #1e293b; }
+    .item .em { font-size: 2.8rem; }
+    .item .nm { font-size: 1rem; text-align: center; line-height: 1.3; min-height: 2.6em; display: flex; align-items: center; word-break: keep-all; overflow-wrap: anywhere; }
+    .item .pr { display: inline-flex; align-items: center; gap: .2rem; font-size: 1.2rem; color: #7c4a1e; }
+    .item.owned { background: #f0fdf4; border-color: #86efac; }
+    .item.poor { opacity: .55; }
+    .item .badge { position: absolute; top: .3rem; right: .3rem; background: #22c55e; color: #fff; border-radius: 999px; font-size: .78rem; padding: 0 .45rem; }
+    .spots { display: grid; grid-template-columns: repeat(2, 1fr); gap: .45rem; }
+    .friend-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: .7rem; }
+    .friend { border-radius: 1.2rem; border: 4px solid #e7d5b8; background: #fff; padding: .6rem; text-align: center; font-weight: 700; }
+    .friend .em { font-size: 4rem; }
+    .friend.empty { background: #f8fafc; border-style: dashed; border-color: #cbd5e1; color: #94a3b8; }
+    .friend.empty .em { filter: grayscale(1) brightness(0); opacity: .14; }
+
+    /* 先生用 */
+    .tabs { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: .8rem; }
+    .tab { border-radius: 1rem; padding: .6rem 1.1rem; font-size: 1.1rem; font-weight: 700; border: 2px solid #e2e8f0; background: #fff; color: #475569; }
+    .tab.on { background: #0ea5e9; color: #fff; border-color: #0284c7; }
+    .trow { border-top: 1px solid #f1f5f9; padding: .9rem 0; display: grid; grid-template-columns: 1fr 2fr; gap: .6rem; }
+    .trow .lb { font-weight: 700; font-size: 1.05rem; }
+    .trow .ds { font-size: .85rem; color: #64748b; }
+    .opt { border-radius: .7rem; padding: .45rem .9rem; font-weight: 700; border: 2px solid #cbd5e1; background: #fff; color: #475569; font-size: 1rem; }
+    .opt.on { background: #0ea5e9; color: #fff; border-color: #0284c7; }
+    table.tbl { border-collapse: collapse; width: 100%; font-size: .95rem; }
+    table.tbl th, table.tbl td { border-bottom: 1px solid #f1f5f9; padding: .45rem .5rem; text-align: left; vertical-align: top; }
+    table.tbl th { background: #f8fafc; color: #475569; white-space: nowrap; }
+    .inp { border-radius: .7rem; border: 2px solid #cbd5e1; padding: .5rem .7rem; font-size: 1.1rem; }
+    @media (max-width: 700px) { .trow { grid-template-columns: 1fr; } }
+
+    .modal-bg { position: fixed; inset: 0; z-index: 50; background: rgba(15,23,42,.45); display: flex; align-items: center; justify-content: center; padding: 1rem; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .pulse, .glow, .wiggle, .kurumi { animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"><div class="loading">🌰 よみこみちゅう…</div></div>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+    /* =========================================================
+       きほんの 設定
+       ========================================================= */
+    const STORE_KEY = 'kurumiHissan.v1';   // localStorage のキー
+    const APP_ID = 'kurumi-hissan';        // 記録を送るときの アプリの 名前
+    const PER_SET = 5;                     // 1かいの 問題の 数
+    const SETS_TO_CLEAR = 2;               // 何かい おえると クリアか（5問 × 2かい）
+    const SET_BONUS = 3;                   // 1かい（5問）おえた ときの ボーナス
+    const DEFAULT_SETTINGS = {
+      rate: 0.8,            // 読み上げの 速さ
+      color: true,          // 色分け（ひかれる数＝赤、ひく数＝青、10＝緑）
+      bag: true,            // 10の ふくろの 絵
+      startStage: 'j1',     // 始める ステップ
+      skipPrep: false,      // じゅんび①〜③を とばす
+      unlockAll: false,     // すべての ステップを 開く
+      advanced: false,      // 発展を 開く
+      voice: true,          // クルミせんせいの 声
+      sfx: true,            // 効果音・ファンファーレ
+      fontSize: 'm',
+    };
+    const FONT_PX = { m: 16, l: 18, xl: 20 };
+    const TITLES = [
+      { min: 0, name: 'どんぐり みならい', icon: '🌰' },
+      { min: 2, name: 'ぎんこう いん', icon: '👜' },
+      { min: 4, name: 'まどぐち めいじん', icon: '🎖️' },
+      { min: 7, name: 'ひっさん はかせ', icon: '🎓' },
+      { min: 9, name: 'ぎんこう ちょう', icon: '👑' },
+    ];
+    // つまずきの 種類（先生用の 名前）
+    const ERR = {
+      reverse: '大きい方から小さい方をひいた',
+      nodec: '十の位を1へらしていない',
+      tenminus: '10−ひく数のまちがい',
+      add: 'たし算のまちがい',
+      copy: '式に入れる数字のまちがい',
+      judge: 'ひけるかどうかの見分け',
+      order: '式の数の順番',
+      other: 'その他',
+    };
+    const ERR_KEYS = Object.keys(ERR);
+
+    /* =========================================================
+       小さな 道具
+       ========================================================= */
+    const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+    const pad2 = n => String(n).padStart(2, '0');
+    const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+    const rInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+    const shuffle = (arr) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+    const range0 = n => Array.from({ length: n }, (_, i) => i);
+    function fmtDate(ts) { const d = new Date(ts); return `${d.getFullYear()}/${pad2(d.getMonth() + 1)}/${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
+    function ymd() { const d = new Date(); return `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}`; }
+    function hashPin(pin) { let h = 2166136261; for (const c of 'hissan:' + pin) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16); }
+    function fnv(str) { let h = 2166136261; for (const c of str) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16); }
+    const CURRENT = { settings: { ...DEFAULT_SETTINGS } };
+
+    /* ---- ふりがな ----
+       書き方： [漢字|よみ]  例：'[十|じゅう]のくらい' */
+    const MARK_RE = /\[([^|\]]+)\|([^\]]+)\]/g;
+    const stripMarkup = s => String(s).replace(MARK_RE, (m, k) => k);
+    const KANJI_RE = /[一-鿿々]/;
+    function R({ t, className, style }) {
+      const s = String(t == null ? '' : t);
+      const out = []; let last = 0; let m; let k = 0;
+      const re = new RegExp(MARK_RE.source, 'g');
+      const plain = (txt) => {
+        if (KANJI_RE.test(txt) && window.__furiganaWarn) window.__furiganaWarn(txt, s);
+        txt.split('\n').forEach((part, i) => { if (i > 0) out.push(<br key={'b' + (k++)} />); if (part) out.push(<React.Fragment key={'t' + (k++)}>{part}</React.Fragment>); });
+      };
+      while ((m = re.exec(s))) {
+        plain(s.slice(last, m.index));
+        out.push(<ruby key={'r' + (k++)}>{m[1]}<rt>{m[2]}</rt></ruby>);
+        last = re.lastIndex;
+      }
+      plain(s.slice(last));
+      return <span className={className} style={style}>{out}</span>;
+    }
+    // よく つかう ことば
+    const W = {
+      hiku: 'ひく[数|かず]', hikareru: 'ひかれる[数|かず]', juu: '[十|じゅう]のくらい', ichi: '1のくらい',
+      suuji: '[数字|すうじ]', kazu: '[数|かず]',
+    };
+    const KANA_KO = ['ぜろこ', 'いっこ', 'にこ', 'さんこ', 'よんこ', 'ごこ', 'ろっこ', 'ななこ', 'はっこ', 'きゅうこ', 'じゅっこ'];
+    // 読み上げ用の 文（記号を ことばに する）
+    function speechText(s) {
+      return String(s)
+        .replace(MARK_RE, (m, k, y) => y)
+        .replace(/\s*[−-]\s*(?=\d|□|ひく)/g, ' ひく ')
+        .replace(/\s*[＋+]\s*/g, ' たす ')
+        .replace(/\s*[＝=]\s*/g, ' は ')
+        .replace(/□/g, 'しかく')
+        .replace(/(^|[^\d])(\d)こ/g, (m, a, n) => a + (KANA_KO[Number(n)] || m))
+        .replace(/10こ/g, 'じゅっこ')
+        .replace(/1のくらい/g, 'いちのくらい')
+        .replace(/[📝💡🔊▶◀✨🎉]/gu, '')
+        .replace(/\n/g, '　');
+    }
+
+    /* =========================================================
+       ほぞん（localStorage と IndexedDB）
+       ========================================================= */
+    const newDeviceId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    function normalizeState(s) {
+      s = s && typeof s === 'object' ? s : {};
+      return {
+        version: 1, profile: s.profile || null, settings: { ...DEFAULT_SETTINGS, ...(s.settings || {}) },
+        progress: s.progress && typeof s.progress === 'object' ? s.progress : {},
+        acorns: Number(s.acorns) || 0, earned: Number(s.earned) || 0,
+        owned: s.owned && typeof s.owned === 'object' ? s.owned : {},
+        placed: s.placed && typeof s.placed === 'object' ? s.placed : {},
+        sync: s.sync || {}, deviceId: s.deviceId || newDeviceId(),
+      };
+    }
+    function loadState() {
+      let s = null;
+      try { s = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { s = null; }
+      const st = normalizeState(s);
+      if (!s || !s.deviceId) saveState(st);
+      CURRENT.settings = st.settings;
+      return st;
+    }
+    function saveState(s) { try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch (e) { console.warn(e); } }
+
+    // 入口ページ（Apps Script）から開いたとき、URLの # のあとに 記録の送り先と合言葉が ついてくる
+    const REC_URL_RE = /^https:\/\/script\.google\.com\/(a\/macros\/[^/]+\/|macros\/)s\/[A-Za-z0-9_-]+\/(exec|dev)$/;
+    (function applyLinkConfig() {
+      if (!location.hash) return;
+      const h = new URLSearchParams(location.hash.slice(1));
+      const rec = h.get('rec');
+      if (!rec) return;
+      if (REC_URL_RE.test(rec)) {
+        const st = loadState();
+        if (st.sync.url !== rec || st.sync.key !== (h.get('key') || '')) {
+          saveState({ ...st, sync: { ...st.sync, url: rec, key: h.get('key') || '', lastSummary: null } });
+        }
+      }
+      history.replaceState(null, '', location.pathname + location.search);
+    })();
+
+    const DB_NAME = 'kurumi-hissan';
+    let dbPromise = null;
+    function getDB() {
+      if (dbPromise) return dbPromise;
+      dbPromise = new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = () => {
+          const db = req.result;
+          if (!db.objectStoreNames.contains('history')) db.createObjectStore('history', { keyPath: 'id', autoIncrement: true }).createIndex('stageId', 'stageId');
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+      return dbPromise;
+    }
+    async function idbReq(storeName, mode, fn) {
+      const db = await getDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(storeName, mode);
+        const req = fn(tx.objectStore(storeName));
+        let result;
+        if (req) req.onsuccess = () => { result = req.result; };
+        tx.oncomplete = () => resolve(result);
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      });
+    }
+    const DB = {
+      add: (s, v) => idbReq(s, 'readwrite', st => st.add(v)),
+      put: (s, v) => idbReq(s, 'readwrite', st => st.put(v)),
+      getAll: (s) => idbReq(s, 'readonly', st => st.getAll()),
+      clear: (s) => idbReq(s, 'readwrite', st => st.clear()),
+    };
+
+    function downloadFile(name, content, type) {
+      const blob = content instanceof Blob ? content : new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+    function pickFile(accept) {
+      return new Promise((resolve) => {
+        const input = document.createElement('input'); input.type = 'file'; input.accept = accept;
+        input.onchange = () => resolve(input.files && input.files[0] ? input.files[0] : null);
+        input.click();
+      });
+    }
+
+    /* =========================================================
+       読み上げ・効果音・ファンファーレ
+       ========================================================= */
+    const TTS = {
+      voice: null,
+      init() {
+        if (!('speechSynthesis' in window)) return;
+        const choose = () => {
+          const vs = speechSynthesis.getVoices().filter(v => /^ja/i.test(v.lang));
+          this.voice = vs.find(v => /google/i.test(v.name)) || vs[0] || null;
+        };
+        choose();
+        speechSynthesis.onvoiceschanged = choose;
+      },
+      speak(markup, { force = false } = {}) {
+        return new Promise(resolve => {
+          if (!('speechSynthesis' in window) || !markup || (!CURRENT.settings.voice && !force)) return resolve();
+          const text = speechText(markup);
+          speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(text);
+          u.lang = 'ja-JP'; if (this.voice) u.voice = this.voice;
+          const rate = Number(CURRENT.settings.rate) || 0.8;
+          u.rate = rate; u.pitch = 1.1;
+          let done = false;
+          const finish = () => { if (!done) { done = true; clearTimeout(timer); resolve(); } };
+          const timer = setTimeout(finish, 2000 + text.length * 400 / rate);
+          u.onend = finish; u.onerror = finish;
+          this.current = u; // Chrome で onend が 来なくなるのを ふせぐため 参照を のこす
+          speechSynthesis.speak(u);
+        });
+      },
+      cancel() { if ('speechSynthesis' in window) speechSynthesis.cancel(); },
+    };
+    TTS.init();
+
+    let AUDIO = null;
+    function audioCtx() {
+      if (!CURRENT.settings.sfx) return null;
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        AUDIO = AUDIO || new AC();
+        if (AUDIO.state === 'suspended') AUDIO.resume();
+        return AUDIO;
+      } catch (e) { return null; }
+    }
+    function tone(ctx, { f, t, dur, type = 'sine', vol = 0.12, attack = 0.012, release = 0.08, dest }) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type; o.frequency.setValueAtTime(f, t);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + attack);
+      g.gain.setValueAtTime(vol, Math.max(t + attack, t + dur - release));
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(dest || ctx.destination);
+      o.start(t); o.stop(t + dur + 0.05);
+    }
+    const SFX_SEQ = {
+      tap: [[660, 0.06]],
+      pick: [[880, 0.07, 0.1]],
+      ng: [[392, 0.16, 0.07], [330, 0.24, 0.06]],   // やさしい音（ブザーに しない）
+      mark: [[587, 0.07, 0.1], [784, 0.1, 0.1]],
+      count: [[988, 0.06, 0.08]],
+      open: [[523, 0.08], [784, 0.12]],
+    };
+    function sfx(name) {
+      const ctx = audioCtx(); if (!ctx) return;
+      let t = ctx.currentTime + 0.01;
+      (SFX_SEQ[name] || []).forEach(([f, dur, vol = 0.12]) => { tone(ctx, { f, t, dur, vol }); t += dur; });
+    }
+    // ファンファーレ（この アプリの ための オリジナルの ふし）
+    const MIDI = { F4: 65, G4: 67, A4: 69, B4: 71, C5: 72, D5: 74, E5: 76, F5: 77, G5: 79, A5: 81, B5: 83, C6: 84, D6: 86, E6: 88, F6: 89, G6: 91 };
+    const FANFARE = {
+      ok: { beat: 0.11, notes: [['F4', 0, 1], ['A4', 1, 1], ['C5', 2, 1], ['F5', 3, 2], ['C5', 5, 1], [['A4', 'C5', 'F5', 'A5'], 6, 5]] },
+      set: { beat: 0.12, notes: [['C5', 0, 1], ['D5', 1, 1], ['E5', 2, 1], ['G5', 3, 3], ['E5', 6, 1], ['G5', 7, 1], ['A5', 8, 1], ['G5', 9, 1], [['C5', 'E5', 'G5', 'C6'], 10, 8]] },
+      clear: { beat: 0.12, notes: [['G4', 0, 1], ['C5', 1, 1], ['E5', 2, 1], ['G5', 3, 2], ['E5', 5, 1], ['G5', 6, 1], ['A5', 7, 2], ['G5', 9, 1], ['A5', 10, 1], ['C6', 11, 2], ['B5', 13, 1], ['C6', 14, 1], ['D6', 15, 2], [['G5', 'C6', 'E6', 'G6'], 17, 10]] },
+      bag: { beat: 0.09, notes: [['C5', 0, 1], ['E5', 1, 1], ['G5', 2, 1], ['C6', 3, 1], ['E6', 4, 3]] },
+    };
+    function fanfare(kind) {
+      const ctx = audioCtx(); if (!ctx) return;
+      const def = FANFARE[kind] || FANFARE.ok;
+      const t0 = ctx.currentTime + 0.03;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600; lp.connect(ctx.destination);
+      def.notes.forEach(([nm, at, len]) => {
+        const chord = Array.isArray(nm);
+        (chord ? nm : [nm]).forEach(x => {
+          const f = 440 * Math.pow(2, (MIDI[x] - 69) / 12);
+          const t = t0 + at * def.beat, dur = len * def.beat * 0.95;
+          tone(ctx, { f, t, dur, type: 'square', vol: chord ? 0.025 : 0.04, release: 0.07, dest: lp });
+          tone(ctx, { f, t, dur, type: 'triangle', vol: chord ? 0.06 : 0.1, release: 0.07 });
+        });
+      });
+    }
+    function acornSound(delay = 0) {
+      const ctx = audioCtx(); if (!ctx) return;
+      const t = ctx.currentTime + 0.01 + delay;
+      tone(ctx, { f: 1047, t, dur: 0.06, type: 'triangle', vol: 0.12 });
+      tone(ctx, { f: 1568, t: t + 0.06, dur: 0.22, type: 'triangle', vol: 0.11, release: 0.18 });
+    }
+    function useTicker(ms, { loop = false, run = true, key } = {}) {
+      const [t, setT] = useState(0);
+      useEffect(() => {
+        if (!run) { setT(0); return; }
+        let raf; const start = performance.now();
+        const tick = now => {
+          let x = (now - start) / ms;
+          x = loop ? x % 1 : Math.min(1, x);
+          setT(x);
+          if (loop || x < 1) raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
+      }, [ms, loop, run, key]);
+      return t;
+    }
+
+    /* =========================================================
+       絵（すべて この アプリの ための オリジナル）
+       ========================================================= */
+    const f1 = v => Math.round(v * 10) / 10;
+    // ---- クルミせんせい（りすの ぎんこういん。絵は Canva で作成）----
+    // mood: normal / happy / think
+    const KURUMI_IMG = { normal: 'img/kurumi.webp', happy: 'img/kurumi_happy.webp', think: 'img/kurumi_think.webp' };
+    Object.values(KURUMI_IMG).forEach(src => { const im = new Image(); im.src = src; });
+    function Kurumi({ mood = 'normal', talking = false, size = 140, className = '' }) {
+      return (
+        <img src={KURUMI_IMG[mood] || KURUMI_IMG.normal} alt="クルミせんせい" draggable="false"
+             className={`kurumi ${talking ? 'talking' : ''} ${className}`} style={{ height: size * 1.2, width: 'auto', flex: 'none' }} />
+      );
+    }
+
+    // ---- どんぐり ----
+    function AcornShape({ x, y, r = 18 }) {
+      return (
+        <g pointerEvents="none">
+          <ellipse cx={x} cy={y + r * 0.22} rx={r * 0.74} ry={r * 0.82} fill="#c9822f" stroke="#6b3a14" strokeWidth={Math.max(1.5, r * 0.1)} />
+          <ellipse cx={x - r * 0.25} cy={y + r * 0.1} rx={r * 0.16} ry={r * 0.36} fill="#e8b26f" opacity=".8" />
+          <path d={`M ${x - r * 0.9} ${y - r * 0.12} Q ${x} ${y - r * 1.2} ${x + r * 0.9} ${y - r * 0.12} Q ${x} ${y + r * 0.12} ${x - r * 0.9} ${y - r * 0.12} Z`} fill="#8a5a2b" stroke="#6b3a14" strokeWidth={Math.max(1.5, r * 0.1)} strokeLinejoin="round" />
+          <path d={`M ${x - r * 0.45} ${y - r * 0.35} l ${r * 0.9} 0 M ${x - r * 0.25} ${y - r * 0.6} l ${r * 0.5} 0`} stroke="#b07a45" strokeWidth={Math.max(1, r * 0.08)} />
+          <rect x={x - r * 0.08} y={y - r * 1.12} width={r * 0.16} height={r * 0.3} rx={r * 0.06} fill="#6b3a14" />
+        </g>
+      );
+    }
+    // halo：まわりの 色（green／red）、crossed：とった（青の ✕）
+    const HALO = { green: '#059669', red: '#dc2626', blue: '#2563eb', gold: '#d97706' };
+    function Acorn({ x, y, r = 18, halo, crossed, num, numColor }) {
+      const useColor = CURRENT.settings.color !== false;
+      const hc = halo && useColor ? HALO[halo] : halo ? '#94a3b8' : null;
+      return (
+        <g>
+          {hc && !crossed && <circle cx={x} cy={y} r={r * 1.22} fill={hc} opacity=".14" stroke={hc} strokeWidth={Math.max(2, r * 0.12)} />}
+          <g opacity={crossed ? 0.3 : 1}><AcornShape x={x} y={y} r={r} /></g>
+          {crossed && <path d={`M ${x - r} ${y - r} L ${x + r} ${y + r} M ${x + r} ${y - r} L ${x - r} ${y + r}`} stroke={useColor ? HALO.blue : '#475569'} strokeWidth={Math.max(3, r * 0.2)} strokeLinecap="round" />}
+          {num != null && (
+            <g className="pop" style={{ transformOrigin: `${x}px ${y - r * 1.6}px` }}>
+              <circle cx={x} cy={y - r * 1.75} r={r * 0.62} fill="#fff" stroke={numColor || '#0284c7'} strokeWidth="3" />
+              <text x={x} y={y - r * 1.72} textAnchor="middle" dominantBaseline="central" fontSize={r * 0.82} fontWeight="900" fill={numColor || '#0369a1'}>{num}</text>
+            </g>
+          )}
+        </g>
+      );
+    }
+    // ---- 10この ふくろ ----
+    function Bag({ x, y, s = 1, crossed, dashed, label = true }) {
+      const useColor = CURRENT.settings.color !== false;
+      return (
+        <g transform={`translate(${x} ${y}) scale(${s})`} opacity={dashed ? 0.35 : 1}>
+          <path d="M -26 -16 Q -40 30 -22 40 Q 0 48 22 40 Q 40 30 26 -16 Q 14 -24 0 -24 Q -14 -24 -26 -16 Z" fill="#d9a066" stroke="#6b3a14" strokeWidth="3.5" strokeLinejoin="round" strokeDasharray={dashed ? '6 5' : undefined} />
+          <path d="M -14 -24 Q 0 -32 14 -24 L 10 -34 Q 0 -40 -10 -34 Z" fill="#c08345" stroke="#6b3a14" strokeWidth="3" strokeLinejoin="round" />
+          <path d="M -16 -22 Q 0 -16 16 -22" fill="none" stroke="#7c2d12" strokeWidth="4" strokeLinecap="round" />
+          {label && (
+            <g>
+              <circle cx="0" cy="12" r="15" fill="#fff" stroke={useColor ? HALO.green : '#475569'} strokeWidth="3" />
+              <text x="0" y="13" textAnchor="middle" dominantBaseline="central" fontSize="17" fontWeight="900" fill={useColor ? HALO.green : '#1e293b'}>10</text>
+            </g>
+          )}
+          {crossed && <path d="M -26 -26 L 26 38 M 26 -26 L -26 38" stroke={useColor ? HALO.blue : '#475569'} strokeWidth="6" strokeLinecap="round" />}
+        </g>
+      );
+    }
+    function AcornIcon({ size = 26 }) {
+      return <svg viewBox="-20 -24 40 44" width={size} height={size * 1.1} style={{ flex: 'none', verticalAlign: 'middle' }} aria-hidden="true"><AcornShape x={0} y={0} r={17} /></svg>;
+    }
+    function BagIcon({ size = 28 }) {
+      return <svg viewBox="-34 -44 68 92" width={size} height={size * 92 / 68} style={{ flex: 'none', verticalAlign: 'middle' }} aria-hidden="true"><Bag x={0} y={0} s={1} /></svg>;
+    }
+    // どんぐりの かず（ふくろ ○こ ＋ ばら ○こ）
+    function AcornCount({ n, size = 24 }) {
+      return (
+        <span className="row" style={{ gap: '.15rem', display: 'inline-flex' }}>
+          <BagIcon size={size} /><span>{Math.floor(n / 10)}</span>
+          <span style={{ width: '.25rem' }} />
+          <AcornIcon size={size} /><span>{n % 10}</span>
+        </span>
+      );
+    }
+    // どんぐりが ヘッダーの さいふへ とんで いく
+    const ACORN_HTML = '<svg viewBox="-20 -24 40 44" width="40" height="44"><ellipse cx="0" cy="4" rx="12.6" ry="14" fill="#c9822f" stroke="#6b3a14" stroke-width="2"/><path d="M -15.3 -2 Q 0 -20.4 15.3 -2 Q 0 2 -15.3 -2 Z" fill="#8a5a2b" stroke="#6b3a14" stroke-width="2"/><rect x="-1.4" y="-19" width="2.8" height="5" fill="#6b3a14"/></svg>';
+    function flyAcorns(from, count = 1) {
+      const target = document.getElementById('acorn-pill');
+      if (!target || !from) return;
+      const tr = target.getBoundingClientRect();
+      for (let i = 0; i < count; i++) {
+        const el = document.createElement('div');
+        el.className = 'flyacorn';
+        el.innerHTML = ACORN_HTML;
+        el.style.left = (from.x - 20) + 'px'; el.style.top = (from.y - 22) + 'px';
+        document.body.appendChild(el);
+        const dx = tr.left + 18 - from.x, dy = tr.top + tr.height / 2 - from.y;
+        if (el.animate) {
+          const a = el.animate([
+            { transform: 'translate(0,0) scale(.4)', opacity: 0 },
+            { transform: 'translate(0,-40px) scale(1.3)', opacity: 1, offset: 0.25 },
+            { transform: `translate(${dx}px, ${dy}px) scale(.6)`, opacity: 1 },
+          ], { duration: 1000, delay: i * 160, easing: 'cubic-bezier(.5,0,.6,1)', fill: 'forwards' });
+          a.onfinish = () => { el.remove(); target.classList.remove('bump'); void target.offsetWidth; target.classList.add('bump'); acornSound(); };
+        } else setTimeout(() => el.remove(), 1200);
+      }
+    }
+
+    const SvgText = ({ x, y, children, size = 30, color = '#1e293b', anchor = 'middle', weight = 900 }) => (
+      <text x={x} y={y} textAnchor={anchor} dominantBaseline="central" fontSize={size} fontWeight={weight} fill={color} stroke="#fff" strokeWidth={size * 0.18} paintOrder="stroke" pointerEvents="none">{children}</text>
+    );
+    const col = (role) => CURRENT.settings.color === false ? '#1e293b' : ({ hikareru: '#dc2626', hiku: '#2563eb', ten: '#059669', dec: '#b91c1c' })[role] || '#1e293b';
+
+    /* ---- どんぐりと ふくろの 絵（ヒントと じゅんび）----
+       w×h は 800×200 が きほん */
+    function acornRow(n, x0, y, gap, r, opts = () => ({})) {
+      return range0(n).map(i => <Acorn key={i} x={x0 + i * gap} y={y} r={r} {...opts(i)} />);
+    }
+    function TenFrame({ x, y, r = 20, gap = 52, crossFrom = 10, halo = 'green', nums }) {
+      // 10こを 2だん × 5こに ならべる。crossFrom ばんめ から あとを とる
+      return (
+        <g>
+          <rect x={x - gap * 0.6} y={y - r * 1.6} width={gap * 5 + gap * 0.2} height={r * 6.2} rx="16" fill="#fff" stroke={CURRENT.settings.color === false ? '#94a3b8' : HALO.green} strokeWidth="3" strokeDasharray="8 6" />
+          {range0(10).map(i => {
+            const cx = x + (i % 5) * gap, cy = y + Math.floor(i / 5) * r * 3;
+            return <Acorn key={i} x={cx} y={cy} r={r} halo={i < crossFrom ? halo : null} crossed={i >= crossFrom} num={nums && nums[i]} numColor={HALO.green} />;
+          })}
+        </g>
+      );
+    }
+    function countNums(k, list) { const o = {}; list.slice(0, k).forEach((idx, j) => { o[idx] = j + 1; }); return o; }
+    function BankPic({ pic, t = 1 }) {
+      if (!pic) return null;
+      const P = pic;
+      if (P.type === 'take10') {
+        const rest = 10 - P.b0;
+        const k = P.count ? Math.min(rest, Math.floor(t * (rest + 1.2))) : 0;
+        return (
+          <g>
+            <Bag x={70} y={92} s={1.25} dashed />
+            <SvgText x={70} y={168} size={20} color="#7c4a1e">あけた ふくろ</SvgText>
+            <TenFrame x={190} y={70} crossFrom={rest} nums={P.count ? countNums(k, range0(rest)) : null} />
+            <SvgText x={640} y={66} size={40}><tspan fill={col('ten')}>10</tspan> − <tspan fill={col('hiku')}>{P.b0}</tspan> ＝ {P.count && k >= rest ? rest : '？'}</SvgText>
+            <SvgText x={640} y={130} size={22} color="#475569">{P.b0}こ とると のこりは？</SvgText>
+          </g>
+        );
+      }
+      if (P.type === 'add') {
+        const gap = 54, x0 = 70;
+        const order = range0(P.x + P.y);
+        const k = P.count ? Math.min(order.length, Math.floor(t * (order.length + 1.2))) : 0;
+        const nums = P.count ? countNums(k, order) : {};
+        return (
+          <g>
+            {acornRow(P.x, x0, 110, gap, 20, i => ({ halo: 'green', num: nums[i], numColor: HALO.green }))}
+            <SvgText x={x0 + P.x * gap - gap / 2 + 4} y={110} size={40}>＋</SvgText>
+            {acornRow(P.y, x0 + P.x * gap + 18, 110, gap, 20, i => ({ halo: 'red', num: nums[P.x + i], numColor: HALO.red }))}
+            <SvgText x={680} y={110} size={40}>{P.x} ＋ <tspan fill={col('hikareru')}>{P.y}</tspan> ＝ {P.count && k >= order.length ? P.x + P.y : '？'}</SvgText>
+          </g>
+        );
+      }
+      if (P.type === 'ones') {
+        const rest = 10 - P.b0;
+        const order = range0(rest).concat(range0(P.a0).map(i => 10 + i));
+        const k = P.count ? Math.min(order.length, Math.floor(t * (order.length + 1.2))) : 0;
+        const nums = P.count ? countNums(k, order) : {};
+        return (
+          <g>
+            <TenFrame x={56} y={70} r={18} gap={46} crossFrom={rest} nums={nums} />
+            <SvgText x={56 + 46 * 5 - 6} y={92} size={40}>＋</SvgText>
+            {P.a0 === 0 ? <SvgText x={340} y={92} size={26} color={col('hikareru')}>ばらは 0こ</SvgText>
+              : range0(P.a0).map(i => <Acorn key={i} x={330 + (i % 4) * 44} y={70 + Math.floor(i / 4) * 54} r={18} halo="red" num={nums[10 + i]} numColor={HALO.red} />)}
+            <SvgText x={640} y={66} size={34}><tspan fill={col('ten')}>10</tspan> − <tspan fill={col('hiku')}>{P.b0}</tspan> ＋ <tspan fill={col('hikareru')}>{P.a0}</tspan></SvgText>
+            <SvgText x={640} y={124} size={34}>＝ {P.count && k >= order.length ? rest + P.a0 : '？'}</SvgText>
+          </g>
+        );
+      }
+      if (P.type === 'open') {
+        // まえ： A1ふくろ ＋ ばら A0こ → あと： (A1−1)ふくろ ＋ 10こ ＋ ばら A0こ
+        return (
+          <g>
+            <SvgText x={200} y={14} size={20} color="#475569">いま</SvgText>
+            {range0(P.a1).map(i => <Bag key={i} x={40 + i * 36} y={58} s={0.5} />)}
+            {range0(P.a0).map(i => <Acorn key={i} x={50 + (i % 4) * 30} y={112 + Math.floor(i / 4) * 30} r={12} halo="red" />)}
+            {P.a0 === 0 && <SvgText x={90} y={118} size={20} color={col('hikareru')}>ばらは 0こ</SvgText>}
+            <SvgText x={200} y={180} size={20} color="#7c4a1e">ばら {P.a0}こから {P.b0}こは とれない</SvgText>
+            <SvgText x={414} y={90} size={44} color="#d97706">➡</SvgText>
+            <SvgText x={620} y={14} size={20} color="#475569">ふくろを 1つ あけると</SvgText>
+            {range0(P.a1 - 1).map(i => <Bag key={i} x={470 + i * 36} y={58} s={0.5} />)}
+            {range0(10).map(i => <Acorn key={'t' + i} x={470 + (i % 5) * 28} y={108 + Math.floor(i / 5) * 30} r={11} halo="green" />)}
+            {range0(P.a0).map(i => <Acorn key={'l' + i} x={630 + (i % 4) * 28} y={108 + Math.floor(i / 4) * 30} r={11} halo="red" />)}
+            <SvgText x={620} y={180} size={20} color="#7c4a1e">10こから {P.b0}こ とれるね</SvgText>
+          </g>
+        );
+      }
+      if (P.type === 'tens') {
+        const k = P.count ? Math.min(P.dec - P.b1, Math.floor(t * (P.dec - P.b1 + 1.2))) : 0;
+        const g = Math.min(66, 480 / Math.max(1, P.dec)), bs = Math.min(0.9, g / 72);
+        return (
+          <g>
+            {range0(P.dec).map(i => <Bag key={i} x={60 + i * g} y={84} s={bs} crossed={i >= P.dec - P.b1} />)}
+            {P.count && range0(k).map(i => <g key={'n' + i}><circle cx={60 + i * g} cy={22} r="15" fill="#fff" stroke="#0284c7" strokeWidth="3" /><text x={60 + i * g} y={23} textAnchor="middle" dominantBaseline="central" fontSize="18" fontWeight="900" fill="#0369a1">{i + 1}</text></g>)}
+            <SvgText x={680} y={84} size={38}><tspan fill={col('dec')}>{P.dec}</tspan> − <tspan fill={col('hiku')}>{P.b1}</tspan> ＝ {P.count && k >= P.dec - P.b1 ? P.dec - P.b1 : '？'}</SvgText>
+            <SvgText x={350} y={170} size={22} color="#475569">ふくろ {P.dec}こから {P.b1}こ とると？</SvgText>
+          </g>
+        );
+      }
+      if (P.type === 'dec') {
+        return (
+          <g>
+            {range0(P.a1).map(i => { const g = Math.min(66, 480 / P.a1); return <Bag key={i} x={60 + i * g} y={84} s={Math.min(0.9, g / 72)} dashed={i === P.a1 - 1} />; })}
+            <SvgText x={Math.max(130, 60 + (P.a1 - 1) * Math.min(66, 480 / P.a1))} y={164} size={20} color="#b45309">1のくらいに かした</SvgText>
+            <SvgText x={690} y={84} size={38}><tspan fill={col('hikareru')}>{P.a1}</tspan> − 1 ＝ {P.show ? P.a1 - 1 : '？'}</SvgText>
+          </g>
+        );
+      }
+      return null;
+    }
+
+    /* =========================================================
+       ひっ算の 絵（プリントと 同じ ならび）
+       ========================================================= */
+    // 位置：左から 記号・十のくらい・1のくらい。上から くりさがりの だん・ひかれる数・ひく数・こたえ
+    const HG = { sx: 76, tx: 162, ox: 262, by: 40, my: 122, sy: 222, line: 272, ay: 332 };
+    const FORM_POS = {
+      two: { f_b0: [520, 122], f_r1: [660, 122], f_r1c: [398, 222], f_a0: [520, 222], f_sum: [660, 222] },
+      one: { f_b0: [520, 122], f_a0: [656, 122], f_sum: [656, 222] },
+    };
+    const digits = (p) => ({ A1: Math.floor(p.a / 10), A0: p.a % 10, B1: Math.floor(p.b / 10), B0: p.b % 10 });
+
+    // 数字を いれる 四角
+    function CellBox({ x, y, w = 76, h = 84, v, guide, active, color = '#1e293b', size = 60, boxed = true, zero }) {
+      const showBox = boxed || active;
+      return (
+        <g pointerEvents="none">
+          {showBox && <rect x={x - w / 2} y={y - h / 2} width={w} height={h} rx="10" fill={active ? '#fffbeb' : '#fff'} stroke={active ? '#f59e0b' : '#94a3b8'} strokeWidth={active ? 5 : 3} strokeDasharray={active ? '10 6' : undefined} />}
+          {active && <rect x={x - w / 2 - 6} y={y - h / 2 - 6} width={w + 12} height={h + 12} rx="14" fill="none" stroke="#fbbf24" strokeWidth="4" className="pulse" />}
+          {v != null && !zero && <text x={x} y={y + 3} textAnchor="middle" dominantBaseline="central" fontSize={size} fontWeight="900" fill={color} className="pop" style={{ transformOrigin: `${x}px ${y}px` }}>{v}</text>}
+          {v != null && zero && (
+            <g>
+              <text x={x} y={y + 3} textAnchor="middle" dominantBaseline="central" fontSize={size} fontWeight="900" fill="#cbd5e1">0</text>
+              <path d={`M ${x - 22} ${y + 26} L ${x + 22} ${y - 22}`} stroke="#94a3b8" strokeWidth="4" strokeLinecap="round" />
+            </g>
+          )}
+          {v == null && guide != null && <text x={x} y={y + 3} textAnchor="middle" dominantBaseline="central" fontSize={size} fontWeight="700" fill="#cbd5e1">{guide}</text>}
+        </g>
+      );
+    }
+    function GlowRect({ x, y, w, h }) {
+      return <rect x={x - w / 2} y={y - h / 2} width={w} height={h} rx="14" fill="rgba(251,191,36,.18)" stroke="#f59e0b" strokeWidth="6" className="pulse" pointerEvents="none" />;
+    }
+
+    /* v：ひっ算の ようす
+       marked（しるし）, markGuide（うすい しるし）, decMode（'auto'：小さな数を 自動で 出す／'input'：自分で 入れる）,
+       vals（入れた 数字）, guides（うすい 数字）, active（いま 入れる ところ）, glow（光らせる ところ）,
+       form（'two'／'one'／'memo'（とじた メモ）／null）, given（はじめから 出ている 数字）, hideB1, onTap, onMemo */
+    function HissanView({ p, v }) {
+      const { A1, A0, B1, B0 } = digits(p);
+      const vals = v.vals || {}, guides = v.guides || {}, glow = v.glow || [];
+      const dec = A1 - 1, r1 = 10 - B0, sum = r1 + A0;
+      const tap = id => v.onTap ? (e) => { if (e.cancelable) e.preventDefault(); v.onTap(id); } : undefined;
+      const digit = (id, x, y, n, role, show = true) => (
+        <g key={id} onPointerDown={tap(id)} style={v.onTap ? { cursor: 'pointer' } : undefined} data-dig={id}>
+          <rect x={x - 48} y={y - 48} width="96" height="96" fill="transparent" />
+          {show && <text x={x} y={y + 4} textAnchor="middle" dominantBaseline="central" fontSize="78" fontWeight="900" fill={col(role)} pointerEvents="none">{n}</text>}
+        </g>
+      );
+      const has = id => glow.includes(id);
+      const form = v.form;
+      const fp = form === 'two' ? FORM_POS.two : form === 'one' ? FORM_POS.one : null;
+      const given = v.given || {};
+      const fCell = (id, value, role) => {
+        const [x, y] = fp[id];
+        if (given[id]) return <text key={id} x={x} y={y + 3} textAnchor="middle" dominantBaseline="central" fontSize="60" fontWeight="900" fill={col(role)}>{value}</text>;
+        return <CellBox key={id} x={x} y={y} v={vals[id]} guide={guides[id]} active={v.active === id} color={col(role)} />;
+      };
+      const zeroTens = vals.h_tens === 0 && A1 - 1 - B1 === 0;
+      return (
+        <g>
+          {/* ます目（点線）*/}
+          <g stroke="#cbd5e1" strokeWidth="2" strokeDasharray="7 6" fill="none" pointerEvents="none">
+            {[112, 212].map(x => <rect key={x} x={x} y={8} width="100" height="64" />)}
+            {[72, 172, 282].map(y => <rect key={y} x={40} y={y} width="272" height="100" />)}
+            {[112, 212].map(x => <line key={'v' + x} x1={x} y1={72} x2={x} y2={382} />)}
+          </g>
+          <line x1="40" y1={HG.line} x2="312" y2={HG.line} stroke="#1e293b" strokeWidth="5" />
+          <text x={HG.sx} y={HG.sy + 2} textAnchor="middle" dominantBaseline="central" fontSize="70" fontWeight="900" fill="#1e293b">−</text>
+          {/* ひかれる数・ひく数 */}
+          {digit('mt', HG.tx, HG.my, A1, 'hikareru')}
+          {digit('mo', HG.ox, HG.my, A0, 'hikareru')}
+          {digit('st', HG.tx, HG.sy, B1, 'hiku', !v.hideB1)}
+          {digit('so', HG.ox, HG.sy, B0, 'hiku')}
+          {/* くりさがりの しるし */}
+          {(v.marked || v.markGuide) && (
+            <g pointerEvents="none" opacity={v.marked ? 1 : 0.5}>
+              <line x1={HG.tx + 30} y1={HG.my - 40} x2={HG.tx - 30} y2={HG.my + 42} stroke={v.marked ? '#475569' : '#94a3b8'} strokeWidth="6" strokeLinecap="round" strokeDasharray={v.marked ? undefined : '8 7'} />
+              <text x={HG.ox} y={HG.by + 2} textAnchor="middle" dominantBaseline="central" fontSize="40" fontWeight="900" fill={v.marked ? col('ten') : '#cbd5e1'}>10</text>
+              {(v.decMode === 'auto' || !v.marked) && <text x={HG.tx} y={HG.by + 2} textAnchor="middle" dominantBaseline="central" fontSize="44" fontWeight="900" fill={v.marked ? col('dec') : '#cbd5e1'}>{dec}</text>}
+            </g>
+          )}
+          {v.marked && v.decMode === 'input' && <CellBox x={HG.tx} y={HG.by} w={64} h={56} size={42} v={vals.h_dec} guide={guides.h_dec} active={v.active === 'h_dec'} color={col('dec')} boxed={v.active === 'h_dec' || vals.h_dec != null} />}
+          {/* こたえ */}
+          <CellBox x={HG.tx} y={HG.ay} w={84} h={88} size={72} v={vals.h_tens} guide={guides.h_tens} active={v.active === 'h_tens'} boxed={false} zero={zeroTens} />
+          <CellBox x={HG.ox} y={HG.ay} w={84} h={88} size={72} v={vals.h_ones} guide={guides.h_ones} active={v.active === 'h_ones'} boxed={false} />
+          {zeroTens && <SvgText x={HG.tx} y={HG.ay + 64} size={20} color="#64748b">0は かかない</SvgText>}
+          {/* ひかる ところ */}
+          {has('mt') && <GlowRect x={HG.tx} y={HG.my} w={90} h={92} />}
+          {has('mo') && <GlowRect x={HG.ox} y={HG.my} w={90} h={92} />}
+          {has('st') && <GlowRect x={HG.tx} y={HG.sy} w={90} h={92} />}
+          {has('so') && <GlowRect x={HG.ox} y={HG.sy} w={90} h={92} />}
+          {/* 1のくらいの 式 */}
+          {(form === 'two' || form === 'one' || form === 'memo') && (
+            <path d={`M 322 82 L 342 ${(HG.my + HG.sy) / 2} L 322 262`} fill="none" stroke="#dc2626" strokeWidth="4" strokeLinejoin="round" pointerEvents="none" opacity={CURRENT.settings.color === false ? 0.5 : 1} />
+          )}
+          {(form === 'two' || form === 'one') && <SvgText x={420} y={60} size={20} color="#64748b" weight={700}>1のくらい</SvgText>}
+          {form === 'two' && (
+            <g>
+              <text x={398} y={125} textAnchor="middle" dominantBaseline="central" fontSize="60" fontWeight="900" fill={col('ten')}>10</text>
+              <text x={458} y={125} textAnchor="middle" dominantBaseline="central" fontSize="56" fontWeight="900">−</text>
+              <text x={590} y={125} textAnchor="middle" dominantBaseline="central" fontSize="56" fontWeight="900">＝</text>
+              <text x={458} y={225} textAnchor="middle" dominantBaseline="central" fontSize="56" fontWeight="900">＋</text>
+              <text x={590} y={225} textAnchor="middle" dominantBaseline="central" fontSize="56" fontWeight="900">＝</text>
+              {fCell('f_b0', B0, 'hiku')}{fCell('f_r1', r1)}{fCell('f_r1c', r1)}{fCell('f_a0', A0, 'hikareru')}{fCell('f_sum', sum)}
+            </g>
+          )}
+          {form === 'one' && (
+            <g>
+              <text x={398} y={125} textAnchor="middle" dominantBaseline="central" fontSize="60" fontWeight="900" fill={col('ten')}>10</text>
+              <text x={458} y={125} textAnchor="middle" dominantBaseline="central" fontSize="56" fontWeight="900">−</text>
+              <text x={588} y={125} textAnchor="middle" dominantBaseline="central" fontSize="56" fontWeight="900">＋</text>
+              <text x={588} y={225} textAnchor="middle" dominantBaseline="central" fontSize="56" fontWeight="900">＝</text>
+              {fCell('f_b0', B0, 'hiku')}{fCell('f_a0', A0, 'hikareru')}{fCell('f_sum', sum)}
+            </g>
+          )}
+          {form === 'memo' && (
+            <g onPointerDown={v.onMemo ? (e) => { if (e.cancelable) e.preventDefault(); v.onMemo(); } : undefined} style={v.onMemo ? { cursor: 'pointer' } : undefined} data-memo="1">
+              <rect x={360} y={78} width={400} height={188} rx="18" fill="#fff" stroke="#94a3b8" strokeWidth="3" strokeDasharray="10 8" />
+              <SvgText x={560} y={126} size={30} color="#475569">📝 けいさんメモ</SvgText>
+              <SvgText x={560} y={178} size={26} color="#475569" weight={700}><tspan fill={col('ten')}>10</tspan> − <tspan fill={col('hiku')}>ひくかず</tspan> ＋ <tspan fill={col('hikareru')}>ひかれるかず</tspan></SvgText>
+              {v.onMemo && <SvgText x={560} y={226} size={20} color="#94a3b8" weight={700}>おすと しきが でるよ</SvgText>}
+            </g>
+          )}
+          {fp && Object.keys(fp).filter(has).map(id => <GlowRect key={'g' + id} x={fp[id][0]} y={fp[id][1]} w={92} h={100} />)}
+          {has('h_ones') && <GlowRect x={HG.ox} y={HG.ay} w={92} h={96} />}
+        </g>
+      );
+    }
+    // おはなしの 問題の 式（□□ − □□）
+    function ExprView({ v }) {
+      const vals = v.vals || {};
+      const cell = (id, x) => <CellBox key={id} x={x} y={190} w={96} h={110} size={84} v={vals[id]} active={v.active === id} color={col(id.startsWith('e_a') ? 'hikareru' : 'hiku')} />;
+      return (
+        <g>
+          <SvgText x={400} y={70} size={30} color="#7c4a1e">しきを つくろう</SvgText>
+          {cell('e_a1', 160)}{cell('e_a0', 262)}
+          <text x={400} y={194} textAnchor="middle" dominantBaseline="central" fontSize="80" fontWeight="900">−</text>
+          {cell('e_b1', 538)}{cell('e_b0', 640)}
+          <SvgText x={211} y={278} size={22} color={col('hikareru')} weight={700}>はじめの かず</SvgText>
+          <SvgText x={589} y={278} size={22} color={col('hiku')} weight={700}>ひく かず</SvgText>
+        </g>
+      );
+    }
+
+    /* ---- ホームの けしき（もりの どんぐりぎんこう。絵は Canva で作成）---- */
+    function BankScene({ onKurumi, talking, mood = 'normal', bags = 0, friends = [] }) {
+      return (
+        <svg viewBox="0 0 1000 750" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <image href="img/bank.webp" x="0" y="0" width="1000" height="750" preserveAspectRatio="xMidYMid slice" />
+          {/* かんばん */}
+          <text x="603" y="252" textAnchor="middle" dominantBaseline="central" fontSize="31" fontWeight="900" fill="#5b3412" stroke="#f5deb3" strokeWidth="5" paintOrder="stroke">どんぐり ぎんこう</text>
+          {/* ちょきんの ふくろ */}
+          <g>{range0(Math.min(bags, 12)).map(i => <Bag key={i} x={790 + (i % 4) * 46} y={690 - Math.floor(i / 4) * 52} s={0.62} />)}</g>
+          {/* あそびに きた ともだち */}
+          <g>{friends.slice(0, 8).map((f, i) => <text key={f.id} x={330 + i * 58} y={680} textAnchor="middle" dominantBaseline="central" fontSize="50" className="emoji">{f.e}</text>)}</g>
+          {/* クルミせんせい */}
+          <g style={{ cursor: 'pointer' }} onClick={onKurumi}>
+            <image href={KURUMI_IMG[mood] || KURUMI_IMG.normal} x="20" y="360" height="380" width="290" preserveAspectRatio="xMidYMax meet" className={talking ? 'kurumi talking' : 'kurumi'} />
+          </g>
+        </svg>
+      );
+    }
+
+    /* ---- もりの おうち（なかの ようす）---- */
+    const SPOTS = [
+      { id: 'tenjo', name: 'てんじょう', x: 560, y: 70 },
+      { id: 'mado', name: 'まど', x: 258, y: 190 },
+      { id: 'kabe1', name: 'かべ（まんなか）', x: 500, y: 230 },
+      { id: 'kabe2', name: 'かべ（みぎ）', x: 780, y: 330 },
+      { id: 'tana1', name: 'たな（ひだり）', x: 700, y: 150 },
+      { id: 'tana2', name: 'たな（みぎ）', x: 840, y: 150 },
+      { id: 'tsukue', name: 'つくえの うえ', x: 197, y: 355 },
+      { id: 'yuka1', name: 'ゆか ①', x: 110, y: 640 },
+      { id: 'yuka2', name: 'ゆか ②', x: 420, y: 615 },
+      { id: 'yuka3', name: 'ゆか ③', x: 640, y: 615 },
+      { id: 'yuka4', name: 'ゆか ④', x: 900, y: 610 },
+    ];
+    const SPOT_MAP = Object.fromEntries(SPOTS.map(s => [s.id, s]));
+    const CIRCLED = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩', '⑪', '⑫'];
+    function HouseScene({ placed = {}, showNums = true, pickSpot, hl }) {
+      const bySpot = {};
+      Object.entries(placed).forEach(([itemId, spot]) => { if (ITEM_MAP[itemId]) bySpot[spot] = ITEM_MAP[itemId]; });
+      return (
+        <svg viewBox="0 0 1000 750" style={{ width: '100%', height: 'auto', display: 'block', borderRadius: '1.2rem' }} aria-hidden="true">
+          <image href="img/house.webp" x="0" y="0" width="1000" height="750" preserveAspectRatio="xMidYMid slice" />
+          {SPOTS.map((s, i) => {
+            const it = bySpot[s.id];
+            const on = hl === s.id;
+            return (
+              <g key={s.id} onPointerDown={pickSpot ? (e) => { if (e.cancelable) e.preventDefault(); pickSpot(s.id); } : undefined} style={pickSpot ? { cursor: 'pointer' } : undefined} data-spot={s.id}>
+                {(!it || pickSpot) && <circle cx={s.x} cy={s.y} r="46" fill={pickSpot ? 'rgba(255,255,255,.7)' : 'rgba(255,255,255,.35)'} stroke={on ? '#f59e0b' : '#a8a29e'} strokeWidth={on ? 7 : 3} strokeDasharray="9 7" />}
+                {it && <text x={s.x} y={s.y + 4} textAnchor="middle" dominantBaseline="central" fontSize="82" className="emoji">{it.e}</text>}
+                {showNums && (!it || pickSpot) && <text x={s.x + (it ? 38 : 0)} y={s.y + (it ? -38 : 2)} textAnchor="middle" dominantBaseline="central" fontSize={it ? 30 : 36} fontWeight="900" fill="#7c4a1e" stroke="#fff" strokeWidth="5" paintOrder="stroke">{CIRCLED[i]}</text>}
+              </g>
+            );
+          })}
+        </svg>
+      );
+    }
+
+    function Confetti() {
+      const pieces = useMemo(() => Array.from({ length: 46 }, (_, i) => ({ i, left: Math.random() * 100, delay: Math.random() * 0.9, dur: 2.4 + Math.random() * 1.8, ch: pick(['🌰', '🍂', '⭐', '✨', '🍁', '🎉', '🌟']), size: 24 + Math.random() * 18 })), []);
+      return <>{pieces.map(p => <div key={p.i} className="confetti" style={{ left: p.left + 'vw', animationDuration: p.dur + 's', animationDelay: p.delay + 's', fontSize: p.size }}>{p.ch}</div>)}</>;
+    }
+
+    /* =========================================================
+       ステップ
+       form：1のくらいの 式（two：2つの式／one：1つの式／memo：メモで出す／none：出さない（ヒントで出す））
+       ========================================================= */
+    const STAGES = [
+      { id: 'j1', grp: 'prep', label: 'じゅんび①', name: '10 − □', sub: '10この ふくろから とる', kind: 'ten', friend: 'usagi' },
+      { id: 'j2', grp: 'prep', label: 'じゅんび②', name: '□ ＋ □', sub: 'のこりと ばらを あわせる', kind: 'add', friend: 'harinezumi' },
+      { id: 'j3', grp: 'prep', label: 'じゅんび③', name: 'くりさがりの しるし', sub: 'ひける？ ひけない？', kind: 'judge', friend: 'araiguma' },
+      { id: 's1', grp: 'main', label: 'ステップ1', name: 'なぞって おぼえよう', sub: 'うすい [数字|すうじ]と おなじ ボタンを おす', kind: 'hissan', form: 'two', trace: true, rule: true, friend: 'kitsune' },
+      { id: 's2', grp: 'main', label: 'ステップ2', name: '□に [数字|すうじ]を かこう', sub: 'しきの こたえを かく', kind: 'hissan', form: 'two', given: ['f_b0', 'f_a0'], rule: true, friend: 'fukurou' },
+      { id: 's3', grp: 'main', label: 'ステップ3', name: 'しきの [数字|すうじ]も じぶんで', sub: 'ひく[数|かず]・ひかれる[数|かず]も いれる', kind: 'hissan', form: 'two', rule: true, friend: 'kaeru' },
+      { id: 's4', grp: 'main', label: 'ステップ4', name: '1つの しきに しよう', sub: '10 − □ ＋ □ ＝ □', kind: 'hissan', form: 'one', rule: true, friend: 'kuma' },
+      { id: 's5', grp: 'main', label: 'ステップ5', name: 'メモを つかって', sub: 'こまったら 📝メモ', kind: 'hissan', form: 'memo', zero: true, rule: true, friend: 'shika' },
+      { id: 's6', grp: 'main', label: 'ステップ6', name: 'ひっさんだけで', sub: 'しきは ヒントで でる', kind: 'hissan', form: 'none', zero: true, decInput: true, friend: 'inoshishi' },
+      { id: 'h1', grp: 'adv', label: 'はってん ア', name: '2けた − 1けた', sub: '42 − 7 など', kind: 'hissan', form: 'memo', decInput: true, gen: 'oneDigit', friend: 'kotori' },
+      { id: 'h2', grp: 'adv', label: 'はってん イ', name: 'こたえが 1けた', sub: '43 − 36 など', kind: 'hissan', form: 'memo', decInput: true, gen: 'small', friend: 'tentoumushi' },
+      { id: 'h3', grp: 'adv', label: 'はってん ウ', name: 'おはなしの もんだい', sub: 'しきを つくって ひっさん', kind: 'hissan', form: 'memo', story: true, zero: true, friend: 'chou' },
+    ];
+    const STAGE_MAP = Object.fromEntries(STAGES.map(s => [s.id, s]));
+    const MAIN_IDS = ['j1', 'j2', 'j3', 's1', 's2', 's3', 's4', 's5', 's6'];
+    const ADV_IDS = ['h1', 'h2', 'h3'];
+
+    /* ---- あそびに くる ともだち（ステップを クリアすると くる）---- */
+    const FRIENDS = [
+      { id: 'usagi', e: '🐰', name: 'うさぎさん' },
+      { id: 'harinezumi', e: '🦔', name: 'はりねずみさん' },
+      { id: 'araiguma', e: '🦝', name: 'あらいぐまさん', alt: ['🐿️', 'しまりすさん'] },
+      { id: 'kitsune', e: '🦊', name: 'きつねさん' },
+      { id: 'fukurou', e: '🦉', name: 'ふくろうさん' },
+      { id: 'kaeru', e: '🐸', name: 'かえるさん' },
+      { id: 'kuma', e: '🐻', name: 'くまさん' },
+      { id: 'shika', e: '🦌', name: 'しかさん' },
+      { id: 'inoshishi', e: '🐗', name: 'いのししさん' },
+      { id: 'kotori', e: '🐦', name: 'ことりさん' },
+      { id: 'tentoumushi', e: '🐞', name: 'てんとうむしさん' },
+      { id: 'chou', e: '🦋', name: 'ちょうちょさん' },
+    ];
+
+    /* ---- もりの おうちの かぐ・かざり（どんぐりで かう）---- */
+    const SHOP = [
+      { id: 'kagu', name: 'かぐ', icon: '🛋️', items: [['🪑', 'いす', 6, ['💺', 'いす']], ['📚', 'ほんだな', 8], ['🧸', 'くまの ぬいぐるみ', 7], ['🕰️', 'おきどけい', 10], ['🛏️', 'ベッド', 12], ['🛋️', 'ソファ', 15], ['📺', 'テレビ', 18], ['🎹', 'ピアノ', 20]] },
+      { id: 'kazari', name: 'かざり', icon: '🖼️', items: [['🎈', 'ふうせん', 3], ['⭐', 'ほし', 3], ['🔔', 'すず', 4], ['🖼️', 'え', 5], ['🏮', 'ちょうちん', 6], ['🪞', 'かがみ', 7, ['🕯️', 'ろうそく']], ['🎏', 'こいのぼり', 8], ['🌈', 'にじ', 9]] },
+      { id: 'mori', name: 'しょくぶつ・たべもの', icon: '🌻', items: [['🍎', 'りんご', 2], ['🍄', 'きのこ', 3], ['🌷', 'チューリップ', 3], ['🌻', 'ひまわり', 4], ['🌵', 'サボテン', 5], ['🧁', 'カップケーキ', 5], ['🍯', 'はちみつ', 6], ['🎂', 'ケーキ', 12]] },
+    ];
+    // 古い Chromebook で 出ない 絵文字は、べつの ものに 入れかえる
+    function emojiSupported(ch) {
+      try {
+        const c = document.createElement('canvas'); c.width = c.height = 40;
+        const x = c.getContext('2d', { willReadFrequently: true });
+        x.textBaseline = 'top'; x.font = '32px "Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji",sans-serif';
+        x.fillStyle = '#000'; x.fillText(ch, 2, 2);
+        const d = x.getImageData(0, 0, 40, 40).data;
+        for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 40 && (Math.abs(d[i] - d[i + 1]) > 24 || Math.abs(d[i + 1] - d[i + 2]) > 24)) return true;
+        return false;
+      } catch (e) { return true; }
+    }
+    SHOP.forEach(cat => {
+      cat.list = cat.items.map(([e, name, price, alt], i) => {
+        let item = { id: `${cat.id}-${i}`, cat: cat.id, e, name, price };
+        if (alt && !emojiSupported(e)) item = { ...item, e: alt[0], name: alt[1] };
+        return item;
+      });
+    });
+    FRIENDS.forEach(f => { if (f.alt && !emojiSupported(f.e)) { f.e = f.alt[0]; f.name = f.alt[1]; } });
+    const FRIEND_MAP = Object.fromEntries(FRIENDS.map(f => [f.id, f]));
+    const ALL_ITEMS = SHOP.flatMap(c => c.list);
+    const ITEM_MAP = Object.fromEntries(ALL_ITEMS.map(it => [it.id, it]));
+
+    /* =========================================================
+       問題を つくる（1かい ＝ 5問。毎回 ちがう 問題）
+       ========================================================= */
+    // 2けた − 2けた、1のくらいで くりさがる、こたえは 2けた
+    function genPair({ zero = false } = {}) {
+      const A1 = rInt(3, 9), B1 = rInt(1, A1 - 2);
+      const A0 = zero ? 0 : rInt(1, 8), B0 = rInt(A0 + 1, 9);
+      return { a: A1 * 10 + A0, b: B1 * 10 + B0 };
+    }
+    const STORIES = [
+      { t: 'どんぐりぎんこうに どんぐりが {a}こ あります。\nうさぎさんが {b}こ ひきだしました。\nのこりは なんこですか。', u: 'こ' },
+      { t: 'りすさんは どんぐりを {a}こ もって います。\nともだちに {b}こ あげました。\nのこりは なんこですか。', u: 'こ' },
+      { t: 'かごに くりが {a}こ あります。\nみんなで {b}こ たべました。\nのこりは なんこですか。', u: 'こ' },
+      { t: 'きのみが {a}こ あります。\n{b}こ つかって ケーキを つくりました。\nのこりは なんこですか。', u: 'こ' },
+      { t: 'はっぱが {a}まい あります。\nかぜで {b}まい とんで いきました。\nのこりは なんまいですか。', u: 'まい' },
+      { t: 'どんぐりを {a}こ ひろいました。\nぎんこうに {b}こ あずけました。\nてもとに のこった どんぐりは なんこですか。', u: 'こ' },
+    ];
+    function genOne(stage, i, zeroAt) {
+      if (stage.kind === 'ten') return null;
+      if (stage.gen === 'oneDigit') {
+        const A1 = rInt(2, 9), A0 = Math.random() < 0.15 ? 0 : rInt(1, 8), B0 = rInt(A0 + 1, 9);
+        return { a: A1 * 10 + A0, b: B0 };
+      }
+      if (stage.gen === 'small') {
+        const A1 = rInt(2, 9), A0 = Math.random() < 0.15 ? 0 : rInt(1, 8), B0 = rInt(A0 + 1, 9);
+        return { a: A1 * 10 + A0, b: (A1 - 1) * 10 + B0 };
+      }
+      return genPair({ zero: stage.zero && i === zeroAt });
+    }
+    function genSet(stage) {
+      const out = [];
+      const seen = new Set();
+      if (stage.kind === 'ten') {
+        return shuffle(range0(9).map(i => i + 1)).slice(0, PER_SET).map(n => ({ n, key: `10-${n}` }));
+      }
+      if (stage.kind === 'add') {
+        const all = [];
+        for (let x = 1; x <= 8; x++) for (let y = 1; x + y <= 9; y++) all.push({ x, y, key: `${x}+${y}` });
+        return shuffle(all).slice(0, PER_SET);
+      }
+      if (stage.kind === 'judge') {
+        const kinds = shuffle([true, true, true, false, false]);
+        return kinds.map(borrow => {
+          for (let t = 0; t < 30; t++) {
+            let q;
+            if (borrow) q = genPair();
+            else { const A1 = rInt(3, 9), B1 = rInt(1, A1 - 1), A0 = rInt(1, 9), B0 = rInt(1, A0); q = { a: A1 * 10 + A0, b: B1 * 10 + B0 }; }
+            if (!seen.has(q.a + '-' + q.b)) { seen.add(q.a + '-' + q.b); return { ...q, borrow, key: q.a + '-' + q.b }; }
+          }
+          return { ...genPair(), borrow: true };
+        });
+      }
+      const zeroAt = stage.zero ? rInt(1, PER_SET - 1) : -1;
+      let prevB0 = -1;
+      for (let i = 0; i < PER_SET; i++) {
+        let q = null;
+        for (let t = 0; t < 40; t++) {
+          q = genOne(stage, i, zeroAt);
+          const k = q.a + '-' + q.b;
+          if (!seen.has(k) && (q.b % 10 !== prevB0 || t > 30)) break;
+        }
+        seen.add(q.a + '-' + q.b); prevB0 = q.b % 10;
+        if (stage.story) { const s = STORIES[(i + rInt(0, STORIES.length - 1)) % STORIES.length]; q = { ...q, story: s.t, unit: s.u }; }
+        out.push({ ...q, key: q.a + '-' + q.b });
+      }
+      return out;
+    }
+    const probLabel = (stage, p) => stage.kind === 'ten' ? `10 − ${p.n}` : stage.kind === 'add' ? `${p.x} ＋ ${p.y}` : `${p.a} − ${p.b}` + (stage.kind === 'judge' ? '（ひける？）' : '');
+    const probCorrect = (stage, p) => stage.kind === 'ten' ? String(10 - p.n) : stage.kind === 'add' ? String(p.x + p.y) : stage.kind === 'judge' ? (p.borrow ? 'ひけない（しるしを つける）' : 'ひける') : String(p.a - p.b);
+
+    /* =========================================================
+       すすみぐあい
+       progress[ステップ] = { sets（おえた かい）, idx（いまの かいの 何問目）, cur（いまの かいの 5問）, cleared, clears }
+       ========================================================= */
+    const prog = (st, id) => st.progress[id] || {};
+    const isCleared = (id, st) => !!prog(st, id).cleared;
+    function startIndex(st) {
+      const s = st.settings;
+      let i = Math.max(0, MAIN_IDS.indexOf(s.startStage));
+      if (s.skipPrep) i = Math.max(i, MAIN_IDS.indexOf('s1'));
+      return i;
+    }
+    const isSkipped = (id, st) => { const i = MAIN_IDS.indexOf(id); return i >= 0 && i < startIndex(st); };
+    const isDone = (id, st) => isCleared(id, st) || isSkipped(id, st);
+    function titleOf(st) {
+      const n = MAIN_IDS.filter(id => isDone(id, st)).length;
+      let t = TITLES[0]; TITLES.forEach(x => { if (n >= x.min) t = x; });
+      return t;
+    }
+    function isStageOpen(stage, st) {
+      if (stage.grp === 'adv') return !!st.settings.advanced;
+      if (st.settings.unlockAll) return true;
+      const i = MAIN_IDS.indexOf(stage.id);
+      return i <= startIndex(st) || isDone(MAIN_IDS[i - 1], st);
+    }
+    function lockHint(stage) {
+      if (stage.grp === 'adv') return 'せんせいが ひらいて くれるよ';
+      const i = MAIN_IDS.indexOf(stage.id);
+      return `${STAGE_MAP[MAIN_IDS[i - 1]].label}を クリアすると ひらくよ`;
+    }
+    function findNext(st) {
+      for (const id of MAIN_IDS) { const s = STAGE_MAP[id]; if (!isSkipped(id, st) && isStageOpen(s, st) && !isCleared(id, st)) return s; }
+      return null;
+    }
+    const stepPos = (st, id) => { const p = prog(st, id); return Math.min(PER_SET * SETS_TO_CLEAR, (p.sets || 0) * PER_SET + (p.idx || 0)); };
+    const ownedCount = st => ALL_ITEMS.filter(it => st.owned[it.id]).length;
+    const friendsOf = st => STAGES.filter(s => isCleared(s.id, st) && s.friend).map(s => FRIEND_MAP[s.friend]).filter(Boolean);
+
+    /* =========================================================
+       先生の スプレッドシートへ 記録を 送る
+       ========================================================= */
+    const SYNC_BATCH = 200;
+    const stageName = s => `${s.label} ${stripMarkup(s.name)}`;
+    function syncColumns() {
+      return STAGES.map(s => ({ id: s.id, short: s.label.replace('じゅんび', 'じ').replace('ステップ', 'S').replace('はってん ', '発'), label: stageName(s) }));
+    }
+    async function buildSummary(st) {
+      const hist = await DB.getAll('history');
+      const stages = {};
+      const errors = {};
+      STAGES.forEach(s => { const p = prog(st, s.id); stages[s.id] = { clear: p.cleared ? 1 : 0, plays: p.clears || 0, pos: stepPos(st, s.id), skip: isSkipped(s.id, st) ? 1 : 0, solved: 0, first: 0 }; });
+      let solved = 0, first = 0, lastAt = 0;
+      hist.forEach(h => {
+        lastAt = Math.max(lastAt, h.at || 0);
+        (h.errors || []).forEach(e => { errors[e] = (errors[e] || 0) + 1; });
+        if (!h.done) return;
+        solved++; if (!h.mistakes) first++;
+        const x = stages[h.stageId]; if (x) { x.solved++; if (!h.mistakes) x.first++; }
+      });
+      const t = titleOf(st);
+      const next = findNext(st);
+      return {
+        title: `${t.icon} ${t.name}`, cleared: MAIN_IDS.filter(id => isDone(id, st)).length, mains: MAIN_IDS.length,
+        solved, first, lastAt, acorns: st.acorns, earned: st.earned, items: ownedCount(st), allItems: ALL_ITEMS.length, friends: friendsOf(st).length,
+        current: next ? `${next.label}（${stepPos(st, next.id) + 1}問目）` : 'ぜんぶ クリア',
+        stages, errors,
+      };
+    }
+    function syncRecord(st, h) {
+      const s = STAGE_MAP[h.stageId];
+      return {
+        uid: `${st.deviceId}-${h.at}-${h.stageId}-${h.no}`, at: h.at, stage: s ? stageName(s) : h.stageId, stageId: h.stageId,
+        no: h.no, label: h.label, correct: h.correct, answers: (h.answers || []).join(' → '), result: h.result,
+        mistakes: h.mistakes, hints: h.hints, sec: h.sec, errors: [...new Set(h.errors || [])].map(e => ERR[e] || e).join('、'),
+        memo: h.memo ? 'つかった' : '', color: h.color === false ? 'なし' : 'あり',
+      };
+    }
+    const SYNC_ERRORS = {
+      key: '合言葉が一致しません。入口ページから開き直すか、正しい合言葉を入力してください。',
+      'not-json': 'Apps Script から正しい返事がありません。デプロイの「アクセスできるユーザー」が「全員」になっているか確認してください。',
+      fetch: '送信できませんでした。インターネット接続と、Apps Script のデプロイ（アクセスできるユーザー「全員」）を確認してください。',
+    };
+    const Sync = {
+      running: null,
+      run(app, opts = {}) {
+        if (this.running) return this.running;
+        this.running = this._run(app, opts).finally(() => { this.running = null; });
+        return this.running;
+      },
+      async _run(app, { all = false } = {}) {
+        const st = app.stateRef.current;
+        const sync = st.sync || {};
+        if (!sync.url || !st.profile) return { ok: false, reason: 'nourl' };
+        if (navigator.onLine === false) return { ok: false, reason: 'offline' };
+        try {
+          const hist = (await DB.getAll('history')).sort((a, b) => a.at - b.at);
+          const targets = hist.filter(h => all || !h.sent);
+          const summary = await buildSummary(st);
+          const sumKey = fnv(st.profile.name + JSON.stringify(summary));
+          if (!targets.length && !all && sync.lastSummary === sumKey) return { ok: true, sent: 0 };
+          let i = 0;
+          do {
+            const batch = targets.slice(i, i + SYNC_BATCH);
+            const payload = {
+              app: APP_ID, v: 1, key: sync.key || '', deviceId: st.deviceId, name: st.profile.name,
+              summary, columns: syncColumns(), errorNames: ERR, records: batch.map(h => syncRecord(st, h)),
+            };
+            let res;
+            try {
+              res = await fetch(sync.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+            } catch (e) { throw new Error('fetch'); }
+            let data;
+            try { data = await res.json(); } catch (e) { throw new Error('not-json'); }
+            if (!data || !data.ok) throw new Error((data && data.error) || 'server');
+            for (const h of batch) if (!h.sent) await DB.put('history', { ...h, sent: true });
+            i += SYNC_BATCH;
+          } while (i < targets.length);
+          app.update(s => ({ ...s, sync: { ...s.sync, lastOkAt: Date.now(), lastError: null, lastSummary: sumKey } }));
+          return { ok: true, sent: targets.length };
+        } catch (e) {
+          const code = String((e && e.message) || e);
+          app.update(s => ({ ...s, sync: { ...s.sync, lastError: code, lastErrorAt: Date.now() } }));
+          return { ok: false, reason: code };
+        }
+      },
+    };
+    const syncErrorText = code => SYNC_ERRORS[code] || `送信できませんでした（${code}）。`;
+
+    /* =========================================================
+       画面の 部品
+       ========================================================= */
+    function Btn({ color = 'sky', size = 'md', className = '', onClick, silent, ...p }) {
+      return <button {...p} onClick={(e) => { if (!silent) sfx('tap'); onClick && onClick(e); }} className={`btn3d c-${color} s-${size} ${className}`} />;
+    }
+    function Modal({ children, onClose }) {
+      return (
+        <div className="modal-bg" onClick={onClose}>
+          <div className="pop" style={{ maxWidth: 640, width: '100%' }} onClick={e => e.stopPropagation()}>{children}</div>
+        </div>
+      );
+    }
+    // 0〜9 の 数字の ボタン
+    function Keypad({ onKey, gone = [], glowKey, disabled }) {
+      return (
+        <div className="keypad">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(d => (
+            <Btn key={d} color="white" size="md" silent className={`key ${gone.includes(d) ? 'gone' : ''} ${glowKey === d ? 'glow' : ''}`}
+                 disabled={disabled || gone.includes(d)} onClick={() => onKey(d)} data-key={d}>{d}</Btn>
+          ))}
+        </div>
+      );
+    }
+    function TextChoices({ opts, gone = [], onPick, glowV, disabled }) {
+      return (
+        <div className="choices" style={{ gridTemplateColumns: `repeat(${opts.length}, 1fr)` }}>
+          {opts.map(o => (
+            <Btn key={String(o.v)} color="white" size="lg" className={`choice ${gone.includes(o.v) ? 'gone' : ''} ${glowV === o.v ? 'glow' : ''}`}
+                 disabled={disabled || gone.includes(o.v)} onClick={() => onPick(o)} data-v={String(o.v)}>
+              <R t={o.label} />
+            </Btn>
+          ))}
+        </div>
+      );
+    }
+    function SetDots({ idx }) {
+      return (
+        <div className="dots">
+          {range0(PER_SET).map(i => (
+            <div key={i} className={`dot ${i < idx ? 'done' : i === idx ? 'now' : ''}`}>
+              {i < idx ? <AcornIcon size={22} /> : <span>{i + 1}</span>}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    const RULE_TEXT = `${W.ichi}は　10 − ${W.hiku} ＋ ${W.hikareru}　で けいさん！\n${W.juu}は　1 へらして から ひこう！`;
+    function RuleBar() {
+      const c = CURRENT.settings.color !== false;
+      return (
+        <div className="rule">
+          <span>1のくらいは　<b style={{ color: c ? '#059669' : undefined }}>10</b> − <b style={{ color: c ? '#2563eb' : undefined }}><R t={W.hiku} /></b> ＋ <b style={{ color: c ? '#dc2626' : undefined }}><R t={W.hikareru} /></b>　で けいさん！</span>
+          <br /><R t={`${W.juu}は　1 へらして から ひこう！`} />
+        </div>
+      );
+    }
+
+    /* =========================================================
+       問題の 画面（どの 問題も この わくで 動く）
+       ========================================================= */
+    function PlayLayout({ host, work, panel, top, picture }) {
+      const h = host;
+      const nHints = h.phase.hints ? h.phase.hints.length : 0;
+      return (
+        <div className="play">
+          <div className="work" ref={h.workRef}>
+            <div className="qhead">
+              <span>{h.stage.label}</span>
+              <R t={h.stage.name} />
+              <span className="grow" />
+              <SetDots idx={h.idx} />
+            </div>
+            {top}
+            <svg className="ws" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+              {work}
+              {picture && <g transform="translate(0 398)" key={JSON.stringify(picture)} className="fadein"><rect x="6" y="0" width="788" height="198" rx="18" fill="#fffbeb" stroke="#f3d9a6" strokeWidth="3" /><BankPicT pic={picture} /></g>}
+            </svg>
+            {h.status === 'ok' && <div className="okburst"><div className="t">せいかい！</div></div>}
+          </div>
+          <div className="panel">
+            <div className="row" style={{ alignItems: 'flex-start', gap: '.8rem' }}>
+              <div style={{ cursor: 'pointer' }} onClick={h.onReplay}><Kurumi size={88} mood={h.mood} talking={h.talking} /></div>
+              <div className="bubble grow" style={{ minHeight: '5rem' }}>
+                <R t={h.phase.prompt} />
+                {h.fb && (
+                  <div key={h.fb.key} className={h.fb.kind === 'ng' ? 'shake' : 'fadein'} style={{
+                    marginTop: '.4rem', paddingTop: '.4rem', borderTop: '3px dashed #e2e8f0', fontSize: '1.25rem',
+                    color: h.fb.kind === 'ng' ? '#c2410c' : h.fb.kind === 'ok' ? '#15803d' : h.fb.kind === 'hint' ? '#a16207' : '#0369a1',
+                  }}>
+                    {h.fb.kind === 'hint' ? '💡 ' : h.fb.kind === 'ok' ? '🎉 ' : ''}<R t={h.fb.text} />
+                  </div>
+                )}
+              </div>
+            </div>
+            {h.status === 'ok' ? (
+              <div className="col">
+                <div className="card pop row center" style={{ borderColor: '#fcd34d', background: '#fffbeb', gap: '.8rem' }}>
+                  <AcornIcon size={50} />
+                  <div className="bold" style={{ fontSize: '1.8rem', color: '#7c4a1e' }}>＋1 どんぐり</div>
+                </div>
+                <Btn color={h.setEnd ? 'orange' : 'green'} size="xl" className="pop" onClick={h.onNext} data-next="1">
+                  {h.setEnd ? <R t="1かい クリア！ ▶" /> : <R t="つぎの もんだいへ ▶" />}
+                </Btn>
+              </div>
+            ) : (
+              <>
+                {panel}
+                <div className="row wrapflex" style={{ marginTop: 'auto' }}>
+                  <Btn color="amber" size="md" className={h.hintGlow ? 'glow' : ''} disabled={!nHints || h.hint >= nHints} onClick={h.onHint} data-hint="1">
+                    💡 ヒント <span style={{ letterSpacing: '.1em' }}>{range0(Math.max(nHints, 1)).map(i => i < h.hint ? '●' : '○').join('')}</span>
+                  </Btn>
+                  <Btn color="white" size="md" onClick={h.onReplay}>🔊 もういちど</Btn>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      );
+    }
+    // ヒントの 絵（数える アニメーション つき）
+    function BankPicT({ pic }) {
+      const t = useTicker(2600, { run: !!pic.count, key: JSON.stringify(pic) });
+      return <BankPic pic={pic} t={pic.count ? t : 1} />;
+    }
+
+    function ProblemHost({ app, stage, p, idx, no, onSolved, onNext }) {
+      const s = app.state.settings;
+      if (location.protocol === 'file:') window.__lastP = p; // 動作確認用
+      const [phase, setPhaseState] = useState({ prompt: '', hints: [] });
+      const [hint, setHint] = useState(0);
+      const [fb, setFb] = useState(null);
+      const [mood, setMood] = useState('normal');
+      const [talking, setTalking] = useState(false);
+      const [status, setStatus] = useState('play');
+      const [res, setRes] = useState(null);
+      const [hintGlow, setHintGlow] = useState(false);
+      const [hintPress, setHintPress] = useState(0);   // 子どもが ヒントを おした 回数（いまの ところ）
+      const workRef = useRef(null);
+      const R_ = useRef({ answers: [], errors: [], mistakes: 0, maxHint: 0, start: Date.now(), done: false, phaseMiss: 0, hints: [], alive: true, memo: false });
+      const speak = async (markup, force = false) => {
+        if (!markup) return;
+        setTalking(true);
+        await TTS.speak(markup, { force });
+        if (R_.current.alive) setTalking(false);
+      };
+      const saveRecord = (done) => {
+        const r = R_.current;
+        const entry = {
+          at: Date.now(), stageId: stage.id, no, kind: stage.kind, label: probLabel(stage, p), correct: probCorrect(stage, p),
+          answers: r.answers.slice(0, 40), result: done ? (r.mistakes ? `正解（まちがい${r.mistakes}回）` : '1回で正解') : 'とちゅうでやめた',
+          mistakes: r.mistakes, hints: r.maxHint, sec: Math.round((Date.now() - r.start) / 1000), errors: r.errors.slice(0, 40),
+          errB0: r.errB0 || [], b0: stage.kind === 'ten' ? p.n : (p.b != null ? p.b % 10 : null), memo: r.memo, color: s.color !== false, done,
+        };
+        DB.add('history', entry).then(() => Sync.run(app)).catch(e => console.warn(e));
+      };
+      useEffect(() => () => {
+        R_.current.alive = false;
+        TTS.cancel();
+        if (!R_.current.done && R_.current.answers.length) saveRecord(false);
+      }, []);
+      const api = useMemo(() => ({
+        phase: ({ prompt, hints = [], silent }) => {
+          R_.current.phaseMiss = 0; R_.current.hints = hints;
+          setPhaseState({ prompt, hints }); setHint(0); setHintPress(0); setFb(null); setMood('normal'); setHintGlow(false);
+          if (!silent) speak(prompt);
+        },
+        memo: () => { R_.current.memo = true; },
+        note: (txt) => { R_.current.answers.push(txt); },
+        tip: (text) => { setFb({ text, kind: 'info', key: Date.now() }); speak(text); },
+        // まちがえた とき（minHint：まちがい方に 合わせて 出す ヒントの 段階）
+        ng: (txt, err, msg, minHint = 0, b0) => {
+          const r = R_.current;
+          if (r.done) return;
+          r.answers.push(txt); r.mistakes++; r.phaseMiss++; if (err) r.errors.push(err);
+          if (err === 'tenminus' && b0 != null) { r.errB0 = r.errB0 || []; r.errB0.push(b0); }
+          sfx('ng');
+          setMood('think');
+          const text = msg || 'もう いちど やって みよう。';
+          setFb({ text, kind: 'ng', key: Date.now() });
+          let lv = minHint;
+          if (r.phaseMiss >= 2) setHintGlow(true);
+          if (r.phaseMiss >= 3 && r.hints.length) lv = r.hints.length;
+          lv = Math.min(lv, r.hints.length);
+          if (lv) { r.maxHint = Math.max(r.maxHint, lv); setHint(h => Math.max(h, lv)); }
+          speak(text);
+        },
+        ok: (txt, extra) => {
+          const r = R_.current;
+          if (r.done) return;
+          r.done = true; r.answers.push(txt);
+          saveRecord(true);
+          const out = onSolved();
+          setRes(out);
+          fanfare('ok');
+          const el = workRef.current;
+          if (el) { const b = el.getBoundingClientRect(); flyAcorns({ x: b.left + b.width / 2, y: b.top + b.height / 2 }, 1); }
+          setStatus('ok'); setMood('happy');
+          const text = 'せいかい！' + (extra ? '\n' + extra : '');
+          setFb({ text, kind: 'ok', key: Date.now() });
+          setTimeout(() => { if (r.alive) speak(text); }, 1150);
+          if (out && out.bagUp) setTimeout(() => { if (r.alive) showBagUp(out.bagUp); }, 1300);
+        },
+      }), []);
+      const host = {
+        stage, idx, phase, fb, hint, hintPress, mood, talking, status, hintGlow, workRef, setEnd: !!(res && res.setEnd),
+        onHint: () => {
+          const r = R_.current;
+          const lv = Math.min(r.hints.length, hint + 1);
+          r.maxHint = Math.max(r.maxHint, lv);
+          setHint(lv); setHintGlow(false); setHintPress(n => n + 1);
+          setFb({ text: r.hints[lv - 1], kind: 'hint', key: Date.now() });
+          speak(r.hints[lv - 1]);
+        },
+        onReplay: () => speak(fb ? `${phase.prompt}\n${fb.text}` : phase.prompt, true),
+        onNext: () => { TTS.cancel(); onNext(res || {}); },
+      };
+      const Comp = KIND[stage.kind];
+      return <Comp p={p} s={s} stage={stage} hint={hint} api={api} done={status === 'ok'} host={host} />;
+    }
+
+    // 10こ たまると ふくろに 入れる（どんぐりの かずが 10の まとまりを こえた とき）
+    let BAGUP_SET = null;
+    function showBagUp(n) { if (BAGUP_SET) BAGUP_SET({ n, key: Date.now() }); }
+    function BagUpLayer() {
+      const [b, setB] = useState(null);
+      useEffect(() => { BAGUP_SET = setB; return () => { BAGUP_SET = null; }; }, []);
+      useEffect(() => {
+        if (!b) return;
+        fanfare('bag');
+        TTS.speak(`どんぐりが 10こ たまったね。ふくろに いれるよ。ふくろが ${b.n}こに なったよ。`);
+        const tm = setTimeout(() => setB(null), 3400);
+        return () => clearTimeout(tm);
+      }, [b && b.key]);
+      if (!b) return null;
+      return <BagUpShow key={b.key} n={b.n} />;
+    }
+    function BagUpShow({ n }) {
+      const t = useTicker(1800, { key: n });
+      return (
+        <div className="bagup">
+          <div>
+            <svg viewBox="0 0 520 220" width="460" height="195" aria-hidden="true">
+              {range0(10).map(i => {
+                const sx = 40 + (i % 5) * 48, sy = 70 + Math.floor(i / 5) * 56;
+                const k = clamp(t * 1.6 - i * 0.05, 0, 1);
+                const x = sx + (400 - sx) * k, y = sy + (120 - sy) * k;
+                return <g key={i} opacity={1 - k * 0.9}><AcornShape x={x} y={y} r={20} /></g>;
+              })}
+              <Bag x={410} y={120} s={1.6 + (t > 0.7 ? 0.1 * Math.sin(t * 30) : 0)} />
+            </svg>
+            <div className="bold" style={{ fontSize: '1.9rem', color: '#7c4a1e' }}>10こで ふくろ 1つ！</div>
+            <div className="bold row center" style={{ fontSize: '1.4rem', color: '#475569', gap: '.4rem' }}><BagIcon size={30} /> × {n}</div>
+          </div>
+        </div>
+      );
+    }
+
+    /* =========================================================
+       問題の 部品
+       ========================================================= */
+    // ---- じゅんび① 10 − □ ----
+    function TenTask({ p, s, hint, api, done, host }) {
+      const ans = 10 - p.n;
+      const [v, setV] = useState(null);
+      const [gone, setGone] = useState([]);
+      useEffect(() => {
+        api.phase({ prompt: `10この どんぐりから ${p.n}こ とると、のこりは なんこ？\n10 − ${p.n} ＝ □`, hints: [`10は ${p.n}と いくつ？ のこりの どんぐりを かぞえよう。`, `のこりの どんぐりに ばんごうを つけて かぞえるよ。`, `こたえは ${ans}。${ans}の ボタンを おそう。`] });
+      }, []);
+      const onKey = (d) => {
+        if (done) return;
+        if (d === ans) { sfx('pick'); setV(d); api.ok(`${d}`, `10 − ${p.n} ＝ ${ans}`); return; }
+        setGone(g => [...g, d]);
+        api.ng(`${d}`, 'tenminus', d === p.n ? `${p.n}は とった かずだね。のこりは いくつかな？` : `のこりの どんぐりを かぞえて みよう。`, 1, p.n);
+      };
+      const showPic = s.bag || hint >= 1;
+      const work = (
+        <g>
+          <SvgText x={210} y={130} size={96}><tspan fill={col('ten')}>10</tspan></SvgText>
+          <SvgText x={320} y={130} size={90}>−</SvgText>
+          <SvgText x={410} y={130} size={96}><tspan fill={col('hiku')}>{p.n}</tspan></SvgText>
+          <SvgText x={500} y={130} size={90}>＝</SvgText>
+          <CellBox x={610} y={130} w={110} h={124} size={96} v={v} active={!done} />
+          {!showPic && <SvgText x={400} y={300} size={26} color="#94a3b8">こまったら 💡ヒント</SvgText>}
+        </g>
+      );
+      const picture = showPic ? { type: 'take10', b0: p.n, count: hint >= 2 } : null;
+      return <PlayLayout host={host} work={work} picture={picture} panel={<Keypad onKey={onKey} gone={gone} glowKey={hint >= 3 ? ans : null} disabled={done} />} />;
+    }
+    // ---- じゅんび② □ ＋ □ ----
+    function AddTask({ p, s, hint, api, done, host }) {
+      const ans = p.x + p.y;
+      const [v, setV] = useState(null);
+      const [gone, setGone] = useState([]);
+      useEffect(() => {
+        api.phase({ prompt: `のこりの どんぐり ${p.x}こと、ばらの どんぐり ${p.y}こを あわせると？\n${p.x} ＋ ${p.y} ＝ □`, hints: [`${p.x}から ${p.y}こ ふやすと いくつ？`, 'どんぐりに ばんごうを つけて かぞえるよ。', `こたえは ${ans}。${ans}の ボタンを おそう。`] });
+      }, []);
+      const onKey = (d) => {
+        if (done) return;
+        if (d === ans) { sfx('pick'); setV(d); api.ok(`${d}`, `${p.x} ＋ ${p.y} ＝ ${ans}`); return; }
+        setGone(g => [...g, d]);
+        api.ng(`${d}`, 'add', 'どんぐりを いっしょに かぞえよう。', 2);
+      };
+      const showPic = s.bag || hint >= 1;
+      const work = (
+        <g>
+          <SvgText x={220} y={130} size={96}>{p.x}</SvgText>
+          <SvgText x={320} y={130} size={90}>＋</SvgText>
+          <SvgText x={410} y={130} size={96}><tspan fill={col('hikareru')}>{p.y}</tspan></SvgText>
+          <SvgText x={500} y={130} size={90}>＝</SvgText>
+          <CellBox x={610} y={130} w={110} h={124} size={96} v={v} active={!done} />
+        </g>
+      );
+      return <PlayLayout host={host} work={work} picture={showPic ? { type: 'add', x: p.x, y: p.y, count: hint >= 2 } : null} panel={<Keypad onKey={onKey} gone={gone} glowKey={hint >= 3 ? ans : null} disabled={done} />} />;
+    }
+    // ---- じゅんび③ ひける？ ひけない？（ひけないときは しるしを つける）----
+    function JudgeTask({ p, s, hint, api, done, host }) {
+      const { A1, A0, B0 } = digits(p);
+      const [step, setStep] = useState('judge');
+      const [gone, setGone] = useState([]);
+      const [marked, setMarked] = useState(false);
+      useEffect(() => {
+        api.phase({ prompt: `${W.ichi}は ${A0}から ${B0}。\n${A0}から ${B0}は ひける？`, hints: [`${W.ichi}の うえの ${A0}と、したの ${B0}を くらべよう。`, `ばらの どんぐり ${A0}こから ${B0}こ とれるかな？`, `こたえは「${p.borrow ? 'ひけない' : 'ひける'}」だよ。`] });
+      }, []);
+      const pickJudge = (o) => {
+        if (done) return;
+        const right = p.borrow ? 'no' : 'yes';
+        if (o.v === right) {
+          sfx('pick');
+          if (!p.borrow) { api.ok('ひける', `${A0}から ${B0}は そのまま ひけるね。しるしは いらないよ。`); return; }
+          api.note('ひけない');
+          setStep('mark');
+          api.phase({ prompt: `そうだね、ひけないね。\n${W.juu}の ${A1}に タッチして、ふくろを 1つ かりよう。`, hints: [`10を かりるのは となりの ${W.juu}だよ。`, `${W.juu}の ${A1}が ひかって いるよ。`, `ひかって いる ${A1}に タッチしよう。`] });
+          return;
+        }
+        setGone(g => [...g, o.v]);
+        api.ng(o.v === 'yes' ? 'ひける' : 'ひけない', o.v === 'yes' ? 'reverse' : 'judge', o.v === 'yes' ? `${A0}から ${B0}は とれないよ。${B0}の ほうが おおきいね。` : `${A0}から ${B0}は とれるよ。${A0}の ほうが おおきいね。`, 2);
+      };
+      const onTap = (id) => {
+        if (done || step !== 'mark') return;
+        if (id === 'mt') { sfx('mark'); setMarked(true); api.ok('しるし', `${A1}に ななめの せんを ひいて ${A1 - 1}。${W.ichi}の うえに 10。`); return; }
+        api.ng(`しるし:${id}`, 'other', `10を かりるのは となりの ${W.juu}の ${A1}だよ。`, 2);
+      };
+      const glow = step === 'judge' ? (hint >= 2 ? ['mo', 'so'] : []) : (hint >= 2 ? ['mt'] : []);
+      const view = { marked, decMode: 'auto', form: null, glow, onTap: step === 'mark' && !done ? onTap : null };
+      const picture = s.bag && step === 'judge' && hint >= 2 && p.borrow ? { type: 'open', a1: A1, a0: A0, b0: B0 } : (s.bag && step === 'mark' && hint >= 2 ? { type: 'open', a1: A1, a0: A0, b0: B0 } : null);
+      const panel = step === 'judge'
+        ? <TextChoices opts={[{ v: 'yes', label: '⭕ ひける' }, { v: 'no', label: '❌ ひけない' }]} gone={gone} onPick={pickJudge} glowV={hint >= 3 ? (p.borrow ? 'no' : 'yes') : null} disabled={done} />
+        : <div className="card tc bold" style={{ fontSize: '1.4rem', borderColor: '#fcd34d', background: '#fffbeb' }}>👆 <R t={`${W.juu}の ${A1}に タッチ`} /></div>;
+      return <PlayLayout host={host} work={<g transform="translate(120 0)"><HissanView p={p} v={view} /></g>} picture={picture} panel={panel} />;
+    }
+
+    // ---- ひっ算（ステップ1〜6・はってん）----
+    function formOf(stage, memoOpen) {
+      if (stage.form === 'two' || stage.form === 'one') return stage.form;
+      return memoOpen ? 'one' : null;
+    }
+    function cellSeq(stage, memoOpen) {
+      const seq = [];
+      if (stage.story) seq.push('e_a1', 'e_a0', 'e_b1', 'e_b0');
+      seq.push('mark');
+      const form = formOf(stage, memoOpen);
+      if (form === 'two') ['f_b0', 'f_r1', 'f_r1c', 'f_a0', 'f_sum'].forEach(id => { if (!(stage.given || []).includes(id)) seq.push(id); });
+      if (form === 'one') seq.push('f_b0', 'f_a0', 'f_sum');
+      seq.push('h_ones');
+      if (stage.decInput) seq.push('h_dec');
+      seq.push('h_tens');
+      return seq;
+    }
+    function expectOf(id, p) {
+      const { A1, A0, B1, B0 } = digits(p);
+      return { e_a1: A1, e_a0: A0, e_b1: B1, e_b0: B0, f_b0: B0, f_r1: 10 - B0, f_r1c: 10 - B0, f_a0: A0, f_sum: 10 - B0 + A0, h_ones: 10 - B0 + A0, h_dec: A1 - 1, h_tens: A1 - 1 - B1 }[id];
+    }
+    const CELL_NAME = { e_a1: 'しき（はじめの数）', e_a0: 'しき（はじめの数）', e_b1: 'しき（ひく数）', e_b0: 'しき（ひく数）', f_b0: '10−□', f_r1: '10−ひく数', f_r1c: '□＋', f_a0: 'たす数', f_sum: 'たし算', h_ones: '1の位', h_dec: 'へらした数', h_tens: '十の位', mark: 'しるし' };
+    function HissanTask({ p, s, stage, hint, api, done, host }) {
+      const { A1, A0, B1, B0 } = digits(p);
+      const dec = A1 - 1, r1 = 10 - B0, sum = r1 + A0, ans = p.a - p.b;
+      const [memoOpen, setMemoOpen] = useState(false);
+      const [marked, setMarked] = useState(false);
+      const [vals, setVals] = useState({});
+      const [gone, setGone] = useState({});
+      const seq = cellSeq(stage, memoOpen);
+      const cur = done ? null : seq.find(id => id === 'mark' ? !marked : vals[id] == null);
+      const copyForm = !!formOf(stage, memoOpen);   // 1のくらいの こたえを 式から うつす
+      if (location.protocol === 'file:') window.__cur = { cur, exp: cur && cur !== 'mark' ? expectOf(cur, p) : null }; // 動作確認用
+      const early = ['s1', 's2', 's3'].includes(stage.id);
+      const exprDone = !stage.story || ['e_a1', 'e_a0', 'e_b1', 'e_b0'].every(id => vals[id] != null);
+      const unit = p.unit || 'こ';
+
+      const promptOf = (id) => {
+        switch (id) {
+          case 'e_a1': return { prompt: `おはなしを よんで、しきを つくろう。\nはじめに あった かずは？`, hints: ['おはなしの はじめに でて くる かずだよ。', `はじめに あった かずは ${p.a}。`, `${A1}の ボタンを おそう。`] };
+          case 'e_a0': return { prompt: `おはなしを よんで、しきを つくろう。\nはじめに あった かずは？`, silent: true, hints: ['おはなしの はじめに でて くる かずだよ。', `はじめに あった かずは ${p.a}。`, `${A0}の ボタンを おそう。`] };
+          case 'e_b1': return { prompt: `ひく かずは？\nへった かずを いれよう。`, hints: ['あげた・たべた・つかった かずを ひくよ。', `ひく かずは ${p.b}。`, `${B1}の ボタンを おそう。`] };
+          case 'e_b0': return { prompt: `ひく かずは？\nへった かずを いれよう。`, silent: true, hints: ['あげた・たべた・つかった かずを ひくよ。', `ひく かずは ${p.b}。`, `${B0}の ボタンを おそう。`] };
+          case 'mark': return {
+            prompt: early || stage.story ? `${W.ichi}は ${A0}から ${B0}。ひけないね。\n${W.juu}の ${A1}に タッチして、10を かりよう。` : 'まず、くりさがりの しるしを つけよう。',
+            hints: [`${W.ichi}は ${A0}から ${B0}は ひけないね。${W.juu}から 10を かりよう。`, `ふくろを 1つ あけると 10こ。${W.juu}の ${A1}は 1 へるよ。`, `ひかって いる ${A1}に タッチしよう。`],
+          };
+          case 'f_b0': return { prompt: `10から ひく ${W.kazu}は？\n${W.hiku}の ${W.ichi}だよ。`, hints: [`${W.hiku}は したの ${W.kazu}。その ${W.ichi}を みよう。`, `ひかって いる ${W.kazu}だよ。`, `${B0}の ボタンを おそう。`] };
+          case 'f_r1': return { prompt: `10 − ${B0} は？`, hints: [`10この どんぐりから ${B0}こ とると？`, '10この どんぐりの えを みよう。', `のこりを いっしょに かぞえよう。こたえは ${r1}。`] };
+          case 'f_r1c': return { prompt: `うえの こたえ ${r1}を、したの しきに うつそう。`, hints: ['うえの しきの こたえを うつすよ。', `ひかって いる ${r1}だよ。`, `${r1}の ボタンを おそう。`] };
+          case 'f_a0': return { prompt: `たす ${W.kazu}は？\n${W.hikareru}の ${W.ichi}だよ。`, hints: [`${W.hikareru}は うえの ${W.kazu}。その ${W.ichi}を みよう。`, `ひかって いる ${W.kazu}だよ。`, `${A0}の ボタンを おそう。`] };
+          case 'f_sum': return formOf(stage, memoOpen) === 'one'
+            ? { prompt: `10 − ${B0} ＋ ${A0} は？`, hints: [`まず 10 − ${B0} で ${r1}。それに ${A0}を たそう。`, 'どんぐりの えを みよう。', `いっしょに かぞえよう。こたえは ${sum}。`] }
+            : { prompt: `${r1} ＋ ${A0} は？`, hints: [`${r1}に ${A0}を たそう。`, 'どんぐりの えを みよう。', `いっしょに かぞえよう。こたえは ${sum}。`] };
+          case 'h_ones': return copyForm
+            ? { prompt: `${W.ichi}の こたえ ${sum}を、ひっさんに かこう。`, hints: ['しきの こたえを ひっさんに うつすよ。', `ひかって いる ${sum}だよ。`, `${sum}の ボタンを おそう。`] }
+            : { prompt: `${W.ichi}の こたえは？` + (stage.form === 'memo' ? '\nこまったら 📝メモを おそう。' : ''), hints: [stage.form === 'none' ? `10 − ${W.hiku} ＋ ${W.hikareru}。しきを だすよ。` : `10 − ${W.hiku} ＋ ${W.hikareru} だよ。10 − ${B0} ＋ ${A0}。`, 'どんぐりの えを みよう。', `いっしょに かぞえよう。こたえは ${sum}。`] };
+          case 'h_dec': return { prompt: `${W.juu}の ${A1}は、1 へらすと いくつ？`, hints: [`10を かしたから、${A1}は 1 へるよ。`, 'ふくろの えを みよう。', `${A1} − 1 ＝ ${dec}。${dec}の ボタンを おそう。`] };
+          case 'h_tens':
+            if (B1 === 0) return { prompt: `${W.juu}は、ひく ${W.kazu}が ないね。\n1 へらした ${dec}を そのまま かこう。`, hints: [`${W.juu}は ${dec}の まま だよ。`, 'ふくろの えを みよう。', `${dec}の ボタンを おそう。`] };
+            return { prompt: `${W.juu}は、1 へらした ${dec}から ${B1}を ひこう。\n${dec} − ${B1} は？`, hints: [`${W.juu}は 1 へらして から ひくよ。${dec} − ${B1}。`, 'ふくろの えを みよう。', `いっしょに かぞえよう。こたえは ${dec - B1}。`] };
+          default: return { prompt: '', hints: [] };
+        }
+      };
+      useEffect(() => { if (cur) api.phase(promptOf(cur)); }, [cur]);
+      // ステップ6：1のくらいで ヒントを おすと しきが でる
+      useEffect(() => {
+        if (cur === 'h_ones' && stage.form === 'none' && host.hintPress >= 1 && !memoOpen) { setMemoOpen(true); api.memo(); }
+      }, [host.hintPress, cur]);
+
+      const wrong = (id, d) => {
+        switch (id) {
+          case 'e_a1': case 'e_a0': return (id === 'e_a1' ? d === B1 : d === B0) ? ['order', `ひく かずが さきに なって いるよ。はじめに あった ${p.a}から ひくよ。`] : ['other', 'おはなしの かずを よく みよう。'];
+          case 'e_b1': case 'e_b0': return (id === 'e_b1' ? d === A1 : d === A0) ? ['order', `${p.a}は はじめに あった かずだね。ひくのは ${p.b}だよ。`] : ['other', 'おはなしの かずを よく みよう。'];
+          case 'f_b0': return ['copy', d === A0 ? `${A0}は ${W.hikareru}だね。10から ひくのは、${W.hiku}（したの ${W.kazu}）の ${B0}だよ。` : `${W.hiku}の ${W.ichi}を みよう。`, 2];
+          case 'f_r1': return ['tenminus', `10 − ${B0} を もう いちど かんがえよう。10この どんぐりから ${B0}こ とると？`, 2];
+          case 'f_r1c': return ['other', `うえの しきの こたえ ${r1}を うつそう。`, 2];
+          case 'f_a0': return ['copy', d === B0 ? `${B0}は ${W.hiku}だね。たすのは、${W.hikareru}（うえの ${W.kazu}）の ${A0}だよ。` : `${W.hikareru}の ${W.ichi}を みよう。`, 2];
+          case 'f_sum':
+            if (d === B0 - A0) return ['reverse', `${B0} − ${A0} を して しまったかな？ 10 − ${B0} の ${r1}に、${A0}を たそう。`, 2];
+            if (d === r1) return ['add', `${r1}に ${A0}を たすのを わすれて いないかな？`, 2];
+            return ['add', 'どんぐりを いっしょに かぞえよう。', 2];
+          case 'h_ones':
+            if (d === B0 - A0) return ['reverse', `${A0}から ${B0}は ひけないね。${B0} − ${A0} を して しまったかな？\nふくろを 1つ あけて、10 − ${B0} ＋ ${A0} で けいさん しよう。`, 2];
+            if (copyForm) return ['other', `しきの こたえ ${sum}を うつそう。`, 2];
+            if (d === r1) return ['add', `10 − ${B0} で ${r1}。それに ${A0}を たそう。`, 2];
+            if (d === 10 - A0 || d === 10 - A0 + B0) return ['copy', `10から ひくのは ${W.hiku}の ${B0}だよ。`, 2];
+            return ['other', `10 − ${B0} ＋ ${A0} で けいさん しよう。`, 2];
+          case 'h_dec':
+            if (d === A1) return ['nodec', `10を かしたから、${A1}は 1 へるよ。${A1} − 1 は？`, 2];
+            return ['other', `${A1}から 1 へらすと？`, 2];
+          case 'h_tens':
+            if (d === A1 - B1) return ['nodec', `${W.juu}は 1 へらしたかな？ ${A1}は ${dec}に なって いるよ。`, 2];
+            return ['other', B1 ? `${dec} − ${B1} を もう いちど かんがえよう。` : `${dec}を そのまま かこう。`, 2];
+          default: return ['other', '', 0];
+        }
+      };
+      const onKey = (d) => {
+        if (done || !cur) return;
+        if (cur === 'mark') { api.tip(`まず ${W.juu}の ${A1}に タッチして しるしを つけよう。`); return; }
+        const exp = expectOf(cur, p);
+        if (d === exp) {
+          sfx('pick');
+          const nv = { ...vals, [cur]: d };
+          setVals(nv);
+          const rest = seq.filter(id => id === 'mark' ? !marked : nv[id] == null);
+          if (!rest.length) {
+            const zero = cur === 'h_tens' && exp === 0;
+            const tail = p.story ? `\nのこりは ${ans}${unit}。` : '';
+            api.ok(`${p.a}−${p.b}=${ans}`, (zero ? `${W.juu}の 0は かかないよ。\n` : '') + `${p.a} − ${p.b} ＝ ${ans}` + tail);
+          }
+          return;
+        }
+        setGone(g => ({ ...g, [cur]: [...(g[cur] || []), d] }));
+        const [err, msg, lv] = wrong(cur, d);
+        api.ng(`${CELL_NAME[cur]}:${d}`, err, msg, lv, B0);
+      };
+      const onTap = (id) => {
+        if (done || cur !== 'mark') return;
+        if (id === 'mt') { sfx('mark'); setMarked(true); return; }
+        api.ng(`しるし:${id}`, 'other', `10を かりるのは となりの ${W.juu}の ${A1}だよ。`, 2);
+      };
+      const openMemo = () => { if (!memoOpen && vals.h_ones == null && !done) { sfx('open'); setMemoOpen(true); api.memo(); } };
+
+      // ひかる ところと ヒントの 絵
+      const glow = [];
+      let picture = null;
+      const bag = s.bag;
+      if (cur && hint >= 2) {
+        if (cur === 'mark') { glow.push('mt'); if (bag) picture = { type: 'open', a1: A1, a0: A0, b0: B0 }; else glow.push('mo', 'so'); }
+        if (cur === 'f_b0') glow.push('so');
+        if (cur === 'f_a0') glow.push('mo');
+        if (cur === 'f_r1') { if (bag) picture = { type: 'take10', b0: B0, count: hint >= 3 }; else glow.push('so'); }
+        if (cur === 'f_r1c') glow.push('f_r1');
+        if (cur === 'f_sum') { if (bag) picture = formOf(stage, memoOpen) === 'one' ? { type: 'ones', b0: B0, a0: A0, count: hint >= 3 } : { type: 'add', x: r1, y: A0, count: hint >= 3 }; else glow.push('f_r1c', 'f_a0'); }
+        if (cur === 'h_ones') { if (copyForm) glow.push('f_sum'); else if (bag) picture = { type: 'ones', b0: B0, a0: A0, count: hint >= 3 }; else glow.push('mo', 'so'); }
+        if (cur === 'h_dec') { if (bag) picture = { type: 'dec', a1: A1, show: hint >= 3 }; else glow.push('mt'); }
+        if (cur === 'h_tens') { if (bag) picture = B1 ? { type: 'tens', dec, b1: B1, count: hint >= 3 } : { type: 'dec', a1: A1, show: true }; else glow.push('st'); }
+      }
+      const keyGlow = cur && cur !== 'mark' && hint >= 3 ? expectOf(cur, p) : null;
+      const guides = stage.trace ? { f_b0: B0, f_r1: r1, f_r1c: r1, f_a0: A0, f_sum: sum, h_ones: sum, h_tens: dec - B1, h_dec: dec } : {};
+      const given = Object.fromEntries((stage.given || []).map(id => [id, true]));
+      const fm = formOf(stage, memoOpen);
+      const view = {
+        marked, markGuide: stage.trace, decMode: stage.decInput ? 'input' : 'auto', vals, guides, active: cur, glow,
+        form: fm || (stage.form === 'memo' && vals.h_ones == null ? 'memo' : null), given, hideB1: B1 === 0,
+        onTap: cur === 'mark' ? onTap : null, onMemo: stage.form === 'memo' && !memoOpen && vals.h_ones == null && !done ? openMemo : null,
+      };
+      const showRule = stage.rule || (cur === 'h_ones' && hint >= 1);
+      const storyText = p.story ? p.story.replace('{a}', p.a).replace('{b}', p.b) : null;
+      const top = (
+        <>
+          {storyText && <div className="story"><R t={storyText} /></div>}
+          {showRule && exprDone && <RuleBar />}
+        </>
+      );
+      const work = !exprDone ? <ExprView v={{ vals, active: cur }} /> : <HissanView p={p} v={view} />;
+      const panel = cur === 'mark'
+        ? <div className="card tc bold" style={{ fontSize: '1.4rem', borderColor: '#fcd34d', background: '#fffbeb', lineHeight: 1.8 }}>👆 <R t={`${W.juu}の ${A1}に タッチして\nくりさがりの しるしを つけよう`} /></div>
+        : (
+          <>
+            <Keypad onKey={onKey} gone={(cur && gone[cur]) || []} glowKey={keyGlow} disabled={done} />
+            {stage.form === 'memo' && !memoOpen && vals.h_ones == null && exprDone && !done && <Btn color="violet" size="md" onClick={openMemo} data-memo-btn="1">📝 メモ（しきを だす）</Btn>}
+          </>
+        );
+      return <PlayLayout host={host} work={work} picture={picture} top={top} panel={panel} />;
+    }
+    const KIND = { ten: TenTask, add: AddTask, judge: JudgeTask, hissan: HissanTask };
+
+    function PlayScreen({ app, stage, onSetEnd }) {
+      const [setup] = useState(() => {
+        const pr = prog(app.stateRef.current, stage.id);
+        if (Array.isArray(pr.cur) && pr.cur.length === PER_SET) return { list: pr.cur, idx: clamp(pr.idx || 0, 0, PER_SET - 1), fresh: false };
+        return { list: genSet(stage), idx: 0, fresh: true };
+      });
+      useEffect(() => {
+        if (setup.fresh) app.update(st => ({ ...st, progress: { ...st.progress, [stage.id]: { ...prog(st, stage.id), cur: setup.list, idx: 0 } } }));
+      }, []);
+      const [idx, setIdx] = useState(setup.idx);
+      const list = setup.list;
+      const pr0 = prog(app.stateRef.current, stage.id);
+      const no = (pr0.sets || 0) * PER_SET + idx + 1;
+      const onSolved = () => {
+        const newIdx = idx + 1;
+        const setEnd = newIdx >= PER_SET;
+        const gain = 1 + (setEnd ? SET_BONUS : 0);
+        let out = {};
+        app.update(st => {
+          const pr = prog(st, stage.id);
+          const before = st.acorns;
+          const sets = (pr.sets || 0) + (setEnd ? 1 : 0);
+          const stageClear = setEnd && sets % SETS_TO_CLEAR === 0;
+          const firstClear = stageClear && !pr.cleared;
+          out = { setEnd, stageClear, firstClear, setNo: ((sets - 1) % SETS_TO_CLEAR) + 1, bagUp: Math.floor((before + 1) / 10) > Math.floor(before / 10) ? Math.floor((before + 1) / 10) : 0, before: before + 1 };
+          return {
+            ...st, acorns: st.acorns + gain, earned: st.earned + gain,
+            progress: { ...st.progress, [stage.id]: { ...pr, sets, idx: setEnd ? 0 : newIdx, cur: setEnd ? null : pr.cur, cleared: pr.cleared || stageClear, clears: Math.floor(sets / SETS_TO_CLEAR), firstClearAt: pr.firstClearAt || (firstClear ? Date.now() : undefined), lastAt: Date.now() } },
+          };
+        });
+        return out;
+      };
+      const onNext = (res) => {
+        if (res.setEnd) { onSetEnd(res); return; }
+        setIdx(i => Math.min(PER_SET - 1, i + 1));
+        window.scrollTo(0, 0);
+      };
+      return <ProblemHost key={`${stage.id}-${idx}`} app={app} stage={stage} p={list[idx]} idx={idx} no={no} onSolved={onSolved} onNext={onNext} />;
+    }
+
+    /* =========================================================
+       ステップの アイコン
+       ========================================================= */
+    function StageIcon({ id, size = 72 }) {
+      const txt = (t, y = 44, fs = 22, c = '#1e293b') => <text x="40" y={y} textAnchor="middle" dominantBaseline="central" fontSize={fs} fontWeight="900" fill={c}>{t}</text>;
+      const bg = <rect x="4" y="4" width="72" height="72" rx="16" fill="#fff" stroke="#e7d5b8" strokeWidth="3" />;
+      const body = {
+        j1: <>{bg}<g transform="translate(40 44) scale(.7)"><Bag x={0} y={0} /></g></>,
+        j2: <>{bg}<AcornShape x={26} y={42} r={12} />{txt('+', 42, 22)}<AcornShape x={54} y={42} r={12} /></>,
+        j3: <>{bg}{txt('72', 30, 24, col('hikareru'))}<line x1="34" y1="16" x2="22" y2="42" stroke="#475569" strokeWidth="3" />{txt('−37', 58, 22, col('hiku'))}</>,
+        s1: <>{bg}{txt('10−7', 30, 18, '#94a3b8')}{txt('✏️', 58, 22)}</>,
+        s2: <>{bg}{txt('10−7', 30, 18)}{txt('＝□', 56, 20)}</>,
+        s3: <>{bg}{txt('10−□', 30, 18)}{txt('□＋□', 56, 18)}</>,
+        s4: <>{bg}{txt('10−□＋□', 40, 13)}</>,
+        s5: <>{bg}{txt('📝', 42, 34)}</>,
+        s6: <>{bg}{txt('72', 30, 22, col('hikareru'))}{txt('−37', 54, 20, col('hiku'))}</>,
+        h1: <>{bg}{txt('42', 30, 22)}{txt('− 7', 54, 20)}</>,
+        h2: <>{bg}{txt('43', 26, 20)}{txt('−36', 46, 18)}{txt('7', 66, 16, '#059669')}</>,
+        h3: <>{bg}{txt('📖', 42, 34)}</>,
+      }[id];
+      return <svg viewBox="0 0 80 80" width={size} height={size} aria-hidden="true" style={{ flex: 'none' }}>{body}</svg>;
+    }
+
+    /* =========================================================
+       ホーム（もりの どんぐりぎんこう）
+       ========================================================= */
+    let GREETED = false;
+    function HomeScreen({ app, onPlay, onMenu, onHouse, onAlbum }) {
+      const st = app.state;
+      const next = findNext(st);
+      const name = st.profile ? st.profile.name : '';
+      const t = titleOf(st);
+      const [talking, setTalking] = useState(false);
+      const pos = next ? stepPos(st, next.id) : 0;
+      const msg = next
+        ? `どんぐり ぎんこうへ ようこそ！\nきょうは「${next.label} ${next.name}」に ちょうせん しよう。`
+        : 'ぜんぶ クリア！ すごいね！\nすきな ステップで あそぼう。';
+      const say = async (force = false) => { setTalking(true); await TTS.speak(`${name}さん、${msg}`, { force }); setTalking(false); };
+      useEffect(() => { if (!GREETED) { GREETED = true; say(); } return () => TTS.cancel(); }, []);
+      return (
+        <div className="home">
+          <div className="home-scene">
+            <BankScene onKurumi={() => say(true)} talking={talking} bags={Math.floor(st.acorns / 10)} friends={friendsOf(st)} />
+          </div>
+          <div className="col home-side kids">
+            <div className="bubble" style={{ fontSize: '1.3rem' }}>
+              <span>{name}さん、</span><R t={msg} />
+            </div>
+            <div className="card row wrapflex" style={{ padding: '.6rem .9rem', borderColor: '#fde68a' }}>
+              <span style={{ fontSize: '2rem' }} className="emoji">{t.icon}</span>
+              <div className="grow" style={{ minWidth: '8.5em' }}><div className="muted" style={{ fontSize: '.9rem' }}>いまの しょうごう</div><div className="bold" style={{ fontSize: '1.25rem' }}>{t.name}</div></div>
+              <div className="tc"><div className="muted" style={{ fontSize: '.9rem', whiteSpace: 'nowrap' }}>どんぐり</div><div className="bold" style={{ fontSize: '1.3rem', whiteSpace: 'nowrap' }}><AcornCount n={st.acorns} size={22} /></div></div>
+            </div>
+            {next ? (
+              <Btn color="green" size="xl" onClick={() => onPlay(next)} data-start="1">▶ {pos > 0 ? 'つづきから' : 'はじめる'}</Btn>
+            ) : (
+              <Btn color="green" size="xl" onClick={onMenu}>▶ あそぶ</Btn>
+            )}
+            {next && <div className="tc muted bold" style={{ marginTop: '-.3rem' }}><R t={`${next.label}　${next.name}（${pos + 1}もんめから）`} /></div>}
+            <Btn color="amber" size="lg" onClick={onMenu} data-menu="1">📋 メニュー（ステップ）</Btn>
+            <div className="row">
+              <Btn color="wood" size="lg" className="grow" onClick={onHouse} data-house="1">🏠 もりの おうち</Btn>
+              <Btn color="violet" size="lg" className="grow" onClick={onAlbum} data-album="1">📖 アルバム</Btn>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* =========================================================
+       メニュー（ステップえらび）
+       ========================================================= */
+    function MenuScreen({ app, onOpen }) {
+      const st = app.state;
+      const next = findNext(st);
+      const item = (s) => {
+        const open = isStageOpen(s, st);
+        const cleared = isCleared(s.id, st);
+        const skipped = isSkipped(s.id, st);
+        const pr = prog(st, s.id);
+        const pos = stepPos(st, s.id);
+        return (
+          <button key={s.id} className={`mitem ${next && next.id === s.id ? 'next' : ''}`} disabled={!open} onClick={() => { sfx('tap'); onOpen(s); }} data-stage={s.id}>
+            <div>{open ? <StageIcon id={s.id} size={72} /> : <div style={{ width: 72, height: 72, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>🔒</div>}</div>
+            <div className="grow">
+              <div style={{ fontSize: '1rem', color: '#a0612b' }}>{s.label}</div>
+              <div><R t={s.name} /></div>
+              <div style={{ fontSize: '.95rem', color: '#64748b', lineHeight: 1.6 }}>{open ? <R t={s.sub} /> : <R t={lockHint(s)} />}</div>
+              {open && !cleared && <div className="minibar"><div style={{ width: `${pos / (PER_SET * SETS_TO_CLEAR) * 100}%` }} /></div>}
+            </div>
+            <div className="tc" style={{ minWidth: '4.8rem' }}>
+              {cleared && <div className="tag" style={{ background: '#22c55e', color: '#fff' }}>クリア{pr.clears > 1 ? ` ×${pr.clears}` : ''}</div>}
+              {skipped && !cleared && <div className="tag" style={{ background: '#e2e8f0', color: '#475569' }}>とばした</div>}
+              {cleared && s.friend && <div className="emoji" style={{ fontSize: '1.8rem', marginTop: '.2rem' }}>{FRIEND_MAP[s.friend].e}</div>}
+              {open && !cleared && !skipped && <div style={{ fontSize: '1rem', color: '#7c4a1e' }}>{pos}/{PER_SET * SETS_TO_CLEAR}</div>}
+              {open && !cleared && next && next.id === s.id && <div className="tag" style={{ background: '#fde047', color: '#451a03' }}>つぎは ここ</div>}
+            </div>
+          </button>
+        );
+      };
+      return (
+        <div className="wrap">
+          <div className="board">
+            <div className="board-title">🌰 メニュー 🌰</div>
+            <div className="grp-title">じゅんび</div>
+            <div className="menu-grid">{STAGES.filter(s => s.grp === 'prep').map(item)}</div>
+            <div className="grp-title">ひきざんの ひっさん（くりさがり あり）</div>
+            <div className="menu-grid">{STAGES.filter(s => s.grp === 'main').map(item)}</div>
+            <div className="grp-title">はってん</div>
+            <div className="menu-grid">{STAGES.filter(s => s.grp === 'adv').map(item)}</div>
+          </div>
+        </div>
+      );
+    }
+
+    /* =========================================================
+       導入（クルミせんせいの お話）
+       ========================================================= */
+    const P72 = { a: 72, b: 37 };
+    const filled = (keys, t, step = 0.12, from = 0.08) => { const o = {}; const vals = { f_b0: 7, f_r1: 3, f_r1c: 3, f_a0: 2, f_sum: 5, h_ones: 5, h_tens: 3 }; keys.forEach((k, i) => { if (t >= from + i * step) o[k] = vals[k]; }); return o; };
+    const HV = ({ p = P72, v, x = 30, y = 40 }) => <g transform={`translate(${x} ${y})`}><HissanView p={p} v={v} /></g>;
+    const Pic = ({ pic, t, y = 330 }) => <g transform={`translate(0 ${y})`}><rect x="6" y="0" width="788" height="198" rx="18" fill="#fffbeb" stroke="#f3d9a6" strokeWidth="3" /><BankPic pic={pic} t={t} /></g>;
+    const INTRO = {
+      j1: [
+        { say: 'どんぐり ぎんこうへ ようこそ！ わたしは クルミせんせい。\nこの ぎんこうでは、どんぐりを 10こ あつめて ふくろ 1つに するよ。', dur: 2600, Art: ({ t }) => <>{range0(10).map(i => { const k = clamp(t * 1.5 - i * 0.04, 0, 1); const sx = 120 + (i % 5) * 70, sy = 170 + Math.floor(i / 5) * 80; return <g key={i} opacity={1 - k * 0.9}><AcornShape x={sx + (620 - sx) * k} y={sy + (220 - sy) * k} r={28} /></g>; })}<Bag x={630} y={220} s={2.2} /><SvgText x={400} y={430} size={40} color="#7c4a1e">10こで ふくろ 1つ</SvgText></> },
+        { say: 'ふくろを あけて 3こ とると、のこりは なんこかな？\nのこりを かぞえると 7こ。10 − 3 ＝ 7 だね。', dur: 3600, Art: ({ t }) => <><SvgText x={400} y={120} size={70}><tspan fill={col('ten')}>10</tspan> − <tspan fill={col('hiku')}>3</tspan> ＝ {t > 0.95 ? 7 : '？'}</SvgText><Pic pic={{ type: 'take10', b0: 3, count: true }} t={t} y={250} /></> },
+        { say: 'ボタンで こたえを いれてね。こまったら 💡ヒントを おそう。', Art: () => <><SvgText x={400} y={140} size={70}><tspan fill={col('ten')}>10</tspan> − <tspan fill={col('hiku')}>3</tspan> ＝</SvgText><CellBox x={610} y={140} w={100} h={110} size={84} active /><SvgText x={400} y={330} size={36} color="#475569">1 2 3 4 5 6 7 8 9 0</SvgText></> },
+      ],
+      j2: [
+        { say: 'のこりの どんぐりと、ばらの どんぐりを あわせるよ。\n3こと 2こで 5こ。3 ＋ 2 ＝ 5。', dur: 3200, Art: ({ t }) => <><SvgText x={400} y={120} size={70}>3 ＋ <tspan fill={col('hikareru')}>2</tspan> ＝ {t > 0.95 ? 5 : '？'}</SvgText><Pic pic={{ type: 'add', x: 3, y: 2, count: true }} t={t} y={250} /></> },
+      ],
+      j3: [
+        { say: '72 − 37 の ひっさん。1のくらいは 2から 7。\n2から 7は ひけないね。', Art: () => <HV x={240} v={{ glow: ['mo', 'so'] }} /> },
+        { say: 'そんな ときは、[十|じゅう]のくらいの ふくろを 1つ あけて、10こに するよ。', Art: () => <Pic pic={{ type: 'open', a1: 7, a0: 2, b0: 7 }} t={1} y={150} /> },
+        { say: '7に ななめの せんを ひいて、うえに 6。\n1のくらいの うえに 10 と かくよ。これが くりさがりの しるし。', dur: 1600, Art: ({ t }) => <HV x={240} v={{ marked: t > 0.4, markGuide: true, decMode: 'auto' }} /> },
+      ],
+      s1: [
+        { say: '1のくらいは「10 − ひく[数|かず] ＋ ひかれる[数|かず]」で けいさんするよ。\n10 − 7 ＝ 3、3 ＋ 2 ＝ 5。', dur: 6000, Art: ({ t }) => <HV v={{ marked: true, decMode: 'auto', form: 'two', vals: filled(['f_b0', 'f_r1', 'f_r1c', 'f_a0', 'f_sum', 'h_ones'], t, 0.14) }} /> },
+        { say: '[十|じゅう]のくらいは、1 へらした 6から 3を ひいて 3。\nこたえは 35。', dur: 1500, Art: ({ t }) => <HV v={{ marked: true, decMode: 'auto', form: 'two', vals: { ...filled(['f_b0', 'f_r1', 'f_r1c', 'f_a0', 'f_sum', 'h_ones'], 1), ...(t > 0.5 ? { h_tens: 3 } : {}) }, glow: ['mt', 'st'] }} /> },
+        { say: 'ステップ1では、うすい [数字|すうじ]と おなじ ボタンを おして、なぞって おぼえよう。', Art: () => <HV v={{ markGuide: true, decMode: 'auto', form: 'two', guides: { f_b0: 7, f_r1: 3, f_r1c: 3, f_a0: 2, f_sum: 5, h_ones: 5, h_tens: 3 } }} /> },
+      ],
+      s2: [
+        { say: 'こんどは しきの こたえを じぶんで かこう。\n10 − 7 の こたえと、3 ＋ 2 の こたえを いれるよ。', Art: () => <HV v={{ marked: true, decMode: 'auto', form: 'two', given: { f_b0: true, f_a0: true }, active: 'f_r1' }} /> },
+      ],
+      s3: [
+        { say: 'しきの [数字|すうじ]も じぶんで いれるよ。\nひく[数|かず]は あお、ひかれる[数|かず]は あか だよ。', Art: () => <HV v={{ marked: true, decMode: 'auto', form: 'two', glow: ['so', 'mo'], active: 'f_b0' }} /> },
+      ],
+      s4: [
+        { say: '10 − 7 ＋ 2 を 1つの しきに するよ。\n10 − 7 で 3、3 ＋ 2 で 5。', dur: 3000, Art: ({ t }) => <HV v={{ marked: true, decMode: 'auto', form: 'one', vals: filled(['f_b0', 'f_a0', 'f_sum'], t, 0.3) }} /> },
+      ],
+      s5: [
+        { say: 'しきが なくても できるかな？\nこまったら 📝メモを おすと、しきが でるよ。', Art: () => <HV v={{ marked: true, decMode: 'auto', form: 'memo', active: 'h_ones' }} /> },
+        { say: '1のくらいが 0の ときも おなじだよ。\n80 − 19 は、10 − 9 ＋ 0 ＝ 1。', Art: () => <HV p={{ a: 80, b: 19 }} v={{ marked: true, decMode: 'auto', form: 'one', vals: { f_b0: 9, f_a0: 0, f_sum: 1, h_ones: 1 } }} /> },
+      ],
+      s6: [
+        { say: 'ひっさんだけで やって みよう。\n[十|じゅう]のくらいの 1 へらした [数|かず]も、じぶんで かくよ。こまったら 💡ヒント。', Art: () => <HV v={{ marked: true, decMode: 'input', active: 'h_dec', vals: { h_ones: 5 } }} /> },
+      ],
+      h1: [
+        { say: '42 − 7。ひく[数|かず]は 1けた だよ。\n[十|じゅう]のくらいは、1 へらした 3を そのまま かくよ。こたえは 35。', Art: () => <HV p={{ a: 42, b: 7 }} v={{ marked: true, decMode: 'auto', hideB1: true, vals: { h_ones: 5, h_tens: 3 } }} /> },
+      ],
+      h2: [
+        { say: '43 − 36。1 へらした 3から 3を ひくと 0。\n[十|じゅう]のくらいの 0は かかないよ。こたえは 7。', Art: () => <HV p={{ a: 43, b: 36 }} v={{ marked: true, decMode: 'auto', vals: { h_ones: 7, h_tens: 0 } }} /> },
+      ],
+      h3: [
+        { say: 'おはなしを よんで、しきを つくってから ひっさんを しよう。\nはじめに あった かずから、へった かずを ひくよ。', Art: () => <ExprView v={{ vals: { e_a1: 7, e_a0: 2, e_b1: 3, e_b0: 7 } }} /> },
+      ],
+    };
+    function IntroScreen({ stage, onStart }) {
+      const slides = INTRO[stage.id] || [];
+      const [i, setI] = useState(0);
+      const [talking, setTalking] = useState(false);
+      const sl = slides[i];
+      const t = useTicker(sl && sl.dur ? sl.dur : 1, { run: !!(sl && sl.dur), key: i });
+      useEffect(() => {
+        if (!sl) return;
+        let alive = true;
+        (async () => { setTalking(true); await TTS.speak(sl.say); if (alive) setTalking(false); })();
+        return () => { alive = false; TTS.cancel(); };
+      }, [i]);
+      useEffect(() => { if (!sl) onStart(); }, [sl]);
+      if (!sl) return null;
+      const Art = sl.Art;
+      const last = i === slides.length - 1;
+      return (
+        <div className="play">
+          <div className="work">
+            <div className="qhead"><span>{stage.label}</span><R t={stage.name} /><span className="grow" /><span className="muted">{i + 1} / {slides.length}</span></div>
+            <svg className="ws" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet"><Art t={sl.dur ? t : 1} /></svg>
+          </div>
+          <div className="panel">
+            <div className="row" style={{ alignItems: 'flex-start', gap: '1rem' }}>
+              <Kurumi size={110} talking={talking} mood="normal" />
+              <div className="bubble grow" key={i}><R t={sl.say} /></div>
+            </div>
+            <div className="row center wrapflex">
+              {i > 0 && <Btn color="white" size="lg" onClick={() => setI(i - 1)}>◀ まえ</Btn>}
+              <Btn color="white" size="lg" onClick={() => TTS.speak(sl.say, { force: true })}>🔊</Btn>
+              {!last && <Btn color="sky" size="lg" onClick={() => setI(i + 1)} data-intro-next="1">つぎ ▶</Btn>}
+            </div>
+            {last && <Btn color="green" size="xl" className="pop" onClick={onStart} data-intro-start="1"><R t="もんだいを はじめる ▶" /></Btn>}
+            <div style={{ marginTop: 'auto' }} className="tc">
+              {!last && <Btn color="white" size="sm" onClick={onStart} data-intro-skip="1"><R t="おはなしを とばす ▶▶" /></Btn>}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* =========================================================
+       1かい（5問）クリア・ステップ クリア
+       ========================================================= */
+    function SetClearScreen({ app, stage, res, titleUp, onContinue, onHouse, onHome, onNextStage }) {
+      const stageClear = res.stageClear;
+      const friend = res.firstClear && stage.friend ? FRIEND_MAP[stage.friend] : null;
+      const [talking, setTalking] = useState(false);
+      const nextStage = stageClear ? findNext(app.state) : null;
+      const bonusRef = useRef(null);
+      useEffect(() => {
+        fanfare(stageClear ? 'clear' : 'set');
+        const tm = setTimeout(() => {
+          const el = bonusRef.current;
+          if (el) { const b = el.getBoundingClientRect(); flyAcorns({ x: b.left + b.width / 2, y: b.top + b.height / 2 }, SET_BONUS); }
+        }, 900);
+        const before = res.before || 0;
+        const bagN = Math.floor((before + SET_BONUS) / 10) > Math.floor(before / 10) ? Math.floor((before + SET_BONUS) / 10) : 0;
+        const tmBag = bagN ? setTimeout(() => showBagUp(bagN), 2300) : null;
+        const text = (stageClear ? `${stage.label} クリア！ おめでとう！` : `1かい クリア！ よく がんばったね。`) + `\nボーナスの どんぐりを ${SET_BONUS}こ あげるよ。`
+          + (friend ? `\n${friend.name}が あそびに きたよ！` : '') + (titleUp ? `\nしょうごうが「${titleUp.name}」に なったよ！` : '');
+        const tm2 = setTimeout(async () => { setTalking(true); await TTS.speak(text); setTalking(false); }, bagN ? 5600 : (stageClear ? 2600 : 1700));
+        return () => { clearTimeout(tm); clearTimeout(tm2); if (tmBag) clearTimeout(tmBag); TTS.cancel(); };
+      }, []);
+      const setNo = res.setNo || 1;
+      return (
+        <div className="wrap tc kids" style={{ maxWidth: 900 }}>
+          <Confetti />
+          <div className="row center" style={{ marginTop: '.4rem' }}><Kurumi size={140} mood="happy" talking={talking} /></div>
+          <div className="pop bold" style={{ fontSize: stageClear ? '3rem' : '3.3rem', color: '#15803d', textShadow: '0 4px 0 #bbf7d0', lineHeight: 1.3 }}>
+            {stageClear ? <>🏆 <R t={`${stage.label} クリア！`} /></> : '🎉 1かい クリア！'}
+          </div>
+          {stageClear && <div className="bold" style={{ fontSize: '1.5rem', marginTop: '.3rem' }}><R t={stage.name} /></div>}
+          <div className="card row center pop" style={{ margin: '1rem auto', maxWidth: 560, borderColor: '#fcd34d', background: '#fffbeb', gap: '1rem' }}>
+            <div ref={bonusRef} className="row" style={{ gap: '.2rem' }}>{range0(SET_BONUS).map(i => <AcornIcon key={i} size={48} />)}</div>
+            <div className="bold" style={{ fontSize: '1.8rem', color: '#7c4a1e' }}>ボーナス ＋{SET_BONUS}</div>
+          </div>
+          {friend && (
+            <div className="card pop" style={{ maxWidth: 560, margin: '0 auto 1rem', borderColor: '#86efac', background: '#f0fdf4' }}>
+              <div className="emoji wiggle" style={{ fontSize: '5rem' }}>{friend.e}</div>
+              <div className="bold" style={{ fontSize: '1.6rem', color: '#15803d' }}>{friend.name}が あそびに きたよ！</div>
+              <div className="muted bold">📖 アルバムに はいったよ</div>
+            </div>
+          )}
+          <div className="card" style={{ maxWidth: 640, margin: '0 auto 1rem' }}>
+            <div className="bold" style={{ fontSize: '1.2rem', marginBottom: '.4rem' }}><R t={`${stage.label}　${stage.name}`} /></div>
+            <div className="row center" style={{ gap: '.5rem' }}>
+              {range0(SETS_TO_CLEAR).map(i => (
+                <div key={i} style={{ width: 64, height: 64, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', background: i < setNo ? '#fffbeb' : '#f8fafc', border: `3px solid ${i < setNo ? '#e7c58f' : '#e2e8f0'}` }}>{i < setNo ? <BagIcon size={36} /> : ''}</div>
+              ))}
+            </div>
+            <div className="muted bold" style={{ marginTop: '.4rem' }}>{stageClear ? 'クリア！' : `あと ${SETS_TO_CLEAR - setNo}かいで クリア`}</div>
+            {titleUp && <div className="bold" style={{ color: '#15803d', fontSize: '1.3rem', marginTop: '.4rem' }}>{titleUp.icon} <R t={`しょうごうが「${titleUp.name}」に なったよ！`} /></div>}
+          </div>
+          <div className="col" style={{ maxWidth: 560, margin: '0 auto' }}>
+            {!stageClear && <Btn color="green" size="xl" onClick={onContinue} data-continue="1"><R t="つぎの 5もんへ ▶" /></Btn>}
+            {stageClear && nextStage && <Btn color="green" size="xl" onClick={() => onNextStage(nextStage)} data-continue="1"><R t="つぎの ステップへ ▶" /></Btn>}
+            <div className="row">
+              <Btn color="wood" size="lg" className="grow" onClick={onHouse}>🏠 もりの おうち</Btn>
+              <Btn color="white" size="lg" className="grow" onClick={onHome}>おわる</Btn>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* =========================================================
+       もりの おうち（どんぐりで かって、すきな ところに おく）
+       ========================================================= */
+    function HouseScreen({ app }) {
+      const st = app.state;
+      const [cat, setCat] = useState(SHOP[0].id);
+      const [buying, setBuying] = useState(null);
+      const [placing, setPlacing] = useState(null);
+      const c = SHOP.find(x => x.id === cat);
+      const placedAt = (id) => st.placed[id];
+      const tapItem = (it) => {
+        if (st.owned[it.id]) { sfx('open'); setPlacing(it); TTS.speak(`${it.name}を どこに おく？`); return; }
+        sfx('open'); setBuying(it);
+        TTS.speak(st.acorns >= it.price ? `${it.name}は どんぐり ${it.price}こ だよ。かいますか？` : `${it.name}は どんぐり ${it.price}こ。あと ${it.price - st.acorns}こ たりないよ。`);
+      };
+      const buy = (it) => {
+        const cur = app.stateRef.current;
+        if (cur.owned[it.id] || cur.acorns < it.price) return;
+        const opened = (cur.acorns % 10) < (it.price % 10);
+        app.update(s => ({ ...s, acorns: s.acorns - it.price, owned: { ...s.owned, [it.id]: Date.now() } }));
+        acornSound(); fanfare('ok');
+        setBuying(null); setPlacing(it);
+        TTS.speak(`${it.name}を かったよ！` + (opened ? 'ばらの どんぐりが たりないから、ふくろを 1つ あけたよ。' : '') + 'どこに おく？');
+      };
+      const place = (it, spot) => {
+        app.update(s => {
+          const placed = { ...s.placed };
+          Object.keys(placed).forEach(k => { if (placed[k] === spot) delete placed[k]; });
+          if (spot) placed[it.id] = spot; else delete placed[it.id];
+          return { ...s, placed };
+        });
+        sfx('pick'); setPlacing(null);
+        if (spot) TTS.speak(`${SPOT_MAP[spot].name}に おいたよ。`);
+      };
+      return (
+        <div className="wrap kids" style={{ maxWidth: 1400 }}>
+          <div className="house">
+            <div className="card" style={{ padding: '.6rem' }}>
+              <div className="row between" style={{ marginBottom: '.4rem' }}>
+                <div className="bold" style={{ fontSize: '1.6rem', color: '#7c4a1e' }}>🏠 もりの おうち</div>
+                <div className="acornpill" style={{ fontSize: '1.4rem' }}><AcornCount n={st.acorns} size={26} /></div>
+              </div>
+              <HouseScene placed={st.placed} pickSpot={placing ? (spot) => place(placing, spot) : null} />
+              <div className="muted bold" style={{ marginTop: '.3rem' }}>かった ものを おすと、おく ばしょを えらべるよ。</div>
+            </div>
+            <div className="card">
+              <div className="cats">
+                {SHOP.map(x => <button key={x.id} className={`cat ${cat === x.id ? 'on' : ''}`} onClick={() => { sfx('tap'); setCat(x.id); }} data-cat={x.id}><span className="emoji" style={{ fontSize: '1.4rem' }}>{x.icon}</span>{x.name}</button>)}
+              </div>
+              <div className="shop-grid">
+                {c.list.map(it => {
+                  const owned = !!st.owned[it.id];
+                  const poor = !owned && st.acorns < it.price;
+                  const at = placedAt(it.id);
+                  return (
+                    <button key={it.id} className={`item ${owned ? 'owned' : ''} ${poor ? 'poor' : ''}`} onClick={() => tapItem(it)} data-item={it.id}>
+                      {owned && <span className="badge">{at ? CIRCLED[SPOTS.findIndex(s => s.id === at)] : 'もってる'}</span>}
+                      <span className="em emoji">{it.e}</span>
+                      <span className="nm">{it.name}</span>
+                      {!owned && <span className="pr"><AcornIcon size={20} />{it.price}</span>}
+                      {owned && <span className="pr" style={{ fontSize: '1rem' }}>{at ? 'おいて ある' : 'おく ▶'}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          {buying && (
+            <Modal onClose={() => setBuying(null)}>
+              <div className="card tc kids" style={{ maxWidth: 460, margin: '0 auto' }}>
+                <div className="emoji pop" style={{ fontSize: '6rem' }}>{buying.e}</div>
+                <div className="bold" style={{ fontSize: '1.8rem' }}>{buying.name}</div>
+                <div className="row center bold" style={{ fontSize: '1.6rem', color: '#7c4a1e', margin: '.3rem 0 .8rem', gap: '.3rem' }}><AcornIcon size={32} />{buying.price}こ</div>
+                {st.acorns >= buying.price ? (
+                  <>
+                    <div className="bold" style={{ fontSize: '1.5rem', marginBottom: '.8rem' }}>かいますか？</div>
+                    <div className="row">
+                      <Btn color="green" size="lg" className="grow" onClick={() => buy(buying)} data-buy="yes" silent>⭕ はい</Btn>
+                      <Btn color="white" size="lg" className="grow" onClick={() => setBuying(null)} data-buy="no">❌ いいえ</Btn>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="bold" style={{ fontSize: '1.4rem', lineHeight: 1.8, marginBottom: '.8rem' }}>どんぐりが たりないよ。<br />あと <span style={{ color: '#b45309', fontSize: '1.8rem' }}>{buying.price - st.acorns}</span>こ。<br />もんだいを といて あつめよう！</div>
+                    <Btn color="sky" size="lg" onClick={() => setBuying(null)}>OK</Btn>
+                  </>
+                )}
+              </div>
+            </Modal>
+          )}
+          {placing && (
+            <Modal onClose={() => setPlacing(null)}>
+              <div className="card kids" style={{ maxWidth: 620, margin: '0 auto' }}>
+                <div className="row center" style={{ marginBottom: '.5rem' }}>
+                  <span className="emoji" style={{ fontSize: '3.4rem' }}>{placing.e}</span>
+                  <span className="bold" style={{ fontSize: '1.6rem' }}>{placing.name}を どこに おく？</span>
+                </div>
+                <div className="spots">
+                  {SPOTS.map((sp, i) => {
+                    const here = Object.entries(st.placed).find(([k, v]) => v === sp.id);
+                    const other = here && here[0] !== placing.id ? ITEM_MAP[here[0]] : null;
+                    return (
+                      <Btn key={sp.id} color={placedAt(placing.id) === sp.id ? 'green' : 'white'} size="md" onClick={() => place(placing, sp.id)} data-place={sp.id} style={{ justifyContent: 'flex-start' }}>
+                        <span style={{ fontWeight: 900 }}>{CIRCLED[i]}</span> {sp.name} {other && <span className="emoji">{other.e}</span>}
+                      </Btn>
+                    );
+                  })}
+                </div>
+                <div className="row" style={{ marginTop: '.7rem' }}>
+                  {placedAt(placing.id) && <Btn color="white" size="md" className="grow" onClick={() => place(placing, null)}>📦 しまう</Btn>}
+                  <Btn color="slate" size="md" className="grow" onClick={() => setPlacing(null)}>とじる</Btn>
+                </div>
+                <div className="muted bold" style={{ marginTop: '.4rem' }}>おうちの えの まるい ところを おしても おけるよ。</div>
+              </div>
+            </Modal>
+          )}
+        </div>
+      );
+    }
+
+    /* =========================================================
+       アルバム（あそびに きた ともだちと しょうごう）
+       ========================================================= */
+    function AlbumScreen({ app }) {
+      const st = app.state;
+      const t = titleOf(st);
+      const n = MAIN_IDS.filter(id => isDone(id, st)).length;
+      return (
+        <div className="wrap kids">
+          <div className="card" style={{ marginBottom: '.8rem' }}>
+            <div className="row between wrapflex">
+              <div className="bold" style={{ fontSize: '1.9rem', color: '#6d28d9' }}>📖 アルバム</div>
+              <div className="bold" style={{ fontSize: '1.3rem' }}>ともだち {friendsOf(st).length} / {FRIENDS.length}</div>
+            </div>
+            <div className="friend-grid" style={{ marginTop: '.7rem' }}>
+              {STAGES.map(s => {
+                const f = FRIEND_MAP[s.friend];
+                const got = isCleared(s.id, st);
+                return (
+                  <div key={s.id} className={`friend ${got ? '' : 'empty'}`}>
+                    <div className="em emoji">{f.e}</div>
+                    <div style={{ fontSize: '1.15rem' }}>{got ? f.name : '？'}</div>
+                    <div className="muted" style={{ fontSize: '.85rem' }}><R t={got ? `${s.label}で きたよ` : `${s.label}を クリアすると あえるよ`} /></div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div className="card">
+            <div className="bold" style={{ fontSize: '1.5rem', marginBottom: '.5rem' }}>🎖️ しょうごう</div>
+            <div className="col" style={{ gap: '.4rem' }}>
+              {TITLES.map(x => (
+                <div key={x.name} className="row" style={{ padding: '.4rem .7rem', borderRadius: '1rem', background: x.name === t.name ? '#fef9c3' : '#f8fafc', border: `3px solid ${x.name === t.name ? '#facc15' : '#e2e8f0'}`, opacity: n >= x.min ? 1 : 0.45 }}>
+                  <span className="emoji" style={{ fontSize: '1.8rem' }}>{x.icon}</span>
+                  <span className="bold grow" style={{ fontSize: '1.3rem' }}>{x.name}</span>
+                  <span className="muted bold">{x.min === 0 ? 'はじめ' : `${x.min}こ クリア`}</span>
+                  {x.name === t.name && <span className="tag" style={{ background: '#facc15', color: '#451a03' }}>いま</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* =========================================================
+       暗証番号
+       ========================================================= */
+    function PinPad({ onSuccess, onClose, check }) {
+      const [digitsIn, setDigits] = useState('');
+      const [shake, setShake] = useState(false);
+      const press = (d) => {
+        if (digitsIn.length >= 4) return;
+        const v = digitsIn + d;
+        setDigits(v);
+        if (v.length === 4) {
+          setTimeout(() => {
+            if (check(v)) onSuccess();
+            else { sfx('ng'); setShake(true); setTimeout(() => { setShake(false); setDigits(''); }, 450); }
+          }, 150);
+        }
+      };
+      return (
+        <Modal onClose={onClose}>
+          <div className={`card tc ${shake ? 'shake' : ''}`} style={{ maxWidth: 380, margin: '0 auto' }}>
+            <div className="bold" style={{ fontSize: '1.5rem' }}>🔐 先生用の画面</div>
+            <div className="muted" style={{ marginBottom: '.8rem' }}>4けたの暗証番号を入れてください</div>
+            <div className="row center" style={{ marginBottom: '1rem' }}>
+              {[0, 1, 2, 3].map(i => <span key={i} style={{ width: 22, height: 22, borderRadius: 99, border: '2px solid #334155', background: i < digitsIn.length ? '#334155' : 'transparent' }} />)}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '.5rem' }}>
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(d => <Btn key={d} color="white" size="lg" onClick={() => press(d)} data-pin={d}>{d}</Btn>)}
+              <Btn color="white" size="lg" onClick={() => setDigits(s => s.slice(0, -1))}>⌫</Btn>
+              <Btn color="white" size="lg" onClick={() => press('0')} data-pin="0">0</Btn>
+              <Btn color="slate" size="lg" onClick={onClose}>✕</Btn>
+            </div>
+          </div>
+        </Modal>
+      );
+    }
+
+    /* =========================================================
+       はじめての 設定（先生が 行う）
+       ========================================================= */
+    function SetupScreen({ onDone }) {
+      const [name, setName] = useState('');
+      const [pin, setPin] = useState('');
+      const [pin2, setPin2] = useState('');
+      const [err, setErr] = useState('');
+      const submit = () => {
+        if (!name.trim()) return setErr('名前を入力してください。');
+        if (!/^\d{4}$/.test(pin)) return setErr('暗証番号は4けたの数字にしてください。');
+        if (pin !== pin2) return setErr('確認用の暗証番号が一致しません。');
+        onDone({ name: name.trim(), pin: hashPin(pin), createdAt: Date.now() });
+      };
+      return (
+        <div className="wrap" style={{ maxWidth: 820 }}>
+          <div className="card">
+            <div className="row" style={{ marginBottom: '1rem' }}>
+              <Kurumi size={110} mood="happy" />
+              <div>
+                <div className="bold" style={{ fontSize: '1.9rem' }}>はじめての設定</div>
+                <div className="muted" style={{ fontSize: '1.1rem' }}>この画面は先生が操作してください。</div>
+              </div>
+            </div>
+            <div className="col" style={{ gap: '1rem' }}>
+              <label>
+                <div className="bold" style={{ fontSize: '1.1rem', marginBottom: '.3rem' }}>児童の名前（ひらがながおすすめ）</div>
+                <input className="inp" style={{ width: '100%' }} value={name} onChange={e => setName(e.target.value)} placeholder="例：たろう" data-setup="name" />
+                <div className="muted" style={{ fontSize: '.9rem', marginTop: '.3rem' }}>クルミせんせいが「○○さん」と呼びます。記録を先生のスプレッドシートに集めるときは、この名前で区別するので、ほかの児童と同じ名前にしないでください。</div>
+              </label>
+              <div className="row wrapflex" style={{ alignItems: 'flex-start' }}>
+                <label className="grow">
+                  <div className="bold" style={{ fontSize: '1.1rem', marginBottom: '.3rem' }}>先生用の暗証番号（4けた）</div>
+                  <input className="inp" style={{ width: '100%' }} type="password" inputMode="numeric" maxLength={4} value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, ''))} data-setup="pin" />
+                </label>
+                <label className="grow">
+                  <div className="bold" style={{ fontSize: '1.1rem', marginBottom: '.3rem' }}>暗証番号（確認）</div>
+                  <input className="inp" style={{ width: '100%' }} type="password" inputMode="numeric" maxLength={4} value={pin2} onChange={e => setPin2(e.target.value.replace(/\D/g, ''))} data-setup="pin2" />
+                </label>
+              </div>
+              <div className="row wrapflex" style={{ background: '#f8fafc', border: '2px solid #e2e8f0', borderRadius: '1rem', padding: '.7rem' }}>
+                <Btn color="sky" size="md" onClick={() => { fanfare('ok'); TTS.speak('こんにちは。クルミせんせいだよ。いっしょに ひきざんの ひっさんを べんきょう しよう。', { force: true }); }}>🔊 声と音を確認する</Btn>
+                <span className="muted">クルミせんせいの声とファンファーレが聞こえるか確かめてください。</span>
+              </div>
+              {err && <div className="bold" style={{ color: '#e11d48', fontSize: '1.1rem' }}>{err}</div>}
+              <Btn color="green" size="lg" onClick={submit} data-setup="save">設定を保存して はじめる</Btn>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* =========================================================
+       先生用画面
+       ========================================================= */
+    function TeacherScreen({ app, onExit }) {
+      const [tab, setTab] = useState('records');
+      const tabs = [['records', '📊 記録'], ['settings', '⚙️ 設定'], ['data', '💾 データ']];
+      return (
+        <div className="wrap">
+          <div className="row between wrapflex" style={{ marginBottom: '.8rem' }}>
+            <div className="bold" style={{ fontSize: '1.8rem' }}>先生用の画面</div>
+            <Btn color="slate" size="md" onClick={onExit}>✕ 子どもの画面にもどる</Btn>
+          </div>
+          <div className="tabs">{tabs.map(([k, lb]) => <button key={k} className={`tab ${tab === k ? 'on' : ''}`} onClick={() => setTab(k)} data-tab={k}>{lb}</button>)}</div>
+          {tab === 'records' && <RecordsTab app={app} />}
+          {tab === 'settings' && <SettingsTab app={app} />}
+          {tab === 'data' && <DataTab app={app} />}
+        </div>
+      );
+    }
+    function RecordsTab({ app }) {
+      const st = app.state;
+      const [hist, setHist] = useState(null);
+      useEffect(() => { DB.getAll('history').then(h => setHist(h.sort((a, b) => b.at - a.at))).catch(() => setHist([])); }, []);
+      if (!hist) return <div className="card">読み込み中…</div>;
+      const done = hist.filter(h => h.done);
+      const first = done.filter(h => !h.mistakes).length;
+      const errTotal = {}; hist.forEach(h => (h.errors || []).forEach(e => { errTotal[e] = (errTotal[e] || 0) + 1; }));
+      const maxErr = Math.max(1, ...Object.values(errTotal));
+      // 10 − ひく数 の まちがい（ひく数の 1のくらい ごと）
+      const tenErr = {}; const tenTry = {};
+      hist.forEach(h => {
+        (h.errB0 || []).forEach(d => { tenErr[d] = (tenErr[d] || 0) + 1; });
+        if (h.b0 != null && (h.kind === 'ten' || h.kind === 'hissan')) tenTry[h.b0] = (tenTry[h.b0] || 0) + 1;
+      });
+      const t = titleOf(st);
+      const box = (label, value) => <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '.8rem', padding: '.6rem .9rem' }}><div className="muted" style={{ fontSize: '.85rem' }}>{label}</div><div className="bold" style={{ fontSize: '1.3rem' }}>{value}</div></div>;
+      return (
+        <div className="col" style={{ gap: '1rem' }}>
+          <div className="card" style={{ borderColor: '#e2e8f0' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '.6rem' }}>
+              {box('名前', st.profile ? st.profile.name : '—')}
+              {box('称号', `${t.icon} ${t.name}`)}
+              {box('クリアしたステップ（とばしたものを含む）', `${MAIN_IDS.filter(id => isDone(id, st)).length} / ${MAIN_IDS.length}`)}
+              {box('といた問題', `${done.length}問`)}
+              {box('1回で正解', done.length ? `${Math.round(first / done.length * 100)}%` : '—')}
+              {box('どんぐり（いま／これまで）', `${st.acorns} ／ ${st.earned}`)}
+              {box('かぐ・かざり', `${ownedCount(st)} / ${ALL_ITEMS.length}`)}
+              {box('ともだち', `${friendsOf(st).length} / ${FRIENDS.length}`)}
+            </div>
+          </div>
+          <div className="card" style={{ borderColor: '#e2e8f0', overflowX: 'auto' }}>
+            <div className="bold" style={{ fontSize: '1.2rem', marginBottom: '.4rem' }}>ステップごとの様子</div>
+            <table className="tbl">
+              <thead><tr><th>ステップ</th><th>状態</th><th>クリアまで</th><th>クリア回数</th><th>といた問題</th><th>1回で正解</th><th>ヒントを使った問題</th><th>多いつまずき</th></tr></thead>
+              <tbody>
+                {STAGES.map(s => {
+                  const hs = done.filter(h => h.stageId === s.id);
+                  const fr = hs.filter(h => !h.mistakes).length;
+                  const errs = {}; hist.filter(h => h.stageId === s.id).forEach(h => (h.errors || []).forEach(e => { errs[e] = (errs[e] || 0) + 1; }));
+                  const top = Object.entries(errs).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([e, n]) => `${ERR[e] || e}×${n}`).join('、');
+                  const pr = prog(st, s.id);
+                  const status = isCleared(s.id, st) ? '✅ クリア' : isSkipped(s.id, st) ? '⏭ とばす' : stepPos(st, s.id) ? '▶ 挑戦中' : isStageOpen(s, st) ? '—' : '🔒';
+                  return <tr key={s.id}><td>{stageName(s)}</td><td>{status}</td><td>{pr.cleared ? '—' : `${stepPos(st, s.id)} / ${PER_SET * SETS_TO_CLEAR}問`}</td><td>{pr.clears || 0}</td><td>{hs.length}</td><td>{hs.length ? `${fr}（${Math.round(fr / hs.length * 100)}%）` : '—'}</td><td>{hs.filter(h => h.hints).length}</td><td>{top || '—'}</td></tr>;
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div className="card" style={{ borderColor: '#e2e8f0' }}>
+            <div className="bold" style={{ fontSize: '1.2rem', marginBottom: '.4rem' }}>つまずきの種類（まちがえた回数）</div>
+            {!Object.keys(errTotal).length && <div className="muted">まだ記録がありません。</div>}
+            {ERR_KEYS.filter(k => errTotal[k]).map(k => (
+              <div key={k} className="row" style={{ marginBottom: '.3rem' }}>
+                <div style={{ width: 230, flex: 'none' }}>{ERR[k]}</div>
+                <div className="grow" style={{ background: '#f1f5f9', borderRadius: 99, height: 18 }}><div style={{ width: `${errTotal[k] / maxErr * 100}%`, background: '#fb923c', height: 18, borderRadius: 99 }} /></div>
+                <div style={{ width: 50, textAlign: 'right' }} className="bold">{errTotal[k]}</div>
+              </div>
+            ))}
+            <div className="muted" style={{ fontSize: '.85rem', marginTop: '.4rem' }}>
+              「大きい方から小さい方をひいた」は 72−37 で 1の位を 7−2＝5 とした答えなど、「十の位を1へらしていない」は 十の位を 7−3＝4 とした答えなどです。
+            </div>
+          </div>
+          <div className="card" style={{ borderColor: '#e2e8f0', overflowX: 'auto' }}>
+            <div className="bold" style={{ fontSize: '1.2rem', marginBottom: '.4rem' }}>「10 − ひく数」で まちがえた数字</div>
+            <div className="muted" style={{ fontSize: '.9rem', marginBottom: '.4rem' }}>ひく数の1の位ごとに、出た問題の数と、「10 − □」をまちがえた回数です（じゅんび①とステップ1〜6・発展）。</div>
+            <table className="tbl" style={{ maxWidth: 720 }}>
+              <thead><tr><th>ひく数の1の位</th>{range0(9).map(i => <th key={i} style={{ textAlign: 'center' }}>{i + 1}</th>)}</tr></thead>
+              <tbody>
+                <tr><td>10 − □</td>{range0(9).map(i => <td key={i} style={{ textAlign: 'center' }}>{10 - (i + 1)}</td>)}</tr>
+                <tr><td>出た問題</td>{range0(9).map(i => <td key={i} style={{ textAlign: 'center' }}>{tenTry[i + 1] || ''}</td>)}</tr>
+                <tr><td>まちがえた回数</td>{range0(9).map(i => <td key={i} style={{ textAlign: 'center', background: (tenErr[i + 1] || 0) >= 3 ? '#fdba74' : (tenErr[i + 1] || 0) >= 1 ? '#ffedd5' : undefined, fontWeight: 700 }}>{tenErr[i + 1] || ''}</td>)}</tr>
+              </tbody>
+            </table>
+          </div>
+          <div className="card" style={{ borderColor: '#e2e8f0', overflowX: 'auto' }}>
+            <div className="bold" style={{ fontSize: '1.2rem', marginBottom: '.4rem' }}>最近の記録（新しい順・100件まで）</div>
+            <div className="muted" style={{ fontSize: '.85rem', marginBottom: '.3rem' }}>「答えた内容」は、まちがえた場所と数字です（例：「10−ひく数:4」は 10−7 の答えに 4 と入れた）。</div>
+            <table className="tbl">
+              <thead><tr><th>日時</th><th>ステップ</th><th>問題</th><th>正しい答え</th><th>答えた内容</th><th>結果</th><th>ヒント</th><th>時間</th><th>つまずき</th><th>メモ</th></tr></thead>
+              <tbody>
+                {hist.slice(0, 100).map(h => {
+                  const s = STAGE_MAP[h.stageId];
+                  return <tr key={h.id}><td style={{ whiteSpace: 'nowrap' }}>{fmtDate(h.at)}</td><td style={{ whiteSpace: 'nowrap' }}>{s ? s.label : h.stageId}-{h.no}</td><td style={{ whiteSpace: 'nowrap' }}>{h.label}</td><td>{h.correct}</td><td>{(h.answers || []).join(' → ')}</td><td>{h.result}</td><td>{h.hints || ''}</td><td>{h.sec}秒</td><td>{[...new Set(h.errors || [])].map(e => ERR[e] || e).join('、')}</td><td>{h.memo ? 'つかった' : ''}</td></tr>;
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+    }
+    function TRow({ label, desc, children }) {
+      return <div className="trow"><div><div className="lb">{label}</div>{desc && <div className="ds">{desc}</div>}</div><div className="row wrapflex">{children}</div></div>;
+    }
+    function SettingsTab({ app }) {
+      const { state, update } = app;
+      const s = state.settings;
+      const set = (k, v) => update(st => ({ ...st, settings: { ...st.settings, [k]: v } }));
+      const [name, setName] = useState(state.profile ? state.profile.name : '');
+      const [pin, setPin] = useState(''); const [pin2, setPin2] = useState('');
+      const [msg, setMsg] = useState('');
+      const Choice = ({ k, options }) => options.map(([v, lb]) => <button key={String(v)} className={`opt ${s[k] === v ? 'on' : ''}`} onClick={() => set(k, v)} data-set={`${k}:${v}`}>{lb}</button>);
+      return (
+        <div className="card" style={{ borderColor: '#e2e8f0' }}>
+          <TRow label="児童の名前">
+            <input className="inp" value={name} onChange={e => setName(e.target.value)} />
+            <Btn color="sky" size="sm" onClick={() => { if (name.trim()) { update(st => ({ ...st, profile: { ...st.profile, name: name.trim() } })); setMsg('名前を変更しました。'); } }}>変更</Btn>
+          </TRow>
+          <div className="bold" style={{ marginTop: '.6rem', color: '#0369a1' }}>学習の内容</div>
+          <TRow label="始めるステップ" desc="この児童が最初に取り組むステップです。それより前のステップは「とばす」になり、クリアしていなくても次へ進めます（あとからメニューで選んで練習することもできます）。">
+            <Choice k="startStage" options={MAIN_IDS.map(id => [id, STAGE_MAP[id].label])} />
+          </TRow>
+          <TRow label="じゅんび①〜③" desc="「とばす」にすると、ステップ1から始めます（じゅんびはメニューから選べば練習できます）。"><Choice k="skipPrep" options={[[false, 'する'], [true, 'とばす']]} /></TRow>
+          <TRow label="すべてのステップを開く" desc="オンにすると、前のステップをクリアしていなくても挑戦できます。"><Choice k="unlockAll" options={[[false, 'オフ'], [true, 'オン']]} /></TRow>
+          <TRow label="発展" desc="発展ア（2けた−1けた）、発展イ（答えが1けた）、発展ウ（お話の問題）です。開くと子どもの画面のメニューに出ます。"><Choice k="advanced" options={[[false, '閉じる'], [true, '開く']]} /></TRow>
+          <div className="bold" style={{ marginTop: '.6rem', color: '#0369a1' }}>画面と音</div>
+          <TRow label="色分け" desc="ひかれる数を赤、ひく数を青、10を緑で表示します。式の中の数字も同じ色にします。色が気になる児童は「出さない」にします。"><Choice k="color" options={[[true, '出す'], [false, '出さない']]} /></TRow>
+          <TRow label="10のふくろの絵" desc="じゅんび①・②の絵と、ヒントの2〜3段階目に出す「10こ入りのふくろ・ばらのどんぐり」の絵です。「出さない」にすると、ヒントでは数字を光らせます。"><Choice k="bag" options={[[true, '出す'], [false, '出さない']]} /></TRow>
+          <TRow label="読み上げの速さ" desc="クルミせんせいの声の速さです。ふつうは0.8倍です。">
+            <Choice k="rate" options={[[0.6, '0.6倍'], [0.7, '0.7倍'], [0.8, '0.8倍'], [0.9, '0.9倍'], [1, '1倍']]} />
+            <Btn color="white" size="sm" onClick={() => TTS.speak('クルミせんせいだよ。10 − 7 ＝ 3。', { force: true })}>🔊 ためす</Btn>
+          </TRow>
+          <TRow label="クルミせんせいの声"><Choice k="voice" options={[[true, 'オン'], [false, 'オフ']]} /></TRow>
+          <TRow label="効果音・ファンファーレ"><Choice k="sfx" options={[[true, 'オン'], [false, 'オフ']]} /></TRow>
+          <TRow label="文字と画面の大きさ"><Choice k="fontSize" options={[['m', 'ふつう'], ['l', '大'], ['xl', '特大']]} /></TRow>
+          <TRow label="暗証番号の変更">
+            <input className="inp" style={{ width: 120 }} type="password" inputMode="numeric" maxLength={4} placeholder="新しい番号" value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, ''))} />
+            <input className="inp" style={{ width: 120 }} type="password" inputMode="numeric" maxLength={4} placeholder="確認" value={pin2} onChange={e => setPin2(e.target.value.replace(/\D/g, ''))} />
+            <Btn color="sky" size="sm" onClick={() => {
+              if (!/^\d{4}$/.test(pin)) return setMsg('暗証番号は4けたの数字にしてください。');
+              if (pin !== pin2) return setMsg('確認用の番号が一致しません。');
+              update(st => ({ ...st, profile: { ...st.profile, pin: hashPin(pin) } })); setPin(''); setPin2(''); setMsg('暗証番号を変更しました。');
+            }}>変更</Btn>
+          </TRow>
+          {msg && <div className="bold" style={{ color: '#047857', fontSize: '1.1rem' }}>{msg}</div>}
+        </div>
+      );
+    }
+    function SyncPanel({ app }) {
+      const sync = app.state.sync || {};
+      const [pending, setPending] = useState(null);
+      const [busy, setBusy] = useState(false);
+      const [msg, setMsg] = useState('');
+      const [editing, setEditing] = useState(!sync.url);
+      const [url, setUrl] = useState(sync.url || '');
+      const [key, setKey] = useState(sync.key || '');
+      const countPending = async () => { try { setPending((await DB.getAll('history')).filter(h => !h.sent).length); } catch (e) { setPending(null); } };
+      useEffect(() => { countPending(); }, [sync.lastOkAt, sync.lastErrorAt]);
+      const send = async (all) => {
+        setBusy(true); setMsg('');
+        const r = await Sync.run(app, { all });
+        setBusy(false); countPending();
+        if (r.ok) setMsg(r.sent ? `${r.sent}件の記録を送りました。` : '送っていない記録はありません（一覧は最新です）。');
+        else if (r.reason === 'offline') setMsg('インターネットにつながっていません。');
+      };
+      const save = () => {
+        const u = url.trim();
+        if (!REC_URL_RE.test(u)) { setMsg('URLの形がちがいます。「https://script.google.com/macros/s/…/exec」の形のURLを入れてください。'); return; }
+        if (!key.trim()) { setMsg('合言葉を入れてください。'); return; }
+        app.update(s => ({ ...s, sync: { ...s.sync, url: u, key: key.trim(), lastError: null, lastSummary: null } }));
+        setEditing(false); setMsg('送り先を保存しました。「今すぐ送る」で送信を確かめてください。');
+      };
+      const clearUrl = () => {
+        if (!confirm('記録の送り先を消しますか？（この端末の記録は消えません）')) return;
+        app.update(s => ({ ...s, sync: {} }));
+        setUrl(''); setKey(''); setEditing(true); setMsg('送り先を消しました。');
+      };
+      const errShown = sync.lastError && (!sync.lastOkAt || sync.lastErrorAt > sync.lastOkAt);
+      const stat = (label, value, ok) => <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '.8rem', padding: '.6rem .9rem' }}><div className="muted" style={{ fontSize: '.85rem' }}>{label}</div><div className="bold" style={{ color: ok ? '#047857' : undefined }}>{value}</div></div>;
+      return (
+        <div className="card" style={{ borderColor: '#bae6fd' }}>
+          <div className="bold" style={{ fontSize: '1.2rem' }}>📡 先生のスプレッドシートへの送信</div>
+          <div className="muted" style={{ marginBottom: '.6rem' }}>1問とくたびに、結果を先生のGoogleスプレッドシートへ自動で送ります。送れなかった記録は、次につながったときに送り直します。</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '.6rem', marginBottom: '.6rem' }}>
+            {stat('送り先', sync.url ? '✅ 設定ずみ' : '未設定', !!sync.url)}
+            {stat('まだ送っていない記録', pending == null ? '…' : `${pending}件`)}
+            {stat('最後に送れた日時', sync.lastOkAt ? fmtDate(sync.lastOkAt) : '—')}
+          </div>
+          {errShown && <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', color: '#9f1239', borderRadius: '.8rem', padding: '.6rem', marginBottom: '.6rem' }}>⚠️ {syncErrorText(sync.lastError)}</div>}
+          {sync.url && (
+            <div className="row wrapflex" style={{ marginBottom: '.5rem' }}>
+              <Btn color="sky" size="md" disabled={busy} onClick={() => send(false)}>📤 今すぐ送る</Btn>
+              <Btn color="white" size="md" disabled={busy} onClick={() => send(true)}>🔁 これまでの記録をまとめて送る</Btn>
+              <Btn color="white" size="md" disabled={busy} onClick={() => setEditing(v => !v)}>✏️ 送り先を入力</Btn>
+            </div>
+          )}
+          {!sync.url && <div className="muted" style={{ marginBottom: '.5rem' }}>入口ページ（Apps Script）の「はじめる」から開くと、送り先は自動で設定されます。入口ページを通さずに開いた端末では、スプレッドシートのメニュー「クルミせんせい → 子どもに配るURLと合言葉を表示」で出るURLと合言葉を、ここに入力してください。</div>}
+          {editing && (
+            <div className="col" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '.8rem', padding: '.7rem' }}>
+              <label><div className="bold" style={{ fontSize: '.9rem' }}>送り先のURL（…/exec）</div><input className="inp" style={{ width: '100%' }} value={url} onChange={e => setUrl(e.target.value)} placeholder="https://script.google.com/macros/s/……/exec" /></label>
+              <label><div className="bold" style={{ fontSize: '.9rem' }}>合言葉</div><input className="inp" style={{ width: '100%' }} value={key} onChange={e => setKey(e.target.value)} /></label>
+              <div className="row"><Btn color="green" size="sm" onClick={save}>保存</Btn>{sync.url && <Btn color="white" size="sm" onClick={clearUrl}>送り先を消す</Btn>}</div>
+            </div>
+          )}
+          {busy && <div className="bold muted" style={{ marginTop: '.4rem' }}>送信中…</div>}
+          {msg && <div className="bold" style={{ marginTop: '.4rem' }}>{msg}</div>}
+        </div>
+      );
+    }
+    function DataTab({ app }) {
+      const [msg, setMsg] = useState('');
+      const [busy, setBusy] = useState(false);
+      const exportCSV = async () => {
+        const hist = (await DB.getAll('history')).sort((a, b) => a.at - b.at);
+        const esc = v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
+        const rows = [['日時', 'ステップ', '問題番号', '問題', '正しい答え', '答えた内容', '結果', 'まちがえた回数', 'ヒントの回数', 'かかった時間(秒)', 'つまずき', 'メモ', '色分け']];
+        hist.forEach(h => {
+          const s = STAGE_MAP[h.stageId];
+          rows.push([fmtDate(h.at), s ? stageName(s) : h.stageId, h.no, h.label, h.correct, (h.answers || []).join(' → '), h.result, h.mistakes, h.hints, h.sec, [...new Set(h.errors || [])].map(e => ERR[e] || e).join('、'), h.memo ? 'つかった' : '', h.color === false ? 'なし' : 'あり']);
+        });
+        const name = app.state.profile ? app.state.profile.name : 'record';
+        downloadFile(`ひっ算の記録_${name}_${ymd()}.csv`, '﻿' + rows.map(r => r.map(esc).join(',')).join('\r\n'), 'text/csv');
+        setMsg(`${hist.length}件の記録をCSVで書き出しました。`);
+      };
+      const exportBackup = async () => {
+        setBusy(true);
+        try {
+          const history = await DB.getAll('history');
+          const name = app.state.profile ? app.state.profile.name : 'backup';
+          downloadFile(`ひっ算バックアップ_${name}_${ymd()}.json`, JSON.stringify({ app: APP_ID, kind: 'backup', version: 1, state: app.stateRef.current, history }), 'application/json');
+          setMsg('バックアップを書き出しました。');
+        } finally { setBusy(false); }
+      };
+      const importBackup = async () => {
+        const file = await pickFile('.json,application/json');
+        if (!file) return;
+        let data;
+        try { data = JSON.parse(await file.text()); } catch (e) { setMsg('ファイルを読み込めませんでした。'); return; }
+        if (!data || data.app !== APP_ID || data.kind !== 'backup') { setMsg('このアプリのバックアップファイルを選んでください。'); return; }
+        if (!confirm('今のChromebookの記録を、バックアップの内容で置き換えます。よろしいですか？')) return;
+        setBusy(true);
+        try {
+          await DB.clear('history');
+          for (const h of data.history || []) await DB.put('history', h);
+          const st = data.state || {};
+          app.update(cur => {
+            const next = normalizeState({ ...st, deviceId: st.deviceId || cur.deviceId });
+            return { ...next, sync: cur.sync && cur.sync.url ? cur.sync : next.sync };
+          });
+          setMsg('バックアップから元にもどしました。');
+        } catch (e) { setMsg('読み込み中にエラーが起きました。'); }
+        finally { setBusy(false); }
+      };
+      const resetAll = async () => {
+        if (!confirm('この児童の記録・ステップの進み具合・どんぐり・かぐ・ともだちをすべて消します。元にもどせません。よろしいですか？')) return;
+        if (!confirm('本当に消しますか？（設定と名前は残ります）')) return;
+        await DB.clear('history');
+        app.update(s => ({ ...s, progress: {}, acorns: 0, earned: 0, owned: {}, placed: {}, sync: { ...s.sync, lastSummary: null } }));
+        setMsg('記録を消しました。');
+      };
+      return (
+        <div className="col" style={{ gap: '1rem' }}>
+          <SyncPanel app={app} />
+          <div className="card" style={{ borderColor: '#e2e8f0' }}>
+            <div className="bold" style={{ fontSize: '1.2rem' }}>記録の書き出し（CSV）</div>
+            <div className="muted" style={{ marginBottom: '.5rem' }}>すべての問題の結果を、スプレッドシートで開けるファイルにします。</div>
+            <Btn color="sky" size="md" onClick={exportCSV}>📄 CSVで書き出す</Btn>
+          </div>
+          <div className="card" style={{ borderColor: '#e2e8f0' }}>
+            <div className="bold" style={{ fontSize: '1.2rem' }}>バックアップ</div>
+            <div className="muted" style={{ marginBottom: '.5rem' }}>記録・進み具合・どんぐり・かぐ・設定をまとめて保存します。Chromeの閲覧データを消すと記録も消えるので、ときどきバックアップしてください。端末を替えるときにも使えます。</div>
+            <div className="row wrapflex">
+              <Btn color="sky" size="md" disabled={busy} onClick={exportBackup}>💾 バックアップを書き出す</Btn>
+              <Btn color="white" size="md" disabled={busy} onClick={importBackup}>📥 バックアップから元にもどす</Btn>
+            </div>
+          </div>
+          <div className="card" style={{ borderColor: '#fecdd3' }}>
+            <div className="bold" style={{ fontSize: '1.2rem', color: '#be123c' }}>記録をすべて消す</div>
+            <div className="muted" style={{ marginBottom: '.5rem' }}>新しい児童が使うときなどに使います。どんぐり・かぐ・ともだちも消えます。</div>
+            <Btn color="red" size="md" onClick={resetAll}>🗑️ 記録を消す</Btn>
+          </div>
+          {msg && <div className="bold" style={{ color: '#047857', fontSize: '1.1rem' }}>{msg}</div>}
+        </div>
+      );
+    }
+
+    /* =========================================================
+       アプリ全体
+       ========================================================= */
+    function Header({ app, view, onHome, onBack, onTeacher, onHouse }) {
+      const { state } = app;
+      const t = titleOf(state);
+      const showBack = !['home', 'setup', 'teacher', 'setclear'].includes(view.name);
+      return (
+        <header className="hdr">
+          <div className="hdr-in">
+            {showBack && <Btn color="white" size="sm" onClick={onBack} data-back="1">◀ もどる</Btn>}
+            <button className="logo" onClick={onHome}>
+              <AcornIcon size={30} /><span className="lt">クルミせんせいの どんぐり ぎんこう</span>
+            </button>
+            <span className="grow" />
+            {state.profile && view.name !== 'teacher' && (
+              <>
+                <button id="acorn-pill" className="acornpill" onClick={onHouse} title="もりの おうち"><AcornCount n={state.acorns} size={24} /></button>
+                <span className="bold muted" style={{ fontSize: '1.05rem', whiteSpace: 'nowrap' }}><span className="emoji">{t.icon}</span> {state.profile.name}さん</span>
+                <button className="tbtn" onClick={onTeacher} title="先生用" data-teacher="1">⚙ せんせい</button>
+              </>
+            )}
+          </div>
+        </header>
+      );
+    }
+
+    function App() {
+      const [state, setState] = useState(loadState);
+      const stateRef = useRef(state);
+      const update = useCallback((fn) => {
+        const next = fn(stateRef.current);
+        stateRef.current = next;
+        CURRENT.settings = next.settings;
+        setState(next); saveState(next);
+        return next;
+      }, []);
+      const app = { state, update, stateRef };
+      const [view, setView] = useState(state.profile ? { name: 'home' } : { name: 'setup' });
+      const [pinOpen, setPinOpen] = useState(false);
+
+      useEffect(() => {
+        const trySync = () => Sync.run({ state: stateRef.current, update, stateRef });
+        trySync();
+        window.addEventListener('online', trySync);
+        return () => window.removeEventListener('online', trySync);
+      }, []);
+      useEffect(() => { document.documentElement.style.fontSize = (FONT_PX[state.settings.fontSize] || 16) + 'px'; }, [state.settings.fontSize]);
+
+      const go = v => { TTS.cancel(); setView(v); window.scrollTo(0, 0); };
+      if (location.protocol === 'file:') window.__hissan = { go, update, stateRef, genSet, STAGES, view, DB }; // 動作確認用
+      const openStage = (stage) => {
+        const p = prog(stateRef.current, stage.id);
+        const fresh = !(p.sets || 0) && !(p.idx || 0) && !p.cleared;
+        go(fresh && INTRO[stage.id] ? { name: 'intro', stageId: stage.id } : { name: 'play', stageId: stage.id, titleBefore: titleOf(stateRef.current), k: Date.now() });
+      };
+      const back = () => {
+        if (view.name === 'play' || view.name === 'intro') go({ name: 'menu' });
+        else go({ name: 'home' });
+      };
+      const stage = view.stageId ? STAGE_MAP[view.stageId] : null;
+
+      return (
+        <div style={{ minHeight: '100vh' }}>
+          <Header app={app} view={view} onHome={() => !['setup', 'teacher'].includes(view.name) && go({ name: 'home' })} onBack={back}
+                  onTeacher={() => setPinOpen(true)} onHouse={() => !['setup', 'teacher'].includes(view.name) && go({ name: 'house' })} />
+          {view.name === 'setup' && <SetupScreen onDone={(profile) => { update(s => ({ ...s, profile })); Sync.run(app); go({ name: 'home' }); }} />}
+          {view.name === 'home' && <HomeScreen app={app} onPlay={openStage} onMenu={() => go({ name: 'menu' })} onHouse={() => go({ name: 'house' })} onAlbum={() => go({ name: 'album' })} />}
+          {view.name === 'menu' && <MenuScreen app={app} onOpen={openStage} />}
+          {view.name === 'intro' && stage && <IntroScreen key={stage.id} stage={stage} onStart={() => go({ name: 'play', stageId: stage.id, titleBefore: titleOf(stateRef.current), k: Date.now() })} />}
+          {view.name === 'play' && stage && (
+            <PlayScreen key={stage.id + (view.k || '')} app={app} stage={stage} onSetEnd={(res) => {
+              const before = view.titleBefore;
+              const after = titleOf(stateRef.current);
+              go({ name: 'setclear', stageId: stage.id, res, titleUp: res.stageClear && before && before.name !== after.name ? after : null });
+            }} />
+          )}
+          {view.name === 'setclear' && stage && (
+            <SetClearScreen key={JSON.stringify(view.res)} app={app} stage={stage} res={view.res} titleUp={view.titleUp}
+                            onContinue={() => go({ name: 'play', stageId: stage.id, titleBefore: titleOf(stateRef.current), k: Date.now() })}
+                            onNextStage={openStage} onHouse={() => go({ name: 'house' })} onHome={() => go({ name: 'home' })} />
+          )}
+          {view.name === 'house' && <HouseScreen app={app} />}
+          {view.name === 'album' && <AlbumScreen app={app} />}
+          {view.name === 'teacher' && <TeacherScreen app={app} onExit={() => go({ name: 'home' })} />}
+          <BagUpLayer />
+          {pinOpen && (
+            <PinPad onClose={() => setPinOpen(false)}
+                    check={v => state.profile && hashPin(v) === state.profile.pin}
+                    onSuccess={() => { setPinOpen(false); go({ name: 'teacher' }); }} />
+          )}
+        </div>
+      );
+    }
+
+    class ErrorBoundary extends React.Component {
+      constructor(p) { super(p); this.state = { err: null }; }
+      static getDerivedStateFromError(err) { return { err }; }
+      render() {
+        if (this.state.err) return (
+          <div className="wrap tc" style={{ maxWidth: 640 }}>
+            <div style={{ fontSize: 64 }}>🐿️💦</div>
+            <div className="bold" style={{ fontSize: '1.6rem' }}>こまったことが おきたよ</div>
+            <div className="muted" style={{ fontSize: '1.1rem', margin: '.5rem 0 1rem' }}>せんせいに しらせてね。（ページを さいよみこみ すると なおることが あります）</div>
+            <pre style={{ textAlign: 'left', fontSize: 12, background: '#f1f5f9', padding: 12, borderRadius: 8, overflow: 'auto' }}>{String(this.state.err && this.state.err.stack || this.state.err)}</pre>
+            <button className="btn3d c-sky s-md" onClick={() => location.reload()}>さいよみこみ</button>
+          </div>
+        );
+        return this.props.children;
+      }
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<ErrorBoundary><App /></ErrorBoundary>);
+  </script>
+</body>
+</html>
