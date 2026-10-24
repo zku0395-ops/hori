@@ -84,7 +84,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.0.0';
+    const APP_VERSION = '1.0.1';
     const BASE = window.KOTOBA_BASE;
     const IMG = BASE + 'img/';
 
@@ -224,14 +224,13 @@
     // =====================================================================
     let D = null, STAGES = [], STAGE = {}, PLACE = {}, WORD = {}, WORD_BY = {}, MON = {}, ITEM = {}, ALL_ITEMS = [], COLOR = {};
     const STEP = [
-      { s: 0, kind: 'deai', title: 'であう', icon: '👀', intro: 'あたらしい ことばに であおう。えと いみを みて、おぼえよう。' },
       { s: 1, kind: 'imi', title: 'いみを えらぶ', icon: '📖', intro: 'ことばを みて、あう いみを えらぼう。モンスターが でて くるよ！' },
       { s: 2, kind: 'kotoba', title: 'ことばを えらぶ', icon: '🔤', intro: 'いみを よんで、あう ことばを えらぼう。' },
       { s: 3, kind: 'bun', title: 'ぶんで つかう', icon: '✍️', intro: 'ぶんの（　）に はいる ことばを えらぼう。できたら ことばを とりもどせるよ。' },
     ];
-    const STEP_NUM = '⓪①②③';
+    const STEP_NUM = '⓪①②③'; // ⓪であう は なくした（記録の ステージ番号 1〜3 は そのまま）
     const GROUP = { A: '1くみ', B: '2くみ' };
-    const FORM = { deai: 'であう', imi: 'いみ', kotoba: 'ことば', bun: 'ぶん', tsukai: 'つかいかた' };
+    const FORM = { imi: 'いみ', kotoba: 'ことば', bun: 'ぶん', tsukai: 'つかいかた' };
     const FORMS = ['いみ', 'ことば', 'ぶん', 'つかいかた'];
     // まちがいの しゅるい（記録の ことば。あとから 変えないこと）
     const MT = { h: 'はんたいの いみ', o: 'にている おと', n: 'おなじ なかま', k: 'ちがう ことば', u: 'つかいかた' };
@@ -254,7 +253,7 @@
     const stageLabel = (st) => st.review ? '🛏️ やどや' : st.boss ? '👑 ボス' : st.hatten ? '✨ はってん' : `${GROUP[st.g]} ${STEP_NUM[st.s]}`;
     const stepName = (st) => st.review ? 'やどやで ふくしゅう' : `${PLACE[st.p].name} ${st.g ? `${GROUP[st.g]} ${STEP_NUM[st.s]}${st.title}` : st.boss ? 'ボス' : 'はってん つかいかた'}`;
     const monsterOf = (st) => {
-      if (!st.p || st.kind === 'deai') return null;
+      if (!st.p) return null;
       return D.MONSTERS.find(m => m.p === st.p && m.boss === !!(st.boss || st.hatten));
     };
     const bw = (w) => w.bw || w.w;
@@ -282,7 +281,6 @@
     function buildProblems(st, n, prog, start = 0) {
       if (st.g) {
         const ws = groupWords(st.p, st.g);
-        if (st.kind === 'deai') return ws.slice(start).map(w => ({ kind: 'deai', w }));
         return shuffle(ws).slice(0, Math.min(n, 5)).map(w => ({ kind: st.kind, w }));
       }
       if (st.boss) { const kinds = shuffle(['imi', 'kotoba', 'bun']); return drawFrom(placeWords(st.p), n).map((w, i) => ({ kind: kinds[i % 3], w })); }
@@ -783,31 +781,6 @@
     // =====================================================================
     //  9. もんだい
     // =====================================================================
-    // ⓪ であう：え・ことば・いみ・れいぶん を みて きく
-    function DeaiQ({ p, ctx, idx, total }) {
-      const talk = useTalk();
-      const w = p.w;
-      const say = () => talk.say(`「${w.w}」。${w.mean} たとえば、${w.ex}`, { speech: `${bw(w)}。${w.mean}。たとえば、${w.ex}` });
-      useEffect(() => { say(); }, []);
-      const next = () => { Sound.step(); ctx.done({ miss: 0, hint: 0, types: [], picks: [] }); };
-      return (
-        <div className="w-full max-w-4xl flex flex-col items-center gap-3">
-          <div className="win-light w-full p-4 flex flex-wrap items-center justify-center gap-6 pop" key={w.id}>
-            <div className="flex flex-col items-center"><div style={{ fontSize: 110, lineHeight: 1.1 }}>{w.e}</div></div>
-            <div className="flex flex-col gap-3 flex-1 min-w-[300px]">
-              <WordText w={w} size="text-7xl" center={false} />
-              <div className="rounded-2xl bg-amber-50 border-2 border-amber-300 px-4 py-2"><div className="text-lg font-bold text-amber-700">いみ</div><div className="text-3xl font-bold leading-relaxed">{w.mean}</div></div>
-              <div className="rounded-2xl bg-sky-50 border-2 border-sky-300 px-4 py-2"><div className="text-lg font-bold text-sky-700">たとえば</div><div className="text-3xl font-bold leading-relaxed"><MarkWord text={w.ex} w={w} /></div></div>
-            </div>
-          </div>
-          <div className="flex gap-4">
-            <Btn onClick={say} color="#0369a1" light="#e0f2fe">🔊 きく</Btn>
-            <Btn onClick={next} color="#15803d" light="#dcfce7" className="text-3xl px-10 glow">{idx + 1 >= total ? 'おぼえた！ ✔' : 'つぎの ことば ▶'}</Btn>
-          </div>
-        </div>
-      );
-    }
-
     // ①いみを えらぶ　②ことばを えらぶ　③ぶんで つかう　はってん：つかいかた
     function WordQ({ p, ctx }) {
       const talk = useTalk();
@@ -955,9 +928,8 @@
         done: (res) => {
           if (!alive.current) return;
           const p = problems[i];
-          const deai = p.kind === 'deai';
           const result = res.miss || res.hint ? '△' : '○';
-          if (!deai) { stats.current.all++; if (result === '○') stats.current.ok++; stats.current.weak[p.w.id] = (stats.current.weak[p.w.id] || 0) + (result === '○' ? -1 : 1); }
+          stats.current.all++; if (result === '○') stats.current.ok++; stats.current.weak[p.w.id] = (stats.current.weak[p.w.id] || 0) + (result === '○' ? -1 : 1);
           onRecord({
             stage: st.id, place: place ? place.name : 'やどや', problem: problemLabel(p), answer: answerLabel(p), result,
             miss: res.miss || 0, hint: res.hint || 0, types: (res.types || []).join('・'), picks: (res.picks || []).join('・'),
@@ -969,7 +941,7 @@
             setCrit(c); setHit(x => x + 1); Sound.attack(); setTimeout(() => (c ? Sound.critical() : Sound.hit()), 250); setHp(h => Math.max(0, h - 1));
           }
           if (i + 1 >= problems.length) {
-            const fin = () => onFinish({ ...stats.current, n: deai ? 0 : problems.length, monster: mon ? mon.id : null });
+            const fin = () => onFinish({ ...stats.current, n: problems.length, monster: mon ? mon.id : null });
             if (!mon) { fin(); return; }
             setI(problems.length);
             (async () => {
@@ -983,7 +955,7 @@
             return;
           }
           // ボスは とちゅうから に しない
-          if (!st.boss) onSave({ st: st.id, left: problems.length - i - 1, start: deai ? (start || 0) + i + 1 : 0 }, stats.current.weak);
+          if (!st.boss) onSave({ st: st.id, left: problems.length - i - 1, start: 0 }, stats.current.weak);
           setI(i + 1);
         },
       };
@@ -993,12 +965,11 @@
           <MsgWin size={56} compact />
           <div className="flex items-center gap-3 w-full">
             <div className="text-lg font-bold bg-white rounded-2xl px-3 py-0.5 border-2 border-blue-900 shrink-0">{place ? place.icon + ' ' + place.name : '🛏️ やどや'}　{stageLabel(st)} {st.title}</div>
-            <div className="flex-1 text-xl font-bold text-slate-600">{Math.min(problems.length, Math.max(0, i) + 1)} / {problems.length}{st.kind === 'deai' ? 'ことば' : 'もん'}</div>
+            <div className="flex-1 text-xl font-bold text-slate-600">{Math.min(problems.length, Math.max(0, i) + 1)} / {problems.length}もん</div>
             <button onClick={onQuit} className="btn3d bg-white border-2 border-slate-300 rounded-2xl px-3 py-1 text-lg font-bold shrink-0">✋ やめる</button>
           </div>
-          {st.kind !== 'deai' && <BattleField place={place} look={progress.look} party={progress.party} mon={mon} hp={hp} max={problems.length} hit={hit} crit={crit} missFx={missFx} end={end} bubble={bubble} />}
-          {p && p.kind === 'deai' && <DeaiQ key={i} p={p} ctx={ctx} idx={(start || 0) + i} total={(start || 0) + problems.length} />}
-          {p && p.kind !== 'deai' && <WordQ key={i} p={p} ctx={ctx} />}
+          <BattleField place={place} look={progress.look} party={progress.party} mon={mon} hp={hp} max={problems.length} hit={hit} crit={crit} missFx={missFx} end={end} bubble={bubble} />
+          {p && <WordQ key={i} p={p} ctx={ctx} />}
           <Seikai show={seikai} />
         </div>
       );
@@ -1015,8 +986,7 @@
         (async () => {
           Sound.fanfare();
           if (mon) await talk.say(`${mon.name}を やっつけた！`, { mood: 'happy' });
-          if (st.kind === 'deai') await talk.say('あたらしい ことばを おぼえたね！ つぎは もんだいに ちょうせん しよう。', { mood: 'happy' });
-          else await talk.say(`${r.n}もん できたね！ ゴールドを ${r.coins + (r.bonus || 0)} てに いれた！`, { mood: 'happy' });
+          await talk.say(`${r.n}もん できたね！ ゴールドを ${r.coins + (r.bonus || 0)} てに いれた！`, { mood: 'happy' });
           if (r.newWords.length) { Sound.levelup(); await talk.say(`ことばを とりもどした！ ${r.newWords.map(id => WORD[id].w).join('、')}`, { mood: 'happy' }); }
           if (r.newMonster) { Sound.nakama(); await talk.say(`${MON[r.newMonster].name}が なかまに なった！`, { mood: 'happy' }); }
           if (r.levelUp) { Sound.levelup(); await talk.say(`レベルが あがった！ レベル${r.level}に なったよ！`, { mood: 'happy' }); }
@@ -1029,7 +999,7 @@
         <div className="w-full max-w-4xl flex flex-col items-center gap-4 p-4">
           <MsgWin size={96} />
           <div className="win w-full p-5 flex flex-col items-center gap-3 pop">
-            <div className="text-5xl font-bold">{st.kind === 'deai' ? '📖 ことばを おぼえた！' : mon ? `⚔️ ${mon.name}を やっつけた！` : '⭐ よく できました！'}</div>
+            <div className="text-5xl font-bold">{mon ? `⚔️ ${mon.name}を やっつけた！` : '⭐ よく できました！'}</div>
             {r.n > 0 && <div className="text-4xl">{Array.from({ length: r.n }, (_, j) => j < r.ok ? '⭐' : '✩').join('')}</div>}
             {r.n > 0 && <div className="text-xl">まちがえずに {r.ok}もん ／ {r.n}もん</div>}
             <div className="text-3xl font-bold flex items-center gap-2"><Gold s={36} /> ＋{r.coins + (r.bonus || 0)} ゴールド</div>
@@ -1209,7 +1179,7 @@
             <div className="text-lg font-bold text-sky-200">{st.p ? `${PLACE[st.p].icon} ${PLACE[st.p].name}` : '🛏️ やどや'}</div>
             <div className="text-4xl font-bold">{stageLabel(st)} {st.title}</div>
             <div className="flex items-start gap-3"><Dracchi size={90} /><div className="text-2xl bg-white text-blue-950 rounded-2xl px-4 py-3 leading-loose font-bold">{st.intro}</div></div>
-            {st.g && <div className="flex flex-wrap gap-2 justify-center">{groupWords(st.p, st.g).map(w => <span key={w.id} className="rounded-xl bg-white text-blue-950 px-2 py-1 text-xl font-bold">{w.e} {st.kind === 'deai' || progress.words.includes(w.id) || isCleared(progress, `${st.p}-${st.g}0`) ? w.w : '？？？'}</span>)}</div>}
+            {st.g && <div className="flex flex-wrap gap-2 justify-center">{groupWords(st.p, st.g).map(w => <span key={w.id} className="rounded-xl bg-white text-blue-950 px-2 py-1 text-xl font-bold">{w.e} {w.w}</span>)}</div>}
             {mon && <div className="flex items-center gap-3 bg-white text-blue-950 rounded-2xl px-4 py-1"><Monster m={mon} size={70} /><div className="text-2xl font-bold">あいて：{mon.name}</div></div>}
             {isCleared(progress, st.id) && <div className="text-xl font-bold text-amber-300">⭐ クリアずみ（なんかいでも できるよ）</div>}
             <div className="flex gap-3 flex-wrap justify-center">
@@ -1524,7 +1494,7 @@
                     })}
                   </tbody>
                 </table>
-                <div className="text-sm text-slate-500">まちがえずに：まちがえず、ヒントも使わずに できた問題の割合（⓪であう は数えません）。にがてな ことば：2回以上といて、まちがえずに できた割合が 60%未満のことば。</div>
+                <div className="text-sm text-slate-500">まちがえずに：まちがえず、ヒントも使わずに できた問題の割合。にがてな ことば：2回以上といて、まちがえずに できた割合が 60%未満のことば。</div>
                 <div className="grid md:grid-cols-2 gap-3">
                   <div className="bg-white rounded-xl p-3 overflow-auto">
                     <div className="font-bold mb-2">クラス全体の ことばの表（まちがえずに／問題）</div>
@@ -1609,7 +1579,7 @@
                 <label className="flex items-center gap-3">よみあげの はやさ：<input type="range" min="0.5" max="1.2" step="0.05" value={s.rate} onChange={e => setS({ ...s, rate: Number(e.target.value) })} /> {s.rate}倍
                   <button className="border rounded px-2" onClick={() => { Speech.rate = s.rate; Speech.say('くだもの。りんごや みかん、ぶどうなど。'); }}>ためす</button></label>
                 <div>もじの おおきさ：{opt('font', [[0.9, 'ちいさめ'], [1, 'ふつう'], [1.15, 'おおきめ'], [1.3, 'とても おおきい']])}</div>
-                <div>1回の 問題の数：{opt('count', [[3, '3問'], [5, '5問'], [10, '10問']])}<div className="text-sm text-slate-500 ml-2">①②③は、1くみ（5語）の中から出します（10問のときも5問）。ボス・やどや・はってんは、この数だけ出します。⓪であう は いつも5語です。</div></div>
+                <div>1回の 問題の数：{opt('count', [[3, '3問'], [5, '5問'], [10, '10問']])}<div className="text-sm text-slate-500 ml-2">①②③は、1くみ（5語）の中から出します（10問のときも5問）。ボス・やどや・はってんは、この数だけ出します。</div></div>
                 <div>かんじの ひょうじ：{opt('kanji', [[true, 'だす'], [false, 'かくす']])}<div className="text-sm text-slate-500 ml-2">漢字で書くことばの横に、ふりがな付きの漢字を出します。</div></div>
                 <div>こうかおん：{opt('sound', [[true, 'ならす'], [false, 'ならさない']])}</div>
                 <div>おんがく（BGM）：{opt('bgm', [[true, 'つかう'], [false, 'つかわない']])}<div className="text-sm text-slate-500 ml-2">つかう にすると、子どもの画面の上に 🎵 ボタンが出て、オン・オフできます（はじめは オン）。</div></div>
