@@ -30,6 +30,8 @@
     @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
     .talk { animation: talk 0.25s ease-in-out infinite alternate; transform-origin: 60px 84px; transform-box: view-box; }
     @keyframes talk { from { transform: scaleY(0.4); } to { transform: scaleY(1.3); } }
+    .talkbob { animation: talkbob 0.5s ease-in-out infinite alternate; transform-origin: 50% 100%; }
+    @keyframes talkbob { from { transform: rotate(-2deg) translateY(0); } to { transform: rotate(2deg) translateY(-3px); } }
     .twinkle { animation: twinkle 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
     @keyframes twinkle { 0%,100% { opacity: .2; transform: scale(.6); } 50% { opacity: 1; transform: scale(1.1); } }
     .bubble-up { animation: bubbleUp 5s linear infinite; }
@@ -50,7 +52,7 @@
   <script type="text/babel">
     const { useState, useEffect, useRef, useMemo, useContext, createContext } = React;
 
-    const APP_VERSION = '1.1.0';
+    const APP_VERSION = '2.0.0';
 
     // =====================================================================
     //  1. こまかい どうぐ
@@ -409,9 +411,9 @@
       { id: 'l-cater', slot: 'leg', name: 'キャタピラ' }, { id: 'l-wheel', slot: 'leg', name: 'タイヤ' },
       { id: 'k-wings', slot: 'back', name: 'さんかく ウイング' }, { id: 'k-rocket', slot: 'back', name: 'ロケット' },
       { id: 'k-cape', slot: 'back', name: 'マント' }, { id: 'k-solar', slot: 'back', name: 'しかく ソーラー' },
-      { id: 'c-blue', slot: 'color', name: 'あおい ボディ', color: '#bfdbfe' }, { id: 'c-red', slot: 'color', name: 'あかい ボディ', color: '#fecaca' },
-      { id: 'c-gold', slot: 'color', name: 'きんいろ ボディ', color: '#fde68a' }, { id: 'c-green', slot: 'color', name: 'みどりの ボディ', color: '#bbf7d0' },
-      { id: 'c-pink', slot: 'color', name: 'ピンクの ボディ', color: '#fbcfe8' },
+      { id: 'c-blue', slot: 'color', name: 'あおい オーラ', color: '#bfdbfe', glow: '#3b82f6' }, { id: 'c-red', slot: 'color', name: 'あかい オーラ', color: '#fecaca', glow: '#ef4444' },
+      { id: 'c-gold', slot: 'color', name: 'きんいろ オーラ', color: '#fde68a', glow: '#f59e0b' }, { id: 'c-green', slot: 'color', name: 'みどりの オーラ', color: '#bbf7d0', glow: '#22c55e' },
+      { id: 'c-pink', slot: 'color', name: 'ピンクの オーラ', color: '#fbcfe8', glow: '#ec4899' },
     ];
     const ITEM = Object.fromEntries(ITEMS.map(i => [i.id, i]));
     // もらえる じゅんばん（いろいろな ところが かわるように まぜる）
@@ -654,12 +656,10 @@
     const bodyColor = (p) => (p.equip.color && ITEM[p.equip.color] && ITEM[p.equip.color].color) || '#e2e8f0';
 
     // =====================================================================
-    //  9. データの ほぞん（スプレッドシート／おためしモード）
+    //  9. データの ほぞん（この 端末の 中）と スプレッドシートへの 送信
+    //   ・1台を 1人で つかう。名前・すすみぐあい・きろくは この 端末の ブラウザに ほぞんする
+    //   ・入口ページ（Apps Script）から ひらくと、きろくの 送り先と 合言葉が つく
     // =====================================================================
-    const HAS_GAS = typeof google !== 'undefined' && google.script && google.script.run;
-    const gas = (fn, ...args) => new Promise((resolve, reject) => {
-      google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
-    });
     const safeStore = {
       get(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
       set(k, v) { try { window.localStorage.setItem(k, v); } catch (e) {} },
@@ -675,7 +675,7 @@
       document.documentElement.style.fontSize = (16 * (SIZE_SCALE[s.size] || 1)) + 'px';
     }
 
-    // 先生用画面の まとめ（コード.gs の aggregate_ と おなじ しくみ）
+    // 先生用画面の まとめ（gas/Code.gs の まとめシートと おなじ しくみ）
     const LOG_COLS = ['日時', 'なまえ', 'ステージ', 'ステップ', 'もんだい', 'かたち', 'けっか', 'かいすう', 'ヒント', 'まちがい'];
     function aggregate(log) {
       const students = {}, classMiss = {}, classShapes = {};
@@ -699,18 +699,34 @@
       return { students, classMiss, classShapes };
     }
 
-    // スプレッドシートに つながって いない ときの おためしモード
-    const Local = {
-      key: 'zukei_robot_local_v1', mem: null,
+    const STORE_KEY = 'zukei_robot_v2';
+    const APP_ID = 'zukei-robot';
+    const Store = {
+      mem: null,
       data() {
         if (this.mem) return this.mem;
-        let d = null; try { d = JSON.parse(safeStore.get(this.key)); } catch (e) {}
-        this.mem = d || { roster: ['たろう', 'はなこ', 'ゆうき'], progress: {}, log: [], pin: '1234', settings: { ...DEFAULT_SETTINGS } };
-        if (!this.mem.settings) this.mem.settings = { ...DEFAULT_SETTINGS };
+        let d = null; try { d = JSON.parse(safeStore.get(STORE_KEY)); } catch (e) {}
+        d = d && typeof d === 'object' ? d : {};
+        this.mem = {
+          profile: d.profile || null, pin: d.pin || '', settings: { ...DEFAULT_SETTINGS, ...(d.settings || {}) },
+          progress: d.progress || '', log: Array.isArray(d.log) ? d.log : [], pending: Array.isArray(d.pending) ? d.pending : [],
+          sync: d.sync || {},
+        };
         return this.mem;
       },
-      save() { safeStore.set(this.key, JSON.stringify(this.mem)); },
+      save() { safeStore.set(STORE_KEY, JSON.stringify(this.mem)); },
+      update(f) { f(this.data()); this.save(); },
     };
+
+    // 入口ページから ひらいたとき、URLの # の あとに 送り先と 合言葉が ついてくる
+    const REC_URL_RE = /^https:\/\/script\.google\.com\/(a\/macros\/[^/]+\/|macros\/)s\/[A-Za-z0-9_-]+\/(exec|dev)$/;
+    (function applyLinkConfig() {
+      if (!location.hash) return;
+      const h = new URLSearchParams(location.hash.slice(1));
+      const rec = h.get('rec');
+      if (rec && REC_URL_RE.test(rec)) Store.update(d => { d.sync = { ...d.sync, url: rec, key: h.get('key') || '', lastError: null }; });
+      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+    })();
 
     const today = () => {
       const d = new Date(), p = (n) => String(n).padStart(2, '0');
@@ -718,82 +734,161 @@
     };
     const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
-    const PENDING_KEY = 'zukei_robot_pending_v1';
+    // スプレッドシートの「いちらん」に 書く まとめ
+    function buildSummary(name, progressStr, log) {
+      const p = parseProgress(progressStr), a = aggregate(log).students[name] || { count: 0, ok: 0, last: '' };
+      const n = nextStep(p);
+      return {
+        level: levelOf(p), cleared: clearedStages(p), count: a.count, first: a.ok, last: a.last,
+        current: n ? `${n.stage.no} ${plainOf(n.stage.title)}・${roundsOf(p, n.stage) + 1}回目` : 'ぜんぶクリア',
+        rounds: Object.fromEntries(STAGES.map(st => [st.id, roundsOf(p, st)])), items: p.items.length, kira: p.kira.length,
+      };
+    }
+
+    const SYNC_ERRORS = {
+      fetch: '送り先に つながりませんでした。インターネットに つながっているか、送り先のURLが正しいかを 確かめてください。',
+      'not-json': '送り先から 正しい返事が ありませんでした。入口ページの デプロイで「アクセスできるユーザー：全員」に なっているか 確かめてください。',
+      key: '合言葉が ちがいます。入口ページの「▶ はじめる」から 開きなおしてください。',
+      offline: 'インターネットに つながっていません。つながったら 自動で 送ります。',
+    };
+    const syncErrorText = (code) => SYNC_ERRORS[code] || `送れませんでした（${code}）。`;
+    const SYNC_BATCH = 100;
+    const Sync = {
+      running: null,
+      run(force) {
+        if (this.running) return this.running;
+        this.running = this._run(force).finally(() => { this.running = null; });
+        return this.running;
+      },
+      async _run(force) {
+        const d = Store.data();
+        if (!d.sync.url || !d.profile) return { ok: false, reason: 'nourl' };
+        if (navigator.onLine === false) return { ok: false, reason: 'offline' };
+        if (!d.pending.length && !force) return { ok: true, sent: 0 };
+        try {
+          let sent = 0;
+          do {
+            const batch = d.pending.slice(0, SYNC_BATCH);
+            const payload = { app: APP_ID, v: 1, key: d.sync.key || '', name: d.profile.name,
+              summary: buildSummary(d.profile.name, d.progress, d.log), records: batch };
+            let res;
+            try { res = await fetch(d.sync.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) }); }
+            catch (e) { throw new Error('fetch'); }
+            let data;
+            try { data = await res.json(); } catch (e) { throw new Error('not-json'); }
+            if (!data || !data.ok) throw new Error((data && data.error) || 'server');
+            const ids = new Set(batch.map(r => r.uid));
+            Store.update(x => { x.pending = x.pending.filter(r => !ids.has(r.uid)); });
+            sent += batch.length;
+          } while (d.pending.length);
+          Store.update(x => { x.sync = { ...x.sync, lastOkAt: Date.now(), lastError: null }; });
+          return { ok: true, sent };
+        } catch (e) {
+          const code = String((e && e.message) || e);
+          Store.update(x => { x.sync = { ...x.sync, lastError: code, lastErrorAt: Date.now() }; });
+          return { ok: false, reason: code };
+        }
+      },
+    };
+
     const api = {
       async init() {
-        if (HAS_GAS) return gas('getInitData');
-        const d = Local.data();
-        return { students: d.roster, settings: d.settings, demo: true };
+        const d = Store.data();
+        return { students: d.profile ? [d.profile.name] : [], settings: d.settings, needSetup: !d.profile || !d.pin };
       },
-      async student(name) {
-        if (HAS_GAS) return gas('getStudent', name);
-        return Local.data().progress[name] || '';
-      },
-      async sendOne(p) {
-        if (HAS_GAS) return gas('saveResult', p);
-        const d = Local.data();
-        d.progress[p.name] = p.progress;
-        p.records.forEach(r => d.log.push([p.stamp, p.name, r.stage, r.step, r.problem, r.shape, r.result, r.tries, r.hint, r.miss]));
-        Local.save();
+      async setup(name, pin) {
+        Store.update(d => { d.profile = { name }; d.pin = pin; });
         return { ok: true };
       },
-      // とどかなかった きろくは たまっておき、つぎの ときに おくりなおす
-      async save(payload) {
-        let queue = [];
-        try { queue = JSON.parse(safeStore.get(PENDING_KEY)) || []; } catch (e) {}
-        queue.push({ id: newId(), ...payload });
-        safeStore.set(PENDING_KEY, JSON.stringify(queue));
-        return api.flush();
+      async student() { return Store.data().progress || ''; },
+      // きろくは まず この 端末に ほぞんし、送り先が あれば 送る（送れなかったら つぎに 送りなおす）
+      async save(p) {
+        Store.update(d => {
+          d.progress = p.progress;
+          p.records.forEach(r => {
+            d.log.push([p.stamp, p.name, r.stage, r.step, r.problem, r.shape, r.result, r.tries, r.hint, r.miss]);
+            if (d.sync.url) d.pending.push({ uid: newId(), at: p.time, ...r });
+          });
+        });
+        return Sync.run();
       },
-      flushing: false,
-      async flush() {
-        if (api.flushing) return;
-        api.flushing = true;
-        try {
-          let queue = [];
-          try { queue = JSON.parse(safeStore.get(PENDING_KEY)) || []; } catch (e) {}
-          while (queue.length) {
-            await api.sendOne(queue[0]);
-            queue.shift();
-            safeStore.set(PENDING_KEY, JSON.stringify(queue));
-          }
-        } catch (e) { console.warn('きろくを おくれませんでした。あとで おくりなおします。', e); }
-        finally { api.flushing = false; }
-      },
+      flush(force) { return Sync.run(force); },
+      checkPin(pin) { return String(pin) === String(Store.data().pin); },
       async teacher(pin) {
-        if (HAS_GAS) return gas('getTeacherData', pin);
-        const d = Local.data();
-        if (String(pin) !== d.pin) return { ok: false };
-        return { ok: true, isDefaultPin: pin === '1234', demo: true, settings: d.settings,
-          students: d.roster.map(n => ({ name: n, progress: d.progress[n] || '' })), log: d.log };
+        const d = Store.data();
+        if (!api.checkPin(pin)) return { ok: false };
+        return { ok: true, settings: d.settings, students: d.profile ? [{ name: d.profile.name, progress: d.progress || '' }] : [], log: d.log };
       },
       async setUnlock(pin, name, flag) {
-        if (HAS_GAS) return gas('setUnlockAll', pin, name, flag);
-        const d = Local.data();
-        if (String(pin) !== d.pin) return { ok: false };
-        const p = parseProgress(d.progress[name]); p.unlockAll = flag;
-        d.progress[name] = JSON.stringify(p); Local.save();
-        return { ok: true, progress: d.progress[name] };
+        if (!api.checkPin(pin)) return { ok: false };
+        const p = parseProgress(Store.data().progress); p.unlockAll = flag;
+        Store.update(d => { d.progress = JSON.stringify(p); });
+        return { ok: true, progress: Store.data().progress };
       },
       async saveSettings(pin, s) {
-        if (HAS_GAS) return gas('saveSettings', pin, s);
-        const d = Local.data();
-        if (String(pin) !== d.pin) return { ok: false };
-        d.settings = { ...d.settings, ...s }; Local.save();
-        return { ok: true, settings: d.settings };
+        if (!api.checkPin(pin)) return { ok: false };
+        Store.update(d => { d.settings = { ...d.settings, ...s }; });
+        return { ok: true, settings: Store.data().settings };
       },
-      async clearStudent(pin, name) {
-        if (HAS_GAS) return gas('clearStudent', pin, name);
-        const d = Local.data();
-        if (String(pin) !== d.pin) return { ok: false };
-        d.log = d.log.filter(r => r[1] !== name); d.progress[name] = ''; Local.save();
+      async clearStudent(pin) {
+        if (!api.checkPin(pin)) return { ok: false };
+        Store.update(d => { d.log = []; d.pending = []; d.progress = ''; });
         return { ok: true };
+      },
+      // 名前を かえると、まえの きろくの 名前も かわる（スプレッドシートには 新しい名前で 届く）
+      async rename(pin, name) {
+        if (!api.checkPin(pin)) return { ok: false };
+        Store.update(d => { const old = d.profile && d.profile.name; d.profile = { name }; d.log.forEach(r => { if (r[1] === old) r[1] = name; }); });
+        return { ok: true };
+      },
+      async changePin(pin, next) {
+        if (!api.checkPin(pin)) return { ok: false };
+        Store.update(d => { d.pin = next; });
+        return { ok: true };
+      },
+      setSync(url, key) { Store.update(d => { d.sync = url ? { ...d.sync, url, key, lastError: null } : {}; }); },
+      // ぜんぶの きろくを もういちど 送る（スプレッドシートで 二重には ならない）
+      resendAll() {
+        Store.update(d => {
+          const ids = new Set(d.pending.map(r => r.uid));
+          d.log.forEach((r, i) => {
+            const uid = 'L' + i + '-' + String(r[0]).replace(/\D/g, '');
+            if (!ids.has(uid)) d.pending.push({ uid, at: Date.parse(String(r[0]).replace(/\//g, '-').replace(' ', 'T')) || Date.now(),
+              stage: r[2], step: r[3], problem: r[4], shape: r[5], result: r[6], tries: r[7], hint: r[8], miss: r[9] });
+          });
+        });
+        return Sync.run(true);
+      },
+      backup() { const d = Store.data(); return JSON.stringify({ app: APP_ID, v: 1, savedAt: today(), ...d }); },
+      restore(text) {
+        const b = JSON.parse(text);
+        if (!b || b.app !== APP_ID) throw new Error('このアプリの バックアップでは ありません');
+        Store.mem = null;
+        safeStore.set(STORE_KEY, JSON.stringify({ profile: b.profile, pin: b.pin, settings: b.settings, progress: b.progress, log: b.log, pending: b.pending || [], sync: Store.data().sync }));
+        Store.mem = null;
+        return Store.data();
       },
     };
 
     // =====================================================================
     // 10. 絵（すべて オリジナルの SVG）
     // =====================================================================
+    // ---- Canva で 作った 絵（ロボット・はかせ・けんきゅうじょ） ----
+    // ファイルが まだ ないときは、プログラムで かいた 絵を つかう
+    const IMG_SRC = { robot: 'img/robot.png', hakase: 'img/hakase.png', lab: 'img/lab.jpg' };
+    const IMG_OK = {};
+    const imgListeners = new Set();
+    Object.entries(IMG_SRC).forEach(([k, src]) => {
+      const im = new Image();
+      im.onload = () => { IMG_OK[k] = true; imgListeners.forEach(f => f()); };
+      im.src = src;
+    });
+    function useImgs() {
+      const [, set] = useState(0);
+      useEffect(() => { const f = () => set(x => x + 1); imgListeners.add(f); return () => imgListeners.delete(f); }, []);
+      return IMG_OK;
+    }
+
     // ---- ロボット：アイテムを つけると すがたが かわる ----
     const ROBO_DRAW = {
       'h-antenna': <g><line x1="100" y1="34" x2="100" y2="16" stroke="#64748b" strokeWidth="4" /><polygon points="100,0 113,19 87,19" fill="#ef4444" stroke="#991b1b" strokeWidth="2" strokeLinejoin="round" /></g>,
@@ -821,7 +916,41 @@
       'k-cape': <path d="M66 110 L134 110 L156 204 Q100 196 44 204 Z" fill="#dc2626" stroke="#7f1d1d" strokeWidth="3" strokeLinejoin="round" />,
       'k-solar': <g><line x1="100" y1="34" x2="100" y2="24" stroke="#64748b" strokeWidth="4" /><g fill="#1e40af" stroke="#93c5fd" strokeWidth="2">{[0, 1, 2, 3].map(i => <rect key={i} x={44 + i * 28} y="2" width="28" height="22" />)}</g></g>,
     };
+    // Canva の ロボットの 絵に あわせて、アイテムの いちを ずらす
+    const ROBO_FIT = {
+      head: 'translate(100 15) scale(1.5) translate(-100 -32)',
+      body: 'translate(100 130) scale(0.85) translate(-100 -147)',
+      arm: 'translate(100 150) scale(0.77) translate(-100 -166)',
+      leg: 'translate(0 -44)',
+    };
+    // むねの まんなかに つける アイテムは すこし うえへ
+    const ROBO_ADJ = { 'b-meter': 'translate(0 -22)', 'b-light': 'translate(0 -22)', 'b-badge': 'translate(0 -16)' };
+    function RobotPng({ p, size, level, className }) {
+      const eq = (p && p.equip) || {};
+      const kira = (id) => !!(id && p && p.kira && p.kira.includes(id));
+      const item = (slot, fit) => eq[slot] && ROBO_DRAW[eq[slot]] ? <g transform={fit}><g transform={ROBO_ADJ[eq[slot]] || undefined}><g style={kira(eq[slot]) ? KIRA_STYLE : undefined}>{ROBO_DRAW[eq[slot]]}</g></g></g> : null;
+      const col = eq.color && ITEM[eq.color] && ITEM[eq.color].glow;
+      const glow = col ? `drop-shadow(0 0 6px ${col}) drop-shadow(0 0 14px ${col})${kira(eq.color) ? ' drop-shadow(0 0 4px #fde047)' : ''}` : undefined;
+      return (
+        <svg viewBox="-10 -45 220 265" width={size} height={size * 265 / 220} className={className}>
+          <defs>
+            <radialGradient id="aura"><stop offset="0%" stopColor="#67e8f9" stopOpacity="0.7" /><stop offset="100%" stopColor="#67e8f9" stopOpacity="0" /></radialGradient>
+            <radialGradient id="aura2"><stop offset="0%" stopColor="#fde047" stopOpacity="0.75" /><stop offset="100%" stopColor="#fde047" stopOpacity="0" /></radialGradient>
+          </defs>
+          {level >= 3 && <circle cx="100" cy="100" r="118" fill={level >= 8 ? 'url(#aura2)' : 'url(#aura)'} />}
+          {item('back', eq.back === 'k-solar' ? ROBO_FIT.head : ROBO_FIT.body)}
+          <image href={IMG_SRC.robot} x="0" y="0" width="200" height="200" style={glow ? { filter: glow } : undefined} />
+          {item('leg', ROBO_FIT.leg)}
+          {item('body', ROBO_FIT.body)}
+          {item('head', ROBO_FIT.head)}
+          {item('arm', ROBO_FIT.arm)}
+          {level >= 5 && <g fill="#fde047">{[[20, 10], [182, 30], [14, 120], [188, 150], [30, 190]].map(([x, y], i) => <polygon key={i} className="twinkle" style={{ animationDelay: `${i * 0.3}s` }} points={`${x},${y - 9} ${x + 3},${y - 3} ${x + 9},${y} ${x + 3},${y + 3} ${x},${y + 9} ${x - 3},${y + 3} ${x - 9},${y} ${x - 3},${y - 3}`} />)}</g>}
+        </svg>
+      );
+    }
     function Robot({ p, size = 200, mood = 'normal', level = 1, className = '' }) {
+      const imgs = useImgs();
+      if (imgs.robot) return <RobotPng p={p} size={size} level={level} className={className} />;
       const eq = (p && p.equip) || {}, has = (slot) => eq[slot] && ROBO_DRAW[eq[slot]];
       const kira = (id) => !!(id && p && p.kira && p.kira.includes(id));
       // キラキラ版は 金色に 光らせる
@@ -881,6 +1010,8 @@
 
     // ---- トンガリはかせ ----
     function Hakase({ size = 120, talking = false }) {
+      const imgs = useImgs();
+      if (imgs.hakase) return <img src={IMG_SRC.hakase} alt="トンガリはかせ" width={size * 1.15} height={size * 1.15} className={talking ? 'talkbob' : ''} style={{ objectFit: 'contain' }} draggable="false" />;
       return (
         <svg viewBox="0 0 120 150" width={size} height={size * 1.25}>
           <path d="M26 150 L34 104 Q60 94 86 104 L94 150 Z" fill="#fff" stroke="#94a3b8" strokeWidth="3" />
@@ -906,6 +1037,8 @@
 
     // ---- けんきゅうじょの 背景（ホームと きがえで だけ 使う） ----
     function LabBg() {
+      const imgs = useImgs();
+      if (imgs.lab) return <img src={IMG_SRC.lab} alt="" className="fixed inset-0 w-full h-full -z-10" style={{ objectFit: 'cover' }} draggable="false" />;
       return (
         <svg className="fixed inset-0 w-full h-full -z-10" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
           <defs>
@@ -1797,33 +1930,64 @@
     // =====================================================================
     const NAME_COLORS = [['#dc2626', '#fee2e2'], ['#2563eb', '#dbeafe'], ['#059669', '#d1fae5'], ['#d97706', '#fef3c7'], ['#7c3aed', '#ede9fe'], ['#db2777', '#fce7f3'], ['#0d9488', '#ccfbf1']];
 
-    function LoginScreen({ students, onSelect, onTeacher, demo }) {
+    function TitleCard({ sub }) {
+      return (
+        <div className="flex items-end gap-4 bg-white/90 rounded-[2rem] px-8 py-5 border-4 border-sky-200">
+          <Hakase size={120} />
+          <div className="pb-3">
+            <h1 className="text-4xl md:text-5xl font-bold text-sky-800">トンガリはかせの</h1>
+            <h1 className="text-4xl md:text-5xl font-bold text-violet-700 mt-2">ロボット けんきゅうじょ</h1>
+            {sub && <p className="text-2xl font-bold text-slate-500 mt-4">{sub}</p>}
+          </div>
+          <div className="animate-float"><Robot size={120} mood="happy" /></div>
+        </div>
+      );
+    }
+
+    // さいしょの 画面（1台を 1人で つかう）
+    function LoginScreen({ students, onSelect, onTeacher }) {
+      const n = students[0];
       return (
         <div className="min-h-screen flex flex-col items-center justify-center gap-6 p-6 relative">
           <LabBg />
-          <div className="flex items-end gap-4 bg-white/90 rounded-[2rem] px-8 py-5 border-4 border-sky-200">
-            <Hakase size={120} />
-            <div className="pb-3">
-              <h1 className="text-4xl md:text-5xl font-bold text-sky-800">トンガリはかせの</h1>
-              <h1 className="text-4xl md:text-5xl font-bold text-violet-700 mt-2">ロボット けんきゅうじょ</h1>
-              <p className="text-2xl font-bold text-slate-500 mt-4">じぶんの なまえを おしてね</p>
-            </div>
-            <div className="animate-float"><Robot size={120} mood="happy" /></div>
-          </div>
-          {students.length === 0 ? (
-            <div className="bg-white rounded-3xl p-8 text-xl font-bold text-slate-600 border-4 border-slate-200 max-w-xl text-center" style={{ lineHeight: 1.8 }}>
-              せんせいへ：スプレッドシートの「名簿」シートに、子どもの なまえ（ひらがな）を いれてください。
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-5 max-w-5xl">
-              {students.map((n, i) => {
-                const [c, l] = NAME_COLORS[i % NAME_COLORS.length];
-                return <Btn key={n} big onClick={() => onSelect(n)} color={c} light={l} className="min-w-[12rem]">{n}</Btn>;
-              })}
-            </div>
-          )}
+          <TitleCard sub="ボタンを おして はじめよう" />
+          <Btn big glow onClick={() => onSelect(n)} color="#16a34a" light="#f0fdf4" className="min-w-[18rem]">▶ はじめる（{n} さん）</Btn>
           <button onClick={onTeacher} className="fixed bottom-4 right-4 text-base text-slate-500 bg-white/80 border-2 border-slate-200 rounded-full px-4 py-2">🔒 せんせい</button>
-          {demo && <div className="fixed bottom-4 left-4 text-sm text-slate-500 bg-white/70 rounded px-2">おためしモード（スプレッドシートと つながっていません）</div>}
+        </div>
+      );
+    }
+
+    // はじめての 設定（先生が 行う）
+    function SetupScreen({ onDone }) {
+      const [name, setName] = useState('');
+      const [pin, setPin] = useState('');
+      const [pin2, setPin2] = useState('');
+      const [err, setErr] = useState('');
+      const submit = async () => {
+        const nm = name.trim();
+        if (!nm) { setErr('子どもの名前を入れてください。'); return; }
+        if (!/^\d{4}$/.test(pin)) { setErr('暗証番号は 4けたの数字にしてください。'); return; }
+        if (pin !== pin2) { setErr('暗証番号が 2回とも同じになるように入れてください。'); return; }
+        await api.setup(nm.slice(0, 20), pin);
+        onDone(nm.slice(0, 20));
+      };
+      const inp = 'border-2 border-slate-300 rounded-xl px-4 py-3 text-2xl';
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-5 p-6 relative" style={{ userSelect: 'text' }}>
+          <LabBg />
+          <TitleCard />
+          <div className="bg-white rounded-3xl border-4 border-sky-200 p-6 flex flex-col gap-4 w-full max-w-xl">
+            <div className="text-2xl font-bold text-sky-800">はじめての設定（先生が行います）</div>
+            <p className="text-slate-600">この Chromebook を使う子どもの名前と、先生用画面の暗証番号を決めます。名前や記録は、この端末の中に保存されます。</p>
+            <label className="flex flex-col gap-1 font-bold">子どもの名前（ひらがな。呼び名でもかまいません）
+              <input className={inp} value={name} onChange={e => setName(e.target.value)} placeholder="たろう" /></label>
+            <label className="flex flex-col gap-1 font-bold">暗証番号（4けたの数字）
+              <input className={inp + ' w-40'} value={pin} inputMode="numeric" onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} /></label>
+            <label className="flex flex-col gap-1 font-bold">暗証番号（もういちど）
+              <input className={inp + ' w-40'} value={pin2} inputMode="numeric" onChange={e => setPin2(e.target.value.replace(/\D/g, '').slice(0, 4))} /></label>
+            {err && <div className="text-rose-600 font-bold">{err}</div>}
+            <Btn big color="#0284c7" light="#f0f9ff" onClick={submit}>保存して はじめる</Btn>
+          </div>
         </div>
       );
     }
@@ -2071,15 +2235,65 @@
       );
     }
 
-    function TeacherView({ data, pin, onClose, onChanged, onSettings }) {
+    // スプレッドシートへの 送信の ようす
+    function SyncPanel({ onSent }) {
+      const [, setTick] = useState(0);
+      const d = Store.data(), sync = d.sync || {};
+      const [editing, setEditing] = useState(!sync.url);
+      const [url, setUrl] = useState(sync.url || '');
+      const [key, setKey] = useState(sync.key || '');
+      const [note, setNote] = useState('');
+      const [busy, setBusy] = useState(false);
+      const fmt = (t) => t ? new Date(t).toLocaleString('ja-JP') : '－';
+      const run = async (all) => {
+        setBusy(true); setNote('送っています…');
+        const r = all ? await api.resendAll() : await api.flush(true);
+        setBusy(false); setTick(t => t + 1); onSent && onSent();
+        setNote(r && r.ok ? `送りました（${r.sent || 0}件）。` : syncErrorText(r ? r.reason : 'fetch'));
+      };
+      const save = () => {
+        const u = url.trim();
+        if (u && !REC_URL_RE.test(u)) { setNote('送り先は https://script.google.com/macros/s/…/exec の形のURLを入れてください。'); return; }
+        api.setSync(u, key.trim()); setEditing(false); setTick(t => t + 1); setNote(u ? '送り先を保存しました。' : '送り先を消しました。');
+      };
+      const err = sync.lastError && (!sync.lastOkAt || sync.lastErrorAt > sync.lastOkAt);
+      return (
+        <div className="bg-white rounded-2xl border-2 border-slate-200 p-5">
+          <div className="font-bold text-slate-700 mb-2">スプレッドシートへの送信</div>
+          <table className="text-sm mb-3"><tbody>
+            <tr><td className="pr-4 text-slate-500">送り先</td><td className="font-bold">{sync.url ? '✅ 設定ずみ' : '未設定'}</td></tr>
+            <tr><td className="pr-4 text-slate-500">まだ送っていない記録</td><td className="font-bold">{d.pending.length} 件</td></tr>
+            <tr><td className="pr-4 text-slate-500">最後に送れた日時</td><td className="font-bold">{fmt(sync.lastOkAt)}</td></tr>
+          </tbody></table>
+          {err && <div className="bg-rose-50 border-2 border-rose-200 text-rose-800 rounded-xl p-2 text-sm mb-3">⚠️ {syncErrorText(sync.lastError)}</div>}
+          {sync.url && <div className="flex gap-3 flex-wrap mb-3">
+            <button disabled={busy} onClick={() => run(false)} className="px-5 py-2 rounded-full bg-emerald-600 text-white font-bold">📤 今すぐ送る</button>
+            <button disabled={busy} onClick={() => run(true)} className="px-5 py-2 rounded-full border-2 border-slate-300 font-bold">全部の記録を送りなおす</button>
+          </div>}
+          {note && <div className="text-sm font-bold text-slate-700 mb-2">{note}</div>}
+          {!sync.url && <p className="text-sm text-slate-600 mb-2">入口ページ（Apps Script）の「▶ はじめる」から開くと、送り先は自動で設定されます。入口ページを通さずに開いたときは、スプレッドシートのメニュー「ロボット けんきゅうじょ → 子どもに配るURLと合言葉を表示」で出るURLと合言葉を、ここに入れてください。</p>}
+          {editing ? (
+            <div className="flex flex-col gap-2">
+              <input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://script.google.com/macros/s/…/exec" className="border-2 border-slate-300 rounded-lg px-3 py-2 text-sm" />
+              <input value={key} onChange={e => setKey(e.target.value)} placeholder="合言葉" className="border-2 border-slate-300 rounded-lg px-3 py-2 text-sm w-48" />
+              <div className="flex gap-2"><button onClick={save} className="px-4 py-2 rounded-full bg-sky-600 text-white font-bold">保存</button>
+                {sync.url && <button onClick={() => setEditing(false)} className="px-4 py-2 rounded-full border-2 border-slate-300 font-bold">やめる</button>}</div>
+            </div>
+          ) : <button onClick={() => setEditing(true)} className="text-sm text-sky-700 underline">送り先を手で入れなおす</button>}
+        </div>
+      );
+    }
+
+    function TeacherView({ data, pin, onClose, onChanged, onSettings, onRenamed }) {
       const [tab, setTab] = useState('rec');
       const [sel, setSel] = useState(null);
       const [busy, setBusy] = useState(false);
       const [msg, setMsg] = useState('');
       const [form, setForm] = useState({ ...DEFAULT_SETTINGS, ...(data.settings || {}) });
       const [csvOpen, setCsvOpen] = useState(false);
-      const [clearName, setClearName] = useState('');
       const [confirm, setConfirm] = useState(false);
+      const [newName, setNewName] = useState(data.students[0] ? data.students[0].name : '');
+      const [newPin, setNewPin] = useState('');
       const [log, setLog] = useState(data.log || []);
       const agg = useMemo(() => aggregate(log), [log]);
       const students = data.students;
@@ -2111,11 +2325,39 @@
         } catch (e) { setCsvOpen(true); }
       };
       const clearStudent = async () => {
+        const nm = students[0] ? students[0].name : '';
         setBusy(true);
-        const res = await api.clearStudent(pin, clearName).catch(() => null);
+        const res = await api.clearStudent(pin).catch(() => null);
         setBusy(false); setConfirm(false);
-        if (res && res.ok) { setLog(l => l.filter(r => r[1] !== clearName)); onChanged(clearName, ''); setMsg(`${clearName} さんの記録を消しました。`); }
+        if (res && res.ok) { setLog([]); onChanged(nm, ''); setMsg('この端末の記録を消しました。'); }
         else setMsg('消せませんでした。');
+      };
+      const rename = async () => {
+        const nm = newName.trim().slice(0, 20);
+        const res = await api.rename(pin, nm);
+        if (res.ok) { onRenamed(nm); setLog([...Store.data().log]); setMsg(`名前を「${nm}」にしました。`); }
+      };
+      const changePin = async () => {
+        const res = await api.changePin(pin, newPin);
+        if (res.ok) { setNewPin(''); setMsg('暗証番号を変えました。次からは新しい番号で開きます。'); }
+      };
+      const saveBackup = () => {
+        try {
+          const blob = new Blob([api.backup()], { type: 'application/json' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob); a.download = `ずけい_バックアップ_${(students[0] || {}).name || ''}_${today().slice(0, 10).replace(/\//g, '')}.json`;
+          document.body.appendChild(a); a.click(); a.remove();
+          setMsg('バックアップを保存しました。');
+        } catch (e) { setMsg('保存できませんでした。'); }
+      };
+      const loadBackup = (e) => {
+        const f = e.target.files && e.target.files[0]; if (!f) return;
+        const r = new FileReader();
+        r.onload = () => {
+          try { api.restore(String(r.result)); setMsg('バックアップを読み込みました。画面を開きなおします。'); setTimeout(() => location.reload(), 1200); }
+          catch (er) { setMsg('読み込めませんでした：' + er.message); }
+        };
+        r.readAsText(f);
       };
       const TabBtn = ({ id, children }) => <button onClick={() => { setTab(id); setMsg(''); }} className={`px-5 py-2 rounded-full font-bold border-2 ${tab === id ? 'bg-slate-700 text-white border-slate-700' : 'bg-white text-slate-600 border-slate-300'}`}>{children}</button>;
 
@@ -2126,8 +2368,7 @@
               <h2 className="text-2xl font-bold text-slate-700">先生用画面</h2>
               <button onClick={onClose} className="bg-white border-2 border-slate-300 rounded-full px-5 py-2 font-bold text-slate-600">閉じる ✕</button>
             </div>
-            {data.isDefaultPin && <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-3 mb-4 text-amber-800 text-sm font-bold">暗証番号が最初の番号（1234）のままです。スプレッドシートの「せってい」シートで変えてください。</div>}
-            {data.demo && <div className="bg-sky-50 border-2 border-sky-200 rounded-xl p-3 mb-4 text-sky-800 text-sm">おためしモードです。記録はこの端末のブラウザにだけ保存されます。</div>}
+            {!Store.data().sync.url && <div className="bg-sky-50 border-2 border-sky-200 rounded-xl p-3 mb-4 text-sky-800 text-sm">スプレッドシートへの送り先が、まだ設定されていません。記録はこの端末にだけ保存されます（「データ」タブで設定できます）。</div>}
             <div className="flex gap-2 mb-4"><TabBtn id="rec">📊 記録</TabBtn><TabBtn id="set">⚙️ 設定</TabBtn><TabBtn id="data">💾 データ</TabBtn></div>
             {msg && <div className="bg-green-50 border-2 border-green-300 rounded-xl p-3 mb-4 text-green-800 font-bold">{msg}</div>}
 
@@ -2236,33 +2477,44 @@
                   <button disabled={busy} onClick={saveSettings} className="px-6 py-3 rounded-full bg-sky-600 text-white font-bold">保存する</button>
                   <button onClick={() => { applySettings(form); Speech.say('この はやさで よみあげます。'); }} className="px-4 py-3 rounded-full border-2 border-slate-300 font-bold">🔊 ためしに聞く</button>
                 </div>
-                <div className="text-sm text-slate-500">「全部のステージを開く」は、記録タブで子どもを選ぶと出ます。暗証番号はスプレッドシートの「せってい」シートで変えます。</div>
+                <div className="text-sm text-slate-500">「全部のステージを開く」は、記録タブで子どもの名前を押すと出ます。</div>
+                <div className="border-t-2 border-slate-100 pt-4 flex flex-col gap-3">
+                  <div className="font-bold">子どもの名前（ひらがな）</div>
+                  <div className="flex gap-2 flex-wrap"><input value={newName} onChange={e => setNewName(e.target.value)} className="border-2 border-slate-300 rounded-lg px-3 py-2 text-lg" />
+                    <button disabled={busy || !newName.trim()} onClick={rename} className="px-4 py-2 rounded-full border-2 border-sky-500 text-sky-700 font-bold">名前を変える</button></div>
+                  <div className="font-bold">暗証番号（4けたの数字）</div>
+                  <div className="flex gap-2 flex-wrap"><input value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" className="border-2 border-slate-300 rounded-lg px-3 py-2 text-lg w-32" placeholder="新しい番号" />
+                    <button disabled={busy || newPin.length !== 4} onClick={changePin} className="px-4 py-2 rounded-full border-2 border-sky-500 text-sky-700 font-bold">暗証番号を変える</button></div>
+                </div>
                 <div className="text-xs text-slate-400">画面の版：{APP_VERSION}</div>
               </div>
             )}
 
             {tab === 'data' && (
               <div className="flex flex-col gap-4 max-w-3xl">
+                <SyncPanel onSent={() => setLog([...Store.data().log])} />
                 <div className="bg-white rounded-2xl border-2 border-slate-200 p-5">
                   <div className="font-bold text-slate-700 mb-2">記録の書き出し（CSV）</div>
-                  <p className="text-sm text-slate-600 mb-3">記録は、問題が終わるたびに スプレッドシートの「きろく」シートへ 自動で届いています。CSVファイルでも 取り出せます（全 {log.length} 件）。</p>
-                  <div className="flex gap-3">
+                  <p className="text-sm text-slate-600 mb-3">この端末に保存されている記録を、CSVファイルで取り出せます（全 {log.length} 件）。</p>
+                  <div className="flex gap-3 flex-wrap">
                     <button onClick={download} className="px-5 py-2 rounded-full bg-sky-600 text-white font-bold">⬇ CSVを保存</button>
                     <button onClick={() => setCsvOpen(!csvOpen)} className="px-5 py-2 rounded-full border-2 border-slate-300 font-bold">中身を表示してコピー</button>
                   </div>
                   {csvOpen && <textarea readOnly value={csvText} className="w-full h-48 mt-3 border-2 border-slate-200 rounded-xl p-2 text-xs font-mono" onFocus={e => e.target.select()} />}
                 </div>
+                <div className="bg-white rounded-2xl border-2 border-slate-200 p-5">
+                  <div className="font-bold text-slate-700 mb-2">バックアップ</div>
+                  <p className="text-sm text-slate-600 mb-3">名前・進み具合・もらったアイテム・記録を、1つのファイルに保存します。Chromebook を取りかえるときは、新しい端末で「読み込む」を押して、このファイルを選びます。</p>
+                  <div className="flex gap-3 flex-wrap items-center">
+                    <button onClick={saveBackup} className="px-5 py-2 rounded-full bg-sky-600 text-white font-bold">⬇ バックアップを保存</button>
+                    <label className="px-5 py-2 rounded-full border-2 border-slate-300 font-bold cursor-pointer">⬆ 読み込む<input type="file" accept=".json,application/json" className="hidden" onChange={loadBackup} /></label>
+                  </div>
+                </div>
                 <div className="bg-white rounded-2xl border-2 border-rose-200 p-5">
                   <div className="font-bold text-rose-700 mb-2">記録の消去</div>
-                  <p className="text-sm text-slate-600 mb-3">選んだ子どもの 記録と 進み具合（もらったアイテムも）を すべて消します。元には戻せません。</p>
-                  <div className="flex gap-3 items-center flex-wrap">
-                    <select value={clearName} onChange={e => { setClearName(e.target.value); setConfirm(false); }} className="border-2 border-slate-300 rounded-lg px-3 py-2">
-                      <option value="">子どもを選ぶ</option>
-                      {students.map(st => <option key={st.name} value={st.name}>{st.name}</option>)}
-                    </select>
-                    {clearName && !confirm && <button onClick={() => setConfirm(true)} className="px-4 py-2 rounded-full border-2 border-rose-400 text-rose-700 font-bold">記録を消す</button>}
-                    {clearName && confirm && <button disabled={busy} onClick={clearStudent} className="px-4 py-2 rounded-full bg-rose-600 text-white font-bold">本当に {clearName} さんの記録を消す</button>}
-                  </div>
+                  <p className="text-sm text-slate-600 mb-3">{students[0] ? students[0].name : ''} さんの、この端末の記録と進み具合（もらったアイテムも）を、すべて消します。元には戻せません。スプレッドシートに届いた記録は消えません。</p>
+                  {!confirm && <button onClick={() => setConfirm(true)} className="px-4 py-2 rounded-full border-2 border-rose-400 text-rose-700 font-bold">記録を消す</button>}
+                  {confirm && <button disabled={busy} onClick={clearStudent} className="px-4 py-2 rounded-full bg-rose-600 text-white font-bold">本当に消す</button>}
                 </div>
               </div>
             )}
@@ -2386,7 +2638,8 @@
 
       const bar = <TopBar name={name} onLogout={logout} onTeacher={openTeacher} />;
       let screen;
-      if (!name || view.v === 'login') screen = <LoginScreen students={boot.students} onSelect={selectStudent} onTeacher={openTeacher} demo={boot.demo} />;
+      if (boot.needSetup) return <SetupScreen onDone={(n) => setBoot({ ...boot, needSetup: false, students: [n] })} />;
+      if (!name || view.v === 'login') screen = <LoginScreen students={boot.students} onSelect={selectStudent} onTeacher={openTeacher} />;
       else if (view.v === 'home') screen = <HomeScreen key="home" name={name} progress={progress} settings={settings} bar={bar} onStage={(st) => setView({ v: 'stage', stage: st })} onStep={startStep} onDress={() => setView({ v: 'dress' })} />;
       else if (view.v === 'stage') screen = <StageScreen key={view.stage.id} stage={view.stage} progress={progress} settings={settings} bar={bar} onBack={() => setView({ v: 'home' })} onStep={startStep} />;
       else if (view.v === 'act') screen = <Activity key={view.key} step={view.step} round={view.round} progress={progress} name={name}
@@ -2401,6 +2654,7 @@
           {loading && <div className="fixed inset-0 bg-white/60 flex items-center justify-center text-3xl font-bold text-sky-700 z-50">よみこみ ちゅう…</div>}
           {pinOpen && <PinPad onSubmit={submitPin} onClose={() => setPinOpen(false)} error={pinError} />}
           {teacher && <TeacherView data={teacher.data} pin={teacher.pin} onChanged={teacherChanged}
+            onRenamed={(n) => { setBoot(b => ({ ...b, students: [n] })); if (name) setName(n); setTeacher(t => ({ ...t, data: { ...t.data, students: t.data.students.map(s => ({ ...s, name: n })) } })); }}
             onSettings={(s) => { const v = { ...settings, ...s }; setSettings(v); applySettings(v); }}
             onClose={async () => {
               setTeacher(null);
