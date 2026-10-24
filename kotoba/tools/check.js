@@ -44,6 +44,13 @@ D.WORDS.forEach(w => {
   });
   if (mg.length < 3) ng(`${at}：まちがいやすい ことばが 3つ いじょう ありません`);
   if (mg.filter(m => m[2] !== 'x').length < 2) ng(`${at}：③ぶんで つかう に 出せる まちがいやすい ことばが 2つ いじょう ありません`);
+  // れいぶんの 中に ことばが あるか（⓪であう の 下線と、②の ヒントで つかう。アプリの wordVariants と おなじ）
+  const b = w.w.replace('〜', ''), vs = [b];
+  const DAKU = { 'ひ': 'びぴ', 'ほ': 'ぼぽ', 'は': 'ばぱ' };
+  if (w.w.startsWith('〜') && DAKU[b[0]]) [...DAKU[b[0]]].forEach(c => vs.push(c + b.slice(1)));
+  if (b.includes(' ')) vs.push(b.split(' ')[0]);
+  if (b.length >= 3) vs.push(b.slice(0, -1));
+  if (!vs.some(v => w.ex.includes(v))) ng(`${at}：れいぶんに ことばが みつかりません（${w.ex}）`);
   // いみが おなじ ことばが ないか
   if (D.WORDS.some(o => o !== w && o.mean === w.mean)) ng(`${at}：おなじ いみの 文が ほかにも あります`);
 });
