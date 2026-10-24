@@ -65,7 +65,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext } = React;
-    const APP_VERSION = '1.0.1';
+    const APP_VERSION = '1.0.2';
     const BASE = window.KANJI3_BASE;
     const IMG = BASE + 'img/';
 
@@ -99,6 +99,11 @@
     // =====================================================================
     // 読み上げだけ 直す ことば（「〜の はし」の「は」が「わ」と 読まれないよう、声では 漢字に する）
     const SPEAK_FIX = [[/そりかえった はしの/g, 'そりかえった 橋の'], [/の はしと/g, 'の 端と']];
+    // 読みの「は」「へ」が 1字だけで 出る とき（歯・葉・羽 などの よみ「は」）は、助詞と まちがえて「わ」「え」と 読まれる。
+    // 声に 出す ときだけ カタカナに する（「は。」「、は、」「「は」」「はが」「はを」「はの」など。「〜は」のような 助詞は そのまま）
+    const speakFix = (t) => t
+      .replace(/(^|[\s、。！？!?「])は(?=[がをのにもで]?(?:$|[\s、。！？!?」]))/gu, '$1ハ')
+      .replace(/(^|[\s、。！？!?「])へ(?=$|[\s、。！？!?」])/gu, '$1ヘ');
     const Speech = {
       rate: 0.8, pitch: 1.1, voice: null,
       ok: typeof window !== 'undefined' && 'speechSynthesis' in window,
@@ -109,7 +114,7 @@
       },
       say(text, onEnd) {
         if (!this.ok || !text) { if (onEnd) setTimeout(onEnd, 200); return; }
-        text = SPEAK_FIX.reduce((t, [re, to]) => t.replace(re, to), String(text));
+        text = speakFix(SPEAK_FIX.reduce((t, [re, to]) => t.replace(re, to), String(text)));
         try {
           window.speechSynthesis.cancel();
           const u = new SpeechSynthesisUtterance(text);
@@ -261,7 +266,7 @@
       return out;
     }
     // よみあげ用（漢字は よみに なおす）
-    const speakText = (s, y) => parseSentence(s).map(p => p.t === 'text' ? p.v : p.t === 'ruby' ? p.r : y).join('').replace(/\s+/g, ' ');
+    const speakText = (s, y) => parseSentence(s).map(p => p.t === 'text' ? p.v : p.t === 'ruby' ? p.r : (/^[はへ]$/.test(y) ? (y === 'は' ? 'ハ' : 'ヘ') : y)).join('').replace(/\s+/g, ' ');
 
     // mode: 'hide'（ふりがな なしで 色を つける）/ 'blank'（□ に ふりがな）/ 'answer'（こたえ つき）
     function Sentence({ s, y, mode, answer, size = 'text-4xl' }) {
