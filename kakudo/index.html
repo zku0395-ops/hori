@@ -63,7 +63,7 @@
 
     /* ホーム */
     .home { max-width: 1400px; margin: 0 auto; padding: .6rem .75rem; display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 30%); gap: .8rem; height: calc(100vh - 56px); height: calc(100dvh - 56px); }
-    .home-scene { border-radius: 1.4rem; overflow: hidden; background: #8f1d1d; display: flex; align-items: center; justify-content: center; min-height: 0; box-shadow: 0 4px 14px rgba(0,0,0,.15); }
+    .home-scene { border-radius: 1.4rem; overflow: hidden; background: #3b2412; display: flex; align-items: center; justify-content: center; min-height: 0; box-shadow: 0 4px 14px rgba(0,0,0,.15); }
     .home-side { min-height: 0; overflow-y: auto; padding-bottom: .5rem; }
     @media (max-width: 900px) { .home { grid-template-columns: 1fr; height: auto; } .home-scene { aspect-ratio: 1000 / 600; } }
 
@@ -1087,6 +1087,42 @@
           <PlantPot x={110} y={575} s={1.1} />
           {/* ワニワニ先生 */}
           <g transform="translate(684 274) scale(1.3)" onClick={onWani} style={{ cursor: onWani ? 'pointer' : 'default' }}>
+            <WaniImg mood={waniMood} talking={talking} />
+          </g>
+        </svg>
+      );
+    }
+
+    // ---- ピザやさん（Canva で 作った 背景）。読みこめない ときは 上の SVG の お店を 出す ----
+    const SHOP_FRAMES = [{ x: 321, y: 205, r: 56 }, { x: 672, y: 205, r: 58 }, { x: 1034, y: 207, r: 46 }];
+    function ShopPhotoScene({ pizzas = [], onFrame, onWani, waniMood = 'normal', talking = false, newId }) {
+      const [failed, setFailed] = useState(false);
+      if (failed) return <ShopScene pizzas={pizzas} onFrame={onFrame} onWani={onWani} waniMood={waniMood} talking={talking} newId={newId} />;
+      return (
+        <svg viewBox="0 0 1600 900" style={{ width: '100%', height: '100%', display: 'block' }} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <image href="img/shop.webp" x="0" y="0" width="1600" height="900" onError={() => setFailed(true)} />
+          {SHOP_FRAMES.map((f, i) => {
+            const p = pizzas[i];
+            return (
+              <g key={i} onClick={onFrame} style={{ cursor: onFrame ? 'pointer' : 'default' }}>
+                <rect x={f.x - f.r - 8} y={f.y - f.r - 14} width={f.r * 2 + 16} height={f.r * 2 + 40} fill="transparent" />
+                {p ? (
+                  <g>
+                    <g transform={`translate(${f.x} ${f.y - 6}) scale(${f.r / 100})`}><PizzaG toppings={p.toppings} seed={p.id} baked /></g>
+                    <text x={f.x} y={f.y + f.r + 14} textAnchor="middle" fontSize="18" fontWeight="700" fill="#78350f">{fmtDay(p.at)}</text>
+                  </g>
+                ) : (
+                  <g opacity=".55">
+                    <circle cx={f.x} cy={f.y - 6} r={f.r - 6} fill="none" stroke="#b45309" strokeWidth="4" strokeDasharray="10 9" />
+                    <text x={f.x} y={f.y - 4} textAnchor="middle" dominantBaseline="middle" fontSize="44" fontWeight="900" fill="#b45309">?</text>
+                  </g>
+                )}
+                {p && p.id === newId && <text x={f.x + f.r} y={f.y - f.r - 4} textAnchor="middle" fontSize="44">✨</text>}
+              </g>
+            );
+          })}
+          <g transform="translate(1150 420) scale(1.9)" onClick={onWani} style={{ cursor: onWani ? 'pointer' : 'default' }}>
+            <ellipse cx="110" cy="236" rx="70" ry="9" fill="rgba(0,0,0,.22)" />
             <WaniImg mood={waniMood} talking={talking} />
           </g>
         </svg>
@@ -2910,7 +2946,7 @@
       return (
         <div className="home">
           <div className="home-scene">
-            <ShopScene pizzas={state.pizzas} onFrame={onAlbum} onWani={() => say(true)} talking={talking} waniMood={newId ? 'happy' : 'normal'} newId={newId} />
+            <ShopPhotoScene pizzas={state.pizzas} onFrame={onAlbum} onWani={() => say(true)} talking={talking} waniMood={newId ? 'happy' : 'normal'} newId={newId} />
           </div>
           <div className="col home-side kids">
             <div className="bubble" style={{ fontSize: '1.35rem' }}>
