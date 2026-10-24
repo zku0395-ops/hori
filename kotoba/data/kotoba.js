@@ -599,7 +599,7 @@
     { id: 'ao', name: 'あお', h: 215, s: 1, l: 0, css: '#2563eb' },
     { id: 'aka', name: 'あか', h: 355, s: 1, l: 0, css: '#dc2626' },
     { id: 'midori', name: 'みどり', h: 135, s: 1, l: 0, css: '#16a34a' },
-    { id: 'kiiro', name: 'きいろ', h: 48, s: 1, l: 0.1, css: '#eab308' },
+    { id: 'kiiro', name: 'きいろ', h: 50, s: 1.35, l: 0.2, css: '#eab308' },
     { id: 'murasaki', name: 'むらさき', h: 275, s: 1, l: 0, css: '#9333ea' },
     { id: 'orenji', name: 'オレンジ', h: 25, s: 1, l: 0.05, css: '#ea580c' },
   ];
@@ -619,7 +619,7 @@
       { id: 'kuro', n: 'くろい ふく', color: { id: 'kuro', name: 'くろ', h: 0, s: 0, l: -0.3, css: '#1e293b' }, p: 60 },
       { id: 'kon', n: 'こんいろの ふく', color: { id: 'kon', name: 'こんいろ', h: 228, s: 0.8, l: -0.18, css: '#1e3a8a' }, p: 60 },
       { id: 'gin', n: 'ぎんいろの ふく', color: { id: 'gin', name: 'ぎんいろ', h: 210, s: 0.12, l: 0.18, css: '#94a3b8', shine: true }, p: 120 },
-      { id: 'kin', n: 'きんいろの ふく', color: { id: 'kin', name: 'きんいろ', h: 44, s: 1, l: 0.05, css: '#ca8a04', shine: true }, p: 120 },
+      { id: 'kin', n: 'きんいろの ふく', color: { id: 'kin', name: 'きんいろ', h: 44, s: 1.4, l: 0.1, css: '#ca8a04', shine: true }, p: 120 },
       { id: 'niji', n: 'にじいろの ふく', color: { id: 'niji', name: 'にじいろ', h: 0, s: 1, l: 0.05, css: 'linear-gradient(90deg,#ef4444,#eab308,#22c55e,#3b82f6,#a855f7)', niji: true }, p: 240 }] },
     { id: 'weapon', name: 'ぶき', icon: '🗡️', items: [
       { id: 'bou', n: 'きの ぼう', e: '🪵', p: 20 }, { id: 'tanken', n: 'たんけん', e: '🗡️', p: 20 }, { id: 'hammer', n: 'ハンマー', e: '🔨', p: 20 }, { id: 'yumi', n: 'ゆみ', e: '🏹', p: 20 },
