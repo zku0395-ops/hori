@@ -128,6 +128,8 @@
     @keyframes glow { 50% { box-shadow: 0 0 0 8px rgba(251,191,36,.55); } }
     .flicker { animation: flicker .35s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 50% 100%; }
     @keyframes flicker { to { transform: scaleY(1.18) scaleX(.94); } }
+    .ovenglow { animation: ovenglow 1.1s ease-in-out infinite alternate; }
+    @keyframes ovenglow { from { opacity: .15; } to { opacity: .5; } }
     .confetti { position: fixed; top: -60px; z-index: 60; pointer-events: none; animation: fall linear forwards; }
     @keyframes fall { to { transform: translateY(115vh) rotate(540deg); } }
     .fadein { animation: fadein .5s ease both; }
@@ -162,7 +164,7 @@
     .modal-bg { position: fixed; inset: 0; z-index: 50; background: rgba(15,23,42,.45); display: flex; align-items: center; justify-content: center; padding: 1rem; }
 
     @media (prefers-reduced-motion: reduce) {
-      .bob, .sway, .pulse, .glow, .flicker, .talk { animation: none !important; }
+      .bob, .sway, .pulse, .glow, .flicker, .ovenglow, .talk { animation: none !important; }
     }
   </style>
 </head>
@@ -1130,7 +1132,24 @@
     }
 
     // ---- ピザがま ----
+    // ピザがま（絵は img/oven.webp。読みこめないときは SVG の かま）
+    // children は 400×300 の座標で書く。絵のときは 口の位置に 合わせて うつす
+    const OVEN_STATE = { failed: false };
     function Oven({ pizzaIn = false, children }) {
+      const [failed, setFailed] = useState(OVEN_STATE.failed);
+      if (!failed) {
+        const onError = () => { OVEN_STATE.failed = true; setFailed(true); };
+        return (
+          <svg viewBox="0 0 800 611" style={{ width: '100%', height: '100%' }} aria-hidden="true">
+            <defs>
+              <radialGradient id="ovenGlowG"><stop offset="0" stopColor="#fde047" stopOpacity="0.9" /><stop offset="1" stopColor="#f97316" stopOpacity="0" /></radialGradient>
+            </defs>
+            <image href="img/oven.webp" x="0" y="0" width="800" height="611" onError={onError} />
+            <ellipse className="ovenglow" cx="400" cy="405" rx="170" ry="110" fill="url(#ovenGlowG)" />
+            <g transform="translate(400 490) scale(2) translate(-200 -252)">{children}</g>
+          </svg>
+        );
+      }
       return (
         <svg viewBox="0 0 400 300" style={{ width: '100%', height: '100%' }} aria-hidden="true">
           <defs>
@@ -2470,12 +2489,23 @@
 
     /* ---------- ステージ7：角を つくろう ---------- */
     const CUSTOMERS = ['🐰', '🐻', '🐼', '🐸', '🐧', '🐱', '🐶', '🦊', '🐨', '🐯'];
+    // お客さんの絵（img/cust_○○.webp）。読みこめないときは 絵文字
+    const CUSTOMER_IMGS = { '🐰': 'rabbit', '🐻': 'bear', '🐼': 'panda', '🐸': 'frog', '🐧': 'penguin', '🐱': 'cat', '🐶': 'dog', '🦊': 'fox', '🐨': 'koala', '🐯': 'tiger' };
+    const CUST_STATE = { failed: {}, subs: new Set() };
+    function CustomerFace({ who, cx, cy, size = 76 }) {
+      const [, setTick] = useState(0);
+      useEffect(() => { const f = () => setTick(t => t + 1); CUST_STATE.subs.add(f); return () => CUST_STATE.subs.delete(f); }, []);
+      const name = CUSTOMER_IMGS[who];
+      if (!name || CUST_STATE.failed[name]) return <text x={cx} y={cy + 2} textAnchor="middle" dominantBaseline="central" fontSize={size / 2}>{who}</text>;
+      const onError = () => { CUST_STATE.failed[name] = true; CUST_STATE.subs.forEach(f => f()); };
+      return <image href={`img/cust_${name}.webp`} x={cx - size / 2} y={cy - size / 2} width={size} height={size} onError={onError} preserveAspectRatio="xMidYMax meet" />;
+    }
     function OrderBubble({ x = 14, y = 12, v, who }) {
       return (
         <g pointerEvents="none">
           <rect x={x} y={y} width="290" height="100" rx="20" fill="#fff" stroke="#fda4af" strokeWidth="4" />
-          <circle cx={x + 46} cy={y + 50} r="32" fill="#ffe4e6" />
-          <text x={x + 46} y={y + 52} textAnchor="middle" dominantBaseline="central" fontSize="38">{who}</text>
+          <circle cx={x + 46} cy={y + 50} r="36" fill="#ffe4e6" />
+          <CustomerFace who={who} cx={x + 46} cy={y + 48} size={80} />
           <text x={x + 90} y={y + 30} fontSize="20" fontWeight="700" fill="#9f1239">ちゅうもん！</text>
           <text x={x + 90} y={y + 76} fontSize="42" fontWeight="900" fill="#be123c">{v}°</text>
           <text x={x + 90 + String(v).length * 24 + 30} y={y + 76} fontSize="22" fontWeight="700" fill="#9f1239">の ピザ</text>
@@ -3079,7 +3109,7 @@
           {phase === 'out' && <Confetti />}
           <div style={{ position: 'relative', height: '58vh', maxHeight: 460 }}>
             <Oven>
-              {phase === 'in' && <g transform={`translate(${200} ${300 - 90 * k}) scale(${0.5 - 0.25 * k})`}><PizzaG toppings={pizza.toppings} seed={pizza.id} /></g>}
+              {phase !== 'out' && <g transform={`translate(${200} ${300 - 64 * k}) scale(${0.5 - 0.24 * k})`}><PizzaG toppings={pizza.toppings} seed={pizza.id} /></g>}
               {phase === 'bake' && <text x="200" y="120" textAnchor="middle" fontSize="30" fontWeight="900" fill="#fff" stroke="#7c2d12" strokeWidth="6" paintOrder="stroke">じゅうう…</text>}
             </Oven>
             {phase === 'out' && (
