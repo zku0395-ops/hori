@@ -155,6 +155,11 @@
     .itemgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: .8rem; }
     .itembtn { border-radius: 1.3rem; padding: .8rem .5rem; min-height: 11rem; flex-direction: column; font-size: 1.2rem; }
     .namegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 1rem; }
+    .toprow { display: flex; gap: 1.2rem; align-items: flex-start; margin-top: 1.2rem; }
+    .topart { flex: 1.25; min-width: 0; margin: 0; }
+    .topart img { display: block; width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 1.2rem; border: 4px solid #fff; box-shadow: 0 4px 14px rgba(30, 58, 138, .15); }
+    .toprow .namegrid { flex: 1; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
+    @media (max-width: 900px) { .toprow { flex-direction: column; } .topart, .toprow .namegrid { width: 100%; } }
 
     /* 先生用 */
     .tbl { border-collapse: collapse; width: 100%; font-size: .95rem; background: #fff; }
@@ -969,7 +974,9 @@
         <div className="wrap">
           <TopBar title="ツバサせんせいの にっぽん たんけんたい" right={<button className="speak" onClick={() => go({ name: 'teacher' })} data-open-teacher="1">⚙️ せんせい</button>} />
           <Say text={text} size={140} />
-          <div className="namegrid" style={{ marginTop: '1.2rem' }}>
+          <div className="toprow">
+          <figure className="topart"><img src="img/top.webp" alt="ツバサせんせいと たんけんたいいんが、ききゅうで にっぽんの うえを とんで いる え" onError={e => { e.currentTarget.parentNode.style.display = 'none'; }} /></figure>
+          <div className="namegrid">
             {st.roster.map(k => {
               const t = titleOf(st, k.id);
               return (
@@ -979,6 +986,7 @@
                 </Btn>
               );
             })}
+          </div>
           </div>
           {!st.roster.length && <div className="card" style={{ marginTop: '1rem' }}>名簿に名前がありません。先生用画面の「名簿」で名前を入れてください。</div>}
         </div>
