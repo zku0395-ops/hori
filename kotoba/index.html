@@ -56,6 +56,7 @@
     @keyframes niji { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } }
     .shine { animation: shine 2.4s ease-in-out infinite; }
     @keyframes shine { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.25) drop-shadow(0 0 6px #fff7); } }
+    .battle-bg img { object-position: center 70%; }
     .chara-img { filter: drop-shadow(0 4px 4px rgba(0,0,0,.25)); }
     .caret:after { content: '▼'; display: inline-block; margin-left: 6px; font-size: .7em; animation: floaty 1s infinite; }
     .path-dash { stroke-dasharray: 10 10; }
@@ -84,7 +85,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.0.1';
+    const APP_VERSION = '1.0.2';
     const BASE = window.KOTOBA_BASE;
     const IMG = BASE + 'img/';
 
@@ -862,28 +863,32 @@
     // =====================================================================
     // 10. たたかい（1かい ぶん）
     // =====================================================================
+    // たたかいの 場面（その 場所の 絵の 上で、ぼうけんしゃと モンスターが むかいあう）
     function BattleField({ place, look, party, mon, hp, max, hit, crit, missFx, end, bubble }) {
+      const file = place ? `place_${place.id}.webp` : 'place_inn.webp';
+      const fallback = <div className="absolute inset-0" style={{ background: `linear-gradient(${place ? place.bg : '#fde68a'} 0 62%, ${place ? place.color : '#b45309'}66 62% 100%)` }} />;
       return (
-        <div className="relative w-full rounded-2xl border-4 border-blue-950 overflow-hidden shrink-0" style={{ height: 108, background: `linear-gradient(${place ? place.bg : '#e0f2fe'} 0 62%, ${place ? place.color : '#16a34a'}55 62% 100%)` }}>
-          <div className="absolute left-3 bottom-1 flex items-end gap-1">
-            <div key={'a' + hit} className={hit ? 'lunge' : ''}><Hero look={look} size={68} /></div>
-            <Party ids={party} size={40} />
+        <Bg file={file} fallback={fallback} className="w-full rounded-2xl border-4 border-blue-950 shrink-0 battle-bg" style={{ height: 210 }}>
+          <div className="absolute inset-x-0 bottom-0 h-1/3" style={{ background: 'linear-gradient(transparent, rgba(0,0,0,.18))' }} />
+          <div className="absolute bottom-2 flex items-end gap-1" style={{ left: '5%' }}>
+            <div key={'a' + hit} className={hit ? 'lunge' : ''}><Hero look={look} size={128} /></div>
+            <Party ids={party} size={66} />
           </div>
           {mon && (
-            <div className={`absolute right-6 bottom-1 flex flex-col items-center ${end === 'win' ? 'defeat' : ''}`}>
-              <div className="bg-blue-950/80 rounded-full px-2 py-1 mb-1 flex items-center gap-1">
-                <span className="text-sm font-bold text-white">{mon.name}</span>
-                {Array.from({ length: max }, (_, j) => <span key={j} className={`inline-block w-4 h-3 rounded-sm ${j < hp ? 'bg-emerald-400' : 'bg-slate-500'}`} />)}
+            <div className={`absolute bottom-2 flex flex-col items-center ${end === 'win' ? 'defeat' : ''}`} style={{ right: '6%' }}>
+              <div className="bg-blue-950/85 rounded-full px-3 py-1 mb-1 flex items-center gap-1">
+                <span className="text-base font-bold text-white">{mon.name}</span>
+                {Array.from({ length: max }, (_, j) => <span key={j} className={`inline-block w-5 h-3.5 rounded-sm ${j < hp ? 'bg-emerald-400' : 'bg-slate-500'}`} />)}
               </div>
-              <div key={'h' + hit} className={hit ? 'hurt' : ''}><Monster m={mon} size={70} className={end ? '' : 'bob'} /></div>
+              <div key={'h' + hit} className={hit ? 'hurt' : ''}><Monster m={mon} size={140} className={end ? '' : 'bob'} /></div>
             </div>
           )}
-          {hit > 0 && mon && <div key={'s' + hit} className="absolute slash text-5xl" style={{ right: 26, bottom: 14 }}>{crit ? '💥' : '⚔️'}</div>}
-          {hit > 0 && mon && <div key={'d' + hit} className="absolute dmg text-3xl font-bold" style={{ right: 120, top: 24, color: crit ? '#dc2626' : '#1e3a8a', textShadow: '2px 2px 0 #fff' }}>{crit ? 'かいしんの いちげき！' : 'こうげき！'}</div>}
-          {missFx > 0 && mon && !end && <div key={'m' + missFx} className="absolute dmg text-2xl font-bold text-white bg-blue-950/70 rounded-xl px-2" style={{ right: 120, top: 30 }}>ひらり！</div>}
-          {bubble && mon && <div key={bubble.k} className="absolute pop bg-white rounded-2xl border-4 border-blue-950 px-3 py-1 text-xl font-bold" style={{ right: 220, top: 30, maxWidth: '55%' }}>{bubble.t}</div>}
-          {!mon && <div className="absolute right-6 bottom-2 text-5xl floaty">{place ? place.icon : '🛏️'}</div>}
-        </div>
+          {hit > 0 && mon && <div key={'s' + hit} className="absolute slash text-7xl" style={{ right: '9%', bottom: 50 }}>{crit ? '💥' : '⚔️'}</div>}
+          {hit > 0 && mon && <div key={'d' + hit} className="absolute dmg text-4xl font-bold" style={{ right: '24%', top: 40, color: crit ? '#dc2626' : '#1e3a8a', textShadow: '2px 2px 0 #fff, -2px -2px 0 #fff' }}>{crit ? 'かいしんの いちげき！' : 'こうげき！'}</div>}
+          {missFx > 0 && mon && !end && <div key={'m' + missFx} className="absolute dmg text-3xl font-bold text-white bg-blue-950/75 rounded-xl px-3" style={{ right: '24%', top: 50 }}>ひらり！</div>}
+          {bubble && mon && <div key={bubble.k} className="absolute pop bg-white rounded-2xl border-4 border-blue-950 px-3 py-1 text-xl font-bold" style={{ right: '25%', top: 16, maxWidth: '50%' }}>{bubble.t}</div>}
+          {!mon && <div className="absolute bottom-3 text-6xl floaty" style={{ right: '8%' }}>{place ? place.icon : '🛏️'}</div>}
+        </Bg>
       );
     }
 
