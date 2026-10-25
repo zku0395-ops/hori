@@ -79,16 +79,17 @@
     .shelf { background: #fff; color: #334155; border: 3px solid #fff; border-bottom: 6px solid #cbd5e1; padding: .5rem 1rem; font-size: calc(1.2rem * var(--fs)); }
     .shelf.on { background: var(--c); color: #fff; border-color: var(--c); border-bottom-color: rgba(0,0,0,.3); }
     .shelf .emoji { font-size: 1.2em; }
-    .panelwrap { flex: 1; min-height: 0; display: flex; justify-content: center; padding: 12px 16px 16px; }
+    .panelwrap { flex: 1; min-height: 0; display: flex; justify-content: center; padding: 12px 16px 84px; }
     .panel { width: min(1180px, 100%); background: rgba(255,255,255,.82); backdrop-filter: blur(2px); border-radius: 26px; padding: 18px; overflow-y: auto; box-shadow: 0 6px 24px rgba(0,0,0,.18); align-self: flex-start; max-height: 100%; }
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(210px * var(--fs)), 1fr)); gap: 14px; }
     .card { position: relative; background: #fff; color: #1e293b; border: 2px solid #e2e8f0; border-left: 10px solid var(--c); border-bottom: 7px solid #cbd5e1; border-radius: 18px; padding: 14px 12px; min-height: 92px; justify-content: flex-start; text-align: left; font-size: calc(1.15rem * var(--fs)); }
     .card .emoji { font-size: 2.3em; flex: none; }
+    .card .num { color: var(--c); font-weight: 700; font-size: 1.15em; margin-right: .15em; }
     .card .cn { min-width: 0; word-break: normal; word-break: auto-phrase; overflow-wrap: anywhere; }
     .star { position: absolute; top: -10px; right: -6px; font-size: 1.5rem; }
     .empty { text-align: center; padding: 30px 10px; font-size: calc(1.4rem * var(--fs)); font-weight: 700; color: #6b21a8; line-height: 1.8; }
-    .room-fuwari { position: fixed; left: 10px; bottom: 8px; width: 110px; z-index: 5; }
-    .room-bubble { position: fixed; left: 124px; bottom: 54px; max-width: min(420px, 60vw); font-size: calc(1.1rem * var(--fs)); border-radius: 18px; padding: 10px 16px; z-index: 5; }
+    .room-fuwari { position: fixed; left: 10px; bottom: 4px; width: 84px; z-index: 5; }
+    .room-bubble { position: fixed; left: 100px; bottom: 18px; max-width: min(420px, 60vw); font-size: calc(1.1rem * var(--fs)); border-radius: 18px; padding: 10px 16px; z-index: 5; }
 
     /* ===== まど（モーダル） ===== */
     .overlay { position: fixed; inset: 0; background: rgba(15,23,42,.45); display: flex; align-items: center; justify-content: center; z-index: 20; padding: 16px; }
@@ -165,6 +166,8 @@
       if (last < t.length) out.push(t.slice(last));
       return <>{out}</>;
     }
+    /* たなの 中の ばんごう：①②③… */
+    const maru = n => n >= 1 && n <= 20 ? String.fromCharCode(0x2460 + n - 1) : '(' + n + ')';
     const plain = t => t.replace(/\{([^|}]+)\|([^}]+)\}/g, '$2');
     const sayOf = a => a.say || plain(a.name).replace(/[①]/g, ' いち').replace(/[②]/g, ' に').replace(/[★]/g, '');
 
@@ -277,9 +280,9 @@
                 <div className="empty">この たなには いま アプリが ないよ。</div>
               ) : (
                 <div className="grid">
-                  {apps.map(a => (
+                  {apps.map((a, i) => (
                     <button key={a.id} className="btn3d card" onClick={() => onApp(APPS[a.id])}>
-                      <span className="emoji">{a.emoji}</span><span className="cn"><Rb t={a.name} /></span>
+                      <span className="emoji">{a.emoji}</span><span className="cn"><span className="num">{maru(i + 1)}</span><Rb t={a.name} /></span>
                       {osu.includes(a.id) && <span className="emoji star">⭐</span>}
                     </button>
                   ))}
