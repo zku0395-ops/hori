@@ -57,6 +57,7 @@ window.SORA = {
           { id: 'threehint', emoji: '💡', name: 'スリーヒントクイズ', url: 'https://sites.google.com/view/surihintokuizunew/%E3%83%9B%E3%83%BC%E3%83%A0' },
           { id: 'kotobabingo', emoji: '🎯', name: 'ことばビンゴ', url: 'https://sites.google.com/view/kotobabingo/%E3%83%9B%E3%83%BC%E3%83%A0' },
           { id: 'kotobahirahira', emoji: '🍃', name: 'ことばひらひら', url: 'https://script.google.com/macros/s/AKfycbyWfhygXnZS_NKT_P5sEJqhd_fGWKk-rB6lUjox74AKmnWrtvrgSa08AVVX07rNpkSu/exec' },
+          { id: 'dracchikotoba', emoji: '🐉', name: 'ドラッチと ことばの ぼうけん', say: 'ドラッチと ことばの ぼうけん', url: 'https://script.google.com/macros/s/AKfycbzqChsiLiRsDFR35HsC31TjfR8OsVqIp5Rr45uFSu1vkRHLXXJuEe-3auBd05JttFnuUA/exec' },
         ] },
         { id: 'yomu', name: 'よむ', emoji: '📗', apps: [
           { id: 'ondokumaster', emoji: '🗣️', name: 'おんどくマスター', url: 'https://sites.google.com/view/ondokumasterda/%E3%83%9B%E3%83%BC%E3%83%A0' },
