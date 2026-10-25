@@ -89,7 +89,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.0.5';
+    const APP_VERSION = '1.0.6';
     const BASE = window.KOTOBA_BASE;
     const IMG = BASE + 'img/';
 
@@ -132,7 +132,12 @@
     //  2. こえ と おと
     // =====================================================================
     // 読み上げだけ 直す ことば（「はし（端）」の「は」が「わ」と 読まれないよう、声では 漢字に する）
-    const SPEAK_FIX = [[/(^|[\s　、。「『（])はし(?=[をのからにっこはとがだ。、」』\s]|$)/g, '$1端']];
+    // よみあげで まちがえやすい ことば（ことばの あたまの「は」を「わ」と よまない ように 漢字に する）
+    const SPEAK_FIX = [
+      [/(^|[\s　、。「『（])はし(?=[をのからにっこはとがだ。、」』\s]|$)/g, '$1端'],
+      [/(はんたいに|を|あしに)([\s　]+)は([いか]て|いた|く|かない)(?=[\s　、。」』]|$)/g, '$1$2履$3'], // くつを はく
+      [/(さっさ！[\s　]*)はいて/g, '$1掃いて'],
+    ];
     const Speech = {
       rate: 0.8, pitch: 1.05, voice: null,
       ok: typeof window !== 'undefined' && 'speechSynthesis' in window,
