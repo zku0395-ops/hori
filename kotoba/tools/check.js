@@ -15,7 +15,7 @@ const byW = new Map(D.WORDS.map(w => [w.w, w]));
 // 1. ちほう・ばしょ
 const pid = new Set(D.PLACES.map(p => p.id));
 D.CHIHOU.forEach(c => {
-  if (c.places.length !== 6) ng(`${c.name}：ばしょは 6つの はずです`);
+  if (c.places.length !== (c.g <= 2 ? 8 : 9)) ng(`${c.name}：ばしょの かずが ちがいます`);
   c.places.forEach(p => { if (!pid.has(p)) ng(`${c.name}：ばしょ ${p} が ありません`); });
 });
 D.PLACES.forEach(p => {
