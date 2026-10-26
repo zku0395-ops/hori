@@ -108,7 +108,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.0.14';
+    const APP_VERSION = '1.0.19';
     const BASE = window.BUNBUN_BASE;
     const IMG = BASE + 'img/';
 
@@ -1170,26 +1170,28 @@
     // 11. はじめの がめん・ホーム・ちず・エリア
     // =====================================================================
     function LoginScreen({ students, onSelect, onTeacher, demo }) {
+      // はじめの 絵を がめん いっぱいに しく（スクロールしても 絵は うごかない）
       return (
-        <div className="min-h-screen flex flex-col items-center gap-5 p-6 grass">
-          <Bg file="title.webp" className="rounded-3xl w-full max-w-4xl border-4 border-amber-900 shadow-lg" style={{ aspectRatio: '16 / 8' }} fallback={<LandSvg />}>
-            <div className="flex items-end gap-4 px-6 pb-4 h-full">
-              <Chorou size={190} className="floaty" />
-              <div className="win px-5 py-3 mb-3">
+        <div className="min-h-screen relative">
+          <Bg file="title.webp" className="!fixed inset-0" fallback={<LandSvg />} />
+          <div className="relative min-h-screen flex flex-col items-center gap-3 px-6 py-5">
+            <div className="flex items-end gap-3">
+              <Chorou size={150} className="floaty" />
+              <div className="win px-5 py-3 mb-2">
                 <div className="text-2xl font-bold text-amber-200">ブンブンちょうろうの</div>
                 <div className="text-6xl font-bold" style={{ textShadow: '3px 3px 0 #b45309' }}>ことばの ぼうけん</div>
                 <div className="text-xl mt-1 text-amber-200 font-bold">ことばを ならべて ぶんを つくり、まちを つくろう！</div>
               </div>
             </div>
-          </Bg>
-          {demo && <div className="bg-yellow-100 border-2 border-yellow-400 rounded-xl px-4 py-2 text-lg">おためしモード（スプレッドシートに つながって いません。きろくは この たんまつだけに のこります）</div>}
-          <div className="win px-6 py-2 text-3xl font-bold">じぶんの なまえを おしてね</div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full max-w-3xl">
-            {students.map(n => <button key={n} onClick={() => onSelect(n)} className="btn3d bg-white border-4 border-amber-900 rounded-3xl py-6 text-4xl font-bold">{n}</button>)}
+            {demo && <div className="bg-yellow-100/95 border-2 border-yellow-400 rounded-xl px-4 py-1 text-base">おためしモード（スプレッドシートに つながって いません。きろくは この たんまつだけに のこります）</div>}
+            <div className="win px-6 py-2 text-3xl font-bold">じぶんの なまえを おしてね</div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full max-w-3xl">
+              {students.map(n => <button key={n} onClick={() => onSelect(n)} className="btn3d bg-white/95 border-4 border-amber-900 rounded-3xl py-5 text-4xl font-bold shadow-lg">{n}</button>)}
+            </div>
+            {!students.length && <div className="text-2xl bg-white rounded-xl p-4">「名簿」シートに なまえを いれてください。</div>}
           </div>
-          {!students.length && <div className="text-2xl bg-white rounded-xl p-4">「名簿」シートに なまえを いれてください。</div>}
           <button onClick={onTeacher} className="fixed right-3 bottom-3 bg-white/90 border-2 border-stone-300 rounded-xl px-3 py-2 text-lg font-bold">🔒 せんせい</button>
-          <div className="fixed left-3 bottom-2 text-xs text-amber-900/60">ver {APP_VERSION}</div>
+          <div className="fixed left-3 bottom-2 text-xs text-white/90 font-bold" style={{ textShadow: '0 1px 2px #0008' }}>ver {APP_VERSION}</div>
         </div>
       );
     }
@@ -1270,10 +1272,11 @@
       return (
         <div className="w-full max-w-6xl p-3 flex flex-col items-center gap-3">
           <MsgWin size={80} compact />
-          <Bg file="map.webp" className="rounded-3xl border-4 border-amber-900 shadow-lg max-w-full" style={{ aspectRatio: '16 / 9', height: 'min(calc(100vh - 170px), calc((100vw - 48px) * 9 / 16))' }} fallback={<LandSvg />}>
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none">
+          <Bg file="map.webp" className="rounded-3xl border-4 border-amber-900 shadow-lg max-w-full" style={{ aspectRatio: '16 / 9', height: 'min(calc(100vh - 170px), calc((100vw - 48px) * 9 / 16))' }}
+            fallback={<><LandSvg /><svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none">
+              {/* 絵が ない ときだけ みちを かく（ちずの 絵には みちが かいて ある） */}
               {main.slice(1).map((a, j) => <line key={a.id} x1={main[j].x} y1={main[j].y} x2={a.x} y2={a.y} stroke={areaOpen(progress, a.id) ? '#fef08a' : '#ffffffaa'} vectorEffect="non-scaling-stroke" className="path-dash" style={{ strokeWidth: 6 }} />)}
-            </svg>
+            </svg></>}>
             {shownAreas.map(a => {
               const op = areaOpen(progress, a.id), done = areaCleared(progress, a.id), here = cur.a === a.id;
               return (
@@ -1396,13 +1399,9 @@
       return (
         <div className="w-full max-w-[1400px] p-3 flex flex-col items-center gap-3">
           <MsgWin size={80} compact />
-          <div className="flex flex-wrap gap-2 justify-center bg-white/90 rounded-2xl border-2 border-amber-300 px-3 py-1 text-xl font-bold">
-            {D.MATS.filter(m => !m.sp || (progress.mats[m.id] || 0) > 0).map(m => <span key={m.id}>{m.e}{progress.mats[m.id] || 0}</span>)}
-            <span className="flex items-center gap-1"><Coin s={24} />{progress.coin}</span>
-          </div>
           <div className="flex gap-3 w-full items-start justify-center">
-            <Bg file="town_board.webp" className="rounded-3xl border-4 border-amber-900 grass shrink-0" style={{ aspectRatio: `${GRID_W} / ${GRID_H}`, height: 'min(calc(100vh - 225px), calc((100vw - 400px) * 5 / 7))', minHeight: 300 }} fallback={<div className="absolute inset-0 grass" />}>
-              <div className="absolute inset-0 grid p-2 gap-1.5" style={{ gridTemplateColumns: `repeat(${GRID_W}, 1fr)`, gridTemplateRows: `repeat(${GRID_H}, 1fr)` }}>
+            <Bg file="town_board.webp" className="rounded-3xl border-4 border-amber-900 grass shrink-0" style={{ aspectRatio: `${GRID_W} / ${GRID_H}`, height: 'min(calc(100vh - 180px), calc((100vw - 400px) * 5 / 7))', minHeight: 300 }} fallback={<div className="absolute inset-0 grass" />}>
+              <div className="absolute inset-0 grid gap-1.5" style={{ padding: "7% 8% 8%", gridTemplateColumns: `repeat(${GRID_W}, 1fr)`, gridTemplateRows: `repeat(${GRID_H}, 1fr)` }}>
                 {Array.from({ length: GRID_W * GRID_H }, (_, i) => {
                   const c = progress.town[i], b = c && BLD[c.b], op = open.has(i);
                   return (
@@ -1421,7 +1420,11 @@
                 <div key={p.id} className="absolute walk pointer-events-none text-4xl" style={{ left: `${10 + (j * 23) % 75}%`, top: `${15 + (j * 31) % 65}%`, '--wx': `${(j % 2 ? -1 : 1) * 60}px`, '--wy': `${(j % 3 ? 1 : -1) * 40}px`, '--d': `${7 + j}s` }}>{p.e}</div>
               ))}
             </Bg>
-            <div className="flex-1 min-w-[300px] win-light p-3 flex flex-col gap-2 overflow-auto" style={{ maxHeight: 'max(calc(100vh - 200px), 300px)' }}>
+            <div className="flex-1 min-w-[300px] win-light p-3 flex flex-col gap-2 overflow-auto" style={{ maxHeight: 'max(calc(100vh - 180px), 300px)' }}>
+              <div className="flex flex-wrap gap-x-3 gap-y-1 justify-center bg-amber-50 rounded-2xl border-2 border-amber-300 px-3 py-1 text-xl font-bold">
+                {D.MATS.filter(m => !m.sp || (progress.mats[m.id] || 0) > 0).map(m => <span key={m.id}>{m.e}{progress.mats[m.id] || 0}</span>)}
+                <span className="flex items-center gap-1"><Coin s={24} />{progress.coin}</span>
+              </div>
               {sel == null && <div className="text-xl font-bold leading-relaxed">マスを えらんでね。<br />「＋」の マスに たてものを たてられるよ。</div>}
               {sel != null && !cell && (
                 <>
