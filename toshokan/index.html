@@ -126,7 +126,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useMemo, useRef } = React;
-    const APP_VERSION = '1.2.0';
+    const APP_VERSION = '1.2.1';
 
     // =====================================================================
     //  1. リポジトリと 本の もくろく
@@ -158,6 +158,7 @@
 
     // kind：pages＝GitHub Pages で開く（入口ページは Apps Script）、gas＝Apps Script で開く、print＝プリント（PDF）
     // 新しいフォルダは、ここに なくても 自動で「あたらしい本」に入ります。
+    // appUrl：はじめから とうろく して おく Apps Script の URL（先生が 画面で とうろく すると そちらが つかわれます）
     const CATALOG = {
       '': { subject: 'kokugo', kind: 'pages', emoji: '🦉', chara: 'ホーホーはかせ', entry: true },
       'katakana': { subject: 'kokugo', kind: 'gas', emoji: '🤖', chara: 'ロボタン' },
@@ -170,6 +171,7 @@
       'kanji3': { subject: 'kokugo', kind: 'gas', img: 'kanji3/img/ponta.webp', chara: 'ポンタせんせい' },
       'kanjiprint': { subject: 'kokugo', kind: 'print', img: 'kanji1/img/ponta.webp', chara: 'ポンタせんせい' },
       'romaji': { subject: 'kokugo', kind: 'gas', img: 'romaji/img/gaji.webp', chara: 'ガジガジせんせい' },
+      'bunbun': { subject: 'kokugo', kind: 'gas', img: 'bunbun/img/chorou.webp', chara: 'ブンブンちょうろう', appUrl: 'https://script.google.com/macros/s/AKfycbxVQOeY_SsNNFZAKkU2BoqpOBZgAGBVop7p-QW7jN5tVWI5e-773ZGFZJ96y40dHPdwtg/exec' },
       'kakudo': { subject: 'sansu', kind: 'pages', emoji: '🐊', chara: 'ワニワニ先生', entry: true },
       'bunsu': { subject: 'sansu', kind: 'pages', emoji: '🐻', chara: 'モカせんせい', entry: true },
       'zukei': { subject: 'sansu', kind: 'gas', emoji: '🔺', chara: 'トンガリはかせ' },
@@ -462,7 +464,7 @@
           const saved = (state && state.books[b.dir]) || {};
           return Object.assign(b, {
             subject: saved.subject || b.meta.subject || 'new',
-            appUrl: saved.appUrl || '', entryUrl: saved.entryUrl || '', memo: saved.memo || '',
+            appUrl: saved.appUrl || b.meta.appUrl || '', entryUrl: saved.entryUrl || '', memo: saved.memo || '',
           });
         }).sort((a, b) => {
           const sa = SUBJECTS.findIndex(s => s.id === a.subject), sb = SUBJECTS.findIndex(s => s.id === b.subject);
