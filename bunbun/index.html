@@ -108,7 +108,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.0.0';
+    const APP_VERSION = '1.0.1';
     const BASE = window.BUNBUN_BASE;
     const IMG = BASE + 'img/';
 
@@ -516,6 +516,13 @@
     function Chorou({ mood = 'normal', size = 120, className = '' }) {
       const want = MOOD_FILE[mood] || MOOD_FILE.normal;
       const file = !MISSING.has(want) ? want : !MISSING.has(MOOD_FILE.normal) ? MOOD_FILE.normal : null;
+      // ちいさい ときは 顔だけの 絵（_face）を まるく だす（ぜんしんの 絵だと 顔が ちいさく なるため）
+      if (file && size < 90) return (
+        <div className={`overflow-hidden rounded-full bg-amber-100 border-2 border-amber-300 ${className}`} style={{ width: size, height: size }}>
+          <Pic key={file} file={file.replace('.webp', '_face.webp')} alt="ブンブンちょうろう" size={size} style={{ filter: 'none' }}
+            fallback={<ChorouSvg size={size} mood={mood} />} />
+        </div>
+      );
       return <Pic key={file || 'svg'} file={file} alt="ブンブンちょうろう" size={size} className={className}
         fallback={<div className={className} style={{ width: size, height: size }}><ChorouSvg size={size} mood={mood} /></div>} />;
     }
