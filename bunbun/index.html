@@ -108,7 +108,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.0.16';
+    const APP_VERSION = '1.0.17';
     const BASE = window.BUNBUN_BASE;
     const IMG = BASE + 'img/';
 
@@ -1397,13 +1397,9 @@
       return (
         <div className="w-full max-w-[1400px] p-3 flex flex-col items-center gap-3">
           <MsgWin size={80} compact />
-          <div className="flex flex-wrap gap-2 justify-center bg-white/90 rounded-2xl border-2 border-amber-300 px-3 py-1 text-xl font-bold">
-            {D.MATS.filter(m => !m.sp || (progress.mats[m.id] || 0) > 0).map(m => <span key={m.id}>{m.e}{progress.mats[m.id] || 0}</span>)}
-            <span className="flex items-center gap-1"><Coin s={24} />{progress.coin}</span>
-          </div>
           <div className="flex gap-3 w-full items-start justify-center">
-            <Bg file="town_board.webp" className="rounded-3xl border-4 border-amber-900 grass shrink-0" style={{ aspectRatio: `${GRID_W} / ${GRID_H}`, height: 'min(calc(100vh - 225px), calc((100vw - 400px) * 5 / 7))', minHeight: 300 }} fallback={<div className="absolute inset-0 grass" />}>
-              <div className="absolute inset-0 grid p-2 gap-1.5" style={{ gridTemplateColumns: `repeat(${GRID_W}, 1fr)`, gridTemplateRows: `repeat(${GRID_H}, 1fr)` }}>
+            <Bg file="town_board.webp" className="rounded-3xl border-4 border-amber-900 grass shrink-0" style={{ aspectRatio: `${GRID_W} / ${GRID_H}`, height: 'min(calc(100vh - 180px), calc((100vw - 400px) * 5 / 7))', minHeight: 300 }} fallback={<div className="absolute inset-0 grass" />}>
+              <div className="absolute inset-0 grid gap-1.5" style={{ padding: "7% 8% 8%", gridTemplateColumns: `repeat(${GRID_W}, 1fr)`, gridTemplateRows: `repeat(${GRID_H}, 1fr)` }}>
                 {Array.from({ length: GRID_W * GRID_H }, (_, i) => {
                   const c = progress.town[i], b = c && BLD[c.b], op = open.has(i);
                   return (
@@ -1422,7 +1418,11 @@
                 <div key={p.id} className="absolute walk pointer-events-none text-4xl" style={{ left: `${10 + (j * 23) % 75}%`, top: `${15 + (j * 31) % 65}%`, '--wx': `${(j % 2 ? -1 : 1) * 60}px`, '--wy': `${(j % 3 ? 1 : -1) * 40}px`, '--d': `${7 + j}s` }}>{p.e}</div>
               ))}
             </Bg>
-            <div className="flex-1 min-w-[300px] win-light p-3 flex flex-col gap-2 overflow-auto" style={{ maxHeight: 'max(calc(100vh - 200px), 300px)' }}>
+            <div className="flex-1 min-w-[300px] win-light p-3 flex flex-col gap-2 overflow-auto" style={{ maxHeight: 'max(calc(100vh - 180px), 300px)' }}>
+              <div className="flex flex-wrap gap-x-3 gap-y-1 justify-center bg-amber-50 rounded-2xl border-2 border-amber-300 px-3 py-1 text-xl font-bold">
+                {D.MATS.filter(m => !m.sp || (progress.mats[m.id] || 0) > 0).map(m => <span key={m.id}>{m.e}{progress.mats[m.id] || 0}</span>)}
+                <span className="flex items-center gap-1"><Coin s={24} />{progress.coin}</span>
+              </div>
               {sel == null && <div className="text-xl font-bold leading-relaxed">マスを えらんでね。<br />「＋」の マスに たてものを たてられるよ。</div>}
               {sel != null && !cell && (
                 <>
