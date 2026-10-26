@@ -108,7 +108,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.0.14';
+    const APP_VERSION = '1.0.15';
     const BASE = window.BUNBUN_BASE;
     const IMG = BASE + 'img/';
 
@@ -1270,10 +1270,11 @@
       return (
         <div className="w-full max-w-6xl p-3 flex flex-col items-center gap-3">
           <MsgWin size={80} compact />
-          <Bg file="map.webp" className="rounded-3xl border-4 border-amber-900 shadow-lg max-w-full" style={{ aspectRatio: '16 / 9', height: 'min(calc(100vh - 170px), calc((100vw - 48px) * 9 / 16))' }} fallback={<LandSvg />}>
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none">
+          <Bg file="map.webp" className="rounded-3xl border-4 border-amber-900 shadow-lg max-w-full" style={{ aspectRatio: '16 / 9', height: 'min(calc(100vh - 170px), calc((100vw - 48px) * 9 / 16))' }}
+            fallback={<><LandSvg /><svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none">
+              {/* 絵が ない ときだけ みちを かく（ちずの 絵には みちが かいて ある） */}
               {main.slice(1).map((a, j) => <line key={a.id} x1={main[j].x} y1={main[j].y} x2={a.x} y2={a.y} stroke={areaOpen(progress, a.id) ? '#fef08a' : '#ffffffaa'} vectorEffect="non-scaling-stroke" className="path-dash" style={{ strokeWidth: 6 }} />)}
-            </svg>
+            </svg></>}>
             {shownAreas.map(a => {
               const op = areaOpen(progress, a.id), done = areaCleared(progress, a.id), here = cur.a === a.id;
               return (
