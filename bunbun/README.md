@@ -111,7 +111,7 @@ bunbun/tools/test_gas.js   コード.gs のテスト（node bunbun/tools/test_ga
 | まちづくりの土地（たてものを置く草原）✅ 入れました | `town_board.webp` |
 | エリア（12まい。たたかいの画面では、画面いっぱいの背景にします）✅ 全部入れました | `area_1.webp` 〜 `area_12.webp` |
 | バラバラン（36ぴき）✅ 全部入れました | `mon_kusa.webp` など（`data/bunbun.js` の MONSTERS の id） |
-| たてもの（25しゅるい。なくても絵文字で動きます） | `bld_ie.webp` など（BUILDINGS の id） |
+| たてもの（25しゅるい。なくても絵文字で動きます。✅ いえ・はたけ・ふんすい・はなや・こうえん を入れました） | `bld_ie.webp` など（BUILDINGS の id） |
 | 問題の絵（1文ずつ。なくても絵文字で動きます） | `bun_1-01.webp` など（その文に `img: 1` を足します） |
 
 - たびびとの ふくの色は、絵の青いところを、アプリが選んだ色にぬりかえて出します。

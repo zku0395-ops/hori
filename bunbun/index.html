@@ -110,7 +110,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.0.33';
+    const APP_VERSION = '1.0.34';
     const BASE = window.BUNBUN_BASE;
     const IMG = BASE + 'img/';
 
@@ -328,7 +328,7 @@
       .sort((a, b) => { const d = (i) => Math.hypot((i % GRID_W) - (GRID_W - 1) / 2, (Math.floor(i / GRID_W) - (GRID_H - 1) / 2) * 1.2); return d(a) - d(b) || a - b; });
     const openCells = (p) => new Set(CELL_ORDER.slice(0, Math.min(GRID_W * GRID_H, 9 + 3 * areasCleared(p))));
     const bldOpen = (p, b) => b.a === 0 || areaCleared(p, b.a) || p.unlockAll;
-    const costOf = (b, lv) => { const m = lv >= 2 ? 2 : 1; const c = {}; Object.entries(b.cost).forEach(([k, v]) => { c[k] = v * m; }); return c; }; // lv：これから なる レベル（1・2 は そのまま、3 は 2ばい）
+    const costOf = (b, lv) => { const m = lv >= 3 ? 2 : 1; const c = {}; Object.entries(b.cost).forEach(([k, v]) => { c[k] = v * m; }); return c; }; // lv：これから なる レベル（1・2 は そのまま、3 は 2ばい）
     const haveOf = (p, k) => k === 'coin' ? p.coin : (p.mats[k] || 0);
     const canPay = (p, cost) => Object.entries(cost).every(([k, v]) => haveOf(p, k) >= v);
     const pay = (p, cost) => { const q = { ...p, mats: { ...p.mats } }; Object.entries(cost).forEach(([k, v]) => { if (k === 'coin') q.coin -= v; else q.mats[k] = (q.mats[k] || 0) - v; }); return q; };
@@ -647,6 +647,12 @@
     function Monster({ m, size = 120, got = true, className = '' }) {
       if (!got) return <div className={`flex items-center justify-center rounded-2xl bg-stone-200 text-stone-400 font-bold ${className}`} style={{ width: size, height: size, fontSize: size * 0.5 }}>？</div>;
       return <Pic file={`mon_${m.id}.webp`} alt={m.name} size={size} className={className} fallback={<div className={className} style={{ width: size, height: size }}><BarabaranSvg m={m} size={size} /></div>} />;
+    }
+
+    // たてもの（ChatGPT の 絵 bld_id.webp。なければ 絵文字）
+    function BldIcon({ b, size = 48, className = '' }) {
+      return <Pic file={`bld_${b.id}.webp`} alt={b.n} size={size} className={className}
+        fallback={<span className={className} style={{ fontSize: typeof size === 'number' ? size * 0.8 : '2.6rem', lineHeight: 1 }}>{b.e}</span>} />;
     }
 
     // 背景（ChatGPT の 絵。なければ 自作の 絵）
@@ -1155,7 +1161,7 @@
             {r.newPerson && <div className="flex items-center gap-3 bg-white text-amber-950 rounded-2xl px-4 py-1 pop"><span className="text-5xl hop">{PERSON[r.newPerson].e}</span><div className="text-2xl font-bold">{PERSON[r.newPerson].name}が まちに ひっこして くる！</div></div>}
             {r.levelUp && <div className="text-3xl font-bold text-yellow-300 pop">🆙 レベル {r.level} に なった！</div>}
             {r.newTitle && <div className="text-2xl font-bold bg-amber-100 text-amber-800 rounded-2xl px-4 py-2 flex items-center gap-2"><Hero look={progress.look} size={56} /> 🎖️ しょうごう「{r.newTitle}」</div>}
-            {r.newBlds.length > 0 && <div className="text-2xl font-bold text-emerald-300 pop">🏗️ あたらしい たてもの：{r.newBlds.map(id => `${BLD[id].e} ${BLD[id].n}`).join('　')}</div>}
+            {r.newBlds.length > 0 && <div className="text-2xl font-bold text-emerald-300 pop">🏗️ あたらしい たてもの：{r.newBlds.map(id => <span key={id} className="inline-flex items-center gap-1 mx-1 align-middle"><BldIcon b={BLD[id]} size={44} />{BLD[id].n}</span>)}</div>}
             {r.townUp && <div className="text-2xl font-bold text-sky-300 pop">🗺️ まちの とちが ひろがった！</div>}
           </div>
           <div className="flex flex-wrap gap-4 justify-center">
@@ -1410,7 +1416,7 @@
                     <button key={i} onClick={() => tap(i)}
                       className={`relative rounded-2xl flex items-center justify-center border-4 ${sel === i ? 'border-yellow-400' : op ? 'border-white/70' : 'border-transparent'} ${op ? (b ? 'bg-white/60' : 'bg-white/35') : 'bg-stone-700/25'} ${moving != null && op && !c ? 'glow' : ''}`}>
                       {b ? <>
-                        <Pic file={`bld_${b.id}.webp`} size="80%" fallback={<span style={{ fontSize: `${2.6 + (c.lv - 1) * 0.5}rem`, lineHeight: 1 }}>{b.e}</span>} />
+                        <Pic file={`bld_${b.id}.webp`} alt={b.n} size={`${80 + (c.lv - 1) * 10}%`} style={{ maxWidth: 'none' }} fallback={<span style={{ fontSize: `${2.6 + (c.lv - 1) * 0.5}rem`, lineHeight: 1 }}>{b.e}</span>} />
                         <span className="absolute top-0.5 left-1 text-xs font-bold bg-emerald-600 text-white rounded-full px-1.5">Lv{c.lv}</span>
                         {c.lv >= 3 && <span className="absolute bottom-0 right-1 text-lg">🌟</span>}
                       </> : op ? <span className="text-4xl text-white font-bold drop-shadow">＋</span> : <span className="text-2xl opacity-70">🔒</span>}
@@ -1436,7 +1442,7 @@
                     return (
                       <button key={b.id} onClick={() => (op ? build(b) : talk.say(`${AREA[b.a].name}の ボスに かつと、たてられるように なるよ。`))}
                         className={`btn3d rounded-2xl border-2 p-2 flex items-center gap-2 text-left ${can ? 'bg-emerald-50 border-emerald-500' : 'bg-white border-stone-300'} ${op ? '' : 'opacity-50'}`}>
-                        <span className="text-4xl w-12 text-center">{op ? b.e : '🔒'}</span>
+                        <span className="w-14 h-14 flex items-center justify-center text-4xl shrink-0">{op ? <BldIcon b={b} size={56} /> : '🔒'}</span>
                         <span className="flex-1"><span className="text-xl font-bold block">{b.n}</span>{op ? <Cost cost={cost} p={progress} /> : <span className="text-sm">{AREA[b.a].name}の ボスに かつと たてられる</span>}</span>
                       </button>
                     );
@@ -1447,7 +1453,7 @@
                 const b = BLD[cell.b];
                 return (
                   <div className="flex flex-col gap-3 items-center">
-                    <div className="text-7xl">{b.e}</div>
+                    <BldIcon b={b} size={140} />
                     <div className="text-3xl font-bold">{b.n}　Lv{cell.lv}</div>
                     {cell.lv < 3 ? <>
                       <div className="text-lg font-bold">レベル{cell.lv + 1}に するには：</div>
@@ -1567,7 +1573,7 @@
           })}</div>}
           {tab === 'bld' && <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 w-full">{D.BUILDINGS.map(b => {
             const got = built.has(b.id);
-            return <div key={b.id} className={`rounded-3xl border-4 p-2 flex flex-col items-center ${got ? 'bg-white border-amber-300' : 'bg-stone-100 border-stone-300'}`}><span className="text-5xl">{got ? b.e : '❔'}</span><span className="text-base font-bold">{got ? b.n : '？？？'}</span></div>;
+            return <div key={b.id} className={`rounded-3xl border-4 p-2 flex flex-col items-center ${got ? 'bg-white border-amber-300' : 'bg-stone-100 border-stone-300'}`}><span className="h-20 flex items-center text-5xl">{got ? <BldIcon b={b} size={80} /> : '❔'}</span><span className="text-base font-bold">{got ? b.n : '？？？'}</span></div>;
           })}</div>}
           {tab === 'title' && <div className="flex flex-col gap-2 items-center">
             <div className="win px-4 py-2 text-2xl font-bold">レベル {levelOf(progress)}（つくった ぶん {progress.exp}）</div>
