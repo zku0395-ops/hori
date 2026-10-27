@@ -90,7 +90,7 @@ tsuri/img/                ChatGPT で作った絵（これから入れます）
 tsuri/e_chatgpt.md        ChatGPT に絵を頼むときの文（コピーして使います）
 tsuri/tools/check.js      データの点検（node tsuri/tools/check.js）
 tsuri/tools/test_gas.js   コード.gs のテスト（node tsuri/tools/test_gas.js）
-tsuri/tools/cutfish.py    ChatGPT の 魚の絵を 1ぴきずつ切り分けて 背景をすかす（python3 tsuri/tools/cutfish.py 絵 tsuri/img id …）
+tsuri/tools/cutfish.py    ChatGPT の 魚の絵を 1ぴきずつ切り分けて 背景をすかす（python3 tsuri/tools/cutfish.py 絵 tsuri/img id …。品物は --holes を つける）
 ```
 
 - `data/` と `img/` は、GitHub Pages から読みこみます。魚や品物を直したときは、`data/` を直して `main` に入れるだけで、Apps Script を貼り直さなくても全員の画面に反映されます。
@@ -109,7 +109,7 @@ tsuri/tools/cutfish.py    ChatGPT の 魚の絵を 1ぴきずつ切り分けて 
 | つりばの背景（7まい。ホーム・つりの画面）✅ 全部入れました | `spot_1.webp` 〜 `spot_7.webp`（1 かわ・2 みずうみ・3 いそ・4 みなと・5 おき・6 ふかい うみ・7 つり たいかい） |
 | 魚（31しゅるい）✅ 全部入れました | `fish_ayu.webp` など（`data/tsuri.js` の FISH の id）。切り分けは `tools/cutfish.py` |
 | ふね（3つ）✅ 入れました | `boat_boat.webp`・`boat_ship.webp`・`boat_bigship.webp` |
-| おみせの 品物（つりざお・えさ・うき・すいそうの かざり・ぼうし の26こ。ふくの いろ は色の丸） | `item_rod1.webp` など（`data/tsuri.js` の ITEM_CATS の id。絵がないときは絵文字） |
+| おみせの 品物（つりざお・えさ・うき・すいそうの かざり・ぼうし の26こ。ふくの いろ は色の丸）つりざお ✅ 入れました | `item_rod1.webp` など（`data/tsuri.js` の ITEM_CATS の id。絵がないときは絵文字） |
 
 - ゲンじいの ベストと、つりびとの 服の色は、絵の あざやかな青のところを、アプリが選んだ色にぬりかえて出します（ながぐつの こい青は ぬりかえません）。
 - 「おき」「ふかい うみ」で、つりびとの足もとに出す ふねの絵文字は、背景の絵が ないときだけ出します（背景の絵に ふねが かいて あるため）。
