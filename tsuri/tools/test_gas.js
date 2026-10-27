@@ -56,7 +56,7 @@ ok(sheets['きろく'].data[0].join(',') === '日時,なまえ,ステージ,つ�
 sheets['名簿'].getRange(2, 1, 2, 1).setValues([['たろう'], ['=はなこ']]);
 const init = ctx.getInitData();
 const s0 = init.settings;
-ok(init.students.length === 2 && s0.count === 5 && s0.sound === true && s0.bgm === false && s0.rate === 0.8 && s0.font === 1, 'はじめの 設定（ふつう・こうかおん・BGM つかわない・0.8倍）');
+ok(init.students.length === 2 && s0.count === 5 && s0.time === 60 && s0.sound === true && s0.bgm === false && s0.rate === 0.8 && s0.font === 1, 'はじめの 設定（ふつう・こうかおん・BGM つかわない・0.8倍）');
 
 // 2. きろくを うけとる
 const rec = (id, o = {}) => Object.assign({ id, stage: '1-2', spot: 'かわ', step: 'かけて もとめる', mondai: 'たい200えん×3', total: 600, result: '○', miss: 0, hint: 0, types: '', keys: 'たい:200×3=→600○', calc: 'がめん', secs: 12.5 }, o);
@@ -89,9 +89,9 @@ ok(t.stages['1-2'][0] === 1 && t.stages['3-3'][0] === 1, 'ステージごとの 
 ok(sheets['まとめ'].data.length >= 2 && sheets['まとめ'].data[1][0] === 'たろう', 'まとめ シートが できる');
 
 // 4. 設定・フラグ・おかね
-ctx.saveSettings('1234', { count: 10, sound: false, bgm: true, rate: 0.7, font: 1.15, newPin: '0123' });
+ctx.saveSettings('1234', { count: 10, time: 0, sound: false, bgm: true, rate: 0.7, font: 1.15, newPin: '0123' });
 const s2 = ctx.getInitData().settings;
-ok(s2.count === 10 && s2.sound === false && s2.bgm === true && s2.rate === 0.7 && s2.font === 1.15, '設定を 保存して よみだす');
+ok(s2.count === 10 && s2.time === 0 && s2.sound === false && s2.bgm === true && s2.rate === 0.7 && s2.font === 1.15, '設定を 保存して よみだす');
 ok(sheets['せってい'].data.some(row => row[0] === 'こうかおん' && row[1] === 'ならさない'), 'オン・オフは ことばで 書く');
 ok(ctx.getTeacherData('0123').ok, '暗証番号を かえる（先頭の 0 も のこる）');
 ctx.setFlag('0123', 'たろう', 'unlockAll', true);
