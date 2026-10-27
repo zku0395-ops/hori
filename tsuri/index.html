@@ -97,7 +97,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.1.0';
+    const APP_VERSION = '1.2.0';
     const BASE = window.TSURI_BASE;
     const IMG = BASE + 'img/';
 
@@ -1028,15 +1028,34 @@
         if (S.current.stage === 'bite' || S.current.stage === 'show') { S.current.endSoon = true; return; }
         finish('time');
       };
+      // ねらう ばしょ（%）。みずの うえだけ
+      const AIM = { x0: 36, x1: 92, y0: 42, y1: 80 };
+      const clampAim = (a) => { const x = Math.max(AIM.x0, Math.min(AIM.x1, a.x)); return { x, y: Math.max(AIM.y0, Math.min(x > 56 ? 70 : AIM.y1, a.y)) }; }; // みぎしたの ボタンには かさねない
+      const [aim, setAim] = useState({ x: 64, y: 64 });
+      const aimRef = useRef(aim);
+      const [castAt, setCastAt] = useState(aim);
+      const moveAim = (dx, dy) => { Sound.tap(); const a = clampAim({ x: aimRef.current.x + dx, y: aimRef.current.y + dy }); aimRef.current = a; setAim(a); };
       const cast = () => {
         if (stage !== 'ready' || S.current.over) return;
         const next = pickFish(plan, S.current.caught, S.current.total, progress);
         if (!next) { finish('full'); return; }
         S.current.next = next;
         if (!started) setStarted(true);
-        Sound.cast(); setStage('wait');
-        timer.current = setTimeout(() => { if (alive.current && !S.current.over) { setStage('bite'); Sound.bite(); } }, 800 + Math.random() * 1200);
-        setTimeout(() => Sound.splash(), 450);
+        // さおを ふりかぶってから、まえに たおして なげる
+        setCastAt(aimRef.current); setStage('windup');
+        timer.current = setTimeout(() => {
+          if (!alive.current || S.current.over) return;
+          Sound.cast(); setStage('wait');
+          setTimeout(() => Sound.splash(), 450);
+          timer.current = setTimeout(() => { if (alive.current && !S.current.over) { setStage('bite'); Sound.bite(); } }, 800 + Math.random() * 1200);
+        }, 320);
+      };
+      // みずを さわった ところに なげる
+      const tapWater = (e) => {
+        const rc = e.currentTarget.getBoundingClientRect();
+        const a = clampAim({ x: ((e.clientX - rc.left) / rc.width) * 100, y: ((e.clientY - rc.top) / rc.height) * 100 });
+        aimRef.current = a; setAim(a);
+        if (stage === 'ready') cast(); else Sound.tap();
       };
       const pull = () => {
         if (stage === 'wait') { talk.say('まだ だよ。うきが しずむまで まとう。'); return; }
@@ -1064,25 +1083,72 @@
       useEffect(() => { const im = new Image(); im.onerror = () => { MISSING.add(`spot_${sp.id}.webp`); setBgOk(false); }; im.src = IMG + `spot_${sp.id}.webp`; }, []);
       const boat = !bgOk && sp.id >= 5 && sp.id <= 6 ? (sp.id === 6 ? '🛥️' : '🚣') : null;
       const cast_ = stage === 'wait' || stage === 'bite' || stage === 'show';
-      const fx = cast_ ? 64 : 27, fy = cast_ ? 66 : 58;
+      // がめんの おおきさ（つりざおを ピクセルで かくため）
+      const box = useRef(null);
+      const [dim, setDim] = useState({ w: 800, h: 420 });
+      useEffect(() => {
+        const el = box.current; if (!el) return;
+        const f = () => setDim({ w: el.clientWidth || 800, h: el.clientHeight || 420 });
+        f();
+        const ro = window.ResizeObserver ? new ResizeObserver(f) : null;
+        if (ro) ro.observe(el); else window.addEventListener('resize', f);
+        return () => { if (ro) ro.disconnect(); else window.removeEventListener('resize', f); };
+      }, []);
+      // さおの かくど（ど。マイナスが うえ）。なめらかに うごかす
+      const ROD = { ready: -58, windup: -118, wait: -30, bite: -26, show: -78, end: -58 };
+      const [ang, setAng] = useState(ROD.ready);
+      const angRef = useRef(ang);
+      useEffect(() => {
+        const to = ROD[stage] ?? ROD.ready, from = angRef.current, t0 = performance.now(), ms = stage === 'windup' ? 280 : stage === 'wait' ? 220 : 350;
+        let raf;
+        const step = (t) => { const k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3), a = from + (to - from) * e; angRef.current = a; setAng(a); if (k < 1) raf = requestAnimationFrame(step); };
+        raf = requestAnimationFrame(step);
+        return () => cancelAnimationFrame(raf);
+      }, [stage]);
+      // つりびとの てと さおの さき（つりびとの 絵は 150×165。ひだりから 2%、したから 4%。てを まえに だして いる）
+      const HS = 150;
+      const gx = dim.w * 0.02 + HS * 0.745, gy = dim.h * 0.96 - HS * 1.1 + HS * 0.578;
+      const L = Math.max(110, Math.min(175, dim.h * 0.4));
+      const rad = ang * Math.PI / 180;
+      const tipX = gx + L * Math.cos(rad), tipY = gy + L * Math.sin(rad);
+      // うきの いち（なげた あとは ねらった ところ。まえは さおの さきに ぶらさがる）
+      const ux = cast_ ? castAt.x / 100 * dim.w : tipX + 4, uy = cast_ ? castAt.y / 100 * dim.h : tipY + 46;
+      const far = cast_ ? 0.62 + 0.38 * (castAt.y - AIM.y0) / (AIM.y1 - AIM.y0) : 1; // とおくは ちいさく みえる
       const r = last;
       const H = 'min(440px, calc(100vh - 230px))';
       return (
         <div className="flex gap-3 w-full">
           <SpotBg sp={sp} className="flex-1 rounded-3xl border-4 border-sky-900" style={{ height: H, minHeight: 330 }}>
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none">
-              <line x1="14" y1="72" x2="26" y2="36" stroke="#78350f" strokeWidth="1.1" vectorEffect="non-scaling-stroke" style={{ strokeWidth: 6 }} strokeLinecap="round" />
-              <line x1="26" y1="36" x2={fx} y2={fy} stroke="#f8fafc" vectorEffect="non-scaling-stroke" style={{ strokeWidth: 2, transition: 'all .4s' }} />
-            </svg>
-            <div className="absolute" style={{ left: '2%', bottom: '4%' }}>
+            {/* みずを さわると、そこに なげる */}
+            <div ref={box} className="absolute inset-0" style={{ cursor: stage === 'ready' ? 'crosshair' : 'default' }} onPointerDown={tapWater} />
+            {stage === 'ready' && !S.current.over && <div className="absolute pointer-events-none flex flex-col items-center" style={{ left: `${aim.x}%`, top: `${aim.y}%`, transform: 'translate(-50%, -50%)' }}>
+              <div className="rounded-full border-4 border-dashed border-yellow-300 bg-white/20" style={{ width: 70 * (0.62 + 0.38 * (aim.y - AIM.y0) / (AIM.y1 - AIM.y0)), height: 26 * (0.62 + 0.38 * (aim.y - AIM.y0) / (AIM.y1 - AIM.y0)) }} />
+              <div className="text-base font-bold text-white bg-sky-900/80 rounded-full px-2 mt-0.5">ここ</div>
+            </div>}
+            <div className="absolute pointer-events-none" style={{ left: '2%', bottom: '4%' }}>
               {boat && <div className="absolute left-0 right-0 text-center" style={{ bottom: -18, fontSize: 120, lineHeight: 1 }}>{boat}</div>}
-              <div className="relative"><Hero look={look} size={150} flip /></div>
+              <div className="relative"><Hero look={look} size={HS} flip /></div>
             </div>
-            <div className={`absolute ${stage === 'wait' ? 'uki-wait' : stage === 'bite' ? 'uki-bite' : ''}`} style={{ left: `${fx}%`, top: `${fy}%`, transform: 'translate(-50%, -50%)', transition: 'left .4s, top .4s' }}>
-              {uki ? <ItemIcon it={uki} size={64} />
-                : <svg width="26" height="40" viewBox="0 0 26 40"><path d="M13 0 v8" stroke="#1c1917" strokeWidth="2" /><ellipse cx="13" cy="18" rx="9" ry="11" fill="#ef4444" stroke="#1c1917" strokeWidth="2" /><path d="M4 20 h18 a9 11 0 0 1 -18 0z" fill="#fff" stroke="#1c1917" strokeWidth="2" /></svg>}
+            <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox={`0 0 ${dim.w} ${dim.h}`}>
+              {/* いと */}
+              <path d={cast_ ? `M${tipX} ${tipY} Q${(tipX + ux) / 2} ${Math.max(tipY, uy) + (stage === 'bite' ? 4 : 26)} ${ux} ${uy - 10 * far}` : `M${tipX} ${tipY} L${ux} ${uy - 18}`} stroke="#f8fafc" strokeWidth="2" fill="none" />
+              {/* つりざお（てで にぎって いる） */}
+              <g transform={`translate(${gx} ${gy}) rotate(${ang})`}>
+                <rect x="-22" y="-5" width="46" height="10" rx="5" fill="#7c2d12" stroke="#1c1917" strokeWidth="2" />
+                <path d={`M22 -3.5 L${L} -1 L${L} 1 L22 3.5 Z`} fill="#a16207" stroke="#1c1917" strokeWidth="1.5" />
+                {[0.45, 0.7, 0.9].map(k => <circle key={k} cx={L * k} cy="-4" r="2.5" fill="none" stroke="#475569" strokeWidth="1.5" />)}
+                <g transform="translate(8 9)"><circle r="8" fill="#94a3b8" stroke="#1c1917" strokeWidth="2" /><circle r="3" fill="#475569" /></g>
+              </g>
+              {/* にぎって いる て */}
+              <ellipse cx={gx} cy={gy} rx="9" ry="8" fill="#fcc88e" stroke="#7c4a1e" strokeWidth="2" />
+            </svg>
+            <div className={`absolute pointer-events-none ${stage === 'wait' ? 'uki-wait' : stage === 'bite' ? 'uki-bite' : ''}`} style={{ left: ux, top: uy, transform: 'translate(-50%, -50%)', transition: cast_ ? 'left .45s ease-out, top .45s ease-out' : 'none' }}>
+              <div style={{ transform: `scale(${far})`, transition: 'transform .45s' }}>
+                {uki ? <ItemIcon it={uki} size={64} />
+                  : <svg width="26" height="40" viewBox="0 0 26 40"><path d="M13 0 v8" stroke="#1c1917" strokeWidth="2" /><ellipse cx="13" cy="18" rx="9" ry="11" fill="#ef4444" stroke="#1c1917" strokeWidth="2" /><path d="M4 20 h18 a9 11 0 0 1 -18 0z" fill="#fff" stroke="#1c1917" strokeWidth="2" /></svg>}
+              </div>
             </div>
-            {stage === 'bite' && <><div className="ring" style={{ left: `${fx}%`, top: `${fy + 4}%` }} /><div className="absolute text-6xl font-bold text-yellow-300 pop" style={{ left: `${fx + 3}%`, top: `${fy - 26}%`, textShadow: '3px 3px 0 #b91c1c' }}>！</div></>}
+            {stage === 'bite' && <><div className="ring" style={{ left: ux, top: uy + 14 * far }} /><div className="absolute text-6xl font-bold text-yellow-300 pop pointer-events-none" style={{ left: ux + 14, top: uy - 86, textShadow: '3px 3px 0 #b91c1c' }}>！</div></>}
             {stage === 'show' && r && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div key={total} className="jump bg-white/95 rounded-3xl border-4 px-5 py-2 flex flex-col items-center" style={{ borderColor: isNushi(r) ? '#eab308' : '#0369a1', boxShadow: isNushi(r) ? '0 0 30px #facc15' : undefined }}>
@@ -1093,6 +1159,12 @@
                 </div>
               </div>
             )}
+            <div className="absolute right-3 top-3 grid grid-cols-2 gap-1.5 bg-white/80 rounded-2xl p-1.5 border-2 border-sky-300">
+              <div className="col-span-2 text-center text-sm font-bold text-sky-900">🎯 なげる ところ</div>
+              {[['◀ ひだり', -9, 0], ['みぎ ▶', 9, 0], ['⬆ とおく', 0, -8], ['⬇ ちかく', 0, 8]].map(([t, dx, dy]) => (
+                <button key={t} onClick={() => moveAim(dx, dy)} disabled={stage !== 'ready'} className={`btn3d rounded-xl border-2 px-2 py-1 text-lg font-bold ${stage === 'ready' ? 'bg-yellow-50 border-yellow-500' : 'bg-stone-100 border-stone-300 text-stone-400'}`}>{t}</button>
+              ))}
+            </div>
             <div className="absolute right-3 bottom-3 flex gap-3">
               <Btn onClick={cast} disabled={stage !== 'ready'} color="#0369a1" light="#e0f2fe" className={`text-3xl px-8 ${stage === 'ready' ? 'glow' : ''}`}>🎣 なげる</Btn>
               <Btn onClick={pull} disabled={stage !== 'wait' && stage !== 'bite'} color="#b91c1c" light="#fee2e2" className={`text-3xl px-8 ${stage === 'bite' ? 'glow' : ''}`}>💪 ひく！</Btn>
