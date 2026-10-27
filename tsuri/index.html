@@ -82,7 +82,7 @@
       var h = location.hostname;
       var local = location.protocol === 'file:' || /github\.io$/.test(h) || h === 'localhost' || h === '127.0.0.1';
       window.TSURI_BASE = local ? '' : 'https://zku0395-ops.github.io/hori/tsuri/';
-      var V = '2';
+      var V = '3';
       var load = function (f) {
         return new Promise(function (ok, ng) {
           var s = document.createElement('script');
@@ -97,7 +97,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.0.27';
+    const APP_VERSION = '1.1.0';
     const BASE = window.TSURI_BASE;
     const IMG = BASE + 'img/';
 
@@ -261,42 +261,37 @@
     const sizeOf = (f, p) => { const r = Math.pow(Math.random(), Math.max(0.35, 1.5 - bonusOf(p, 'size') * 1.6)); return Math.round(f.min + (f.max - f.min) * r); };
     const cmText = (cm) => (cm >= 100 ? `${Math.floor(cm / 100)}メートル${cm % 100 ? ` ${cm % 100}センチ` : ''}` : `${cm}センチ`);
 
-    function countRange(st, step, sp) {
-      const cmax = sp.cmax;
-      if (step.mode === 'count') return [1, cmax];
-      if (step.mode === 'add') return [2, sp.id >= 4 ? 5 : 4];
-      return [2, cmax];
-    }
-    function genProblem(st, p, prev) {
+    // 1かいの つりの きまり：かかる さかなの しゅるい（pool）と、つれる かずの 上限
+    //   ⓪〜②：1しゅるいだけ（上限は つりばの cmax）　③：2しゅるい　④：3〜4しゅるい　⑤・はってん：ぜんぶ
+    function planOf(st, p) {
       const step = STEP_OF(st), sp = SPOT[st.spot];
-      let rows = [];
-      if (step.kinds === 'slide') {
-        rows = D.SLIDE.map(([id, price]) => ({ f: FISH[id], p: price, plain: 1 }));
-      } else if (step.kinds === 'mix8') {
-        const pool = shuffle(D.FISH.filter(f => !f.nushi));
-        rows = pool.slice(0, 8).map(f => ({ f, p: f.p, plain: 1 }));
-      } else {
-        const list = spotFish(sp.id);
-        const normal = list.filter(f => !f.nushi), nushi = list.find(f => f.nushi);
-        const withNushi = nushi && Math.random() < nushiChance(p);
-        let kinds;
-        if (step.kinds === 'all') kinds = [...shuffle(normal), ...(withNushi ? [nushi] : [])];
-        else {
-          const k = rand(step.kinds[0], step.kinds[1]);
-          kinds = shuffle(normal).slice(0, k);
-          if (withNushi) kinds[k - 1] = nushi;
-        }
-        rows = kinds.map(f => ({ f, p: f.p }));
-      }
-      const [c0, c1] = countRange(st, step, sp);
-      // まえの もんだいと まったく おなじ に ならないように する
-      for (let tryN = 0; tryN < 6; tryN++) {
-        rows.forEach(r => { r.c = rand(c0, c1); });
-        const key = rows.map(r => r.f.id + r.c).join();
-        if (!prev || key !== prev) break;
-      }
-      rows.forEach(r => { r.size = sizeOf(r.f, p); r.m = r.p * r.c; });
-      return { rows, total: rows.reduce((s, r) => s + r.m, 0), mode: step.mode, key: rows.map(r => r.f.id + r.c).join() };
+      const perCap = sp.cmax;
+      if (step.kinds === 'slide') return { pool: D.SLIDE.map(([id, price]) => ({ f: FISH[id], p: price, plain: 1 })), cap: step.cap, perCap };
+      if (step.kinds === 'mix8') return { pool: shuffle(D.FISH.filter(f => !f.nushi)).slice(0, 8).map(f => ({ f, p: f.p, plain: 1 })), cap: step.cap, perCap };
+      const list = spotFish(sp.id);
+      const normal = list.filter(f => !f.nushi), nushi = list.find(f => f.nushi);
+      if (step.kinds === 'all') return { pool: normal.map(f => ({ f, p: f.p })), nushi: nushi ? { f: nushi, p: nushi.p } : null, cap: step.cap, perCap };
+      const k = rand(step.kinds[0], step.kinds[1]);
+      const kinds = shuffle(normal).slice(0, k);
+      if (nushi && Math.random() < nushiChance(p)) kinds[k - 1] = nushi;
+      return { pool: kinds.map(f => ({ f, p: f.p })), cap: step.cap || perCap, perCap };
+    }
+    // つぎに かかる さかな（まだ すくない しゅるいが かかりやすい）。上限に なったら null
+    function pickFish(plan, caught, total, p) {
+      if (total >= plan.cap) return null;
+      const n = (id) => (caught[id] ? caught[id].c : 0);
+      if (plan.nushi && n(plan.nushi.f.id) < 1 && Math.random() < nushiChance(p) / 2) return plan.nushi;
+      const ok = plan.pool.filter(x => n(x.f.id) < plan.perCap);
+      if (!ok.length) return null;
+      const wt = ok.map(x => 1 / (1 + n(x.f.id)));
+      let r = Math.random() * wt.reduce((a, b) => a + b, 0), j = 0;
+      while (r > wt[j] && j < ok.length - 1) { r -= wt[j]; j++; }
+      return ok[j];
+    }
+    // つった さかなから もんだいを つくる
+    function buildProblem(st, list) {
+      const rows = list.map(x => ({ f: x.f, p: x.p, plain: x.plain, c: x.c, size: x.size, m: x.p * x.c }));
+      return { rows, total: rows.reduce((a, r) => a + r.m, 0), mode: STEP_OF(st).mode };
     }
     const isNushi = (r) => !!(r.f.nushi && !r.plain);
     const probText = (pr) => pr.rows.map(r => `${r.f.n}${r.p}えん×${r.c}`).join('・');
@@ -420,7 +415,7 @@
       google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
     });
     const LOG_HEADER = ['日時', 'なまえ', 'ステージ', 'つりば', 'だんかい', 'もんだい', 'ごうけい', 'けっか', 'まちがい', 'ヒント', 'まちがいの しゅるい', 'おした キー', 'でんたく', 'びょう', 'ID'];
-    const DEFAULT_SETTINGS = { rate: 0.8, font: 1, count: 5, sound: true, bgm: false };
+    const DEFAULT_SETTINGS = { rate: 0.8, font: 1, count: 5, time: 60, sound: true, bgm: false };
 
     // まとめ（先生用）— コード.gs の aggregate_ と おなじ しくみ
     const emptyStu = () => ({ count: 0, ok: 0, secs: 0, last: '', stages: {}, steps: {}, types: {}, misses: [] });
@@ -983,81 +978,140 @@
     }
 
     // =====================================================================
-    // 10. つり（1もんに つき、さかなの しゅるいの かずだけ なげる）
+    // 10. つり（じかん いっぱい、なげて ひく を くりかえす。1かいで 1ぴき）
     // =====================================================================
-    function FishingScene({ pr, sp, look, uki, first, onCatch, onDone }) {
+    function FishingScene({ st, plan, progress, look, uki, first, secs, onCatch, onDone }) {
       const talk = useTalk();
-      const [idx, setIdx] = useState(0);
-      const [stage, setStage] = useState('ready'); // ready → wait → bite → show
-      const [caught, setCaught] = useState([]);
+      const sp = SPOT[st.spot];
+      const [stage, setStage] = useState('ready'); // ready → wait → bite → show → ready …　→ end
+      const [caught, setCaught] = useState({});    // id → { f, p, plain, c, size }
+      const [order, setOrder] = useState([]);
+      const [last, setLast] = useState(null);
+      const [left, setLeft] = useState(secs);      // のこり びょう（secs が 0 なら じかん なし）
+      const [started, setStarted] = useState(false);
       const alive = useRef(true);
       const timer = useRef(null);
+      const S = useRef({ caught: {}, order: [], total: 0, stage: 'ready', over: false, next: null });
+      S.current.stage = stage;
+      const total = order.reduce((a, id) => a + caught[id].c, 0);
       useEffect(() => {
-        if (first) talk.say('「なげる」を おして、つりざおを ふろう！');
+        talk.say(first ? (secs ? `${secs >= 60 ? `${secs / 60}ぷん` : `${secs}びょう`}で なんびき つれるかな？「なげる」を おすと はじまるよ。1かいで 1ぴき つれるよ。` : '「なげる」を おして、さかなを つろう！ 1かいで 1ぴき つれるよ。') : 'つぎの つりだよ。「なげる」を おそう！');
         return () => { alive.current = false; clearTimeout(timer.current); };
       }, []);
-      const r = pr.rows[idx];
+      // のこり じかん
+      useEffect(() => {
+        if (!started || !secs) return;
+        const t0 = Date.now();
+        const iv = setInterval(() => {
+          const l = Math.max(0, secs - Math.floor((Date.now() - t0) / 1000));
+          setLeft(l);
+          if (l <= 0) { clearInterval(iv); timeUp(); }
+        }, 250);
+        return () => clearInterval(iv);
+      }, [started]);
+      const finish = async (why) => {
+        if (S.current.over) return;
+        S.current.over = true; clearTimeout(timer.current); setStage('end');
+        let list = S.current.order.map(id => S.current.caught[id]);
+        if (why === 'full') { Sound.fanfare(); await talk.say(`いっぱい つれたね！ ${hiki(S.current.total)} つれたよ！`, { mood: 'happy' }); }
+        else if (!list.length) {
+          // 0ぴきの ときは ゲンじいが 1ぴき わけて くれる
+          const x = plan.pool[0]; const g = { ...x, c: 1, size: sizeOf(x.f, progress) };
+          list = [g]; onCatch(g);
+          await talk.say(`じかん だよ。ゲンじいが ${x.f.n}を 1ぴき わけて あげよう。`, { mood: 'happy' });
+        } else { Sound.levelup(); await talk.say(`じかん だよ！ ${hiki(S.current.total)} つれたね！`, { mood: 'happy' }); }
+        await wait(300);
+        if (alive.current) onDone(buildProblem(st, list));
+      };
+      const timeUp = () => {
+        // うきが しずんで いる ときは、ひくまで まつ
+        if (S.current.stage === 'bite' || S.current.stage === 'show') { S.current.endSoon = true; return; }
+        finish('time');
+      };
       const cast = () => {
-        if (stage !== 'ready') return;
+        if (stage !== 'ready' || S.current.over) return;
+        const next = pickFish(plan, S.current.caught, S.current.total, progress);
+        if (!next) { finish('full'); return; }
+        S.current.next = next;
+        if (!started) setStarted(true);
         Sound.cast(); setStage('wait');
-        timer.current = setTimeout(() => { if (alive.current) { setStage('bite'); Sound.bite(); talk.say('うきが しずんだ！ いまだ、「ひく」を おそう！', { mood: 'cheer' }); } }, 1300 + Math.random() * 1900);
+        timer.current = setTimeout(() => { if (alive.current && !S.current.over) { setStage('bite'); Sound.bite(); } }, 800 + Math.random() * 1200);
         setTimeout(() => Sound.splash(), 450);
       };
-      const pull = async () => {
+      const pull = () => {
         if (stage === 'wait') { talk.say('まだ だよ。うきが しずむまで まとう。'); return; }
         if (stage !== 'bite') return;
         Sound.reel(); setStage('show');
-        const fr = r;
-        setCaught(c => [...c, fr]); onCatch(fr);
-        if (isNushi(fr)) Sound.rare(); else Sound.seikai();
-        const msg = isNushi(fr) ? `すごい！ ${fr.f.n}の ぬしだ！ ${cmText(fr.size)}も あるぞ！` : `${fr.f.n}が つれた！ ${fr.c > 1 ? 'たくさん つれたね。' : ''}`;
-        await talk.say(msg, { mood: 'happy' });
-        if (!alive.current) return;
-        if (idx + 1 < pr.rows.length) { setIdx(idx + 1); setStage('ready'); talk.say(pick(['つぎも なげよう！', 'もう いちど なげよう！', 'つぎの さかなを つろう！'])); }
-        else { await wait(300); if (alive.current) onDone(); }
+        const x = S.current.next, id = x.f.id, size = sizeOf(x.f, progress);
+        const old = S.current.caught[id];
+        const g = old ? { ...old, c: old.c + 1, size: Math.max(old.size, size) } : { ...x, c: 1, size };
+        S.current.caught = { ...S.current.caught, [id]: g };
+        if (!old) S.current.order = [...S.current.order, id];
+        S.current.total += 1;
+        setCaught(S.current.caught); setOrder(S.current.order);
+        const one = { ...x, c: 1, size };
+        setLast(one); onCatch(one);
+        if (isNushi(one)) { Sound.rare(); talk.say(`すごい！ ${x.f.n}の ぬしだ！`, { mood: 'happy' }); } else { Sound.seikai(); talk.say(`${x.f.n}！`, { mood: 'happy' }); }
+        timer.current = setTimeout(() => {
+          if (!alive.current || S.current.over) return;
+          if (S.current.endSoon) { finish('time'); return; }
+          if (S.current.total >= plan.cap || !pickFish(plan, S.current.caught, S.current.total, progress)) { finish('full'); return; }
+          setStage('ready');
+        }, isNushi(one) ? 1800 : 1000);
       };
       // ふねの えもじは、つりばの 絵が ない ときだけ だす（絵には ふねが かいて ある）
       const [bgOk, setBgOk] = useState(!MISSING.has(`spot_${sp.id}.webp`));
       useEffect(() => { const im = new Image(); im.onerror = () => { MISSING.add(`spot_${sp.id}.webp`); setBgOk(false); }; im.src = IMG + `spot_${sp.id}.webp`; }, []);
       const boat = !bgOk && sp.id >= 5 && sp.id <= 6 ? (sp.id === 6 ? '🛥️' : '🚣') : null;
-      const cast_ = stage !== 'ready';
+      const cast_ = stage === 'wait' || stage === 'bite' || stage === 'show';
       const fx = cast_ ? 64 : 27, fy = cast_ ? 66 : 58;
+      const r = last;
+      const H = 'min(440px, calc(100vh - 230px))';
       return (
         <div className="flex gap-3 w-full">
-          <SpotBg sp={sp} className="flex-1 rounded-3xl border-4 border-sky-900" style={{ height: 'min(440px, calc(100vh - 230px))', minHeight: 330 }}>
+          <SpotBg sp={sp} className="flex-1 rounded-3xl border-4 border-sky-900" style={{ height: H, minHeight: 330 }}>
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none">
               <line x1="14" y1="72" x2="26" y2="36" stroke="#78350f" strokeWidth="1.1" vectorEffect="non-scaling-stroke" style={{ strokeWidth: 6 }} strokeLinecap="round" />
-              <line x1="26" y1="36" x2={fx} y2={fy} stroke="#f8fafc" vectorEffect="non-scaling-stroke" style={{ strokeWidth: 2, transition: 'all .6s' }} />
+              <line x1="26" y1="36" x2={fx} y2={fy} stroke="#f8fafc" vectorEffect="non-scaling-stroke" style={{ strokeWidth: 2, transition: 'all .4s' }} />
             </svg>
             <div className="absolute" style={{ left: '2%', bottom: '4%' }}>
               {boat && <div className="absolute left-0 right-0 text-center" style={{ bottom: -18, fontSize: 120, lineHeight: 1 }}>{boat}</div>}
               <div className="relative"><Hero look={look} size={150} flip /></div>
             </div>
-            <div className={`absolute ${stage === 'wait' ? 'uki-wait' : stage === 'bite' ? 'uki-bite' : ''}`} style={{ left: `${fx}%`, top: `${fy}%`, transform: 'translate(-50%, -50%)', transition: 'left .6s, top .6s' }}>
+            <div className={`absolute ${stage === 'wait' ? 'uki-wait' : stage === 'bite' ? 'uki-bite' : ''}`} style={{ left: `${fx}%`, top: `${fy}%`, transform: 'translate(-50%, -50%)', transition: 'left .4s, top .4s' }}>
               {uki ? <ItemIcon it={uki} size={64} />
                 : <svg width="26" height="40" viewBox="0 0 26 40"><path d="M13 0 v8" stroke="#1c1917" strokeWidth="2" /><ellipse cx="13" cy="18" rx="9" ry="11" fill="#ef4444" stroke="#1c1917" strokeWidth="2" /><path d="M4 20 h18 a9 11 0 0 1 -18 0z" fill="#fff" stroke="#1c1917" strokeWidth="2" /></svg>}
             </div>
             {stage === 'bite' && <><div className="ring" style={{ left: `${fx}%`, top: `${fy + 4}%` }} /><div className="absolute text-6xl font-bold text-yellow-300 pop" style={{ left: `${fx + 3}%`, top: `${fy - 26}%`, textShadow: '3px 3px 0 #b91c1c' }}>！</div></>}
             {stage === 'show' && r && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="jump bg-white/95 rounded-3xl border-4 px-5 py-3 flex flex-col items-center gap-1" style={{ borderColor: isNushi(r) ? '#eab308' : '#0369a1', boxShadow: isNushi(r) ? '0 0 30px #facc15' : undefined }}>
+                <div key={total} className="jump bg-white/95 rounded-3xl border-4 px-5 py-2 flex flex-col items-center" style={{ borderColor: isNushi(r) ? '#eab308' : '#0369a1', boxShadow: isNushi(r) ? '0 0 30px #facc15' : undefined }}>
                   {isNushi(r) && <div className="text-2xl font-bold text-amber-600">👑 ぬし</div>}
-                  <div className="flex flex-wrap justify-center gap-1 max-w-[520px]">{Array.from({ length: r.c }, (_, j) => <FishPic key={j} f={r.f} size={r.c > 4 ? 76 : 110} />)}</div>
+                  <FishPic f={r.f} size={150} />
                   <div className="text-4xl font-bold">{r.f.n}</div>
-                  <div className="text-lg font-bold text-sky-700">いちばん おおきいのは {cmText(r.size)}</div>
+                  <div className="text-lg font-bold text-sky-700">{cmText(r.size)}</div>
                 </div>
               </div>
             )}
             <div className="absolute right-3 bottom-3 flex gap-3">
               <Btn onClick={cast} disabled={stage !== 'ready'} color="#0369a1" light="#e0f2fe" className={`text-3xl px-8 ${stage === 'ready' ? 'glow' : ''}`}>🎣 なげる</Btn>
-              <Btn onClick={pull} disabled={stage === 'ready' || stage === 'show'} color="#b91c1c" light="#fee2e2" className={`text-3xl px-8 ${stage === 'bite' ? 'glow' : ''}`}>💪 ひく！</Btn>
+              <Btn onClick={pull} disabled={stage !== 'wait' && stage !== 'bite'} color="#b91c1c" light="#fee2e2" className={`text-3xl px-8 ${stage === 'bite' ? 'glow' : ''}`}>💪 ひく！</Btn>
             </div>
-            <div className="absolute left-3 top-3 bg-white/90 rounded-full px-3 py-1 text-lg font-bold">{idx + 1} / {pr.rows.length}かいめ</div>
+            <div className="absolute left-3 top-3 flex gap-2 items-center">
+              {secs > 0 && <div className={`bg-white/95 rounded-2xl px-3 py-1 font-bold flex items-center gap-2 border-2 ${left <= 10 && started ? 'border-rose-400' : 'border-sky-300'}`}>
+                <span className="text-2xl">⏳</span>
+                <span className="w-28 h-4 rounded-full bg-stone-200 overflow-hidden"><span className="block h-full rounded-full transition-all" style={{ width: `${(left / secs) * 100}%`, background: left <= 10 ? '#fb7185' : '#38bdf8' }} /></span>
+                <span className="text-xl">のこり {left}びょう</span>
+              </div>}
+              {!secs && total > 0 && stage === 'ready' && <Btn onClick={() => finish('time')} color="#15803d" light="#dcfce7" className="text-xl py-1">✔ つりを おわる</Btn>}
+            </div>
+            {!started && <div className="absolute left-1/2 top-1/3 -translate-x-1/2 win px-5 py-2 text-2xl font-bold pop">「なげる」を おすと はじまるよ</div>}
           </SpotBg>
-          <div className="w-56 shrink-0 win-light p-2 flex flex-col gap-2 overflow-auto" style={{ maxHeight: 'min(440px, calc(100vh - 230px))' }}>
+          <div className="w-56 shrink-0 win-light p-2 flex flex-col gap-2 overflow-auto" style={{ maxHeight: H }}>
             <div className="text-lg font-bold text-center">🪣 つれた さかな</div>
-            {caught.map((c, i) => <div key={i} className="rounded-xl bg-sky-50 border-2 border-sky-200 p-1 pop"><div className="text-sm font-bold">{c.f.n}</div><div className="flex flex-wrap">{Array.from({ length: c.c }, (_, j) => <FishPic key={j} f={c.f} size={34} />)}</div></div>)}
-            {!caught.length && <div className="text-base text-stone-500 text-center">まだ いないよ</div>}
+            <div className="text-center text-3xl font-bold text-sky-800">{hiki(total)}</div>
+            {order.map(id => { const c = caught[id]; return <div key={id} className="rounded-xl bg-sky-50 border-2 border-sky-200 p-1 pop"><div className="text-sm font-bold">{isNushi(c) ? '👑' : ''}{c.f.n}</div><div className="flex flex-wrap">{Array.from({ length: c.c }, (_, j) => <FishPic key={j} f={c.f} size={34} />)}</div></div>; })}
+            {!order.length && <div className="text-base text-stone-500 text-center">まだ いないよ</div>}
           </div>
         </div>
       );
@@ -1177,7 +1231,9 @@
       const step = STEP_OF(st), sp = SPOT[st.spot];
       const real = !!progress.realCalc;
       const [i, setI] = useState(0);
-      const [pr, setPr] = useState(() => genProblem(st, progress, null));
+      const [pr, setPr] = useState({ rows: [], total: 0, mode: step.mode }); // つった さかなで きまる
+      const [plan, setPlan] = useState(() => planOf(st, progress));
+      const S = useContext(SetCtx);
       const [phase, setPhase] = useState('intro');
       const [bi, setBi] = useState(0);
       const [vals, setVals] = useState({});
@@ -1191,6 +1247,7 @@
       const [seikai, setSeikai] = useState(0);
       const [busy, setBusy] = useState(false);
       const P = useRef({ miss: 0, hint: 0, types: [], keys: [] });
+      const prRef = useRef(pr);
       const stats = useRef({ ok: 0, all: 0, yen: 0 });
       const t0 = useRef(Date.now());
       const alive = useRef(true);
@@ -1205,16 +1262,18 @@
         })();
       }, []);
 
-      const ask = (b) => {
+      const ask = (b, pr0) => {
+        const pr = pr0 || prRef.current;
         const r = b.r != null ? pr.rows[b.r] : null;
         if (b.t === 'count') return pr.rows.length > 1 ? `${r.f.n}は なんびき かな？` : `${r.f.n}は なんびき つれたかな？ さわって かぞえて、かずを おそう。`;
         if (b.t === 'add') return `1ぴき ${r.p}えんが ${hiki(r.c)}。${calcWord}、${r.p}えんを ${r.c}かい たそう。`;
         if (b.t === 'mul') return pr.rows.length > 1 ? `${r.f.n}は、${r.p} × ${r.c} だね。${calcWord} けいさん しよう。` : `1ぴき ${r.p}えんが ${hiki(r.c)}。${calcWord}、${r.p} × ${r.c} を けいさん しよう。`;
         return `さいごに、ぜんぶの えんを たして、ごうけいを もとめよう。`;
       };
-      const startSheet = () => {
-        setPhase('sheet'); setBi(0); t0.current = Date.now();
-        talk.say(pr.rows.length > 1 ? `つれた さかなを かぞえて、ねだんを けいさん しよう。まずは ${ask(blanks[0])}` : ask(blanks[0]));
+      const startSheet = (np) => {
+        prRef.current = np; setPr(np); setPhase('sheet'); setBi(0); t0.current = Date.now();
+        const b0 = blanksOf(np)[0];
+        talk.say(np.rows.length > 1 ? `つれた さかなを かぞえて、ねだんを けいさん しよう。まずは ${ask(b0, np)}` : ask(b0, np));
       };
       const nextBlank = (j) => { setBi(j); setMiss(0); setHint(0); setOff([]); setAnim(null); setResetK(k => k + 1); };
 
@@ -1290,7 +1349,7 @@
         if (i + 1 >= n) { onFinish({ ...stats.current, n }); return; }
         onSave({ st: st.id, left: n - i - 1 });
         P.current = { miss: 0, hint: 0, types: [], keys: [] };
-        setPr(genProblem(st, progress, pr.key)); setI(i + 1); setVals({}); setMarks({}); nextBlank(0); setBi(0); setPhase('fish'); setBusy(false);
+        setPlan(planOf(st, progress)); setI(i + 1); setVals({}); setMarks({}); nextBlank(0); setBi(0); setPhase('fish'); setBusy(false);
       };
 
       const tapFish = (r, j) => {
@@ -1312,7 +1371,7 @@
             <button onClick={onQuit} className="btn3d bg-white border-2 border-stone-300 rounded-2xl px-3 py-1 text-lg font-bold shrink-0">✋ やめる</button>
           </div>
           {phase === 'intro' && <div className="h-80 flex items-center justify-center text-7xl floaty">🎣</div>}
-          {phase === 'fish' && <FishingScene key={'f' + i} pr={pr} sp={sp} look={progress.look} uki={ukiOf(progress)} first={i === 0} onCatch={onCatch} onDone={startSheet} />}
+          {phase === 'fish' && <FishingScene key={'f' + i} st={st} plan={plan} progress={progress} look={progress.look} uki={ukiOf(progress)} first={i === 0} secs={Number(S.time) || 0} onCatch={onCatch} onDone={startSheet} />}
           {(phase === 'sheet' || phase === 'done') && (
             <div className="flex gap-3 items-start w-full">
               <div className="flex-1 min-w-0"><Sheet pr={pr} blanks={blanks} bi={bi} vals={vals} shakeK={shakeK} hint={hint} marks={marks} onTap={tapFish} anim={anim} done={phase === 'done'} /></div>
@@ -1932,7 +1991,8 @@
                 <label className="flex items-center gap-3">よみあげの はやさ：<input type="range" min="0.5" max="1.2" step="0.05" value={s.rate} onChange={e => setS({ ...s, rate: Number(e.target.value) })} /> {s.rate}倍
                   <button className="border rounded px-2" onClick={() => { Speech.rate = s.rate; Speech.say(fmtSpeech('1ぴき 200えんの たいが 3びき つれた。')); }}>ためす</button></label>
                 <div>もじの おおきさ：{opt('font', [[0.9, 'ちいさめ'], [1, 'ふつう'], [1.15, 'おおきめ'], [1.3, 'とても おおきい']])}</div>
-                <div>1回の 問題の数：{opt('count', [[3, 'すくなめ'], [5, 'ふつう'], [10, 'おおめ']])}<div className="text-sm text-stone-500 ml-2">ふつう：⓪〜② は5問、③ は3問、④ は2問、⑤ と はってん は1問です。すくなめ・おおめ にすると、それに合わせて へったり ふえたり します。</div></div>
+                <div>1回の 問題の数：{opt('count', [[3, 'すくなめ'], [5, 'ふつう'], [10, 'おおめ']])}<div className="text-sm text-stone-500 ml-2">ふつう：⓪〜② は3問、③ は2問、④・⑤・はってん は1問です（1問ごとに1回 つりを します）。すくなめ・おおめ にすると、それに合わせて へったり ふえたり します。</div></div>
+                <div>つりの じかん：{opt('time', [[30, '30びょう'], [60, '1ぷん'], [120, '2ふん'], [0, 'じかん なし']])}<div className="text-sm text-stone-500 ml-2">この時間のあいだ、なげて ひく を くりかえし、1回で1ぴき つれます。つれた魚が そのまま計算の問題になります。じかん なし にすると「つりを おわる」ボタンで終わります。どれでも、だんかいごとの上限まで つれると早めに終わります。</div></div>
                 <div>こうかおん：{opt('sound', [[true, 'ならす'], [false, 'ならさない']])}</div>
                 <div>おんがく（BGM）：{opt('bgm', [[true, 'つかう'], [false, 'つかわない']])}<div className="text-sm text-stone-500 ml-2">つかう にすると、子どもの画面の上に 🎵 ボタンが出て、オン・オフできます（はじめは オン）。</div></div>
                 <div className="text-sm text-stone-600">電卓（アプリの画面か、手元の本物か）は、「子どもごと」で 1人ずつ切りかえます。</div>
@@ -2003,6 +2063,7 @@
         v.sound = v.sound !== false && v.sound !== 'false';
         v.bgm = v.bgm === true || v.bgm === 'true';
         v.count = [3, 5, 10].includes(Number(v.count)) ? Number(v.count) : 5;
+        v.time = [0, 30, 60, 120].includes(Number(v.time)) ? Number(v.time) : 60;
         setSettings(v);
         Speech.rate = Number(v.rate) || 0.8;
         Sound.on = v.sound; setSoundOn(Sound.on);
