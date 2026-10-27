@@ -97,7 +97,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.0.19';
+    const APP_VERSION = '1.0.20';
     const BASE = window.TSURI_BASE;
     const IMG = BASE + 'img/';
 
@@ -559,6 +559,13 @@
       return <img src={IMG + file} alt={alt || ''} onError={() => { MISSING.add(file); setErr(e => e + 1); }} className={`chara-img select-none ${className}`} style={{ width: size, height: size, objectFit: 'contain', ...style }} draggable={false} />;
     }
 
+    // おみせの しなもの（ChatGPT の 絵 item_id.webp・ふねは boat_id.webp。なければ 絵文字）
+    function ItemIcon({ it, size = 48, className = '', style }) {
+      const file = `${it.cat === 'boat' ? 'boat' : 'item'}_${it.id}.webp`;
+      return <Pic file={file} alt={it.n} size={size} className={className} style={style}
+        fallback={<span className={className} style={{ fontSize: size * 0.8, lineHeight: 1, display: 'inline-block' }}>{it.e}</span>} />;
+    }
+
     // ふくの あおい ところを、えらんだ いろに ぬりかえる（ゲンじいの ベスト・つりびとの ふく）
     const RECOLOR_CACHE = new Map();
     function rgb2hsl(r, g, b) {
@@ -667,7 +674,7 @@
       return (
         <div className={`relative inline-block ${className}`} style={{ width: size, height: size }}>
           <div className={`${fxOf(color)} ${small ? 'overflow-hidden rounded-full bg-sky-100 border-2 border-sky-300' : ''}`} style={{ width: size, height: size }}>{body}</div>
-          {hat && <div className="absolute pointer-events-none" style={{ left: '50%', top: small ? -size * 0.22 : -size * 0.06, transform: 'translateX(-50%)', fontSize: size * (small ? 0.42 : 0.34), lineHeight: 1 }}>{hat.e}</div>}
+          {hat && <div className="absolute pointer-events-none" style={{ left: '50%', top: small ? -size * 0.24 : -size * 0.08, transform: 'translateX(-50%)', lineHeight: 1 }}><ItemIcon it={hat} size={size * (small ? 0.52 : 0.42)} /></div>}
         </div>
       );
     }
@@ -703,7 +710,7 @@
               : src ? <img src={src} alt="つりびと" className="chara-img select-none" style={{ width: size, height: size * 1.1, objectFit: 'contain', transform: flip ? 'scaleX(-1)' : undefined }} draggable={false} />
               : <div style={{ width: size, height: size * 1.1 }} />}
           </div>
-          {hat && <div className="absolute pointer-events-none" style={{ left: '50%', top: -size * 0.12, transform: 'translateX(-50%)', fontSize: size * 0.32, lineHeight: 1 }}>{hat.e}</div>}
+          {hat && <div className="absolute pointer-events-none" style={{ left: '50%', top: -size * 0.14, transform: 'translateX(-50%)', lineHeight: 1 }}><ItemIcon it={hat} size={size * 0.4} /></div>}
         </div>
       );
     }
@@ -1008,7 +1015,6 @@
       const [bgOk, setBgOk] = useState(!MISSING.has(`spot_${sp.id}.webp`));
       useEffect(() => { const im = new Image(); im.onerror = () => { MISSING.add(`spot_${sp.id}.webp`); setBgOk(false); }; im.src = IMG + `spot_${sp.id}.webp`; }, []);
       const boat = !bgOk && sp.id >= 5 && sp.id <= 6 ? (sp.id === 6 ? '🛥️' : '🚣') : null;
-      const ukiE = uki ? uki.e : null;
       const cast_ = stage !== 'ready';
       const fx = cast_ ? 64 : 27, fy = cast_ ? 66 : 58;
       return (
@@ -1023,7 +1029,7 @@
               <div className="relative"><Hero look={look} size={150} flip /></div>
             </div>
             <div className={`absolute ${stage === 'wait' ? 'uki-wait' : stage === 'bite' ? 'uki-bite' : ''}`} style={{ left: `${fx}%`, top: `${fy}%`, transform: 'translate(-50%, -50%)', transition: 'left .6s, top .6s' }}>
-              {ukiE ? <span style={{ fontSize: 34 }}>{ukiE}</span>
+              {uki ? <ItemIcon it={uki} size={42} />
                 : <svg width="26" height="40" viewBox="0 0 26 40"><path d="M13 0 v8" stroke="#1c1917" strokeWidth="2" /><ellipse cx="13" cy="18" rx="9" ry="11" fill="#ef4444" stroke="#1c1917" strokeWidth="2" /><path d="M4 20 h18 a9 11 0 0 1 -18 0z" fill="#fff" stroke="#1c1917" strokeWidth="2" /></svg>}
             </div>
             {stage === 'bite' && <><div className="ring" style={{ left: `${fx}%`, top: `${fy + 4}%` }} /><div className="absolute text-6xl font-bold text-yellow-300 pop" style={{ left: `${fx + 3}%`, top: `${fy - 26}%`, textShadow: '3px 3px 0 #b91c1c' }}>！</div></>}
@@ -1597,7 +1603,7 @@
                 <div key={it.id} className="bg-white rounded-3xl border-4 p-2 flex flex-col items-center gap-1" style={{ borderColor: col }}>
                   <div className="text-xs font-bold rounded-full px-2" style={{ background: bg, color: col }}>{tn}</div>
                   <div className="h-16 flex items-center justify-center my-1">{it.color ? <span className={`inline-block w-14 h-14 rounded-full border-2 border-stone-700 ${it.color.niji ? 'niji' : ''}`} style={{ background: it.color.css }} />
-                    : <Pic file={it.cat === 'boat' ? `boat_${it.id}.webp` : null} size={110} style={{ height: 64 }} fallback={<span className="text-5xl">{it.e}</span>} />}</div>
+                    : <ItemIcon it={it} size={it.cat === 'boat' ? 110 : 64} style={{ height: 64 }} />}</div>
                   <div className="text-lg font-bold text-center leading-tight">{it.n}</div>
                   {it.go && <div className="text-sm font-bold text-sky-700">{SPOT[it.go].name}へ いける</div>}
                   {have ? <div className="text-lg font-bold text-emerald-700">✔ かった</div>
@@ -1627,7 +1633,7 @@
           <div className="relative w-full rounded-3xl border-[10px] border-slate-500 overflow-hidden" style={{ height: 'calc(100vh - 220px)', minHeight: 360, background: 'linear-gradient(#67e8f9, #0e7490)' }}>
             {Array.from({ length: 10 }, (_, k) => <span key={k} className="bubble" style={{ left: `${5 + k * 9.5}%`, bottom: -20, width: 8 + (k % 3) * 5, height: 8 + (k % 3) * 5, '--d': `${5 + (k % 4) * 1.5}s`, animationDelay: `${k * 0.6}s` }} />)}
             <div className="absolute inset-x-0 bottom-0 h-16" style={{ background: 'linear-gradient(transparent, #fde68a 40%)' }} />
-            {kazari.map((it, k) => <span key={it.id} className="absolute" style={{ left: `${4 + k * 12}%`, bottom: 4, fontSize: it.t >= 2 ? 72 : 56, lineHeight: 1 }}>{it.e}</span>)}
+            {kazari.map((it, k) => <span key={it.id} className="absolute" style={{ left: `${3 + k * 12}%`, bottom: 4, lineHeight: 1 }}><ItemIcon it={it} size={it.t >= 2 ? 100 : 76} /></span>)}
             {fishes.map((f, k) => (
               <button key={f.id} onClick={() => { const z = progress.zukan[f.id]; talk.say(`${f.n}。${f.d} いちばん おおきいのは ${cmText(z.max)}。`); }}
                 className="swim" style={{ top: `${6 + ((k * 37) % (lanes * 10)) * (70 / (lanes * 10))}%`, '--d': `${12 + (k % 5) * 3}s`, '--dl': `${-k * 2.3}s` }}>
@@ -1687,7 +1693,7 @@
       const box = (on) => `rounded-2xl border-4 px-2 py-1 flex flex-col items-center ${on ? 'border-sky-600 bg-sky-50' : 'border-stone-200 bg-white'}`;
       const colorRow = (val, set) => <div className="flex flex-wrap gap-2">{ownedColors(progress).map(c => <button key={c.id} onClick={() => set('color', c.id)} className={box(val === c.id)}><span className={`inline-block w-11 h-11 rounded-full border-2 border-stone-700 ${c.niji ? 'niji' : ''}`} style={{ background: c.css }} /><span className="text-sm font-bold">{c.name}</span></button>)}</div>;
       const hatRow = (val, set) => !hats.length ? <div className="text-lg text-stone-500">おみせで かうと かぶれるよ</div> : (
-        <div className="flex flex-wrap gap-2"><button onClick={() => set('hat', null)} className={`${box(!val)} text-lg font-bold`}>なし</button>{hats.map(it => <button key={it.id} onClick={() => set('hat', it.id)} className={box(val === it.id)}><span className="text-4xl leading-none">{it.e}</span><span className="text-sm font-bold">{it.n}</span></button>)}</div>);
+        <div className="flex flex-wrap gap-2"><button onClick={() => set('hat', null)} className={`${box(!val)} text-lg font-bold`}>なし</button>{hats.map(it => <button key={it.id} onClick={() => set('hat', it.id)} className={box(val === it.id)}><ItemIcon it={it} size={48} /><span className="text-sm font-bold">{it.n}</span></button>)}</div>);
       return (
         <div className="w-full max-w-6xl p-3 flex flex-col items-center gap-3">
           <MsgWin size={80} compact />
@@ -1706,7 +1712,7 @@
                   <div className="flex-1 flex flex-col gap-2"><div className="text-xl font-bold">👴 ゲンじいの ふくの いろ</div>{colorRow(gen.color, setG)}<div className="text-xl font-bold">ゲンじいの ぼうし</div>{hatRow(gen.hat, setG)}</div>
                 </div>
                 <div className="win-light p-3"><div className="text-xl font-bold mb-2">🔴 うき</div>
-                  <div className="flex flex-wrap gap-2"><button onClick={() => setU(null)} className={`${box(!uki)} text-lg font-bold`}>ふつう</button>{ukis.map(it => <button key={it.id} onClick={() => setU(it.id)} className={box(uki === it.id)}><span className="text-4xl leading-none">{it.e}</span><span className="text-sm font-bold">{it.n}</span></button>)}</div>
+                  <div className="flex flex-wrap gap-2"><button onClick={() => setU(null)} className={`${box(!uki)} text-lg font-bold`}>ふつう</button>{ukis.map(it => <button key={it.id} onClick={() => setU(it.id)} className={box(uki === it.id)}><ItemIcon it={it} size={48} /><span className="text-sm font-bold">{it.n}</span></button>)}</div>
                   {!ukis.length && <div className="text-base text-stone-500 mt-1">おみせで かうと かえられるよ</div>}</div>
               </>}
             </div>
