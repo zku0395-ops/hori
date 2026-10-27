@@ -97,7 +97,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.2.0';
+    const APP_VERSION = '1.2.1';
     const BASE = window.TSURI_BASE;
     const IMG = BASE + 'img/';
 
@@ -1435,14 +1435,18 @@
 
       return (
         <div className="w-full max-w-[1400px] flex flex-col gap-2 px-2">
-          <MsgWin size={56} compact />
-          <div className="flex items-center gap-3 w-full">
+          {/* はじめの「○○で つりを しよう！」の ときは、つりばの 絵を がめん いっぱいに しく */}
+          {phase === 'intro' && <SpotBg sp={sp} className="!fixed inset-0 pointer-events-none" style={{ zIndex: 0 }} />}
+          <div className="relative"><MsgWin size={56} compact /></div>
+          <div className="relative flex items-center gap-3 w-full">
             <div className="text-lg font-bold bg-white rounded-2xl px-3 py-0.5 border-2 border-sky-900 shrink-0">{sp.icon} {stageName(st)}</div>
             <div className="text-lg font-bold text-sky-900 truncate bg-white/90 rounded-full px-3">{step.topic}</div>
             <div className="flex-1" /><div className="text-xl font-bold text-stone-700 bg-white/90 rounded-full px-3">{i + 1} / {n}もん</div>
             <button onClick={onQuit} className="btn3d bg-white border-2 border-stone-300 rounded-2xl px-3 py-1 text-lg font-bold shrink-0">✋ やめる</button>
           </div>
-          {phase === 'intro' && <div className="h-80 flex items-center justify-center text-7xl floaty">🎣</div>}
+          {phase === 'intro' && <div className="relative h-80 flex items-center justify-center">
+            <div className="win px-8 py-4 flex flex-col items-center pop"><div className="text-6xl font-bold">{sp.icon} {sp.name}</div><div className="text-2xl text-sky-200 mt-1">{step.icon} {step.name}</div></div>
+          </div>}
           {phase === 'fish' && <FishingScene key={'f' + i} st={st} plan={plan} progress={progress} look={progress.look} uki={ukiOf(progress)} first={i === 0} secs={Number(S.time) || 0} onCatch={onCatch} onDone={startSheet} />}
           {(phase === 'sheet' || phase === 'done') && (
             <div className="flex gap-3 items-start w-full">
