@@ -6,22 +6,22 @@
   // つりば（6か所 ＋ はってん）
   //   cmax：1しゅるいで つれる かずの さいだい
   //   boat：いくのに ひつような ふね（おみせの id）
-  //   x・y：ちずの うえの いち（%）
+  //   x・y：ちずの うえの いち（%。img/map.webp の 絵に あわせて いる）
   // ---------------------------------------------------------------
   const SPOTS = [
-    { id: 1, name: 'かわ', icon: '🏞️', cmax: 5, x: 14, y: 26, sky: '#bae6fd', water: '#38bdf8', land: '#86efac',
+    { id: 1, name: 'かわ', icon: '🏞️', cmax: 5, x: 17, y: 22, sky: '#bae6fd', water: '#38bdf8', land: '#86efac',
       intro: 'やまから ながれて くる かわだよ。1ぴき 100えんと 200えんの さかなが つれるよ。' },
-    { id: 2, name: 'みずうみ', icon: '🛶', cmax: 5, x: 31, y: 50, sky: '#c7d2fe', water: '#60a5fa', land: '#a3e635',
+    { id: 2, name: 'みずうみ', icon: '🛶', cmax: 5, x: 27, y: 44, sky: '#c7d2fe', water: '#60a5fa', land: '#a3e635',
       intro: 'しずかな みずうみだよ。300えんの さかなも いるよ。' },
-    { id: 3, name: 'いそ', icon: '🪨', cmax: 6, x: 50, y: 74, sky: '#a5f3fc', water: '#22d3ee', land: '#fde68a',
+    { id: 3, name: 'いそ', icon: '🪨', cmax: 6, x: 40, y: 76, sky: '#a5f3fc', water: '#22d3ee', land: '#fde68a',
       intro: 'うみべの いわばだよ。かにや たこも つれるよ。' },
-    { id: 4, name: 'みなと', icon: '⚓', cmax: 8, x: 62, y: 46, sky: '#bfdbfe', water: '#3b82f6', land: '#d6d3d1',
+    { id: 4, name: 'みなと', icon: '⚓', cmax: 8, x: 66, y: 40, sky: '#bfdbfe', water: '#3b82f6', land: '#d6d3d1',
       intro: 'ふねが あつまる みなとだよ。150えんや 250えんの さかなが いるよ。' },
-    { id: 5, name: 'おき', icon: '🚤', cmax: 9, x: 79, y: 28, sky: '#93c5fd', water: '#2563eb', land: '#2563eb', boat: 'boat',
+    { id: 5, name: 'おき', icon: '🚤', cmax: 9, x: 82, y: 22, sky: '#93c5fd', water: '#2563eb', land: '#2563eb', boat: 'boat',
       intro: 'ボートで うみの とおくまで でるよ。1000えんより たかい さかなが つれるよ。' },
-    { id: 6, name: 'ふかい うみ', icon: '🌊', cmax: 9, x: 88, y: 70, sky: '#1e3a8a', water: '#172554', land: '#172554', boat: 'ship',
+    { id: 6, name: 'ふかい うみ', icon: '🌊', cmax: 9, x: 80, y: 78, sky: '#1e3a8a', water: '#172554', land: '#172554', boat: 'ship',
       intro: 'ふねで ふかい うみへ いくよ。めずらしい さかなが まって いるよ。' },
-    { id: 7, name: 'つり たいかい', icon: '🏆', cmax: 9, x: 42, y: 20, sky: '#fef3c7', water: '#38bdf8', land: '#fde68a', hatten: true,
+    { id: 7, name: 'つり たいかい', icon: '🏆', cmax: 9, x: 50, y: 14, sky: '#fef3c7', water: '#38bdf8', land: '#fde68a', hatten: true,
       intro: 'はってん。せんせいの スライドと おなじ 8しゅるいの さかなで、ごうけいを もとめるよ。' },
   ];
 
