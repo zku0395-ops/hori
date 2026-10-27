@@ -89,7 +89,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.0.6';
+    const APP_VERSION = '1.0.7';
     const BASE = window.KOTOBA_BASE;
     const IMG = BASE + 'img/';
 
@@ -226,7 +226,10 @@
     };
 
     // ---- 読み上げの ことば ----
-    const fmtSpeech = (t) => String(t || '')
+    // 「1ぴき」「3びき」などの よみ（よみあげの こえが「いちひき」と よまない ように、ひらがなに なおす）
+    const HIKI_YOMI = ['', 'いっぴき', 'にひき', 'さんびき', 'よんひき', 'ごひき', 'ろっぴき', 'ななひき', 'はっぴき', 'きゅうひき', 'じゅっぴき'];
+    const hikiYomi = (t) => String(t).replace(/(\d+)\s*[ひぴび]き/g, (m, n) => HIKI_YOMI[Number(n)] || m);
+    const fmtSpeech = (t) => hikiYomi(t || '')
       .replace(/（　）/g, 'なになに').replace(/〜/g, '').replace(/[「」『』]/g, '、')
       .replace(/[⓪①②③④⑤]/g, '').replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu, '');
 
