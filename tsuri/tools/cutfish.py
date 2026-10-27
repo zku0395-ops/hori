@@ -63,7 +63,9 @@ for c in comps:
     if c[0] in owner: continue
     cx, cy = (c[2] + c[3]) / 2, (c[4] + c[5]) / 2
     d = [max(0, b[2] - cx, cx - b[3]) + max(0, b[4] - cy, cy - b[5]) for b in big]
-    if min(d) < (150 if c[1] > 300 else 60): owner[c[0]] = int(np.argmin(d))
+    inside = [i for i, b in enumerate(big) if b[2] <= cx <= b[3]]  # まうえ・まうしたに ある ものを さきに えらぶ（あわ など）
+    if inside and min(d[i] for i in inside) < 300: owner[c[0]] = min(inside, key=lambda i: d[i])
+    elif min(d) < (150 if c[1] > 300 else 60): owner[c[0]] = int(np.argmin(d))
 alpha_all = np.asarray(Image.fromarray((fg * 255).astype('uint8')).filter(ImageFilter.MinFilter(3)).filter(ImageFilter.GaussianBlur(0.8)))
 rgb = np.asarray(im)
 prev = Image.new('RGBA', (300 * len(ids), 200), (200, 230, 250, 255))
