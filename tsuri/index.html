@@ -1,0 +1,2186 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ゲンじいの つりマスター への みち</title>
+
+  <script crossorigin="anonymous" src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+  <script crossorigin="anonymous" src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'BIZ UDPGothic', sans-serif; background: #e0f2fe; margin: 0; color: #082f49;
+      -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+    .btn3d { border-bottom-width: 6px; transition: transform .08s, border-bottom-width .08s; }
+    .btn3d:active:not(:disabled) { transform: translateY(4px); border-bottom-width: 2px; }
+    /* メッセージの まど */
+    .win { background: #0c4a6e; color: #fff; border: 4px solid #bae6fd; border-radius: 16px; box-shadow: 0 0 0 4px #0c4a6e, 0 8px 0 4px rgba(8,47,73,.25); }
+    .win-light { background: #fffdf7; border: 4px solid #0c4a6e; border-radius: 16px; box-shadow: 0 6px 0 rgba(8,47,73,.2); }
+    .sea { background: linear-gradient(#bae6fd 0 30%, #7dd3fc 30% 100%); }
+    .pop { animation: pop .45s cubic-bezier(.17,.89,.32,1.28) both; }
+    @keyframes pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .floaty { animation: floaty 3s ease-in-out infinite; }
+    @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    .bob { animation: bob 1.2s steps(2) infinite; }
+    @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+    .shake { animation: shake .45s; }
+    @keyframes shake { 0%,100% { transform: translateX(0); } 20%,60% { transform: translateX(-9px); } 40%,80% { transform: translateX(9px); } }
+    .glow { animation: glow 1.1s ease-in-out infinite; }
+    @keyframes glow { 0%,100% { box-shadow: 0 0 0 0 rgba(250,204,21,.95); } 50% { box-shadow: 0 0 0 14px rgba(250,204,21,0); } }
+    .coinfly { animation: coinfly 1.6s ease-out forwards; }
+    @keyframes coinfly { 0% { transform: translateY(0) scale(.6); opacity: 0; } 20% { opacity: 1; transform: translateY(-10px) scale(1.2); } 100% { transform: translateY(-70px) scale(1); opacity: 0; } }
+    .bump { animation: bump .5s; }
+    @keyframes bump { 0%,100% { transform: scale(1); } 40% { transform: scale(1.3); } }
+    .confetti span { position: absolute; animation: fall 1.6s ease-in forwards; }
+    @keyframes fall { from { transform: translateY(-40px) rotate(0); opacity: 1; } to { transform: translateY(260px) rotate(320deg); opacity: 0; } }
+    .niji { animation: niji 3s linear infinite; }
+    @keyframes niji { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } }
+    .shine { animation: shine 2.4s ease-in-out infinite; }
+    @keyframes shine { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.25) drop-shadow(0 0 6px #fff7); } }
+    .chara-img { filter: drop-shadow(0 4px 4px rgba(0,0,0,.25)); }
+    .caret:after { content: '▼'; display: inline-block; margin-left: 6px; font-size: .7em; animation: floaty 1s infinite; }
+    /* うき */
+    .uki-wait { animation: ukiwait 1.6s ease-in-out infinite; }
+    @keyframes ukiwait { 0%,100% { transform: translate(-50%, -50%) translateY(0); } 50% { transform: translate(-50%, -50%) translateY(5px); } }
+    .uki-bite { animation: ukibite .5s ease-in-out infinite; }
+    @keyframes ukibite { 0%,100% { transform: translate(-50%, -50%) translateY(10px); } 50% { transform: translate(-50%, -50%) translateY(22px); } }
+    .ring { position: absolute; border: 3px solid rgba(255,255,255,.85); border-radius: 50%; animation: ring 1.2s ease-out infinite; transform: translate(-50%, -50%); }
+    @keyframes ring { from { width: 10px; height: 4px; opacity: 1; } to { width: 110px; height: 34px; opacity: 0; } }
+    .jump { animation: jump .9s cubic-bezier(.2,.9,.3,1.2) both; }
+    @keyframes jump { 0% { transform: translateY(80px) scale(.3) rotate(-30deg); opacity: 0; } 60% { transform: translateY(-20px) scale(1.1) rotate(8deg); opacity: 1; } 100% { transform: translateY(0) scale(1) rotate(0); } }
+    /* すいそう */
+    .swim { position: absolute; animation: swim var(--d, 14s) linear infinite; animation-delay: var(--dl, 0s); }
+    @keyframes swim { 0% { left: 2%; transform: scaleX(1); } 48% { left: 82%; transform: scaleX(1); } 50% { left: 82%; transform: scaleX(-1); } 98% { left: 2%; transform: scaleX(-1); } 100% { left: 2%; transform: scaleX(1); } }
+    .bubble { position: absolute; border-radius: 50%; border: 2px solid rgba(255,255,255,.7); animation: bubble var(--d, 6s) linear infinite; }
+    @keyframes bubble { from { transform: translateY(0); opacity: .9; } to { transform: translateY(-420px); opacity: 0; } }
+    .wave { animation: wave 6s ease-in-out infinite alternate; }
+    @keyframes wave { from { transform: translateX(-20px); } to { transform: translateX(20px); } }
+    /* けいさんの シート */
+    .box { display: inline-flex; align-items: center; justify-content: flex-end; border: 3px solid; border-radius: .7rem; padding: 0 .5rem; font-weight: 700; min-height: 3rem; font-variant-numeric: tabular-nums; background: #fff; }
+    .box.on { outline: 5px solid #facc15; outline-offset: 2px; }
+    .tag-p { background: #dbeafe; border-color: #2563eb; color: #1e3a8a; }
+    .tag-c { background: #fef9c3; border-color: #ca8a04; color: #713f12; }
+    .tag-m { background: #ffedd5; border-color: #ea580c; color: #7c2d12; }
+    .tag-t { background: #dcfce7; border-color: #16a34a; color: #14532d; }
+    .calc-key { border-bottom-width: 5px; transition: transform .06s, border-bottom-width .06s; }
+    .calc-key:active { transform: translateY(3px); border-bottom-width: 2px; }
+    .seg { font-family: 'BIZ UDPGothic', monospace; letter-spacing: .06em; font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div style="padding:60px;text-align:center;font-size:28px;color:#0c4a6e;font-weight:bold;">じゅんび ちゅう…</div>
+  </div>
+
+  <!-- さかなの データと 絵は GitHub Pages から読みこみます（このファイルを短くするため） -->
+  <script>
+    (function () {
+      var h = location.hostname;
+      var local = location.protocol === 'file:' || /github\.io$/.test(h) || h === 'localhost' || h === '127.0.0.1';
+      window.TSURI_BASE = local ? '' : 'https://zku0395-ops.github.io/hori/tsuri/';
+      var V = '2';
+      var load = function (f) {
+        return new Promise(function (ok, ng) {
+          var s = document.createElement('script');
+          s.src = window.TSURI_BASE + f + '?v=' + V;
+          s.onload = ok; s.onerror = function () { ng(new Error(f)); };
+          document.head.appendChild(s);
+        });
+      };
+      window.TSURI_READY = load('data/tsuri.js');
+    })();
+  </script>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
+    const APP_VERSION = '1.0.19';
+    const BASE = window.TSURI_BASE;
+    const IMG = BASE + 'img/';
+
+    // =====================================================================
+    //  1. 小さな道具
+    // =====================================================================
+    const shuffle = (a) => { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+    const uniq = (a) => [...new Set(a)];
+    const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
+    const pick = (a) => a[Math.floor(Math.random() * a.length)];
+    const rand = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+    const nowStr = () => {
+      const d = new Date(), p = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    };
+    // おかねの ひょうじ（さいふは 3けたごとに「,」。けいさんの シートは でんたくと おなじ ように「,」なし）
+    const yen = (n) => Number(n || 0).toLocaleString('ja-JP');
+    const safeStore = {
+      get(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
+      set(k, v) { try { window.localStorage.setItem(k, v); } catch (e) {} },
+      del(k) { try { window.localStorage.removeItem(k); } catch (e) {} },
+    };
+    const downloadText = (name, text, type) => {
+      const blob = new Blob([text], { type: type || 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = name; document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
+    };
+
+    // =====================================================================
+    //  2. こえ と おと
+    // =====================================================================
+    const Speech = {
+      rate: 0.8, pitch: 1.0, voice: null,
+      ok: typeof window !== 'undefined' && 'speechSynthesis' in window,
+      pickVoice() {
+        if (!this.ok) return;
+        const vs = window.speechSynthesis.getVoices().filter(v => (v.lang || '').toLowerCase().replace('_', '-').startsWith('ja'));
+        this.voice = vs.find(v => /google/i.test(v.name)) || vs[0] || null;
+      },
+      say(text, onEnd) {
+        if (!this.ok || !text) { if (onEnd) setTimeout(onEnd, 200); return; }
+        try {
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(String(text));
+          u.lang = 'ja-JP'; if (this.voice) u.voice = this.voice;
+          u.rate = this.rate; u.pitch = this.pitch;
+          let done = false;
+          const end = () => { if (!done) { done = true; onEnd && onEnd(); } };
+          u.onend = end; u.onerror = end;
+          // 声が出ない端末でも先へ進めるように、長さに合わせて待つ
+          setTimeout(end, 1500 + String(text).length * 230 / this.rate);
+          // Chrome は cancel の すぐ あとの speak を おとすことが あるので すこし まつ
+          setTimeout(() => window.speechSynthesis.speak(u), 60);
+        } catch (e) { if (onEnd) setTimeout(onEnd, 200); }
+      },
+      stop() { try { this.ok && window.speechSynthesis.cancel(); } catch (e) {} },
+    };
+    if (Speech.ok) { Speech.pickVoice(); window.speechSynthesis.onvoiceschanged = () => Speech.pickVoice(); }
+
+    // このアプリのための オリジナルの おと
+    const Sound = {
+      on: true, ctx: null,
+      get() {
+        if (!this.ctx) { const C = window.AudioContext || window.webkitAudioContext; if (C) this.ctx = new C(); }
+        if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+        return this.ctx;
+      },
+      toneAt(freq, t, dur, type = 'square', vol = 0.06) {
+        const c = this.ctx; if (!c) return;
+        const o = c.createOscillator(), g = c.createGain();
+        o.type = type; o.frequency.value = freq;
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.05);
+      },
+      tone(freq, at, dur, type = 'square', vol = 0.06) { const c = this.get(); if (!c || !this.on) return; this.toneAt(freq, c.currentTime + at, dur, type, vol); },
+      sweep(f0, f1, dur, type = 'sine', vol = 0.06) {
+        const c = this.get(); if (!c || !this.on) return;
+        const t = c.currentTime, o = c.createOscillator(), g = c.createGain();
+        o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+        g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .02); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+        o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + .05);
+      },
+      seikai() { [[784, 0], [988, .09], [1319, .18]].forEach(([f, t]) => this.tone(f, t, .14, 'square', .05)); this.tone(1568, .3, .35, 'triangle', .1); },
+      fanfare() {
+        [[523, 0], [659, .14], [784, .28], [1047, .42], [988, .7], [1047, .84], [1319, 1.0]].forEach(([f, t]) => this.tone(f, t, .16, 'square', .055));
+        [262, 330, 392, 523].forEach(f => this.tone(f, 1.0, 1.0, 'triangle', .07));
+      },
+      levelup() { [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => this.tone(f, i * .09, .12, 'square', .05)); },
+      retry() { this.tone(330, 0, .12, 'sine', .06); this.tone(294, .11, .18, 'sine', .06); }, // まちがえた とき（小さな おと）
+      tap() { this.tone(880, 0, .05, 'square', .035); },
+      key() { this.tone(1200, 0, .04, 'square', .03); },
+      count(i) { this.tone(523 * Math.pow(2, Math.min(i, 12) / 12), 0, .1, 'triangle', .08); },
+      coin() { this.tone(988, 0, .07, 'square', .045); this.tone(1319, .07, .2, 'square', .045); },
+      cast() { this.sweep(900, 300, .35, 'sine', .07); },
+      splash() { [0, .05, .1].forEach((t, i) => this.tone(200 + i * 90, t, .12, 'sine', .05)); },
+      bite() { this.tone(1046, 0, .08, 'square', .06); this.tone(1318, .1, .12, 'square', .06); },
+      reel() { [0, .06, .12, .18, .24, .3].forEach((t, i) => this.tone(600 + i * 60, t, .04, 'square', .03)); },
+      rare() { [784, 988, 1175, 1568, 1976, 2349].forEach((f, i) => this.tone(f, i * .07, .16, 'triangle', .08)); },
+    };
+
+    // おんがく（BGM）。このアプリのための オリジナルの きょく（ゆったり した うみの うた）
+    const N = (m) => 440 * Math.pow(2, (m - 69) / 12);
+    const MEL = [72, 0, 74, 76, 79, 0, 76, 0, 74, 72, 74, 0, 69, 0, 0, 0, 67, 0, 69, 72, 74, 0, 72, 0, 69, 67, 69, 72, 72, 0, 0, 0];
+    const BASS = [48, 0, 0, 0, 55, 0, 0, 0, 53, 0, 0, 0, 57, 0, 0, 0, 52, 0, 0, 0, 50, 0, 0, 0, 53, 0, 0, 0, 48, 0, 0, 0];
+    const Bgm = {
+      timer: null, step: 0, next: 0,
+      start() {
+        if (this.timer) return;
+        const c = Sound.get(); if (!c) return;
+        this.next = c.currentTime + 0.15; this.step = 0;
+        this.timer = setInterval(() => {
+          const cc = Sound.ctx; if (!cc) return;
+          while (this.next < cc.currentTime + 0.35) {
+            const m = MEL[this.step], b = BASS[this.step];
+            if (m) Sound.toneAt(N(m), this.next, 0.26, 'triangle', 0.035);
+            if (b) Sound.toneAt(N(b), this.next, 0.6, 'triangle', 0.045);
+            this.next += 0.28; this.step = (this.step + 1) % MEL.length;
+          }
+        }, 90);
+      },
+      stop() { if (this.timer) clearInterval(this.timer); this.timer = null; },
+    };
+
+    // ---- 読み上げの ことば ----
+    const fmtSpeech = (t) => String(t || '')
+      .replace(/〜/g, '').replace(/[「」『』]/g, '、').replace(/[①②③④⑤⓪]/g, '')
+      .replace(/×/g, ' かける ').replace(/＋/g, ' たす ').replace(/＝/g, ' は ')
+      .replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu, '');
+
+    // =====================================================================
+    //  3. データ（data/tsuri.js から）
+    // =====================================================================
+    let D = null, STAGES = [], STAGE = {}, SPOT = {}, FISH = {}, ITEM = {}, ALL_ITEMS = [], COLOR = {};
+    const STEP_OF = (st) => (st.spot === 7 ? D.HATTEN_STEPS : D.STEPS).find(s => s.k === st.k);
+    function buildStages() {
+      const out = [];
+      D.SPOTS.forEach(sp => (sp.hatten ? D.HATTEN_STEPS : D.STEPS).forEach(s => out.push({ id: `${sp.id}-${s.k}`, spot: sp.id, k: s.k, hatten: !!sp.hatten })));
+      return out;
+    }
+    const stageName = (st) => `${SPOT[st.spot].name}　${st.hatten ? '' : '⓪①②③④⑤'[st.k] + ' '}${STEP_OF(st).name}`;
+    const mainChain = () => STAGES.filter(s => !s.hatten);
+    const spotFish = (sid) => D.FISH.filter(f => f.s === sid);
+
+    // =====================================================================
+    //  4. もんだいを つくる
+    //     1もん ＝ 1かいの つり。つる さかなの しゅるい と かず は アプリが きめる
+    // =====================================================================
+    const owned = (p, cat) => ALL_ITEMS.filter(it => it.cat === cat && p.items.includes(it.id));
+    const bonusOf = (p, key) => ALL_ITEMS.filter(it => p.items.includes(it.id) && it[key]).reduce((m, it) => (it.cat === 'boat' ? m : Math.max(m, it[key])), 0)
+      + (p.items.includes('bigship') && key === 'nushi' ? ITEM.bigship.nushi : 0);
+    const nushiChance = (p) => 0.06 + bonusOf(p, 'nushi');
+    // さかなの おおきさ（えさが いいほど おおきく なりやすい）
+    const sizeOf = (f, p) => { const r = Math.pow(Math.random(), Math.max(0.35, 1.5 - bonusOf(p, 'size') * 1.6)); return Math.round(f.min + (f.max - f.min) * r); };
+    const cmText = (cm) => (cm >= 100 ? `${Math.floor(cm / 100)}メートル${cm % 100 ? ` ${cm % 100}センチ` : ''}` : `${cm}センチ`);
+
+    function countRange(st, step, sp) {
+      const cmax = sp.cmax;
+      if (step.mode === 'count') return [1, cmax];
+      if (step.mode === 'add') return [2, sp.id >= 4 ? 5 : 4];
+      return [2, cmax];
+    }
+    function genProblem(st, p, prev) {
+      const step = STEP_OF(st), sp = SPOT[st.spot];
+      let rows = [];
+      if (step.kinds === 'slide') {
+        rows = D.SLIDE.map(([id, price]) => ({ f: FISH[id], p: price, plain: 1 }));
+      } else if (step.kinds === 'mix8') {
+        const pool = shuffle(D.FISH.filter(f => !f.nushi));
+        rows = pool.slice(0, 8).map(f => ({ f, p: f.p, plain: 1 }));
+      } else {
+        const list = spotFish(sp.id);
+        const normal = list.filter(f => !f.nushi), nushi = list.find(f => f.nushi);
+        const withNushi = nushi && Math.random() < nushiChance(p);
+        let kinds;
+        if (step.kinds === 'all') kinds = [...shuffle(normal), ...(withNushi ? [nushi] : [])];
+        else {
+          const k = rand(step.kinds[0], step.kinds[1]);
+          kinds = shuffle(normal).slice(0, k);
+          if (withNushi) kinds[k - 1] = nushi;
+        }
+        rows = kinds.map(f => ({ f, p: f.p }));
+      }
+      const [c0, c1] = countRange(st, step, sp);
+      // まえの もんだいと まったく おなじ に ならないように する
+      for (let tryN = 0; tryN < 6; tryN++) {
+        rows.forEach(r => { r.c = rand(c0, c1); });
+        const key = rows.map(r => r.f.id + r.c).join();
+        if (!prev || key !== prev) break;
+      }
+      rows.forEach(r => { r.size = sizeOf(r.f, p); r.m = r.p * r.c; });
+      return { rows, total: rows.reduce((s, r) => s + r.m, 0), mode: step.mode, key: rows.map(r => r.f.id + r.c).join() };
+    }
+    const isNushi = (r) => !!(r.f.nushi && !r.plain);
+    const probText = (pr) => pr.rows.map(r => `${r.f.n}${r.p}えん×${r.c}`).join('・');
+
+    // こたえる ますの じゅんばん：かず → かけざん（たしざん）→ ごうけい
+    function blanksOf(pr) {
+      if (pr.mode === 'count') return [{ t: 'count', r: 0 }];
+      if (pr.mode === 'add') return [{ t: 'count', r: 0 }, { t: 'add', r: 0 }];
+      if (pr.mode === 'mul') return [{ t: 'count', r: 0 }, { t: 'mul', r: 0 }];
+      return [...pr.rows.map((_, r) => ({ t: 'count', r })), ...pr.rows.map((_, r) => ({ t: 'mul', r })), { t: 'total' }];
+    }
+    const answerOf = (pr, b) => (b.t === 'count' ? pr.rows[b.r].c : b.t === 'total' ? pr.total : pr.rows[b.r].m);
+    // でんたくで おす キーの じゅんばん（ヒント③）
+    const keysOf = (pr, b) => {
+      const ds = (n) => String(n).split('');
+      if (b.t === 'add') { const r = pr.rows[b.r]; return [...Array(r.c).fill(0).flatMap((_, i) => (i ? ['+', ...ds(r.p)] : ds(r.p))), '=']; }
+      if (b.t === 'mul') { const r = pr.rows[b.r]; return [...ds(r.p), '*', ...ds(r.c), '=']; }
+      if (b.t === 'total') return [...pr.rows.flatMap((r, i) => (i ? ['+', ...ds(r.m)] : ds(r.m))), '='];
+      return [];
+    };
+    const KEY_LABEL = { '+': '＋', '-': '−', '*': '×', '/': '÷', '=': '＝', C: 'C' };
+    const keyText = (ks) => ks.map(k => KEY_LABEL[k] || k).join('');
+    const formulaOf = (pr, b) => {
+      if (b.t === 'add') { const r = pr.rows[b.r]; return Array(r.c).fill(r.p).join(' ＋ ') + ' ＝'; }
+      if (b.t === 'mul') { const r = pr.rows[b.r]; return `${r.p} × ${r.c} ＝`; }
+      if (b.t === 'total') return pr.rows.map(r => r.m).join(' ＋ ') + ' ＝';
+      return '';
+    };
+
+    // まちがいの しゅるい
+    const MT = { zero: 'ゼロの かず', op: '＋と ×', count: 'かぞえまちがい', wasure: 'たしわすれ', sugi: 'たしすぎ', kaisu: 'たす かいすう', price: 'ちがう ねだん', key: 'おしまちがい' };
+    const noZero = (n) => String(n).replace(/0/g, '');
+    function classify(pr, b, v) {
+      const ans = answerOf(pr, b);
+      if (b.t === 'count') return MT.count;
+      if (noZero(v) === noZero(ans) && v !== ans && v > 0) return MT.zero;
+      if (b.t === 'mul') {
+        const r = pr.rows[b.r];
+        if (v === r.p + r.c) return MT.op;
+        if (pr.rows.some((o, i) => i !== b.r && (o.p * r.c === v || o.m === v))) return MT.price;
+        if (v === r.p * (r.c - 1) || v === r.p * (r.c + 1)) return MT.kaisu;
+        return MT.key;
+      }
+      if (b.t === 'add') {
+        const r = pr.rows[b.r];
+        if (v === r.p * (r.c - 1) || v === r.p * (r.c + 1) || (v % r.p === 0 && v > 0)) return MT.kaisu;
+        if (v === r.p + r.c) return MT.op;
+        return MT.key;
+      }
+      // ごうけい
+      const ms = pr.rows.map(r => r.m);
+      if (ms.some(m => v === pr.total - m) || ms.includes(v) || (v < pr.total && v > 0 && subsetSum(ms, v))) return MT.wasure;
+      if (ms.some(m => v === pr.total + m)) return MT.sugi;
+      if (ms.length === 2 && v === ms[0] * ms[1]) return MT.op;
+      return MT.key;
+    }
+    const subsetSum = (ms, v) => { for (let mask = 1; mask < (1 << ms.length) - 1; mask++) { let s = 0; ms.forEach((m, i) => { if (mask & (1 << i)) s += m; }); if (s === v) return true; } return false; };
+    // まちがいに あわせた こえかけ
+    function missWord(pr, b, type, v) {
+      const r = b.r != null ? pr.rows[b.r] : null;
+      switch (type) {
+        case MT.count: return Math.abs(v - r.c) === 1 ? 'おしい！ もう いちど、1ぴきずつ さわって かぞえよう。' : `${r.f.n}を ゆびで さわって、1ぴきずつ かぞえよう。`;
+        case MT.zero: return `0の かずが ちがうよ。${b.t === 'total' ? 'それぞれの えんを' : `ねだんは ${r.p}えん。`} よく みて、0が いくつ あるか たしかめよう。`;
+        case MT.op: return b.t === 'mul' ? `「＋」を おしたかな？ ${r.p} × ${r.c} だよ。「×」の キーを おそう。` : '「×」を おしたかな？ ここは たしざんだよ。「＋」の キーを おそう。';
+        case MT.price: return `ちがう さかなの ねだんを つかったかな？ ${r.f.n}は 1ぴき ${r.p}えん だよ。`;
+        case MT.kaisu: return b.t === 'add' ? `たす かずが ちがうよ。${r.p}えんを ${r.c}かい たそう。` : `かける かずを たしかめよう。${r.f.n}は ${r.c}ひき だよ。`;
+        case MT.wasure: return 'たしわすれが あるよ。うえの えんを ぜんぶ たそう。';
+        case MT.sugi: return 'おなじ えんを 2かい たしたかな？ 1つずつ たしていこう。';
+        default: return 'でんたくの おしまちがいかな？「C」を おして、もう いちど ゆっくり おそう。';
+      }
+    }
+
+    // =====================================================================
+    //  5. しんちょく（進み具合）
+    // =====================================================================
+    const FLAGS = ['unlockAll', 'hatten', 'realCalc'];
+    const defaultLook = () => ({ form: 1, color: 'ao', hat: null });
+    const newProgress = () => ({ v: 1, t: 0, yen: 0, earned: 0, items: [], cleared: {}, zukan: {}, look: null, gen: { color: 'ao', hat: null }, uki: null,
+      part: null, welcome: 0, seenMul: 0, unlockAll: false, hatten: false, realCalc: false });
+    function parseProgress(s) {
+      let p = null;
+      try { p = typeof s === 'string' ? (s ? JSON.parse(s) : null) : s; } catch (e) { p = null; }
+      const q = { ...newProgress(), ...(p || {}) };
+      if (!Array.isArray(q.items)) q.items = [];
+      ['cleared', 'zukan'].forEach(k => { if (!q[k] || typeof q[k] !== 'object') q[k] = {}; });
+      if (!q.gen || typeof q.gen !== 'object') q.gen = { color: 'ao', hat: null };
+      q.yen = Number(q.yen) || 0; q.earned = Number(q.earned) || 0;
+      return q;
+    }
+    const isCleared = (p, id) => !!p.cleared[id];
+    const spotCleared = (p, sid) => isCleared(p, `${sid}-5`);
+    const spotsCleared = (p) => D.SPOTS.filter(s => !s.hatten && spotCleared(p, s.id)).length;
+    const needBoat = (p, sp) => sp.boat && !p.items.includes(sp.boat) && !p.unlockAll;
+    const stageOpen = (p, st) => {
+      if (st.hatten) return !!(p.hatten || p.unlockAll);
+      if (p.unlockAll) return true;
+      const ch = mainChain(), i = ch.findIndex(s => s.id === st.id);
+      return i <= 0 || isCleared(p, ch[i - 1].id);
+    };
+    const spotOpen = (p, sid) => stageOpen(p, STAGE[`${sid}-${sid === 7 ? 1 : 0}`]);
+    const currentStage = (p) => {
+      const ch = mainChain();
+      return ch.find(st => stageOpen(p, st) && !isCleared(p, st.id))
+        || STAGES.filter(s => s.hatten).find(st => stageOpen(p, st) && !isCleared(p, st.id))
+        || ch[ch.length - 1];
+    };
+    const speciesOf = (p) => Object.keys(p.zukan).filter(id => FISH[id] && p.zukan[id].n > 0).length;
+    const nushiOf = (p) => D.FISH.filter(f => f.nushi && p.zukan[f.id] && p.zukan[f.id].n > 0).length;
+    const titleOk = (p, t) => t.t === 'start' || (t.t === 'spot' ? spotsCleared(p) >= t.v : t.t === 'nushi' ? nushiOf(p) >= t.v : speciesOf(p) >= t.v);
+    const titlesOf = (p) => D.TITLES.filter(t => titleOk(p, t)).map(t => t.n);
+    const titleOf = (p) => titlesOf(p).pop();
+    const ownedColors = (p) => [...D.COLORS, ...ALL_ITEMS.filter(it => it.color && p.items.includes(it.id)).map(it => it.color)];
+    const ukiOf = (p) => (p.uki && p.items.includes(p.uki) ? ITEM[p.uki] : null);
+    const stepCount = (step, count) => Math.max(1, Math.round(step.n * (Number(count) || 5) / 5));
+
+    // =====================================================================
+    //  6. データの ほぞん（スプレッドシート／おためしモード）
+    // =====================================================================
+    const HAS_GAS = typeof google !== 'undefined' && google.script && google.script.run;
+    const gas = (fn, ...args) => new Promise((resolve, reject) => {
+      google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
+    });
+    const LOG_HEADER = ['日時', 'なまえ', 'ステージ', 'つりば', 'だんかい', 'もんだい', 'ごうけい', 'けっか', 'まちがい', 'ヒント', 'まちがいの しゅるい', 'おした キー', 'でんたく', 'びょう', 'ID'];
+    const DEFAULT_SETTINGS = { rate: 0.8, font: 1, count: 5, sound: true, bgm: false };
+
+    // まとめ（先生用）— コード.gs の aggregate_ と おなじ しくみ
+    const emptyStu = () => ({ count: 0, ok: 0, secs: 0, last: '', stages: {}, steps: {}, types: {}, misses: [] });
+    const stepKey = (stage) => { const [s, k] = String(stage).split('-'); return s === '7' ? `はってん${k}` : `${k}`; };
+    function aggregate(rows) {
+      const students = {}, classTypes = {}, classSteps = {};
+      const inc = (m, k) => { m[k] = (m[k] || 0) + 1; };
+      rows.forEach(r => {
+        const name = String(r[1] || '').trim(); if (!name) return;
+        const s = students[name] || (students[name] = emptyStu());
+        const day = String(r[0] instanceof Date ? r[0].toISOString() : r[0]).slice(0, 10).replace(/-/g, '/');
+        if (day > s.last) s.last = day;
+        const st = String(r[2]), ok = r[7] === '○' ? 1 : 0;
+        s.count++; s.ok += ok; s.secs += Number(r[13]) || 0;
+        const g = s.stages[st] || (s.stages[st] = [0, 0]); g[0]++; g[1] += ok;
+        const sk = stepKey(st);
+        [s.steps, classSteps].forEach(m => { const a = m[sk] || (m[sk] = [0, 0]); a[0]++; a[1] += ok; });
+        String(r[10] || '').split('・').forEach(k => { if (k) { inc(s.types, k); inc(classTypes, k); } });
+        if (!ok && Number(r[8]) > 0) s.misses.push([String(r[0]).slice(0, 16), st, String(r[5]), String(r[10] || ''), String(r[11] || '')]);
+      });
+      Object.values(students).forEach(s => { s.misses = s.misses.slice(-15).reverse(); });
+      return { students, classTypes, classSteps };
+    }
+
+    const Local = {
+      key: 'tsuri_local_v1', mem: null,
+      data() {
+        if (this.mem) return this.mem;
+        let d = null; try { d = JSON.parse(safeStore.get(this.key)); } catch (e) {}
+        this.mem = d || { roster: ['たろう', 'はなこ', 'ゆうき'], progress: {}, log: [], pin: '1234', settings: { ...DEFAULT_SETTINGS } };
+        return this.mem;
+      },
+      save() { safeStore.set(this.key, JSON.stringify(this.mem)); },
+    };
+
+    const PENDING_KEY = 'tsuri_pending_v1';
+    const COPY_KEY = (name) => 'tsuri_copy_' + name;
+    const recRow = (stamp, name, r) => [stamp, name, r.stage, r.spot, r.step, r.mondai, r.total, r.result, r.miss, r.hint, r.types, r.keys, r.calc, r.secs, r.id];
+    const api = {
+      async init() {
+        if (HAS_GAS) return gas('getInitData');
+        const d = Local.data();
+        return { students: d.roster, settings: { ...DEFAULT_SETTINGS, ...d.settings }, demo: true };
+      },
+      async student(name) {
+        if (HAS_GAS) return gas('getStudent', name);
+        return Local.data().progress[name] || '';
+      },
+      async sendOne(p) {
+        if (HAS_GAS) return gas('saveResult', p);
+        const d = Local.data();
+        const old = parseProgress(d.progress[p.name]);
+        const neu = parseProgress(p.progress);
+        if (neu.t >= old.t) d.progress[p.name] = p.progress;
+        const ids = new Set(d.log.map(r => r[14]));
+        p.records.forEach(r => { if (!ids.has(r.id)) d.log.push(recRow(p.stamp, p.name, r)); });
+        Local.save();
+        return { ok: true };
+      },
+      // とどかなかった きろくは たまっておき、つぎの ときに おくりなおす
+      readQueue() { try { return JSON.parse(safeStore.get(PENDING_KEY)) || []; } catch (e) { return []; } },
+      async save(payload) {
+        const queue = api.readQueue().filter(q => !(q.name === payload.name && !q.records.length));
+        queue.push({ ...payload, qid: uid() });
+        safeStore.set(PENDING_KEY, JSON.stringify(queue));
+        return api.flush();
+      },
+      pending() { return api.readQueue().length; },
+      flushing: false,
+      async flush() {
+        if (api.flushing) return;
+        api.flushing = true;
+        try {
+          for (let q = api.readQueue()[0]; q; q = api.readQueue()[0]) {
+            await api.sendOne(q);
+            safeStore.set(PENDING_KEY, JSON.stringify(api.readQueue().filter(x => x.qid !== q.qid)));
+          }
+        } catch (e) { console.warn('きろくを おくれませんでした。あとで おくりなおします。', e); }
+        finally { api.flushing = false; }
+      },
+      async teacher(pin) {
+        if (HAS_GAS) return gas('getTeacherData', pin);
+        const d = Local.data();
+        if (String(pin) !== String(d.pin)) return { ok: false };
+        const agg = aggregate(d.log);
+        return {
+          ok: true, isDefaultPin: d.pin === '1234', demo: true, settings: { ...DEFAULT_SETTINGS, ...d.settings },
+          students: d.roster.map(n => ({ name: n, progress: d.progress[n] || '', ...(agg.students[n] || emptyStu()) })),
+          classTypes: agg.classTypes, classSteps: agg.classSteps,
+        };
+      },
+      async setFlag(pin, name, key, val) {
+        if (HAS_GAS) return gas('setFlag', pin, name, key, val);
+        const d = Local.data(); const p = parseProgress(d.progress[name]); p[key] = !!val; p.t = Date.now(); p.flagT = Date.now();
+        d.progress[name] = JSON.stringify(p); Local.save(); return { ok: true, progress: d.progress[name] };
+      },
+      async addYen(pin, name, delta) {
+        if (HAS_GAS) return gas('addYen', pin, name, delta);
+        const d = Local.data(); const p = parseProgress(d.progress[name]); p.yen = Math.max(0, p.yen + delta); p.t = Date.now();
+        d.progress[name] = JSON.stringify(p); Local.save(); return { ok: true, progress: d.progress[name] };
+      },
+      async saveSettings(pin, s) {
+        if (HAS_GAS) return gas('saveSettings', pin, s);
+        const d = Local.data(); const { newPin, ...rest } = s;
+        d.settings = { ...d.settings, ...rest }; if (newPin) d.pin = newPin; Local.save(); return { ok: true };
+      },
+      async logRows(pin) {
+        if (HAS_GAS) return gas('getLogRows', pin);
+        return { ok: true, rows: [LOG_HEADER, ...Local.data().log] };
+      },
+      async backup(pin) {
+        if (HAS_GAS) return gas('getBackup', pin);
+        const d = Local.data(); return { ok: true, data: { app: 'tsuri', roster: d.roster.map(n => [n, d.progress[n] || '']), settings: d.settings } };
+      },
+      async restore(pin, data) {
+        if (HAS_GAS) return gas('restoreBackup', pin, data);
+        const d = Local.data(); (data.roster || []).forEach(([n, p]) => { if (!d.roster.includes(n)) d.roster.push(n); d.progress[n] = p; }); Local.save(); return { ok: true };
+      },
+      async clear(pin, name) {
+        if (HAS_GAS) return gas('clearRecords', pin, name);
+        const d = Local.data();
+        d.log = d.log.filter(r => name && r[1] !== name);
+        (name ? [name] : d.roster).forEach(n => { delete d.progress[n]; safeStore.del(COPY_KEY(n)); });
+        Local.save(); return { ok: true };
+      },
+    };
+
+    // =====================================================================
+    //  7. え（ゲンじい・つりびと・さかな・はいけい）
+    //     ChatGPT で つくった 絵（img/）が あれば それを、なければ 自作の 絵を だす
+    // =====================================================================
+    const TalkCtx = createContext(null);
+    const useTalk = () => useContext(TalkCtx);
+    const SetCtx = createContext(DEFAULT_SETTINGS);
+    const MISSING = new Set();
+
+    // 絵（なければ fallback）
+    function Pic({ file, alt, size, className = '', fallback, style }) {
+      const [, setErr] = useState(0);
+      if (!file || MISSING.has(file)) return fallback || null;
+      return <img src={IMG + file} alt={alt || ''} onError={() => { MISSING.add(file); setErr(e => e + 1); }} className={`chara-img select-none ${className}`} style={{ width: size, height: size, objectFit: 'contain', ...style }} draggable={false} />;
+    }
+
+    // ふくの あおい ところを、えらんだ いろに ぬりかえる（ゲンじいの ベスト・つりびとの ふく）
+    const RECOLOR_CACHE = new Map();
+    function rgb2hsl(r, g, b) {
+      r /= 255; g /= 255; b /= 255;
+      const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
+      if (mx === mn) return [0, 0, l];
+      const d = mx - mn, s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+      const h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+      return [h * 60, s, l];
+    }
+    function hsl2rgb(h, s, l) {
+      h = ((h % 360) + 360) % 360 / 360;
+      if (!s) return [l * 255, l * 255, l * 255];
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+      const f = (t) => { t = (t + 1) % 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < 1 / 2 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; };
+      return [f(h + 1 / 3) * 255, f(h) * 255, f(h - 1 / 3) * 255];
+    }
+    function recolor(src, color) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          try {
+            if (color.id === 'ao') { resolve(src); return; }
+            const cv = document.createElement('canvas');
+            cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+            const cx = cv.getContext('2d');
+            cx.drawImage(img, 0, 0);
+            const id = cx.getImageData(0, 0, cv.width, cv.height), a = id.data, W = cv.width, H = cv.height;
+            for (let i = 0; i < a.length; i += 4) {
+              if (a[i + 3] < 10) continue;
+              const [h, s, l] = rgb2hsl(a[i], a[i + 1], a[i + 2]);
+              if (h < 192 || h > 258 || s < 0.5 || l < 0.08 || l > 0.93) continue;
+              const px = (i / 4) % W, py = Math.floor(i / 4 / W);
+              const nh = color.niji ? (py / H) * 300 + (px / W) * 60 : color.h + (h - 222) * 0.4;
+              const ns = Math.min(1, s * color.s), nl = Math.max(0.04, Math.min(0.96, l + color.l));
+              const [r, g, b] = hsl2rgb(nh, ns, nl);
+              a[i] = r; a[i + 1] = g; a[i + 2] = b;
+            }
+            cx.putImageData(id, 0, 0);
+            resolve(cv.toDataURL('image/png'));
+          } catch (e) { resolve(src); } // ぬりかえられない ときは そのまま
+        };
+        img.onerror = () => reject(new Error('no image'));
+        img.src = src;
+      });
+    }
+    // ぬりかえた 絵（なければ fallback の 自作の 絵）
+    function useRecolored(file, color) {
+      const key = file + '|' + color.id;
+      const [src, setSrc] = useState(RECOLOR_CACHE.get(key) || null);
+      const [fail, setFail] = useState(MISSING.has(file));
+      useEffect(() => {
+        setFail(MISSING.has(file));
+        if (RECOLOR_CACHE.has(key)) { setSrc(RECOLOR_CACHE.get(key)); return; }
+        if (MISSING.has(file)) return;
+        let alive = true;
+        recolor(IMG + file, color).then(u => { RECOLOR_CACHE.set(key, u); if (alive) setSrc(u); }).catch(() => { MISSING.add(file); if (alive) setFail(true); });
+        return () => { alive = false; };
+      }, [key]);
+      return [src, fail];
+    }
+    const solidCss = (color) => (color.css && !color.css.startsWith('linear') ? color.css : color.id === 'kin' ? '#d97706' : color.id === 'gin' ? '#94a3b8' : '#2563eb');
+    const fxOf = (color) => (color.niji ? 'niji' : color.shine ? 'shine' : '');
+
+    // ゲンじい（自作の 絵。ChatGPT の 絵が ない ときに だす）
+    function GenSvg({ size, mood, vest = '#2563eb' }) {
+      const happy = mood === 'happy', cheer = mood === 'cheer';
+      return (
+        <svg viewBox="0 0 200 200" width={size} height={size}>
+          <path d="M36 198 q2 -70 64 -76 q62 6 64 76z" fill="#f8fafc" stroke="#1e293b" strokeWidth="4" />
+          <path d="M40 198 q2 -64 46 -72 l6 72z M160 198 q-2 -64 -46 -72 l-6 72z" fill={vest} stroke="#1e293b" strokeWidth="3" />
+          <rect x="54" y="160" width="20" height="14" rx="3" fill="#fff" opacity=".35" />
+          {cheer && <g><path d="M160 150 q20 -30 14 -56" stroke="#1e293b" strokeWidth="18" strokeLinecap="round" fill="none" /><path d="M160 150 q20 -30 14 -56" stroke={vest} strokeWidth="12" strokeLinecap="round" fill="none" /><circle cx="174" cy="88" r="14" fill="#e8b27d" stroke="#1e293b" strokeWidth="3" /></g>}
+          <circle cx="100" cy="82" r="42" fill="#e8b27d" stroke="#1e293b" strokeWidth="4" />
+          <ellipse cx="60" cy="86" rx="10" ry="16" fill="#f1f5f9" stroke="#94a3b8" strokeWidth="2" />
+          <ellipse cx="140" cy="86" rx="10" ry="16" fill="#f1f5f9" stroke="#94a3b8" strokeWidth="2" />
+          <path d="M58 62 q42 -22 84 0 l0 12 q-42 -20 -84 0z" fill="#f8fafc" stroke="#1e293b" strokeWidth="3" />
+          <path d="M136 60 l18 -10 l-2 14 l14 4 l-18 6z" fill="#f8fafc" stroke="#1e293b" strokeWidth="3" />
+          <path d="M70 80 q10 -8 20 0 M110 80 q10 -8 20 0" stroke="#f8fafc" strokeWidth="7" strokeLinecap="round" fill="none" />
+          {happy
+            ? <><path d="M74 92 q7 -8 14 0" stroke="#1e293b" strokeWidth="4" fill="none" strokeLinecap="round" /><path d="M112 92 q7 -8 14 0" stroke="#1e293b" strokeWidth="4" fill="none" strokeLinecap="round" /></>
+            : <><circle cx="81" cy="92" r="5" fill="#1e293b" /><circle cx="119" cy="92" r="5" fill="#1e293b" /><circle cx="83" cy="90" r="1.6" fill="#fff" /><circle cx="121" cy="90" r="1.6" fill="#fff" /></>}
+          <ellipse cx="100" cy="104" rx="9" ry="7" fill="#d6955b" />
+          <path d="M76 116 q24 -12 48 0 q-10 26 -24 26 q-14 0 -24 -26z" fill="#f8fafc" stroke="#94a3b8" strokeWidth="2" />
+          <path d="M88 118 q12 10 24 0" stroke="#7f1d1d" strokeWidth="4" fill={happy ? '#b91c1c' : 'none'} strokeLinecap="round" />
+          <circle cx="68" cy="106" r="6" fill="#f87171" opacity=".35" /><circle cx="132" cy="106" r="6" fill="#f87171" opacity=".35" />
+          {cheer && <text x="20" y="40" fontSize="30">💪</text>}
+        </svg>
+      );
+    }
+    const GEN_FILE = { normal: 'gen.webp', happy: 'gen_happy.webp', cheer: 'gen_cheer.webp' };
+    // ゲンじい（ふくの いろと ぼうしは、おみせで かった もので かえられる）
+    function Gen({ mood = 'normal', size = 120, className = '', look }) {
+      const lk = look || { color: 'ao', hat: null };
+      const color = COLOR[lk.color] || D.COLORS[0];
+      const want = GEN_FILE[mood] || GEN_FILE.normal;
+      const file = !MISSING.has(want) ? want : GEN_FILE.normal;
+      const small = size < 90;
+      const f2 = small ? file.replace('.webp', '_face.webp') : file;
+      const [src, fail] = useRecolored(f2, color);
+      const hat = lk.hat && ITEM[lk.hat];
+      const body = fail || MISSING.has(file) ? <GenSvg size={size} mood={mood} vest={solidCss(color)} />
+        : src ? <img src={src} alt="ゲンじい" className="chara-img select-none" style={{ width: size, height: size, objectFit: 'contain', filter: small ? 'none' : undefined }} draggable={false} />
+        : <div style={{ width: size, height: size }} />;
+      return (
+        <div className={`relative inline-block ${className}`} style={{ width: size, height: size }}>
+          <div className={`${fxOf(color)} ${small ? 'overflow-hidden rounded-full bg-sky-100 border-2 border-sky-300' : ''}`} style={{ width: size, height: size }}>{body}</div>
+          {hat && <div className="absolute pointer-events-none" style={{ left: '50%', top: small ? -size * 0.22 : -size * 0.06, transform: 'translateX(-50%)', fontSize: size * (small ? 0.42 : 0.34), lineHeight: 1 }}>{hat.e}</div>}
+        </div>
+      );
+    }
+
+    // つりびと（子ども。自作の 絵）
+    function HeroSvg({ look, color, size }) {
+      const c = solidCss(color);
+      return (
+        <svg viewBox="0 0 200 220" width={size} height={size * 1.1}>
+          <rect x="74" y="184" width="20" height="28" rx="6" fill="#1e3a8a" stroke="#1c1917" strokeWidth="3" />
+          <rect x="106" y="184" width="20" height="28" rx="6" fill="#1e3a8a" stroke="#1c1917" strokeWidth="3" />
+          <path d="M58 116 h84 l12 74 h-108z" fill={c} stroke="#1c1917" strokeWidth="3" />
+          <rect x="60" y="150" width="80" height="10" fill="#fbbf24" stroke="#1c1917" strokeWidth="2" />
+          <circle cx="100" cy="80" r="42" fill="#fcd9b6" stroke="#1c1917" strokeWidth="3" />
+          <path d={look.form === 2 ? 'M56 82 q-4 -52 44 -52 q48 0 44 52 q-8 -26 -30 -28 q-20 14 -54 6 q-4 30 -4 22z' : 'M58 74 q2 -44 42 -44 q40 0 42 44 q-20 -22 -42 -18 q-22 -4 -42 18z'} fill="#422006" stroke="#1c1917" strokeWidth="3" />
+          {look.form === 2 && <><path d="M58 80 q-12 34 -2 56" stroke="#422006" strokeWidth="12" fill="none" strokeLinecap="round" /><path d="M142 80 q12 34 2 56" stroke="#422006" strokeWidth="12" fill="none" strokeLinecap="round" /></>}
+          <circle cx="84" cy="86" r="6" fill="#1c1917" /><circle cx="116" cy="86" r="6" fill="#1c1917" />
+          <circle cx="86" cy="84" r="2" fill="#fff" /><circle cx="118" cy="84" r="2" fill="#fff" />
+          <path d="M90 104 q10 8 20 0" stroke="#1c1917" strokeWidth="3" fill="none" strokeLinecap="round" />
+          <circle cx="72" cy="98" r="5" fill="#fca5a5" opacity=".8" /><circle cx="128" cy="98" r="5" fill="#fca5a5" opacity=".8" />
+        </svg>
+      );
+    }
+    function Hero({ look, size = 140, className = '', flip = false }) {
+      const lk = { ...defaultLook(), ...(look || {}) };
+      const color = COLOR[lk.color] || D.COLORS[0];
+      const [src, fail] = useRecolored(`hero_${lk.form || 1}.webp`, color);
+      const hat = lk.hat && ITEM[lk.hat];
+      return (
+        <div className={`relative inline-block ${className}`} style={{ width: size, height: size * 1.1 }}>
+          <div className={fxOf(color)} style={{ width: size, height: size * 1.1 }}>
+            {fail ? <HeroSvg look={lk} color={color} size={size} />
+              : src ? <img src={src} alt="つりびと" className="chara-img select-none" style={{ width: size, height: size * 1.1, objectFit: 'contain', transform: flip ? 'scaleX(-1)' : undefined }} draggable={false} />
+              : <div style={{ width: size, height: size * 1.1 }} />}
+          </div>
+          {hat && <div className="absolute pointer-events-none" style={{ left: '50%', top: -size * 0.12, transform: 'translateX(-50%)', fontSize: size * 0.32, lineHeight: 1 }}>{hat.e}</div>}
+        </div>
+      );
+    }
+
+    // さかな（自作の 絵）。みぎ むき
+    function FishSvg({ f, size }) {
+      const c = f.c || '#94a3b8', c2 = f.c2 || '#64748b', h = size * 0.62;
+      const eye = (x, y, r = f.eye ? 7 : 5) => <g><circle cx={x} cy={y} r={r} fill="#fff" stroke="#1c1917" strokeWidth="1.5" /><circle cx={x + 1} cy={y} r={r * 0.55} fill="#1c1917" /><circle cx={x + 2} cy={y - 1.5} r={r * 0.2} fill="#fff" /></g>;
+      if (f.shape === 'emoji') return <div style={{ width: size, height: h, fontSize: h * 0.95, lineHeight: `${h}px`, textAlign: 'center', transform: 'scaleX(-1)' }}>{f.e}</div>;
+      let body;
+      if (f.shape === 'long') body = <>
+        <path d="M6 37 q30 -14 70 -12 q32 2 38 10 q-6 8 -38 10 q-40 2 -70 -8z" fill={c} stroke="#1c1917" strokeWidth="2.5" />
+        <path d="M14 30 q40 -18 92 -6" stroke={c2} strokeWidth="5" fill="none" strokeLinecap="round" />
+        {f.id === 'ryugu' && <path d="M96 26 q4 -18 -6 -22 M100 28 q10 -14 2 -20" stroke={c2} strokeWidth="3" fill="none" />}
+        {eye(100, 33, 4)}</>;
+      else if (f.shape === 'flat') body = <>
+        <ellipse cx="58" cy="36" rx="46" ry="26" fill={c2} />
+        <ellipse cx="58" cy="36" rx="40" ry="21" fill={c} stroke="#1c1917" strokeWidth="2.5" />
+        <path d="M12 36 l-8 -10 v20z" fill={c2} stroke="#1c1917" strokeWidth="2" />
+        {[[40, 30], [56, 44], [66, 28], [30, 42]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="3" fill="#78350f" opacity=".5" />)}
+        {eye(86, 26, 4)}{eye(92, 34, 4)}</>;
+      else if (f.shape === 'stripe') body = <>
+        <path d="M14 36 l-10 -14 v28z" fill={c} stroke="#1c1917" strokeWidth="2.5" />
+        <ellipse cx="58" cy="36" rx="44" ry="24" fill={c} stroke="#1c1917" strokeWidth="2.5" />
+        {[30, 58, 84].map((x, i) => <path key={i} d={`M${x} ${14 + Math.abs(x - 58) * 0.2} q6 22 0 ${44 - Math.abs(x - 58) * 0.4}`} stroke="#fff" strokeWidth="9" fill="none" />)}
+        {[30, 58, 84].map((x, i) => <path key={'k' + i} d={`M${x - 5} ${16 + Math.abs(x - 58) * 0.2} q6 20 0 ${40 - Math.abs(x - 58) * 0.4} M${x + 5} ${16 + Math.abs(x - 58) * 0.2} q6 20 0 ${40 - Math.abs(x - 58) * 0.4}`} stroke={c2} strokeWidth="1.5" fill="none" />)}
+        {eye(90, 30)}</>;
+      else if (f.shape === 'mendako') body = <>
+        <path d="M20 54 q-4 -44 40 -46 q44 2 40 46 q-10 -6 -14 2 q-8 -8 -14 0 q-6 -8 -12 0 q-6 -8 -14 0 q-6 -8 -12 0 q-6 -8 -14 -2z" fill={c} stroke="#1c1917" strokeWidth="2.5" />
+        <ellipse cx="24" cy="18" rx="10" ry="6" fill={c2} stroke="#1c1917" strokeWidth="2" transform="rotate(-30 24 18)" />
+        <ellipse cx="96" cy="18" rx="10" ry="6" fill={c2} stroke="#1c1917" strokeWidth="2" transform="rotate(30 96 18)" />
+        {eye(46, 32, 4)}{eye(74, 32, 4)}</>;
+      else if (f.shape === 'lamp') body = <>
+        <path d="M70 18 q10 -16 30 -10" stroke="#1c1917" strokeWidth="2.5" fill="none" />
+        <circle cx="102" cy="8" r="6" fill={c2} stroke="#a16207" strokeWidth="2" />
+        <circle cx="102" cy="8" r="11" fill={c2} opacity=".3" />
+        <path d="M14 40 l-10 -12 v26z" fill={c} stroke="#1c1917" strokeWidth="2.5" />
+        <path d="M14 40 q2 -26 44 -26 q44 0 48 26 q-4 22 -48 22 q-40 0 -44 -22z" fill={c} stroke="#1c1917" strokeWidth="2.5" />
+        <path d="M70 44 q20 4 36 -4 l-2 8 q-16 10 -34 4z" fill="#7f1d1d" stroke="#1c1917" strokeWidth="2" />
+        {[74, 82, 90, 98].map(x => <path key={x} d={`M${x} 44 l2 5 l2 -5`} fill="#fff" />)}
+        {eye(78, 30, 4)}</>;
+      else body = <>
+        <path d="M18 36 l-14 -16 v32z" fill={c2} stroke="#1c1917" strokeWidth="2.5" />
+        <path d={f.big ? 'M40 16 q18 -14 38 0z' : 'M42 18 q14 -10 30 0z'} fill={c2} stroke="#1c1917" strokeWidth="2" />
+        {f.shape === 'sword' && <path d="M38 18 q20 -26 46 -2z" fill={c2} stroke="#1c1917" strokeWidth="2" />}
+        <ellipse cx="60" cy="36" rx="44" ry={f.big ? 22 : 18} fill={c} stroke="#1c1917" strokeWidth="2.5" />
+        <path d={`M24 ${f.big ? 44 : 42} q36 ${f.big ? 14 : 10} 74 0`} stroke="#fff" strokeWidth="5" opacity=".45" fill="none" />
+        {f.stripe && <path d="M20 36 q40 -4 80 0" stroke={f.stripe} strokeWidth="4" fill="none" />}
+        {f.marks && [32, 48, 64, 80].map(x => <ellipse key={x} cx={x} cy="34" rx="4" ry="7" fill="#64748b" opacity=".55" />)}
+        {f.dots && [30, 42, 54, 66].map(x => <circle key={x} cx={x} cy="34" r="2.5" fill="#1e293b" />)}
+        {f.wave && <path d="M28 26 q6 -6 12 0 q6 6 12 0 q6 -6 12 0 q6 6 12 0" stroke="#1e293b" strokeWidth="2.5" fill="none" />}
+        {f.shape === 'sword' && <path d="M102 34 l18 0" stroke="#1c1917" strokeWidth="4" strokeLinecap="round" />}
+        {f.shape === 'whisker' && <path d="M100 40 q10 6 16 16 M100 42 q4 10 4 20" stroke="#1c1917" strokeWidth="2" fill="none" />}
+        <path d="M58 40 q8 8 0 14" stroke={c2} strokeWidth="3" fill="none" />
+        {eye(86, 31)}</>;
+      return <svg viewBox="0 0 120 72" width={size} height={h}>{body}</svg>;
+    }
+    // さかなの 絵（ChatGPT の 絵 fish_id.webp。なければ 自作の 絵）。sil：まだ つって いない（かげ だけ）
+    function FishPic({ f, size = 80, sil = false, className = '' }) {
+      const st = sil ? { filter: 'brightness(0) opacity(.22)' } : null;
+      return (
+        <div className={`inline-flex items-center justify-center ${className}`} style={{ width: size, height: size * 0.62, ...st }}>
+          <Pic file={`fish_${f.id}.webp`} alt={f.n} size={size} style={{ height: size * 0.62, filter: sil ? 'none' : undefined }} fallback={<FishSvg f={f} size={size} />} />
+        </div>
+      );
+    }
+
+    // 背景（ChatGPT の 絵。なければ 自作の 絵）
+    function Bg({ file, className = '', style, children, fallback }) {
+      const [ok, setOk] = useState(!MISSING.has(file));
+      return (
+        <div className={`relative overflow-hidden ${className}`} style={style}>
+          {ok && <img src={IMG + file} alt="" onError={() => { MISSING.add(file); setOk(false); }} className="absolute inset-0 w-full h-full object-cover" draggable={false} />}
+          {!ok && fallback}
+          <div className="relative w-full h-full">{children}</div>
+        </div>
+      );
+    }
+    // つりばの 自作の 絵
+    function SpotSvg({ sp }) {
+      const id = sp.id, deep = id === 6, open = id >= 5;
+      return (
+        <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 w-full h-full">
+          <defs>
+            <linearGradient id={`sky${id}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={deep ? '#0f172a' : '#e0f2fe'} /><stop offset="1" stopColor={sp.sky} /></linearGradient>
+            <linearGradient id={`wa${id}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={sp.water} /><stop offset="1" stopColor={deep ? '#020617' : '#0c4a6e'} /></linearGradient>
+          </defs>
+          <rect width="800" height="450" fill={`url(#sky${id})`} />
+          {deep ? [[80, 40], [200, 80], [420, 30], [600, 70], [720, 40], [330, 100]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="2.5" fill="#fef9c3" />)
+            : [[120, 50], [430, 36], [660, 70]].map(([x, y], i) => <g key={i} fill="#fff" opacity=".9"><ellipse cx={x} cy={y} rx="44" ry="14" /><ellipse cx={x + 26} cy={y - 9} rx="26" ry="13" /></g>)}
+          {(id === 1 || id === 2) && <path d="M0 190 L120 90 L220 170 L330 70 L460 180 L560 110 L690 170 L800 100 L800 200 L0 200Z" fill="#4d7c0f" opacity=".85" />}
+          {id === 4 && <g fill="#a8a29e"><rect x="560" y="120" width="60" height="80" /><rect x="630" y="140" width="40" height="60" /><rect x="680" y="100" width="70" height="100" /></g>}
+          <rect y={open ? 170 : 200} width="800" height="300" fill={`url(#wa${id})`} />
+          {[0, 1, 2, 3].map(i => <path key={i} className="wave" d={`M-40 ${(open ? 200 : 230) + i * 55} q40 -10 80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0`} stroke="#fff" strokeOpacity=".35" strokeWidth="3" fill="none" />)}
+          {id === 1 && <path d="M0 450 L0 300 Q120 280 200 330 L260 450Z" fill={sp.land} stroke="#365314" strokeWidth="4" />}
+          {id === 1 && <path d="M560 450 Q620 300 800 280 L800 450Z" fill={sp.land} stroke="#365314" strokeWidth="4" />}
+          {id === 2 && <path d="M0 450 L0 320 Q160 300 240 360 L300 450Z" fill={sp.land} stroke="#365314" strokeWidth="4" />}
+          {id === 3 && <><path d="M0 450 L0 290 Q80 260 150 300 Q220 280 260 340 L300 450Z" fill="#78716c" stroke="#292524" strokeWidth="4" /><path d="M600 450 Q640 360 720 370 Q760 330 800 350 L800 450Z" fill="#78716c" stroke="#292524" strokeWidth="4" /></>}
+          {id === 4 && <><rect x="0" y="300" width="300" height="40" fill="#a16207" stroke="#422006" strokeWidth="4" />{[30, 110, 190, 270].map(x => <rect key={x} x={x} y="340" width="16" height="110" fill="#78350f" />)}</>}
+          {deep && [[620, 330], [700, 400], [520, 410]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="5" fill="#fde047" opacity=".7" />)}
+          {id === 7 && <g>{['#ef4444', '#facc15', '#22c55e', '#3b82f6', '#a855f7'].map((c, i) => <path key={i} d={`M${100 + i * 140} 20 l20 40 h-40z`} fill={c} />)}<path d="M0 450 L0 300 Q160 290 260 340 L300 450Z" fill={sp.land} stroke="#a16207" strokeWidth="4" /></g>}
+        </svg>
+      );
+    }
+    const SpotBg = ({ sp, className = '', style, children }) => <Bg file={`spot_${sp.id}.webp`} className={className} style={style} fallback={<SpotSvg sp={sp} />}>{children}</Bg>;
+
+    // =====================================================================
+    //  8. がめんの ぶひん
+    // =====================================================================
+    function Btn({ children, onClick, color = '#0369a1', light = '#e0f2fe', className = '', disabled, style }) {
+      return (
+        <button onClick={onClick} disabled={disabled}
+          className={`btn3d rounded-2xl font-bold px-5 py-3 text-2xl border-2 ${className}`}
+          style={disabled ? { background: '#e7e5e4', borderColor: '#a8a29e', color: '#78716c', ...style } : { background: light, borderColor: color, color: '#082f49', ...style }}>
+          {children}
+        </button>
+      );
+    }
+    const Saifu = ({ s = 26 }) => <span className="inline-block align-middle" style={{ fontSize: s, lineHeight: 1 }}>👛</span>;
+    function GetFly({ fx }) {
+      if (!fx) return null;
+      return <div key={fx.k} className="coinfly fixed right-48 top-14 z-40 text-3xl pointer-events-none font-bold text-amber-600 flex items-center gap-2 bg-white/90 rounded-full px-3"><Saifu s={30} />＋{yen(fx.yen)}えん</div>;
+    }
+    function Seikai({ show, text = 'せいかい！' }) {
+      if (!show) return null;
+      return (
+        <div className="fixed inset-0 z-40 flex items-center justify-center pointer-events-none">
+          <div className="confetti absolute inset-x-0 top-24 h-80">
+            {['⭐', '✨', '🐟', '⭐', '✨', '🌟', '🐠', '✨'].map((e, i) => <span key={i} className="text-4xl" style={{ left: `${8 + i * 11}%`, animationDelay: `${(i % 4) * 0.12}s` }}>{e}</span>)}
+          </div>
+          <div className="pop win px-12 py-4 text-6xl font-bold" style={{ textShadow: '3px 3px 0 #0369a1' }}>{text}</div>
+        </div>
+      );
+    }
+
+    // メッセージの まど（ゲンじいの セリフが 1もじずつ でる）
+    function MsgWin({ size = 96, compact = false }) {
+      const talk = useTalk();
+      const [n, setN] = useState(0);
+      const text = talk.text || '';
+      useEffect(() => {
+        setN(0);
+        if (!text) return;
+        let i = 0;
+        const t = setInterval(() => { i += 1; setN(i); if (i >= text.length) clearInterval(t); }, 38);
+        return () => clearInterval(t);
+      }, [talk.k]);
+      return (
+        <div className="flex items-end gap-2 w-full">
+          <button onClick={() => talk.repeat()} className="shrink-0 active:scale-95 transition" aria-label="もういちど きく">
+            <Gen mood={talk.mood} size={size} look={talk.gen} className={talk.talking ? 'bob' : ''} />
+          </button>
+          <div onClick={() => setN(text.length)} className={`win flex-1 px-5 ${compact ? 'py-1.5 text-xl min-h-[54px]' : 'py-3 text-2xl min-h-[84px]'} font-bold leading-relaxed`}>
+            <span className={n >= text.length && text ? 'caret' : ''}>{text.slice(0, n) || '　'}</span>
+          </div>
+          <button onClick={() => talk.repeat()} className={`btn3d shrink-0 bg-white border-2 border-sky-900 text-sky-950 rounded-2xl px-3 ${compact ? 'py-1 text-base' : 'py-2 text-lg'} font-bold`}>🔊<br />もういちど</button>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    //  9. でんたく・すうじの ボタン
+    // =====================================================================
+    const calcOf = (a, op, b) => { const r = op === '+' ? a + b : op === '-' ? a - b : op === '*' ? a * b : b === 0 ? NaN : a / b; return Math.round(r * 1e6) / 1e6; };
+    const CALC0 = { disp: '0', acc: null, op: null, fresh: true, keys: [] };
+    const CALC_KEYS = [
+      ['C', 1, 1], ['/', 2, 1], ['*', 3, 1], ['-', 4, 1],
+      ['7', 1, 2], ['8', 2, 2], ['9', 3, 2], ['+', 4, 2, 2],
+      ['4', 1, 3], ['5', 2, 3], ['6', 3, 3],
+      ['1', 1, 4], ['2', 2, 4], ['3', 3, 4], ['=', 4, 4, 2],
+      ['0', 1, 5, 1, 2], ['00', 3, 5],
+    ];
+    const KEY_STYLE = { C: ['#fecaca', '#b91c1c'], '*': ['#fde68a', '#a16207'], '+': ['#bbf7d0', '#15803d'], '=': ['#bfdbfe', '#1d4ed8'], '/': ['#e7e5e4', '#57534e'], '-': ['#e7e5e4', '#57534e'] };
+    // がめんの でんたく（ほんものの でんたくと おなじ ならび）
+    function Calculator({ onSubmit, guide, resetK, disabled }) {
+      const [st, setSt] = useState(CALC0);
+      useEffect(() => { setSt(CALC0); }, [resetK]);
+      const press = (k) => {
+        if (disabled) return;
+        Sound.key();
+        setSt(s => {
+          const keys = k === 'C' ? [] : [...s.keys, k];
+          if (k === 'C') return CALC0;
+          if (/^\d+$/.test(k)) {
+            let d = s.fresh || s.disp === '0' ? (k === '00' ? '0' : k) : s.disp + k;
+            if (d.length > 10) d = s.disp;
+            return { ...s, disp: d, fresh: false, keys };
+          }
+          if (k === '=') {
+            if (!s.op) return { ...s, fresh: true, keys };
+            const r = calcOf(s.acc, s.op, Number(s.disp));
+            return { disp: isFinite(r) && Math.abs(r) < 1e10 ? String(r) : 'E', acc: null, op: null, fresh: true, keys };
+          }
+          // ＋ − × ÷
+          if (s.op && !s.fresh) {
+            const r = calcOf(s.acc, s.op, Number(s.disp));
+            return { disp: isFinite(r) && Math.abs(r) < 1e10 ? String(r) : 'E', acc: r, op: k, fresh: true, keys };
+          }
+          return { ...s, acc: s.op && s.fresh ? s.acc : Number(s.disp), op: k, fresh: true, keys };
+        });
+      };
+      // ヒント③：つぎに おす キーを ひからせる
+      let glowKey = null, glowSubmit = false;
+      if (guide && guide.length) {
+        const pre = guide.slice(0, st.keys.length).join('|') === st.keys.join('|');
+        if (!pre) glowKey = 'C';
+        else if (st.keys.length < guide.length) glowKey = guide[st.keys.length];
+        else glowSubmit = true;
+      }
+      const ok = st.disp !== 'E';
+      return (
+        <div className="flex flex-col gap-2 items-stretch">
+          <div className="rounded-[22px] px-3 pb-3 pt-2 border-4 border-slate-700 shadow-lg" style={{ background: 'linear-gradient(#475569,#334155)' }}>
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-xs font-bold text-slate-200 tracking-widest">でんたく</span>
+              <span className="w-20 h-4 rounded-sm" style={{ background: 'repeating-linear-gradient(90deg,#1e1b4b 0 8px,#312e81 8px 10px)' }} />
+            </div>
+            <div className="rounded-lg px-3 py-0.5 mb-2 border-4 border-slate-800" style={{ background: '#c7d2b8' }}>
+              <div className="text-sm text-slate-600 h-5 text-right truncate seg">{keyText(st.keys) || ' '}</div>
+              <div className="text-[2.6rem] font-bold text-slate-900 text-right seg leading-tight">{st.disp}</div>
+            </div>
+            <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(4, 1fr)', gridTemplateRows: 'repeat(5, 3rem)' }}>
+              {CALC_KEYS.map(([k, c, r, rs = 1, cs = 1]) => {
+                const [bg, bd] = KEY_STYLE[k] || ['#f8fafc', '#64748b'];
+                return <button key={k} onClick={() => press(k)} className={`calc-key rounded-xl border-2 text-3xl font-bold ${glowKey === k ? 'glow' : ''}`}
+                  style={{ gridColumn: `${c} / span ${cs}`, gridRow: `${r} / span ${rs}`, background: glowKey === k ? '#fef08a' : bg, borderColor: bd, color: '#0f172a' }}>{KEY_LABEL[k] || k}</button>;
+              })}
+            </div>
+          </div>
+          <Btn onClick={() => ok && onSubmit(Number(st.disp), keyText(st.keys))} disabled={disabled} color="#15803d" light="#dcfce7" className={`text-2xl ${glowSubmit ? 'glow' : ''}`}>⬅ こたえを いれる</Btn>
+        </div>
+      );
+    }
+    // てもとの でんたくを つかう とき：こたえだけ いれる
+    function NumPad({ onSubmit, guide, resetK, disabled }) {
+      const [v, setV] = useState('');
+      useEffect(() => { setV(''); }, [resetK]);
+      const press = (k) => { if (disabled) return; Sound.key(); if (k === '⌫') setV(x => x.slice(0, -1)); else setV(x => (x + k).replace(/^0+(?=\d)/, '').slice(0, 10)); };
+      return (
+        <div className="flex flex-col gap-2">
+          <div className="win-light px-3 py-2 text-lg font-bold leading-snug">🧮 てもとの でんたくで けいさん して、こたえを いれよう。</div>
+          {guide && guide.length > 0 && <div className="bg-yellow-100 border-2 border-yellow-400 rounded-xl px-2 py-1 text-center"><div className="text-sm font-bold">でんたくで おす じゅんばん</div><div className="text-3xl font-bold seg">{keyText(guide)}</div></div>}
+          <div className="rounded-lg px-3 py-1 border-4 border-slate-700 text-5xl font-bold text-right seg" style={{ background: '#fff' }}>{v || '　'}</div>
+          <div className="grid grid-cols-3 gap-2">
+            {['7', '8', '9', '4', '5', '6', '1', '2', '3', '0', '00', '⌫'].map(k => <button key={k} onClick={() => press(k)} className="calc-key h-12 rounded-xl border-2 border-slate-500 bg-slate-50 text-3xl font-bold">{k}</button>)}
+          </div>
+          <Btn onClick={() => v && onSubmit(Number(v), 'てもと')} disabled={disabled || !v} color="#15803d" light="#dcfce7" className="text-2xl">⬅ こたえを いれる</Btn>
+        </div>
+      );
+    }
+    // なんびき？（1〜10 の ボタン。まちがえた ボタンは けす）
+    function CountPad({ onPick, off, glowN, disabled }) {
+      return (
+        <div className="flex flex-col gap-2">
+          <div className="win-light px-3 py-2 text-xl font-bold">なんびき かな？</div>
+          <div className="grid grid-cols-5 gap-2">
+            {Array.from({ length: 10 }, (_, i) => i + 1).map(n => {
+              const gone = off.includes(n);
+              return <button key={n} disabled={gone || disabled} onClick={() => onPick(n)}
+                className={`btn3d h-20 rounded-2xl border-2 text-4xl font-bold ${gone ? 'opacity-0' : 'bg-yellow-50 border-yellow-500'} ${glowN === n ? 'glow' : ''}`}>{n}</button>;
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 10. つり（1もんに つき、さかなの しゅるいの かずだけ なげる）
+    // =====================================================================
+    function FishingScene({ pr, sp, look, uki, first, onCatch, onDone }) {
+      const talk = useTalk();
+      const [idx, setIdx] = useState(0);
+      const [stage, setStage] = useState('ready'); // ready → wait → bite → show
+      const [caught, setCaught] = useState([]);
+      const alive = useRef(true);
+      const timer = useRef(null);
+      useEffect(() => {
+        if (first) talk.say('「なげる」を おして、つりざおを ふろう！');
+        return () => { alive.current = false; clearTimeout(timer.current); };
+      }, []);
+      const r = pr.rows[idx];
+      const cast = () => {
+        if (stage !== 'ready') return;
+        Sound.cast(); setStage('wait');
+        timer.current = setTimeout(() => { if (alive.current) { setStage('bite'); Sound.bite(); talk.say('うきが しずんだ！ いまだ、「ひく」を おそう！', { mood: 'cheer' }); } }, 1300 + Math.random() * 1900);
+        setTimeout(() => Sound.splash(), 450);
+      };
+      const pull = async () => {
+        if (stage === 'wait') { talk.say('まだ だよ。うきが しずむまで まとう。'); return; }
+        if (stage !== 'bite') return;
+        Sound.reel(); setStage('show');
+        const fr = r;
+        setCaught(c => [...c, fr]); onCatch(fr);
+        if (isNushi(fr)) Sound.rare(); else Sound.seikai();
+        const msg = isNushi(fr) ? `すごい！ ${fr.f.n}の ぬしだ！ ${cmText(fr.size)}も あるぞ！` : `${fr.f.n}が つれた！ ${fr.c > 1 ? 'たくさん つれたね。' : ''}`;
+        await talk.say(msg, { mood: 'happy' });
+        if (!alive.current) return;
+        if (idx + 1 < pr.rows.length) { setIdx(idx + 1); setStage('ready'); talk.say(pick(['つぎも なげよう！', 'もう いちど なげよう！', 'つぎの さかなを つろう！'])); }
+        else { await wait(300); if (alive.current) onDone(); }
+      };
+      // ふねの えもじは、つりばの 絵が ない ときだけ だす（絵には ふねが かいて ある）
+      const [bgOk, setBgOk] = useState(!MISSING.has(`spot_${sp.id}.webp`));
+      useEffect(() => { const im = new Image(); im.onerror = () => { MISSING.add(`spot_${sp.id}.webp`); setBgOk(false); }; im.src = IMG + `spot_${sp.id}.webp`; }, []);
+      const boat = !bgOk && sp.id >= 5 && sp.id <= 6 ? (sp.id === 6 ? '🛥️' : '🚣') : null;
+      const ukiE = uki ? uki.e : null;
+      const cast_ = stage !== 'ready';
+      const fx = cast_ ? 64 : 27, fy = cast_ ? 66 : 58;
+      return (
+        <div className="flex gap-3 w-full">
+          <SpotBg sp={sp} className="flex-1 rounded-3xl border-4 border-sky-900" style={{ height: 'min(440px, calc(100vh - 230px))', minHeight: 330 }}>
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none">
+              <line x1="14" y1="72" x2="26" y2="36" stroke="#78350f" strokeWidth="1.1" vectorEffect="non-scaling-stroke" style={{ strokeWidth: 6 }} strokeLinecap="round" />
+              <line x1="26" y1="36" x2={fx} y2={fy} stroke="#f8fafc" vectorEffect="non-scaling-stroke" style={{ strokeWidth: 2, transition: 'all .6s' }} />
+            </svg>
+            <div className="absolute" style={{ left: '2%', bottom: '4%' }}>
+              {boat && <div className="absolute left-0 right-0 text-center" style={{ bottom: -18, fontSize: 120, lineHeight: 1 }}>{boat}</div>}
+              <div className="relative"><Hero look={look} size={150} flip /></div>
+            </div>
+            <div className={`absolute ${stage === 'wait' ? 'uki-wait' : stage === 'bite' ? 'uki-bite' : ''}`} style={{ left: `${fx}%`, top: `${fy}%`, transform: 'translate(-50%, -50%)', transition: 'left .6s, top .6s' }}>
+              {ukiE ? <span style={{ fontSize: 34 }}>{ukiE}</span>
+                : <svg width="26" height="40" viewBox="0 0 26 40"><path d="M13 0 v8" stroke="#1c1917" strokeWidth="2" /><ellipse cx="13" cy="18" rx="9" ry="11" fill="#ef4444" stroke="#1c1917" strokeWidth="2" /><path d="M4 20 h18 a9 11 0 0 1 -18 0z" fill="#fff" stroke="#1c1917" strokeWidth="2" /></svg>}
+            </div>
+            {stage === 'bite' && <><div className="ring" style={{ left: `${fx}%`, top: `${fy + 4}%` }} /><div className="absolute text-6xl font-bold text-yellow-300 pop" style={{ left: `${fx + 3}%`, top: `${fy - 26}%`, textShadow: '3px 3px 0 #b91c1c' }}>！</div></>}
+            {stage === 'show' && r && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="jump bg-white/95 rounded-3xl border-4 px-5 py-3 flex flex-col items-center gap-1" style={{ borderColor: isNushi(r) ? '#eab308' : '#0369a1', boxShadow: isNushi(r) ? '0 0 30px #facc15' : undefined }}>
+                  {isNushi(r) && <div className="text-2xl font-bold text-amber-600">👑 ぬし</div>}
+                  <div className="flex flex-wrap justify-center gap-1 max-w-[520px]">{Array.from({ length: r.c }, (_, j) => <FishPic key={j} f={r.f} size={r.c > 4 ? 76 : 110} />)}</div>
+                  <div className="text-4xl font-bold">{r.f.n}</div>
+                  <div className="text-lg font-bold text-sky-700">いちばん おおきいのは {cmText(r.size)}</div>
+                </div>
+              </div>
+            )}
+            <div className="absolute right-3 bottom-3 flex gap-3">
+              <Btn onClick={cast} disabled={stage !== 'ready'} color="#0369a1" light="#e0f2fe" className={`text-3xl px-8 ${stage === 'ready' ? 'glow' : ''}`}>🎣 なげる</Btn>
+              <Btn onClick={pull} disabled={stage === 'ready' || stage === 'show'} color="#b91c1c" light="#fee2e2" className={`text-3xl px-8 ${stage === 'bite' ? 'glow' : ''}`}>💪 ひく！</Btn>
+            </div>
+            <div className="absolute left-3 top-3 bg-white/90 rounded-full px-3 py-1 text-lg font-bold">{idx + 1} / {pr.rows.length}かいめ</div>
+          </SpotBg>
+          <div className="w-56 shrink-0 win-light p-2 flex flex-col gap-2 overflow-auto" style={{ maxHeight: 'min(440px, calc(100vh - 230px))' }}>
+            <div className="text-lg font-bold text-center">🪣 つれた さかな</div>
+            {caught.map((c, i) => <div key={i} className="rounded-xl bg-sky-50 border-2 border-sky-200 p-1 pop"><div className="text-sm font-bold">{c.f.n}</div><div className="flex flex-wrap">{Array.from({ length: c.c }, (_, j) => <FishPic key={j} f={c.f} size={34} />)}</div></div>)}
+            {!caught.length && <div className="text-base text-stone-500 text-center">まだ いないよ</div>}
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 11. けいさんの シート（スライドと おなじ ならび）
+    // =====================================================================
+    // さかなの むれ（さわると 1、2、3 と ばんごうが つく）
+    function FishGroup({ r, size, marks, onTap, five, animN }) {
+      const items = Array.from({ length: r.c }, (_, j) => j);
+      const one = (j) => {
+        const n = marks ? marks.indexOf(j) + 1 : 0;
+        const an = animN != null && j < animN;
+        return (
+          <button key={j} onClick={() => onTap && onTap(j)} className={`relative rounded-lg ${an ? 'bg-yellow-200' : ''}`} style={{ padding: 1 }}>
+            <FishPic f={r.f} size={size} />
+            {(n > 0 || an) && <span className="absolute -top-1 -right-1 bg-rose-600 text-white rounded-full text-sm font-bold w-6 h-6 flex items-center justify-center pop">{an ? j + 1 : n}</span>}
+          </button>
+        );
+      };
+      if (five) {
+        const gs = []; for (let k = 0; k < items.length; k += 5) gs.push(items.slice(k, k + 5));
+        return <div className="flex flex-wrap gap-2" data-c={r.c}>{gs.map((g, k) => <div key={k} className="flex flex-wrap rounded-xl border-4 border-dashed border-rose-400 bg-rose-50/70 p-0.5">{g.map(one)}</div>)}</div>;
+      }
+      return <div className="flex flex-wrap" data-c={r.c}>{items.map(one)}</div>;
+    }
+    // ます（こたえを いれる はこ）
+    function Box({ v, on, kind, unit, w = '6.5rem', big, sm, shake }) {
+      return (
+        <span className="inline-flex items-center gap-1">
+          <span className={`box tag-${kind} ${on ? 'on' : ''} ${shake ? 'shake' : ''} ${big ? 'text-4xl' : sm ? 'text-2xl min-h-[2.3rem]' : 'text-3xl'}`} style={{ minWidth: w }}>{v == null ? (on ? '？' : '') : v}</span>
+          {unit && <span className="text-2xl font-bold">{unit}</span>}
+        </span>
+      );
+    }
+    const PriceTag = ({ p, small }) => <span className={`box tag-p ${small ? 'text-lg min-h-0 py-0 px-1.5' : 'text-2xl'}`}>{small ? '' : '1ぴき '}{p}えん</span>;
+
+    function Sheet({ pr, blanks, bi, vals, shakeK, hint, marks, onTap, anim, done }) {
+      const cur = blanks[bi];
+      const isOn = (t, r) => !done && cur && cur.t === t && (r == null || cur.r === r);
+      const val = (t, r) => { const j = blanks.findIndex(b => b.t === t && (r == null || b.r === r)); return j >= 0 ? vals[j] : null; };
+      const shakeOn = (t, r) => isOn(t, r) && shakeK > 0;
+      const five = cur && cur.t === 'count' && hint >= 2;
+      const animN = (r) => (anim && anim.r === r ? anim.n : null);
+      const formula = cur && cur.t !== 'count' && hint >= 2 && !done;
+      const FormulaHint = () => {
+        if (!formula) return null;
+        if (cur.t === 'mul') { const r = pr.rows[cur.r]; return <div className="pop flex items-center gap-2 text-4xl font-bold bg-white rounded-2xl border-4 border-yellow-400 px-4 py-1"><span className="box tag-p text-4xl">{r.p}</span>×<span className="box tag-c text-4xl">{r.c}</span>＝ ？</div>; }
+        if (cur.t === 'add') { const r = pr.rows[cur.r]; return <div className="pop flex flex-wrap items-center gap-1 text-3xl font-bold bg-white rounded-2xl border-4 border-yellow-400 px-3 py-1">{Array(r.c).fill(0).map((_, i) => <React.Fragment key={i}>{i ? '＋' : ''}<span className="box tag-p text-3xl">{r.p}</span></React.Fragment>)}＝ ？</div>; }
+        return <div className="pop flex flex-wrap items-center gap-1 text-3xl font-bold bg-white rounded-2xl border-4 border-yellow-400 px-3 py-1">{pr.rows.map((r, i) => <React.Fragment key={i}>{i ? '＋' : ''}<span className="box tag-m text-3xl">{r.m}</span></React.Fragment>)}＝ ？</div>;
+      };
+
+      if (pr.mode === 'count' || pr.mode === 'add' || pr.mode === 'mul') {
+        const r = pr.rows[0], c = val('count', 0);
+        return (
+          <div className="flex flex-col gap-3 items-start w-full">
+            <div className="win-light p-3 w-full flex flex-col gap-3">
+              <div className="flex items-center gap-3"><FishPic f={r.f} size={90} /><span className="text-3xl font-bold">{r.f.n}</span>{isNushi(r) && <span className="text-xl font-bold text-amber-600">👑 ぬし</span>}<span className="flex-1" />{pr.mode !== 'count' && <PriceTag p={r.p} />}</div>
+              <div className="bg-sky-50 rounded-2xl p-2"><FishGroup r={r} size={r.c > 6 ? 84 : 110} marks={marks[0]} onTap={(j) => onTap(0, j)} five={five} animN={animN(0)} /></div>
+              <div className="flex items-center gap-3 text-2xl font-bold">つれた かず：<Box v={c} on={isOn('count', 0)} kind="c" unit="ひき" w="5rem" big shake={shakeOn('count', 0)} key={'c' + shakeK} /></div>
+            </div>
+            {pr.mode === 'add' && c != null && (
+              <div className="win-light p-3 w-full flex flex-wrap items-center gap-2 text-3xl font-bold pop">
+                {Array(r.c).fill(0).map((_, i) => <React.Fragment key={i}>{i ? <span>＋</span> : null}<span className="box tag-p text-3xl">{r.p}</span></React.Fragment>)}
+                <span>＝</span><Box v={val('add', 0)} on={isOn('add', 0)} kind="m" unit="えん" big shake={shakeOn('add', 0)} key={'a' + shakeK} />
+              </div>
+            )}
+            {pr.mode === 'mul' && c != null && (
+              <div className="win-light p-3 w-full flex flex-wrap items-center gap-3 text-4xl font-bold pop">
+                <span className="box tag-p text-4xl">{r.p}えん</span><span>×</span><span className="box tag-c text-4xl">{r.c}ひき</span><span>＝</span>
+                <Box v={val('mul', 0)} on={isOn('mul', 0)} kind="m" unit="えん" big shake={shakeOn('mul', 0)} key={'m' + shakeK} />
+              </div>
+            )}
+            {pr.mode === 'count' && done && (
+              <div className="win-light p-3 flex flex-wrap items-center gap-2 text-3xl font-bold pop">
+                <span className="text-xl">ゲンじいの けいさん：</span><span className="box tag-p">1ぴき {r.p}えん</span>×<span className="box tag-c">{r.c}ひき</span>＝<span className="box tag-t">{r.m}えん</span>
+              </div>
+            )}
+            <FormulaHint />
+          </div>
+        );
+      }
+      // いくつかの しゅるい（スライド3まいめと おなじ ならび）
+      const nr = pr.rows.length, small = nr >= 5, tiny = nr >= 7;
+      const fs0 = nr <= 3 ? 58 : nr <= 5 ? 46 : 36;
+      const fsOf = (c) => Math.min(fs0, Math.floor((tiny ? 400 : 430) / c));
+      return (
+        <div className="flex flex-col gap-1.5 w-full">
+          {pr.rows.map((r, i) => (
+            <div key={i} className={`flex items-center gap-2 rounded-2xl border-2 px-2 ${small ? 'py-0' : 'py-1'} ${cur && cur.r === i && !done ? 'bg-yellow-50 border-yellow-400' : 'bg-white/95 border-sky-200'}`}>
+              <div className={`flex ${tiny ? 'flex-row gap-1 w-32' : 'flex-col w-24'} items-center shrink-0`}><FishPic f={r.f} size={tiny ? 34 : small ? 46 : 58} /><span className="text-sm font-bold leading-tight text-center">{isNushi(r) ? '👑' : ''}{r.f.n}</span></div>
+              <div className="flex-1 min-w-0"><FishGroup r={r} size={fsOf(r.c)} marks={marks[i]} onTap={(j) => onTap(i, j)} five={five && cur.r === i} animN={animN(i)} /></div>
+              <span className={`box tag-p ${small ? 'text-xl min-h-[2.4rem]' : 'text-2xl'}`}>{r.p}えん</span>
+              <span className="text-2xl font-bold">×</span>
+              <Box v={val('count', i)} on={isOn('count', i)} kind="c" unit="ひき" w="3.6rem" sm={tiny} shake={shakeOn('count', i)} key={'c' + i + '-' + shakeK} />
+              <span className="text-2xl font-bold">＝</span>
+              <Box v={val('mul', i)} on={isOn('mul', i)} kind="m" unit="えん" w={small ? '6.5rem' : '7.5rem'} sm={tiny} shake={shakeOn('mul', i)} key={'m' + i + '-' + shakeK} />
+            </div>
+          ))}
+          <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border-4 border-emerald-500 bg-emerald-50 px-3 py-1.5">
+            <span className="text-2xl font-bold mr-1">ごうけい</span>
+            {pr.rows.map((r, i) => <React.Fragment key={i}>{i ? <span className="text-xl font-bold">＋</span> : null}<span className={`box tag-m ${small ? 'text-base min-h-[2rem] px-1' : 'text-xl min-h-[2.2rem]'}`} style={{ minWidth: small ? '2.6rem' : '3.5rem' }}>{val('mul', i) ?? ''}</span></React.Fragment>)}
+            <span className="text-2xl font-bold">＝</span>
+            <Box v={val('total')} on={isOn('total')} kind="t" unit="えん" w="8rem" big={!small} shake={shakeOn('total')} key={'t' + shakeK} />
+          </div>
+          <FormulaHint />
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 12. 1かいの つり（もんだい いくつか）
+    // =====================================================================
+    function Practice({ st, n, intro, progress, onRecord, onCatch, onSolved, onSave, onFinish, onQuit }) {
+      const talk = useTalk();
+      const step = STEP_OF(st), sp = SPOT[st.spot];
+      const real = !!progress.realCalc;
+      const [i, setI] = useState(0);
+      const [pr, setPr] = useState(() => genProblem(st, progress, null));
+      const [phase, setPhase] = useState('intro');
+      const [bi, setBi] = useState(0);
+      const [vals, setVals] = useState({});
+      const [miss, setMiss] = useState(0);       // いまの ますで まちがえた かず
+      const [hint, setHint] = useState(0);       // いまの ますの ヒント
+      const [off, setOff] = useState([]);        // けした かずの ボタン
+      const [marks, setMarks] = useState({});
+      const [anim, setAnim] = useState(null);
+      const [shakeK, setShakeK] = useState(0);
+      const [resetK, setResetK] = useState(0);
+      const [seikai, setSeikai] = useState(0);
+      const [busy, setBusy] = useState(false);
+      const P = useRef({ miss: 0, hint: 0, types: [], keys: [] });
+      const stats = useRef({ ok: 0, all: 0, yen: 0 });
+      const t0 = useRef(Date.now());
+      const alive = useRef(true);
+      const blanks = useMemo(() => blanksOf(pr), [pr]);
+      const cur = blanks[bi];
+      const calcWord = real ? 'てもとの でんたくで' : 'でんたくで';
+      useEffect(() => () => { alive.current = false; }, []);
+      useEffect(() => {
+        (async () => {
+          await talk.say(intro || `${sp.name}で つりを しよう！ ${step.topic}。`, { mood: 'happy' });
+          if (alive.current) setPhase('fish');
+        })();
+      }, []);
+
+      const ask = (b) => {
+        const r = b.r != null ? pr.rows[b.r] : null;
+        if (b.t === 'count') return pr.rows.length > 1 ? `${r.f.n}は なんびき かな？` : `${r.f.n}は なんびき つれたかな？ さわって かぞえて、かずを おそう。`;
+        if (b.t === 'add') return `1ぴき ${r.p}えんが ${r.c}ひき。${calcWord}、${r.p}えんを ${r.c}かい たそう。`;
+        if (b.t === 'mul') return pr.rows.length > 1 ? `${r.f.n}は、${r.p} × ${r.c} だね。${calcWord} けいさん しよう。` : `1ぴき ${r.p}えんが ${r.c}ひき。${calcWord}、${r.p} × ${r.c} を けいさん しよう。`;
+        return `さいごに、ぜんぶの えんを たして、ごうけいを もとめよう。`;
+      };
+      const startSheet = () => {
+        setPhase('sheet'); setBi(0); t0.current = Date.now();
+        talk.say(pr.rows.length > 1 ? `つれた さかなを かぞえて、ねだんを けいさん しよう。まずは ${ask(blanks[0])}` : ask(blanks[0]));
+      };
+      const nextBlank = (j) => { setBi(j); setMiss(0); setHint(0); setOff([]); setAnim(null); setResetK(k => k + 1); };
+
+      const doHint = async (lv) => {
+        const b = cur, r = b.r != null ? pr.rows[b.r] : null;
+        if (b.t === 'count') {
+          if (lv === 1) talk.say(`${r.f.n}を 1ぴきずつ ゆびで さわって かぞえよう。さわると すうじが でるよ。`, { mood: 'cheer' });
+          if (lv === 2) talk.say('5ひきずつ わくで かこんだよ。5の まとまりを つかって かぞえよう。', { mood: 'cheer' });
+          if (lv === 3) {
+            for (let k = 1; k <= r.c; k++) { if (!alive.current) return; setAnim({ r: b.r, n: k }); Sound.count(k); await new Promise(res => Speech.say(String(k), res)); }
+            talk.say(`いっしょに かぞえたね。${r.c}ひき。ひかって いる かずを おそう。`, { mood: 'happy' });
+          }
+          return;
+        }
+        if (lv === 1) {
+          if (b.t === 'add') talk.say(`${r.p}えんを ${r.c}かい たすよ。${calcWord}「${r.p}」「＋」「${r.p}」…と おして、さいごに「＝」だよ。`, { mood: 'cheer' });
+          else if (b.t === 'mul') talk.say(`1ぴき ${r.p}えんが ${r.c}ひき だから、${r.p} × ${r.c}。${calcWord}「${r.p}」「×」「${r.c}」「＝」と おそう。`, { mood: 'cheer' });
+          else talk.say('それぞれの えんを ぜんぶ たそう。「＋」で つないで、さいごに「＝」だよ。', { mood: 'cheer' });
+        }
+        if (lv === 2) talk.say(`しきを みてね。${b.t === 'total' ? 'オレンジの えんを ぜんぶ たすよ。' : 'あおが ねだん、きいろが なんびき だよ。'}`, { mood: 'cheer' });
+        if (lv === 3) talk.say(real ? 'でんたくで おす じゅんばんを だしたよ。そのとおりに おそう。' : 'ひかって いる キーを じゅんばんに おそう。さいごに「こたえを いれる」だよ。', { mood: 'happy' });
+      };
+      const upHint = () => { if (busy || phase !== 'sheet') return; const lv = Math.min(3, hint + 1); setHint(lv); P.current.hint = Math.max(P.current.hint, lv); doHint(lv); };
+
+      const answer = async (v, keys) => {
+        if (busy || phase !== 'sheet') return;
+        const b = cur, ans = answerOf(pr, b);
+        if (b.t !== 'count') P.current.keys.push(`${b.t === 'total' ? 'ごうけい' : pr.rows[b.r].f.n}:${keys}→${v}${v === ans ? '○' : '✖'}`);
+        if (v === ans) {
+          const nv = { ...vals, [bi]: v };
+          setVals(nv); Sound.coin();
+          if (bi + 1 < blanks.length) {
+            setBusy(true);
+            const nb = blanks[bi + 1];
+            let say = pick(['そうだね！', 'あたり！', 'いいね！']);
+            if (b.t === 'mul' && pr.mode === 'mul' && i === 0 && !progress.seenMul) say = `せいかい！ ${Array(pr.rows[0].c).fill(pr.rows[0].p).join('＋')} と おなじ こたえ だね。× を つかうと はやいね！`;
+            nextBlank(bi + 1);
+            await talk.say(`${say} ${ask(nb)}`, { mood: 'happy' });
+            if (alive.current) setBusy(false);
+            return;
+          }
+          finishProblem(nv);
+          return;
+        }
+        // まちがい
+        const type = classify(pr, b, v);
+        P.current.miss++; P.current.types.push(type);
+        setShakeK(k => k + 1); Sound.retry();
+        if (b.t === 'count') setOff(o => uniq([...o, v]));
+        setResetK(k => k + 1);
+        const m = miss + 1; setMiss(m);
+        const w = missWord(pr, b, type, v);
+        if (m >= 3 && hint < 3) { setHint(3); P.current.hint = 3; await talk.say(w, { mood: 'cheer' }); if (alive.current) doHint(3); }
+        else talk.say(w, { mood: 'cheer' });
+      };
+
+      const finishProblem = async (nv) => {
+        setBusy(true); setPhase('done');
+        const res = P.current;
+        const result = res.miss || res.hint ? '△' : '○';
+        stats.current.all++; if (result === '○') stats.current.ok++;
+        stats.current.yen += pr.total;
+        onRecord({
+          stage: st.id, spot: sp.name, step: step.name, mondai: probText(pr), total: pr.total, result,
+          miss: res.miss, hint: res.hint, types: uniq(res.types).join('・'), keys: res.keys.join(' ／ '), calc: real ? 'てもと' : 'がめん',
+          secs: Math.round((Date.now() - t0.current) / 100) / 10,
+        });
+        onSolved(pr.total, pr.mode === 'mul');
+        setSeikai(x => x + 1); Sound.seikai();
+        await talk.say(pr.mode === 'count' ? `${pr.rows[0].c}ひき！ 1ぴき ${pr.rows[0].p}えん だから、ぜんぶで ${pr.total}えん。${pr.total}えん もらえるよ！` : `ぜんぶで ${pr.total}えん！ ${pr.total}えん もらえるよ！`, { mood: 'happy' });
+        if (!alive.current) return;
+        setSeikai(0);
+        if (i + 1 >= n) { onFinish({ ...stats.current, n }); return; }
+        onSave({ st: st.id, left: n - i - 1 });
+        P.current = { miss: 0, hint: 0, types: [], keys: [] };
+        setPr(genProblem(st, progress, pr.key)); setI(i + 1); setVals({}); setMarks({}); nextBlank(0); setBi(0); setPhase('fish'); setBusy(false);
+      };
+
+      const tapFish = (r, j) => {
+        if (phase !== 'sheet') return;
+        const m = marks[r] || [];
+        if (m.includes(j)) return;
+        const nm = [...m, j];
+        setMarks({ ...marks, [r]: nm }); Sound.count(nm.length); Speech.say(String(nm.length));
+      };
+      const guide = cur && cur.t !== 'count' && hint >= 3 && phase === 'sheet' ? keysOf(pr, cur) : null;
+
+      return (
+        <div className="w-full max-w-[1400px] flex flex-col gap-2 px-2">
+          <MsgWin size={56} compact />
+          <div className="flex items-center gap-3 w-full">
+            <div className="text-lg font-bold bg-white rounded-2xl px-3 py-0.5 border-2 border-sky-900 shrink-0">{sp.icon} {stageName(st)}</div>
+            <div className="text-lg font-bold text-sky-900 truncate bg-white/90 rounded-full px-3">{step.topic}</div>
+            <div className="flex-1" /><div className="text-xl font-bold text-stone-700 bg-white/90 rounded-full px-3">{i + 1} / {n}もん</div>
+            <button onClick={onQuit} className="btn3d bg-white border-2 border-stone-300 rounded-2xl px-3 py-1 text-lg font-bold shrink-0">✋ やめる</button>
+          </div>
+          {phase === 'intro' && <div className="h-80 flex items-center justify-center text-7xl floaty">🎣</div>}
+          {phase === 'fish' && <FishingScene key={'f' + i} pr={pr} sp={sp} look={progress.look} uki={ukiOf(progress)} first={i === 0} onCatch={onCatch} onDone={startSheet} />}
+          {(phase === 'sheet' || phase === 'done') && (
+            <div className="flex gap-3 items-start w-full">
+              <div className="flex-1 min-w-0"><Sheet pr={pr} blanks={blanks} bi={bi} vals={vals} shakeK={shakeK} hint={hint} marks={marks} onTap={tapFish} anim={anim} done={phase === 'done'} /></div>
+              <div className="w-[330px] shrink-0 flex flex-col gap-2">
+                {phase === 'sheet' && <>
+                  <div className="flex gap-2">
+                    <button onClick={upHint} className={`btn3d flex-1 rounded-2xl border-2 border-yellow-500 bg-yellow-100 px-3 py-2 text-xl font-bold ${miss >= 2 && hint < 3 ? 'glow' : ''}`}>
+                      💡 ヒント{hint > 0 ? <span className="ml-1">{'●'.repeat(hint)}{'○'.repeat(3 - hint)}</span> : null}
+                    </button>
+                    {cur.t === 'count' && <button onClick={() => { Sound.tap(); setMarks({ ...marks, [cur.r]: [] }); }} className="btn3d rounded-2xl border-2 border-stone-300 bg-white px-3 py-2 text-lg font-bold">↺ かぞえなおす</button>}
+                  </div>
+                  {cur.t === 'count'
+                    ? <CountPad onPick={(v) => answer(v)} off={off} glowN={hint >= 3 && anim && anim.n >= pr.rows[cur.r].c ? pr.rows[cur.r].c : null} disabled={busy} />
+                    : real ? <NumPad onSubmit={answer} guide={guide} resetK={`${bi}-${resetK}`} disabled={busy} />
+                    : <Calculator onSubmit={answer} guide={guide} resetK={`${bi}-${resetK}`} disabled={busy} />}
+                </>}
+                {phase === 'done' && <div className="text-7xl text-center floaty pt-10">🎉</div>}
+              </div>
+            </div>
+          )}
+          <Seikai show={seikai} text={`${pr.total}えん！`} />
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 13. けっか
+    // =====================================================================
+    function ResultScreen({ view, progress, onAgain, onNext, onHome, onShop }) {
+      const talk = useTalk();
+      const r = view.result, st = view.st;
+      useEffect(() => {
+        (async () => {
+          Sound.fanfare();
+          await talk.say(`よく がんばったね！ きょうは ぜんぶで ${r.yen}えん かせいだよ！`, { mood: 'happy' });
+          if (r.newFish.length) await talk.say(`ずかんに あたらしい さかなが ふえたよ。${r.newFish.map(id => FISH[id].n).join('、')}！`, { mood: 'happy' });
+          if (r.firstClear) await talk.say('この だんかいを はじめて クリア したね！', { mood: 'happy' });
+          if (r.newTitle) { Sound.levelup(); await talk.say(`しょうごうが「${r.newTitle}」に なったよ！`, { mood: 'happy' }); }
+          if (r.boatNeed) await talk.say(`つぎの「${SPOT[r.boatNeed].name}」へ いくには、おみせで「${ITEM[SPOT[r.boatNeed].boat].n}」を かおう。`);
+        })();
+      }, []);
+      return (
+        <div className="w-full max-w-4xl flex flex-col items-center gap-2 p-3">
+          <MsgWin size={64} compact />
+          <div className="win w-full px-5 py-3 flex flex-col items-center gap-2 pop">
+            <div className="text-3xl font-bold">🎣 {stageName(st)}　おしまい！</div>
+            <div className="text-3xl">{Array.from({ length: r.n }, (_, j) => (j < r.ok ? '⭐' : '✩')).join('')}</div>
+            <div className="text-xl">まちがえずに {r.ok}もん ／ {r.n}もん</div>
+            <div className="bg-white text-sky-950 rounded-2xl px-6 py-2 flex items-center gap-2 text-4xl font-bold"><Saifu s={40} />＋{yen(r.yen)}えん</div>
+            <div className="text-xl">さいふ：{yen(progress.yen)}えん</div>
+            {r.newFish.length > 0 && <div className="flex flex-wrap gap-2 justify-center bg-white text-sky-950 rounded-2xl px-4 py-2">
+              <span className="text-xl font-bold w-full text-center">📖 ずかんに ふえた さかな</span>
+              {r.newFish.map(id => <span key={id} className="flex flex-col items-center pop"><FishPic f={FISH[id]} size={80} /><span className="font-bold">{FISH[id].n}</span></span>)}
+            </div>}
+            {r.newTitle && <div className="text-2xl font-bold bg-sky-100 text-sky-800 rounded-2xl px-4 py-2 flex items-center gap-2"><Hero look={progress.look} size={56} /> 🎖️ しょうごう「{r.newTitle}」</div>}
+            {r.boatNeed && <div className="text-xl font-bold text-yellow-200">🚤 つぎの つりばへは「{ITEM[SPOT[r.boatNeed].boat].n}」が ひつようだよ（{yen(ITEM[SPOT[r.boatNeed].boat].p)}えん）</div>}
+          </div>
+          <div className="flex flex-wrap gap-4 justify-center">
+            {onNext && <Btn onClick={onNext} color="#15803d" light="#dcfce7" className="text-3xl px-8 glow">つぎへ ▶</Btn>}
+            <Btn onClick={onShop} color="#db2777" light="#fce7f3">🏪 おみせ</Btn>
+            <Btn onClick={onAgain} color="#0369a1" light="#e0f2fe">🔁 もういちど</Btn>
+            <Btn onClick={onHome} color="#57534e" light="#f5f5f4">🏠 ホーム</Btn>
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 14. はじめの がめん・ホーム・ちず・つりば
+    // =====================================================================
+    function TitleSvg() {
+      return (
+        <svg viewBox="0 0 800 450" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 w-full h-full">
+          <defs><linearGradient id="tsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#7dd3fc" /><stop offset="1" stopColor="#e0f2fe" /></linearGradient></defs>
+          <rect width="800" height="450" fill="url(#tsky)" />
+          <circle cx="680" cy="80" r="46" fill="#fde047" />
+          {[[120, 60], [420, 40]].map(([x, y], i) => <g key={i} fill="#fff"><ellipse cx={x} cy={y} rx="50" ry="16" /><ellipse cx={x + 28} cy={y - 10} rx="30" ry="15" /></g>)}
+          <rect y="230" width="800" height="220" fill="#38bdf8" />
+          {[0, 1, 2].map(i => <path key={i} className="wave" d={`M-40 ${260 + i * 60} q40 -12 80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0 t80 0`} stroke="#fff" strokeOpacity=".5" strokeWidth="4" fill="none" />)}
+          <path d="M0 450 L0 330 Q140 300 260 360 L320 450Z" fill="#fde68a" stroke="#a16207" strokeWidth="4" />
+          <text x="560" y="350" fontSize="60">🐟</text><text x="470" y="410" fontSize="50">🐠</text><text x="660" y="420" fontSize="56">🐙</text>
+        </svg>
+      );
+    }
+    function LoginScreen({ students, onSelect, onTeacher, demo }) {
+      return (
+        <div className="min-h-screen relative">
+          <Bg file="title.webp" className="!fixed inset-0" fallback={<TitleSvg />} />
+          <div className="relative min-h-screen flex flex-col items-center gap-3 px-6 py-5">
+            <div className="flex items-end gap-3">
+              <Gen size={150} className="floaty" mood="happy" />
+              <div className="win px-5 py-3 mb-2">
+                <div className="text-2xl font-bold text-sky-200">ゲンじいの</div>
+                <div className="text-6xl font-bold" style={{ textShadow: '3px 3px 0 #0369a1' }}>つりマスター への みち</div>
+                <div className="text-xl mt-1 text-sky-200 font-bold">さかなを つって、でんたくで いくらに なるか もとめよう！</div>
+              </div>
+            </div>
+            {demo && <div className="bg-yellow-100/95 border-2 border-yellow-400 rounded-xl px-4 py-1 text-base">おためしモード（スプレッドシートに つながって いません。きろくは この たんまつだけに のこります）</div>}
+            <div className="win px-6 py-2 text-3xl font-bold">じぶんの なまえを おしてね</div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full max-w-3xl">
+              {students.map(n => <button key={n} onClick={() => onSelect(n)} className="btn3d bg-white/95 border-4 border-sky-900 rounded-3xl py-5 text-4xl font-bold shadow-lg">{n}</button>)}
+            </div>
+            {!students.length && <div className="text-2xl bg-white rounded-xl p-4">「名簿」シートに なまえを いれてください。</div>}
+          </div>
+          <button onClick={onTeacher} className="fixed right-3 bottom-3 bg-white/90 border-2 border-stone-300 rounded-xl px-3 py-2 text-lg font-bold">🔒 せんせい</button>
+          <div className="fixed left-3 bottom-2 text-xs text-white/90 font-bold" style={{ textShadow: '0 1px 2px #0008' }}>ver {APP_VERSION}</div>
+        </div>
+      );
+    }
+
+    function TopBar({ name, progress, bump, onHome, onLogout, onTeacher, soundOn, onSound, bgmAllowed, bgmOn, onBgm }) {
+      return (
+        <div className="w-full flex items-center gap-2 px-3 py-1.5 bg-white/95 border-b-4 border-sky-900 sticky top-0 z-30">
+          {onHome && <button onClick={onHome} className="btn3d bg-sky-50 border-2 border-sky-800 rounded-2xl px-3 py-1 text-xl font-bold">🏠 ホーム</button>}
+          <div className="text-2xl font-bold ml-1">{name}</div>
+          <div className="text-base font-bold bg-sky-100 border-2 border-sky-300 rounded-full px-3 hidden md:block">🎖️ {titleOf(progress)}</div>
+          <div className="flex-1" />
+          <div key={bump} className={`flex items-center gap-2 bg-amber-50 border-2 border-amber-300 rounded-full px-4 py-0.5 text-2xl font-bold ${bump ? 'bump' : ''}`}><Saifu s={26} />{yen(progress.yen)}<span className="text-lg">えん</span></div>
+          {bgmAllowed && <button onClick={onBgm} className="text-2xl px-2" aria-label="おんがく">{bgmOn ? '🎵' : '🔕'}</button>}
+          <button onClick={onSound} className="text-3xl px-2" aria-label="おと">{soundOn ? '🔊' : '🔇'}</button>
+          <button onClick={onTeacher} className="text-lg px-2 border-2 border-stone-300 rounded-xl bg-white">🔒</button>
+          <button onClick={onLogout} className="text-lg px-3 py-1 border-2 border-stone-300 rounded-xl bg-white font-bold">おわる</button>
+        </div>
+      );
+    }
+
+    function HomeScreen({ name, progress, onContinue, go, onWelcome }) {
+      const talk = useTalk();
+      const cur = currentStage(progress);
+      const sp = SPOT[cur.spot];
+      const boatLack = needBoat(progress, sp);
+      useEffect(() => {
+        if (!progress.welcome) {
+          talk.say(`${name}さん、ようこそ！ わしは りょうしの ゲンじい。いっしょに いろいろな つりばで さかなを つろう。つれた さかなの ねだんを でんたくで けいさん して、おかねを ためるんじゃ。めざせ、つりマスター！`, { mood: 'happy' });
+          onWelcome();
+        } else if (boatLack) talk.say(`つぎは「${sp.name}」じゃ。いくには「${ITEM[sp.boat].n}」が ひつよう。おみせで かおう。`);
+        else talk.say(progress.part ? 'つづきから つりを しよう！' : `${name}さん、つぎは「${sp.name}」で「${STEP_OF(cur).name}」に ちょうせん じゃ！`);
+      }, []);
+      const tiles = [
+        ['map', '🗺️', 'つりばを えらぶ', '#2563eb', '#dbeafe'],
+        ['shop', '🏪', 'おみせ', '#db2777', '#fce7f3'],
+        ['tank', '🐠', 'すいそう', '#0891b2', '#cffafe'],
+        ['zukan', '📖', 'ずかん', '#0d9488', '#ccfbf1'],
+        ['dress', '👕', 'きがえ', '#7c3aed', '#ede9fe'],
+      ];
+      return (
+        <SpotBg sp={sp} className="flex-1 w-full">
+          <div className="flex flex-col items-center gap-4 p-4">
+            <div className="w-full max-w-4xl"><MsgWin size={100} /></div>
+            <div className="win-light p-4 w-full max-w-4xl flex flex-col gap-3 items-center">
+              <div className="text-xl font-bold text-sky-800">{sp.icon} つぎ：{stageName(cur)}</div>
+              <Btn onClick={() => (boatLack ? go('shop') : onContinue())} color="#15803d" light="#dcfce7" className="text-4xl px-12 py-4 glow">{boatLack ? `🏪 ${ITEM[sp.boat].n}を かいに いく` : `▶ ${progress.part ? 'つづきから' : 'つりに いく'}`}</Btn>
+              <div className="grid grid-cols-5 gap-3 w-full">
+                {tiles.map(([id, e, t, c, l]) => (
+                  <button key={id} onClick={() => { Sound.tap(); go(id); }} className="btn3d rounded-3xl border-4 py-3 flex flex-col items-center gap-1 font-bold text-xl" style={{ borderColor: c, background: l }}>
+                    <span className="text-5xl leading-none">{e}</span>{t}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </SpotBg>
+      );
+    }
+
+    function MapSvg() {
+      return (
+        <svg viewBox="0 0 160 90" preserveAspectRatio="none" className="absolute inset-0 w-full h-full">
+          <rect width="160" height="90" fill="#1d4ed8" />
+          <path d="M0 0 H110 Q96 20 104 34 Q86 46 92 60 Q70 70 76 90 H0Z" fill="#86efac" />
+          <path d="M0 0 H70 Q50 10 40 6 Q20 14 0 10Z" fill="#4d7c0f" />
+          <path d="M18 8 Q26 22 22 34 Q34 44 50 46 Q60 54 72 64 Q78 72 80 90" stroke="#38bdf8" strokeWidth="3" fill="none" />
+          <ellipse cx="50" cy="45" rx="12" ry="7" fill="#60a5fa" />
+          <path d="M110 0 H160 V90 H76 Q70 70 92 60 Q86 46 104 34 Q96 20 110 0Z" fill="#2563eb" />
+          <path d="M130 50 H160 V90 H110 Q120 66 130 50Z" fill="#172554" />
+        </svg>
+      );
+    }
+    function MapScreen({ progress, onSpot }) {
+      const talk = useTalk();
+      const cur = currentStage(progress);
+      useEffect(() => { talk.say(`どこで つろうかな？ ひかって いるのが、つぎの つりば「${SPOT[cur.spot].name}」だよ。`); }, []);
+      const shown = D.SPOTS.filter(s => !s.hatten || progress.hatten || progress.unlockAll);
+      return (
+        <div className="w-full max-w-6xl p-3 flex flex-col items-center gap-3">
+          <MsgWin size={80} compact />
+          <Bg file="map.webp" className="rounded-3xl border-4 border-sky-900 shadow-lg max-w-full" style={{ aspectRatio: '16 / 9', height: 'min(calc(100vh - 170px), calc((100vw - 48px) * 9 / 16))' }} fallback={<MapSvg />}>
+            {shown.map(s => {
+              const op = spotOpen(progress, s.id), boat = op && needBoat(progress, s), done = s.hatten ? isCleared(progress, '7-2') : spotCleared(progress, s.id), here = cur.spot === s.id;
+              return (
+                <div key={s.id} className="absolute flex flex-col items-center" style={{ left: `${s.x}%`, top: `${s.y}%`, transform: 'translate(-50%, -50%)' }}>
+                  {here && <div className="absolute" style={{ bottom: '84%' }}><Hero look={progress.look} size={54} /></div>}
+                  <button onClick={() => op && onSpot(s)} disabled={!op}
+                    className={`btn3d relative rounded-2xl border-4 flex flex-col items-center px-3 py-1 ${here ? 'glow' : ''}`}
+                    style={{ background: op ? '#fff' : '#e7e5e4', borderColor: op ? '#0369a1' : '#a8a29e', opacity: op ? 1 : 0.85 }}>
+                    <span className="text-4xl leading-none">{op ? s.icon : '🔒'}</span>
+                    <span className="text-base font-bold whitespace-nowrap">{s.hatten ? '✨ ' : ''}{s.name}</span>
+                    {boat && <span className="text-xs font-bold text-rose-600 whitespace-nowrap">{ITEM[s.boat].e} {ITEM[s.boat].n}が ひつよう</span>}
+                    {done && <span className="absolute -top-3 -right-3 text-2xl">⭐</span>}
+                  </button>
+                </div>
+              );
+            })}
+          </Bg>
+        </div>
+      );
+    }
+
+    function SpotScreen({ sp, progress, onStage, go }) {
+      const talk = useTalk();
+      const boat = needBoat(progress, sp);
+      useEffect(() => { talk.say(boat ? `${sp.intro} ここへ いくには「${ITEM[sp.boat].n}」が ひつようだよ。おみせで かおう。` : sp.intro); }, []);
+      const stages = STAGES.filter(s => s.spot === sp.id);
+      const cur = currentStage(progress);
+      const fishes = sp.hatten ? D.SLIDE.map(([id]) => FISH[id]) : spotFish(sp.id);
+      return (
+        <div className="w-full max-w-5xl p-3 flex flex-col items-center gap-3">
+          <MsgWin size={80} compact />
+          <SpotBg sp={sp} className="w-full rounded-3xl border-4 border-sky-900" style={{ height: 150 }}>
+            <div className="flex items-end justify-between h-full p-3 gap-3">
+              <div className="win px-4 py-2"><div className="text-3xl font-bold">{sp.icon} {sp.name}</div></div>
+              <div className="flex items-end gap-1 bg-white/85 rounded-2xl border-2 border-sky-900 px-2 py-1">
+                {fishes.map(f => { const got = progress.zukan[f.id] && progress.zukan[f.id].n > 0; return <div key={f.id} className="flex flex-col items-center"><FishPic f={f} size={56} sil={!got} /><span className="text-xs font-bold">{got ? f.n : '？'}</span></div>; })}
+              </div>
+            </div>
+          </SpotBg>
+          {boat && <div className="win-light px-4 py-2 text-2xl font-bold flex items-center gap-3">{ITEM[sp.boat].e} 「{ITEM[sp.boat].n}」（{yen(ITEM[sp.boat].p)}えん）が ひつようです <Btn onClick={() => go('shop')} color="#db2777" light="#fce7f3" className="text-xl py-1">🏪 おみせへ</Btn></div>}
+          <div className={`grid ${stages.length > 3 ? 'grid-cols-3' : 'grid-cols-2'} gap-3 w-full`}>
+            {stages.map(st => {
+              const step = STEP_OF(st), open = stageOpen(progress, st) && !boat, clear = isCleared(progress, st.id), now = st.id === cur.id && !clear;
+              return (
+                <button key={st.id} onClick={() => open && onStage(st)} disabled={!open}
+                  className={`btn3d relative rounded-3xl border-4 flex items-center gap-3 px-4 py-3 text-left ${clear ? 'bg-yellow-50 border-amber-400' : open ? 'bg-white border-sky-800' : 'bg-stone-200 border-stone-300 opacity-70'} ${now ? 'glow' : ''}`}>
+                  <span className="text-4xl">{step.icon}</span>
+                  <div className="flex flex-col"><span className="text-2xl font-bold">{st.hatten ? '' : '⓪①②③④⑤'[st.k] + ' '}{step.name}</span><span className="text-sm font-bold text-stone-600">{step.topic}</span></div>
+                  {!open && <div className="absolute -top-3 -left-2 text-2xl">🔒</div>}
+                  {clear && <div className="absolute -top-3 -right-2 text-2xl">⭐</div>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    function StageModal({ st, progress, onStart, onResume, onClose }) {
+      const talk = useTalk();
+      const S = useContext(SetCtx);
+      const step = STEP_OF(st), sp = SPOT[st.spot];
+      useEffect(() => { talk.say(`${step.topic}。`); }, []);
+      const part = progress.part && progress.part.st === st.id ? progress.part : null;
+      return (
+        <div className="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4" onClick={onClose}>
+          <div className="win p-5 flex flex-col items-center gap-4 pop max-w-3xl w-full" onClick={e => e.stopPropagation()}>
+            <div className="text-lg font-bold text-sky-200">{sp.icon} {sp.name}</div>
+            <div className="text-4xl font-bold">{step.icon} {step.name}</div>
+            <div className="bg-white text-sky-950 rounded-2xl px-4 py-2 text-2xl font-bold text-center">{step.topic}<br /><span className="text-lg">{part ? part.left : stepCount(step, S.count)}もん</span></div>
+            {isCleared(progress, st.id) && <div className="text-xl font-bold text-yellow-300">⭐ クリアずみ（なんかいでも できるよ）</div>}
+            <div className="flex gap-3 flex-wrap justify-center">
+              {part && <Btn onClick={onResume} color="#15803d" light="#dcfce7">▶ つづきから（あと {part.left}）</Btn>}
+              <Btn onClick={onStart} color="#15803d" light="#dcfce7" className="text-3xl px-8">{part ? 'はじめから' : '▶ はじめる'}</Btn>
+              <Btn onClick={onClose} color="#57534e" light="#f5f5f4">とじる</Btn>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 15. おみせ・すいそう・ずかん・きがえ
+    // =====================================================================
+    const TIER = [['ふつう', '#e7e5e4', '#57534e'], ['ごうか', '#dbeafe', '#2563eb'], ['ちょうごうか', '#fae8ff', '#a21caf'], ['でんせつ', '#fef3c7', '#d97706']];
+    function ShopScreen({ progress, onBuy }) {
+      const talk = useTalk();
+      const [cat, setCat] = useState(() => {
+        const cur = currentStage(progress), sp = SPOT[cur.spot];
+        return needBoat(progress, sp) ? 'boat' : D.ITEM_CATS[0].id;
+      });
+      useEffect(() => { talk.say('いらっしゃい！ つりで ためた おかねで、つりざおや ふねが かえるよ。ねだんを よく みてね。'); }, []);
+      const c = D.ITEM_CATS.find(x => x.id === cat);
+      return (
+        <div className="w-full max-w-5xl p-3 flex flex-col items-center gap-3">
+          <MsgWin size={80} compact />
+          <div className="flex gap-2 flex-wrap justify-center">
+            {D.ITEM_CATS.map(x => <button key={x.id} onClick={() => { Sound.tap(); setCat(x.id); talk.say(x.note); }} className={`btn3d rounded-2xl border-2 px-4 py-2 text-xl font-bold ${cat === x.id ? 'bg-sky-100 border-sky-500' : 'bg-white border-stone-300'}`}>{x.icon} {x.name}</button>)}
+          </div>
+          <div className="text-lg font-bold bg-white/90 rounded-full px-4">{c.note}</div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full">
+            {c.items.map(it => {
+              const have = progress.items.includes(it.id), can = progress.yen >= it.p;
+              const [tn, bg, col] = TIER[it.t];
+              return (
+                <div key={it.id} className="bg-white rounded-3xl border-4 p-2 flex flex-col items-center gap-1" style={{ borderColor: col }}>
+                  <div className="text-xs font-bold rounded-full px-2" style={{ background: bg, color: col }}>{tn}</div>
+                  <div className="h-16 flex items-center justify-center my-1">{it.color ? <span className={`inline-block w-14 h-14 rounded-full border-2 border-stone-700 ${it.color.niji ? 'niji' : ''}`} style={{ background: it.color.css }} />
+                    : <Pic file={it.cat === 'boat' ? `boat_${it.id}.webp` : null} size={110} style={{ height: 64 }} fallback={<span className="text-5xl">{it.e}</span>} />}</div>
+                  <div className="text-lg font-bold text-center leading-tight">{it.n}</div>
+                  {it.go && <div className="text-sm font-bold text-sky-700">{SPOT[it.go].name}へ いける</div>}
+                  {have ? <div className="text-lg font-bold text-emerald-700">✔ かった</div>
+                    : <button onClick={() => {
+                        if (!can) { talk.say(`${yen(it.p)}えん だよ。あと ${yen(it.p - progress.yen)}えん たりないね。つりを して ためよう。`); return; }
+                        Sound.coin(); onBuy(it);
+                        talk.say(`${it.n}を かったよ。${yen(it.p)}えん はらったので、のこりは ${yen(progress.yen - it.p)}えん。${it.cat === 'hat' || it.cat === 'color' || it.cat === 'uki' ? '「きがえ」で つかえるよ。' : it.cat === 'kazari' ? '「すいそう」に かざったよ。' : ''}`, { mood: 'happy' });
+                      }}
+                      className={`btn3d rounded-2xl border-2 px-3 py-1 text-xl font-bold ${can ? 'bg-amber-50 border-amber-400' : 'bg-stone-100 border-stone-300 opacity-60'}`}>{yen(it.p)}えん</button>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    function TankScreen({ progress }) {
+      const talk = useTalk();
+      const fishes = D.FISH.filter(f => progress.zukan[f.id] && progress.zukan[f.id].n > 0);
+      const kazari = ALL_ITEMS.filter(it => it.cat === 'kazari' && progress.items.includes(it.id));
+      useEffect(() => { talk.say(fishes.length ? `すいそうに ${fishes.length}しゅるいの さかなが およいで いるよ。さかなを おすと、なまえが わかるよ。` : 'つった さかなが、ここで およぐよ。つりに いこう！'); }, []);
+      const lanes = Math.max(4, Math.ceil(fishes.length / 2));
+      return (
+        <div className="w-full max-w-6xl p-3 flex flex-col items-center gap-3">
+          <MsgWin size={80} compact />
+          <div className="relative w-full rounded-3xl border-[10px] border-slate-500 overflow-hidden" style={{ height: 'calc(100vh - 220px)', minHeight: 360, background: 'linear-gradient(#67e8f9, #0e7490)' }}>
+            {Array.from({ length: 10 }, (_, k) => <span key={k} className="bubble" style={{ left: `${5 + k * 9.5}%`, bottom: -20, width: 8 + (k % 3) * 5, height: 8 + (k % 3) * 5, '--d': `${5 + (k % 4) * 1.5}s`, animationDelay: `${k * 0.6}s` }} />)}
+            <div className="absolute inset-x-0 bottom-0 h-16" style={{ background: 'linear-gradient(transparent, #fde68a 40%)' }} />
+            {kazari.map((it, k) => <span key={it.id} className="absolute" style={{ left: `${4 + k * 12}%`, bottom: 4, fontSize: it.t >= 2 ? 72 : 56, lineHeight: 1 }}>{it.e}</span>)}
+            {fishes.map((f, k) => (
+              <button key={f.id} onClick={() => { const z = progress.zukan[f.id]; talk.say(`${f.n}。${f.d} いちばん おおきいのは ${cmText(z.max)}。`); }}
+                className="swim" style={{ top: `${6 + ((k * 37) % (lanes * 10)) * (70 / (lanes * 10))}%`, '--d': `${12 + (k % 5) * 3}s`, '--dl': `${-k * 2.3}s` }}>
+                <FishPic f={f} size={f.big || f.nushi ? 110 : 80} />
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    function ZukanScreen({ progress }) {
+      const talk = useTalk();
+      const [tab, setTab] = useState(0);
+      const n = speciesOf(progress);
+      useEffect(() => { talk.say(`ずかんには ${D.FISH.length}しゅるいの さかなが のって いるよ。いま ${n}しゅるい あつめたね。`); }, []);
+      const list = D.FISH.filter(f => !tab || f.s === tab);
+      return (
+        <div className="w-full max-w-6xl p-3 flex flex-col items-center gap-3">
+          <MsgWin size={80} compact />
+          <div className="flex gap-2 flex-wrap justify-center">
+            {[[0, '📖 ぜんぶ'], ...D.SPOTS.filter(s => !s.hatten).map(s => [s.id, `${s.icon} ${s.name}`])].map(([id, t]) => <button key={id} onClick={() => { Sound.tap(); setTab(id); }} className={`btn3d rounded-2xl border-2 px-4 py-2 text-xl font-bold ${tab === id ? 'bg-sky-900 text-white border-sky-900' : 'bg-white border-stone-300'}`}>{t}</button>)}
+            <span className="win px-4 py-1 text-xl font-bold">{n} / {D.FISH.length}しゅるい</span>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-6 gap-3 w-full">
+            {list.map(f => {
+              const z = progress.zukan[f.id], got = z && z.n > 0;
+              return (
+                <button key={f.id} onClick={() => talk.say(got ? `${f.n}。1ぴき ${f.p}えん。${f.d}` : (f.nushi ? `${SPOT[f.s].name}の ぬし。めったに つれない さかなだよ。` : `${SPOT[f.s].name}で つれる さかなだよ。`))}
+                  className={`rounded-3xl border-4 p-2 flex flex-col items-center ${got ? (f.nushi ? 'bg-yellow-50 border-yellow-400' : 'bg-white border-sky-300') : 'bg-stone-100 border-stone-300'}`} style={got && f.nushi ? { boxShadow: '0 0 0 3px #fde68a' } : null}>
+                  <FishPic f={f} size={92} sil={!got} />
+                  <div className="text-lg font-bold leading-tight text-center">{got ? f.n : '？？？'}{f.nushi ? ' 👑' : ''}</div>
+                  <div className="text-sm font-bold text-sky-800">{got ? `${f.p}えん` : SPOT[f.s].name}</div>
+                  {got && <div className="text-xs text-stone-600">{z.n}ひき・さいだい {cmText(z.max)}</div>}
+                </button>
+              );
+            })}
+          </div>
+          <div className="win-light px-4 py-2 flex flex-wrap gap-2 justify-center">
+            {D.TITLES.map(t => { const on = titleOk(progress, t); return <span key={t.n} className={`rounded-full px-3 py-1 border-2 text-lg font-bold ${on ? 'bg-sky-100 border-sky-400' : 'bg-white border-stone-200 text-stone-400'}`}>{on ? '🎖️' : '🔒'} {t.n}</span>; })}
+          </div>
+        </div>
+      );
+    }
+
+    function DressScreen({ progress, first, onSave }) {
+      const talk = useTalk();
+      const [lk, setLk] = useState({ ...defaultLook(), ...(progress.look || {}) });
+      const [gen, setGen] = useState({ color: 'ao', hat: null, ...(progress.gen || {}) });
+      const [uki, setUki] = useState(progress.uki || null);
+      useEffect(() => { talk.say(first ? 'まずは、きみの すがたを きめよう。かたちと ふくの いろを えらんでね。' : 'きがえを しよう。おみせで かった ぼうしや ふくの いろは、ゲンじいにも つかえるよ。'); }, []);
+      const save = (a, b, c) => { if (!first) onSave(a, b, c); };
+      const setH = (k, v) => { Sound.tap(); const nl = { ...lk, [k]: v }; setLk(nl); save(nl, gen, uki); };
+      const setG = (k, v) => { Sound.tap(); const ng = { ...gen, [k]: v }; setGen(ng); save(lk, ng, uki); };
+      const setU = (v) => { Sound.tap(); setUki(v); save(lk, gen, v); };
+      const hats = owned(progress, 'hat'), ukis = owned(progress, 'uki');
+      const box = (on) => `rounded-2xl border-4 px-2 py-1 flex flex-col items-center ${on ? 'border-sky-600 bg-sky-50' : 'border-stone-200 bg-white'}`;
+      const colorRow = (val, set) => <div className="flex flex-wrap gap-2">{ownedColors(progress).map(c => <button key={c.id} onClick={() => set('color', c.id)} className={box(val === c.id)}><span className={`inline-block w-11 h-11 rounded-full border-2 border-stone-700 ${c.niji ? 'niji' : ''}`} style={{ background: c.css }} /><span className="text-sm font-bold">{c.name}</span></button>)}</div>;
+      const hatRow = (val, set) => !hats.length ? <div className="text-lg text-stone-500">おみせで かうと かぶれるよ</div> : (
+        <div className="flex flex-wrap gap-2"><button onClick={() => set('hat', null)} className={`${box(!val)} text-lg font-bold`}>なし</button>{hats.map(it => <button key={it.id} onClick={() => set('hat', it.id)} className={box(val === it.id)}><span className="text-4xl leading-none">{it.e}</span><span className="text-sm font-bold">{it.n}</span></button>)}</div>);
+      return (
+        <div className="w-full max-w-6xl p-3 flex flex-col items-center gap-3">
+          <MsgWin size={80} compact />
+          <div className="flex flex-wrap gap-4 w-full items-start justify-center">
+            <div className="win-light p-4 flex flex-col items-center gap-2">
+              <div className="text-xl font-bold mb-6">🧒 じぶん</div><Hero look={lk} size={190} /><div className="text-base font-bold">🎖️ {titleOf(progress)}</div>
+            </div>
+            <div className="flex flex-col gap-3 flex-1 min-w-[320px]">
+              <div className="win-light p-3"><div className="text-xl font-bold mb-2">かたち</div>
+                <div className="flex gap-3">{[1, 2].map(f => <button key={f} onClick={() => setH('form', f)} className={box(lk.form === f)}><Hero look={{ ...lk, form: f, hat: null }} size={76} /><span className="text-lg font-bold">かたち{f === 1 ? '１' : '２'}</span></button>)}</div></div>
+              <div className="win-light p-3"><div className="text-xl font-bold mb-2">ふくの いろ</div>{colorRow(lk.color, setH)}</div>
+              {!first && <div className="win-light p-3"><div className="text-xl font-bold mb-2">👒 ぼうし</div>{hatRow(lk.hat, setH)}</div>}
+              {!first && <>
+                <div className="win-light p-3 flex gap-3 items-start">
+                  <Gen size={120} look={gen} />
+                  <div className="flex-1 flex flex-col gap-2"><div className="text-xl font-bold">👴 ゲンじいの ふくの いろ</div>{colorRow(gen.color, setG)}<div className="text-xl font-bold">ゲンじいの ぼうし</div>{hatRow(gen.hat, setG)}</div>
+                </div>
+                <div className="win-light p-3"><div className="text-xl font-bold mb-2">🔴 うき</div>
+                  <div className="flex flex-wrap gap-2"><button onClick={() => setU(null)} className={`${box(!uki)} text-lg font-bold`}>ふつう</button>{ukis.map(it => <button key={it.id} onClick={() => setU(it.id)} className={box(uki === it.id)}><span className="text-4xl leading-none">{it.e}</span><span className="text-sm font-bold">{it.n}</span></button>)}</div>
+                  {!ukis.length && <div className="text-base text-stone-500 mt-1">おみせで かうと かえられるよ</div>}</div>
+              </>}
+            </div>
+          </div>
+          {first && <Btn onClick={() => { Sound.fanfare(); onSave(lk, gen, uki); }} color="#15803d" light="#dcfce7" className="text-3xl px-10 glow">✔ これで しゅっぱつ！</Btn>}
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 16. 先生用画面
+    // =====================================================================
+    function PinPad({ onSubmit, onClose, error }) {
+      const [v, setV] = useState('');
+      const press = (d) => { const n = (v + d).slice(0, 4); setV(n); if (n.length === 4) { onSubmit(n); setTimeout(() => setV(''), 300); } };
+      return (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-3xl p-6 w-80 flex flex-col items-center gap-3">
+            <div className="text-2xl font-bold">🔒 せんせい用</div>
+            <div className="text-base">暗証番号（4けた）を入れてください</div>
+            <div className="flex gap-2">{[0, 1, 2, 3].map(i => <div key={i} className="w-10 h-12 border-2 rounded-lg flex items-center justify-center text-2xl">{v[i] ? '●' : ''}</div>)}</div>
+            {error > 0 && <div className="text-rose-600 font-bold">番号がちがいます</div>}
+            <div className="grid grid-cols-3 gap-2">
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].map((d, i) => d === '' ? <div key={i} /> :
+                <button key={i} onClick={() => d === '⌫' ? setV(v.slice(0, -1)) : press(d)} className="btn3d w-16 h-14 rounded-xl bg-stone-100 border-2 border-stone-300 text-2xl font-bold">{d}</button>)}
+            </div>
+            <button onClick={onClose} className="text-lg underline mt-1">とじる</button>
+          </div>
+        </div>
+      );
+    }
+
+    const pct = (a, b) => b ? `${Math.round((a / b) * 100)}%` : '－';
+    const topOf = (m, n = 5) => Object.entries(m || {}).sort((a, b) => b[1] - a[1]).slice(0, n);
+    const rateColor = (a, b) => !b ? '#fff' : a / b < 0.6 ? '#fecaca' : a / b < 0.8 ? '#fef08a' : '#bbf7d0';
+    const TYPE_NOTE = {
+      'ゼロの かず': '0の数がちがった（60 と 600、2000 と 200 など。けたの まちがい）',
+      '＋と ×': 'かけ算のところで「＋」を押した（200＋3＝203 など）、または たし算で「×」を押した',
+      'かぞえまちがい': 'つれた魚の数を、かぞえまちがえた',
+      'たしわすれ': 'ごうけいで、たしていない えんが あった',
+      'たしすぎ': 'ごうけいで、同じ えんを2回たした',
+      'たす かいすう': 'たし算で、たす回数が多い・少ない（かけ算では、かける数がちがった）',
+      'ちがう ねだん': 'ほかの魚の ねだんを使った',
+      'おしまちがい': '上のどれにも当てはまらない、電卓の押しまちがい',
+    };
+    const STEP_ROWS = () => [...D.STEPS.map(s => [`${s.k}`, `${'⓪①②③④⑤'[s.k]} ${s.name}`]), ...D.HATTEN_STEPS.map(s => [`はってん${s.k}`, `✨ ${s.name}`])];
+    function StepTable({ steps }) {
+      return (
+        <table className="text-sm border-collapse w-full">
+          <thead><tr><th className="p-1 text-left">だんかい</th><th>問題</th><th>まちがえずに</th></tr></thead>
+          <tbody>{STEP_ROWS().map(([k, t]) => { const g = (steps || {})[k] || [0, 0]; return <tr key={k} className="border-t"><td className="p-1">{t}</td><td className="text-center">{g[0]}</td><td className="text-center font-bold" style={{ background: rateColor(g[1], g[0]) }}>{pct(g[1], g[0])}</td></tr>; })}</tbody>
+        </table>
+      );
+    }
+    function TypeList({ types }) {
+      if (!Object.keys(types || {}).length) return <span className="text-stone-500">まだ ありません</span>;
+      return topOf(types, 10).map(([k, n]) => <div key={k} className="rounded-lg px-2 py-1 border bg-rose-50 mb-1"><b className="text-lg">{k}</b>　{n}回<div className="text-xs text-stone-600">{TYPE_NOTE[k] || ''}</div></div>);
+    }
+
+    function TeacherView({ data, pin, onClose, onChanged, onSettings }) {
+      const [tab, setTab] = useState('class');
+      const [sel, setSel] = useState(data.students[0] ? data.students[0].name : null);
+      const [s, setS] = useState({ ...DEFAULT_SETTINGS, ...data.settings });
+      const [newPin, setNewPin] = useState('');
+      const [msg, setMsg] = useState('');
+      const [pending, setPending] = useState(api.pending());
+      const student = data.students.find(x => x.name === sel);
+      const prog = student ? parseProgress(student.progress) : null;
+      const flash = (t) => { setMsg(t); setTimeout(() => setMsg(''), 3500); };
+      const act = async (fn, okText) => {
+        try { const r = await fn(); if (r && r.ok === false) flash('うまく いきませんでした'); else { flash(okText); onChanged(); } }
+        catch (e) { flash('うまく いきませんでした：' + e.message); }
+      };
+      const saveSettings = async () => {
+        if (newPin && !/^\d{4}$/.test(newPin)) { flash('暗証番号は4けたの数字にしてください'); return; }
+        await act(() => api.saveSettings(pin, { ...s, newPin: newPin || '' }), '設定を保存しました');
+        onSettings(s); setNewPin('');
+      };
+      const csv = async () => {
+        const r = await api.logRows(pin);
+        if (!r || !r.ok) { flash('うまく いきませんでした'); return; }
+        const text = '﻿' + r.rows.map(row => row.map(v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+        downloadText(`つりマスター_きろく_${nowStr().slice(0, 10).replace(/\//g, '')}.csv`, text, 'text/csv');
+        flash('CSVを書き出しました（ダウンロードフォルダ）');
+      };
+      const backup = async () => {
+        const r = await api.backup(pin);
+        if (!r || !r.ok) { flash('うまく いきませんでした'); return; }
+        downloadText(`つりマスター_バックアップ_${nowStr().slice(0, 10).replace(/\//g, '')}.json`, JSON.stringify(r.data), 'application/json');
+        flash('バックアップを保存しました（ダウンロードフォルダ）');
+      };
+      const restore = (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        const rd = new FileReader();
+        rd.onload = async () => {
+          let d = null; try { d = JSON.parse(rd.result); } catch (err) {}
+          if (!d || d.app !== 'tsuri') { flash('このアプリのバックアップではありません'); return; }
+          if (!confirm('バックアップから、子どもの進み具合・お金・ずかん・買った物を元にもどします。よろしいですか？')) return;
+          await act(() => api.restore(pin, d), 'バックアップから元にもどしました');
+        };
+        rd.readAsText(f);
+      };
+      const opt = (key, list) => list.map(([v, t]) =>
+        <button key={String(v)} onClick={() => setS({ ...s, [key]: v })} className={`ml-2 mt-1 rounded-lg px-3 py-1 border-2 ${s[key] === v ? 'bg-sky-200 border-sky-600' : 'bg-white'}`}>{t}</button>);
+      const flagBtn = (key, on, off, onMsg, offMsg) => <button key={key} onClick={() => act(() => api.setFlag(pin, student.name, key, !prog[key]), prog[key] ? offMsg : onMsg)} className="rounded-xl px-3 py-2 border-2 bg-white font-bold">{prog[key] ? on : off}</button>;
+      const curText = (p) => stageName(currentStage(p));
+
+      return (
+        <div className="fixed inset-0 bg-stone-50 z-50 overflow-auto">
+          <div className="max-w-6xl mx-auto p-4 text-base">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="text-2xl font-bold flex-1">🔒 先生用画面 <span className="text-sm text-stone-500">ver {APP_VERSION}{data.demo ? '（おためしモード）' : ''}</span></div>
+              <button onClick={onClose} className="btn3d bg-white border-2 border-stone-400 rounded-xl px-4 py-2 font-bold">とじる</button>
+            </div>
+            {data.isDefaultPin && <div className="bg-rose-100 border-2 border-rose-400 rounded-xl p-2 mb-2">暗証番号が はじめの「1234」のままです。「せってい」で変えてください。</div>}
+            {msg && <div className="fixed top-3 left-1/2 -translate-x-1/2 bg-sky-900 text-white rounded-xl px-4 py-2 z-50">{msg}</div>}
+            <div className="flex gap-2 mb-3">
+              {[['class', 'クラス全体'], ['child', '子どもごと'], ['settings', 'せってい'], ['data', 'データ']].map(([id, t]) => (
+                <button key={id} onClick={() => setTab(id)} className={`rounded-xl px-4 py-2 font-bold border-2 ${tab === id ? 'bg-sky-200 border-sky-600' : 'bg-white border-stone-300'}`}>{t}</button>
+              ))}
+            </div>
+
+            {tab === 'class' && (
+              <div className="flex flex-col gap-4">
+                <table className="w-full bg-white rounded-xl overflow-hidden text-left">
+                  <thead className="bg-sky-100"><tr><th className="p-2">なまえ</th><th>いま</th><th>つりば</th><th>でんたく</th><th>おかね</th><th>ずかん</th><th>問題</th><th>まちがえずに</th><th>多い まちがい</th><th>さいご</th></tr></thead>
+                  <tbody>
+                    {data.students.map(st => {
+                      const p = parseProgress(st.progress);
+                      return (
+                        <tr key={st.name} className="border-t cursor-pointer hover:bg-sky-50" onClick={() => { setSel(st.name); setTab('child'); }}>
+                          <td className="p-2 font-bold">{st.name}</td>
+                          <td className="text-sm">{curText(p)}</td>
+                          <td>{spotsCleared(p)} / 6</td>
+                          <td className="text-sm">{p.realCalc ? 'てもと' : 'がめん'}</td>
+                          <td>{yen(p.yen)}</td>
+                          <td>{speciesOf(p)}</td>
+                          <td>{st.count}</td>
+                          <td>{pct(st.ok, st.count)}</td>
+                          <td className="text-sm font-bold text-rose-700">{topOf(st.types, 2).map(([k, n]) => `${k}（${n}）`).join('、') || '－'}</td>
+                          <td>{st.last || '－'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                <div className="text-sm text-stone-500">まちがえずに：まちがえず、ヒントも使わずに できた問題の割合。でんたく：がめん＝アプリの電卓、てもと＝手元の本物の電卓（「子どもごと」で切りかえます）。</div>
+                <div className="grid md:grid-cols-2 gap-3">
+                  <div className="bg-white rounded-xl p-3"><div className="font-bold mb-2">クラス全体の まちがいの しゅるい</div><TypeList types={data.classTypes} /></div>
+                  <div className="bg-white rounded-xl p-3"><div className="font-bold mb-2">クラス全体の だんかいごとの表</div><StepTable steps={data.classSteps} />
+                    <div className="text-xs text-stone-500 mt-1">赤：60%未満　黄：60〜79%　緑：80%以上（6つの つりばを あわせた数）</div></div>
+                </div>
+              </div>
+            )}
+
+            {tab === 'child' && (
+              <div className="flex flex-col gap-3">
+                <div className="flex gap-2 flex-wrap">
+                  {data.students.map(st => <button key={st.name} onClick={() => setSel(st.name)} className={`rounded-xl px-4 py-2 font-bold border-2 ${sel === st.name ? 'bg-sky-200 border-sky-600' : 'bg-white border-stone-300'}`}>{st.name}</button>)}
+                </div>
+                {student && prog && (
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <div className="bg-white rounded-xl p-3">
+                      <div className="font-bold text-xl mb-1">{student.name}　<span className="text-base">🎖️ {titleOf(prog)}</span></div>
+                      <div>クリアした つりば：{spotsCleared(prog)} / 6　ずかん：{speciesOf(prog)} / {D.FISH.length}しゅるい（ぬし {nushiOf(prog)}）</div>
+                      <div>おかね：{yen(prog.yen)}えん（これまでに {yen(prog.earned)}えん）　買った物：{prog.items.length}こ</div>
+                      <div>問題：{student.count}　まちがえずに：{pct(student.ok, student.count)}　さいご：{student.last || '－'}</div>
+                      <div className="text-sm text-stone-600">いま：{curText(prog)}</div>
+                      <div className="mt-2 font-bold">ステージごとの結果</div>
+                      <div className="max-h-72 overflow-auto">
+                        <table className="w-full text-left text-sm">
+                          <thead className="bg-stone-100 sticky top-0"><tr><th className="p-1">ステージ</th><th>クリア</th><th>問題</th><th>まちがえずに</th></tr></thead>
+                          <tbody>
+                            {STAGES.map(st => {
+                              const g = student.stages[st.id] || [0, 0];
+                              if (!g[0] && !prog.cleared[st.id]) return null;
+                              return <tr key={st.id} className="border-t"><td className="p-1">{st.id}　{stageName(st)}</td><td>{prog.cleared[st.id] ? '⭐' : ''}</td><td>{g[0]}</td><td style={{ background: rateColor(g[1], g[0]) }}>{pct(g[1], g[0])}</td></tr>;
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {flagBtn('realCalc', '🧮 でんたく：てもとの 本物', '🧮 でんたく：アプリの がめん', '手元の本物の電卓を使う形にしました（答えだけ入れます）', 'アプリの画面の電卓にもどしました')}
+                        {flagBtn('unlockAll', '🔓 全部開く：オン', '🔒 全部開く：オフ', 'すべてのステージと つりばを開きました（ふねが なくても行けます）', 'ステージの開放をやめました')}
+                        {flagBtn('hatten', '✨ はってん：開いている', '✨ はってん：閉じている', 'はってん（つり たいかい）を開きました', 'はってんを閉じました')}
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2 items-center">
+                        <span className="font-bold">おかね：</span>
+                        {[-10000, -1000, 1000, 10000].map(dv => <button key={dv} onClick={() => act(() => api.addYen(pin, student.name, dv), `おかねを ${dv > 0 ? '+' : ''}${yen(dv)}えん しました`)} className="rounded-lg px-3 py-1 border-2 bg-white font-bold">{dv > 0 ? '+' : ''}{yen(dv)}</button>)}
+                      </div>
+                      <div className="mt-3">
+                        <button onClick={() => { if (confirm(`${student.name} さんの記録・進み具合・お金・ずかん・買った物を、すべて消します。元にはもどせません。よろしいですか？`)) act(() => api.clear(pin, student.name), `${student.name} さんの記録を消しました`); }} className="rounded-xl px-3 py-2 border-2 border-rose-400 bg-rose-50 font-bold">🗑 この子の記録を消す</button>
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-xl p-3 flex flex-col gap-3">
+                      <div><div className="font-bold mb-1">だんかいごとの表</div><StepTable steps={student.steps} /></div>
+                      <div><div className="font-bold mb-1">まちがいの しゅるい</div><TypeList types={student.types} /></div>
+                      <div>
+                        <div className="font-bold mb-1">まちがえた問題と 電卓で押したキー（新しい順・15問まで）</div>
+                        {!(student.misses || []).length && <span className="text-stone-500">まだ ありません</span>}
+                        {(student.misses || []).map((m, k) => <div key={k} className="text-sm border-b py-1"><div><span className="text-stone-500">{m[0]}　{m[1]}</span>　{m[2]}　<b className="text-rose-700">{m[3]}</b></div>{m[4] && <div className="font-mono text-xs text-stone-700 break-all">{m[4]}</div>}</div>)}
+                        <div className="text-xs text-stone-500 mt-1">キーの書き方：「たい:200×3=→600○」＝たいの ますで 200 × 3 ＝ と押して 600（○正解・✖まちがい）。「てもと」は手元の電卓で答えだけ入れたとき。</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {tab === 'settings' && (
+              <div className="bg-white rounded-xl p-4 flex flex-col gap-3 max-w-3xl">
+                <label className="flex items-center gap-3">よみあげの はやさ：<input type="range" min="0.5" max="1.2" step="0.05" value={s.rate} onChange={e => setS({ ...s, rate: Number(e.target.value) })} /> {s.rate}倍
+                  <button className="border rounded px-2" onClick={() => { Speech.rate = s.rate; Speech.say('1ぴき 200えんの たいが 3びき つれた。'); }}>ためす</button></label>
+                <div>もじの おおきさ：{opt('font', [[0.9, 'ちいさめ'], [1, 'ふつう'], [1.15, 'おおきめ'], [1.3, 'とても おおきい']])}</div>
+                <div>1回の 問題の数：{opt('count', [[3, 'すくなめ'], [5, 'ふつう'], [10, 'おおめ']])}<div className="text-sm text-stone-500 ml-2">ふつう：⓪〜② は5問、③ は3問、④ は2問、⑤ と はってん は1問です。すくなめ・おおめ にすると、それに合わせて へったり ふえたり します。</div></div>
+                <div>こうかおん：{opt('sound', [[true, 'ならす'], [false, 'ならさない']])}</div>
+                <div>おんがく（BGM）：{opt('bgm', [[true, 'つかう'], [false, 'つかわない']])}<div className="text-sm text-stone-500 ml-2">つかう にすると、子どもの画面の上に 🎵 ボタンが出て、オン・オフできます（はじめは オン）。</div></div>
+                <div className="text-sm text-stone-600">電卓（アプリの画面か、手元の本物か）は、「子どもごと」で 1人ずつ切りかえます。</div>
+                <label>暗証番号を変える（4けた）：<input value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))} className="border-2 rounded px-2 py-1 w-24 ml-2" inputMode="numeric" placeholder="----" /></label>
+                <div><button onClick={saveSettings} className="btn3d rounded-xl px-6 py-2 border-2 border-emerald-500 bg-emerald-100 font-bold text-xl">保存する</button>
+                  <span className="text-sm text-stone-500 ml-2">（全員の画面に反映されます。子どもの画面は開き直すと変わります）</span></div>
+              </div>
+            )}
+
+            {tab === 'data' && (
+              <div className="bg-white rounded-xl p-4 flex flex-col gap-3 max-w-2xl">
+                <div>この端末に たまっている、まだ送れていない記録：<b>{pending}</b> 件
+                  <button onClick={async () => { await api.flush(); setPending(api.pending()); flash(api.pending() ? 'まだ送れていません。ネットのつながりを確かめてください' : '送りました'); onChanged(); }} className="ml-2 rounded-xl px-3 py-1 border-2 bg-white font-bold">📤 スプレッドシートへ送る</button></div>
+                <div><button onClick={csv} className="rounded-xl px-3 py-2 border-2 bg-white font-bold">📄 記録をCSVで書き出す</button>
+                  <div className="text-sm text-stone-500">ダウンロードできないときは、スプレッドシートの「きろく」シートを開き、ファイル → ダウンロード → CSV を選んでください。</div></div>
+                <div className="flex gap-2 flex-wrap items-center">
+                  <button onClick={backup} className="rounded-xl px-3 py-2 border-2 bg-white font-bold">💾 バックアップを保存</button>
+                  <label className="rounded-xl px-3 py-2 border-2 bg-white font-bold cursor-pointer">📂 バックアップから元にもどす<input type="file" accept=".json" className="hidden" onChange={restore} /></label>
+                </div>
+                <div><button onClick={() => { if (confirm('全員の記録・進み具合・お金・ずかん・買った物を、すべて消します。元にはもどせません。よろしいですか？') && confirm('ほんとうに全員の記録を消しますか？')) act(() => api.clear(pin, ''), '全員の記録を消しました'); }} className="rounded-xl px-3 py-2 border-2 border-rose-400 bg-rose-50 font-bold">🗑 全員の記録を消す</button></div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 17. アプリ ぜんたい
+    // =====================================================================
+    function App() {
+      const [boot, setBoot] = useState(null);
+      const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+      const [name, setName] = useState(null);
+      const [progress, setProgress] = useState(newProgress());
+      const [view, setView] = useState({ v: 'login' });
+      const [stageSel, setStageSel] = useState(null);
+      const [pin, setPin] = useState(null);
+      const [pinOpen, setPinOpen] = useState(false);
+      const [pinError, setPinError] = useState(0);
+      const [teacher, setTeacher] = useState(null);
+      const [talk, setTalk] = useState({ text: '', mood: 'normal', talking: false, k: 0 });
+      const [getFx, setGetFx] = useState(null);
+      const [soundOn, setSoundOn] = useState(true);
+      const [bgmOn, setBgmOn] = useState(true);
+      const [busy, setBusy] = useState(false);
+      const lastSay = useRef(null);
+      const sayId = useRef(0);
+      const records = useRef([]);
+      const newFish = useRef([]);
+      const before = useRef(null);
+      const progRef = useRef(progress);
+      progRef.current = progress;
+
+      const talkApi = useMemo(() => {
+        const run = (text, opts = {}) => new Promise(resolve => {
+          const id = ++sayId.current;
+          lastSay.current = { text, opts };
+          setTalk({ text, mood: opts.mood || 'normal', talking: true, k: id });
+          Speech.say(fmtSpeech(opts.speech || text), () => { if (sayId.current === id) setTalk(p => ({ ...p, talking: false })); resolve(); });
+        });
+        return { say: run, repeat: () => lastSay.current && run(lastSay.current.text, lastSay.current.opts), stop: () => Speech.stop() };
+      }, []);
+      const talkCtx = { ...talkApi, ...talk, gen: progress.gen };
+
+      const applySettings = (s) => {
+        const v = { ...DEFAULT_SETTINGS, ...s };
+        v.sound = v.sound !== false && v.sound !== 'false';
+        v.bgm = v.bgm === true || v.bgm === 'true';
+        v.count = [3, 5, 10].includes(Number(v.count)) ? Number(v.count) : 5;
+        setSettings(v);
+        Speech.rate = Number(v.rate) || 0.8;
+        Sound.on = v.sound; setSoundOn(Sound.on);
+        if (!v.bgm) Bgm.stop();
+        document.documentElement.style.fontSize = `${16 * (Number(v.font) || 1)}px`;
+      };
+
+      useEffect(() => {
+        api.init().then(d => { applySettings(d.settings || {}); setBoot(d); api.flush(); })
+          .catch(e => setBoot({ error: String(e && e.message || e) }));
+        const on = () => api.flush();
+        window.addEventListener('online', on);
+        return () => window.removeEventListener('online', on);
+      }, []);
+      useEffect(() => { if (name && settings.bgm && bgmOn) Bgm.start(); else Bgm.stop(); }, [name, settings.bgm, bgmOn]);
+
+      // しんちょくを ほぞんする（この たんまつ ＋ スプレッドシート）
+      const persist = (p) => {
+        p = { ...p, t: Date.now() };
+        progRef.current = p;
+        setProgress(p);
+        const json = JSON.stringify(p);
+        safeStore.set(COPY_KEY(name), json);
+        const recs = records.current; records.current = [];
+        api.save({ name, progress: json, records: recs, stamp: nowStr(), time: Date.now() });
+        return p;
+      };
+      const updateProg = (fn) => { progRef.current = fn(progRef.current); setProgress(progRef.current); return progRef.current; };
+
+      const login = async (n) => {
+        Sound.get(); Speech.say('');
+        setBusy(true);
+        let server = '';
+        try { server = await api.student(n); } catch (e) {}
+        const a = parseProgress(server), b = parseProgress(safeStore.get(COPY_KEY(n)));
+        // あたらしい ほうを つかう。先生が変えた フラグは スプレッドシートの ほうを つかう
+        let p = b.t > a.t ? b : a;
+        if ((a.flagT || 0) > (p.flagT || 0)) { p = { ...p, flagT: a.flagT }; FLAGS.forEach(k => { p[k] = !!a[k]; }); }
+        progRef.current = p;
+        setProgress(p); setName(n); setBusy(false);
+        setView({ v: p.look ? 'home' : 'first' });
+      };
+      const logout = () => { talkApi.stop(); Bgm.stop(); setName(null); setView({ v: 'login' }); };
+
+      const startStage = (st, part) => {
+        setStageSel(null);
+        records.current = []; newFish.current = [];
+        const p = progRef.current;
+        before.current = { titles: titlesOf(p) };
+        const n = part ? part.left : stepCount(STEP_OF(st), settings.count);
+        setView({ v: 'practice', st, n, intro: part ? 'つづきから はじめよう。' : null, key: uid() });
+      };
+      const onRecord = (r) => { records.current.push({ ...r, id: uid() }); };
+      // つれた さかなを ずかんに いれる
+      const onCatch = (r) => {
+        updateProg(p => {
+          const z = p.zukan[r.f.id] || { n: 0, max: 0 };
+          if (!z.n && !newFish.current.includes(r.f.id)) newFish.current.push(r.f.id);
+          return { ...p, zukan: { ...p.zukan, [r.f.id]: { n: z.n + r.c, max: Math.max(z.max, r.size) } } };
+        });
+      };
+      // 1もん できた：ごうけいの おかねが もらえる（ヒントを つかっても おなじ）
+      const onSolved = (total, mul) => {
+        updateProg(p => ({ ...p, yen: p.yen + total, earned: p.earned + total, seenMul: mul ? 1 : p.seenMul }));
+        setGetFx({ k: uid(), yen: total }); Sound.coin();
+      };
+      const onSave = (part) => { persist({ ...progRef.current, part }); };
+
+      const finish = (st, result) => {
+        let p = { ...progRef.current, part: null };
+        const firstClear = !p.cleared[st.id];
+        if (firstClear) p.cleared = { ...p.cleared, [st.id]: 1 };
+        p = persist(p);
+        const b = before.current || { titles: [] };
+        const newTitle = titlesOf(p).filter(t => !b.titles.includes(t)).pop() || null;
+        const cur = currentStage(p);
+        let next = null, boatNeed = null;
+        if (stageOpen(p, cur) && !isCleared(p, cur.id)) {
+          if (needBoat(p, SPOT[cur.spot])) boatNeed = cur.spot;
+          else next = () => startStage(cur);
+        }
+        setView({ v: 'result', st, result: { ...result, newFish: [...newFish.current], firstClear, newTitle, boatNeed }, next });
+      };
+      const quit = () => { talkApi.stop(); persist({ ...progRef.current }); setView({ v: 'home' }); };
+      const buy = (it) => {
+        const p = progRef.current;
+        if (p.yen < it.p || p.items.includes(it.id)) return;
+        persist({ ...p, yen: p.yen - it.p, items: [...p.items, it.id], uki: it.cat === 'uki' ? it.id : p.uki });
+      };
+      const cont = () => {
+        const p = progRef.current;
+        const part = p.part && STAGE[p.part.st];
+        if (part && stageOpen(p, part) && !needBoat(p, SPOT[part.spot])) { startStage(part, p.part); return; }
+        startStage(currentStage(p));
+      };
+
+      const openTeacher = () => { setPinError(0); setPinOpen(true); };
+      const submitPin = async (v) => {
+        try {
+          await api.flush();
+          const d = await api.teacher(v);
+          if (!d || !d.ok) { setPinError(e => e + 1); return; }
+          setPin(v); setTeacher(d); setPinOpen(false);
+        } catch (e) { setPinError(e => e + 1); }
+      };
+      const reloadTeacher = async () => {
+        await api.flush();
+        const d = await api.teacher(pin);
+        if (d && d.ok) {
+          setTeacher(d);
+          if (name) {
+            const me = d.students.find(x => x.name === name);
+            if (me) {
+              const sp = parseProgress(me.progress);
+              const p = { ...progRef.current, flagT: sp.flagT, yen: sp.yen || 0, t: sp.t || Date.now() };
+              FLAGS.forEach(k => { p[k] = !!sp[k]; });
+              const fresh = !me.progress ? { ...newProgress(), welcome: 1, look: progRef.current.look } : p;
+              progRef.current = fresh; setProgress(fresh); safeStore.set(COPY_KEY(name), JSON.stringify(fresh));
+            }
+          }
+        }
+      };
+
+      if (!boot) return <div className="p-16 text-center text-3xl font-bold text-sky-900">じゅんび ちゅう…</div>;
+      if (boot.error) return <div className="p-10 text-2xl">ひらけませんでした。ページを よみこみなおして ください。<div className="text-base text-stone-500 mt-2">{boot.error}</div></div>;
+
+      const bar = (home = true) => (
+        <TopBar name={name} progress={progress} bump={getFx ? getFx.k : 0} onHome={home ? () => { talkApi.stop(); if (view.v === 'practice') quit(); else setView({ v: 'home' }); } : null}
+          onLogout={() => { if (view.v === 'practice') quit(); logout(); }} onTeacher={openTeacher} soundOn={soundOn} onSound={() => { Sound.on = !Sound.on; setSoundOn(Sound.on); }}
+          bgmAllowed={settings.bgm} bgmOn={bgmOn} onBgm={() => setBgmOn(x => !x)} />
+      );
+      const page = (inner) => <div className="min-h-screen flex flex-col items-center sea">{bar()}{inner}</div>;
+      const modal = stageSel && <StageModal key={stageSel.id} st={stageSel} progress={progress} onClose={() => setStageSel(null)} onStart={() => startStage(stageSel)} onResume={() => startStage(stageSel, progress.part)} />;
+
+      let body = null;
+      if (!name || view.v === 'login') {
+        body = <LoginScreen students={boot.students || []} onSelect={login} onTeacher={openTeacher} demo={boot.demo} />;
+      } else if (view.v === 'first') {
+        body = <div className="min-h-screen flex flex-col items-center sea">{bar(false)}<DressScreen progress={progress} first onSave={(lk, gen, uki) => { persist({ ...progRef.current, look: lk, gen, uki }); setView({ v: 'home' }); }} /></div>;
+      } else if (view.v === 'home') {
+        body = <div className="min-h-screen flex flex-col">{bar(false)}
+          <HomeScreen name={name} progress={progress} onContinue={cont} go={(v) => setView({ v })} onWelcome={() => persist({ ...progRef.current, welcome: 1 })} /></div>;
+      } else if (view.v === 'map') {
+        body = page(<MapScreen progress={progress} onSpot={(s) => { Sound.tap(); setView({ v: 'spot', s }); }} />);
+      } else if (view.v === 'spot') {
+        body = page(<><SpotScreen key={view.s.id} sp={view.s} progress={progress} go={(v) => setView({ v })} onStage={(st) => { Sound.tap(); setStageSel(st); }} />{modal}</>);
+      } else if (view.v === 'practice') {
+        body = <div className="min-h-screen flex flex-col items-center sea">
+          <div className="w-full">{bar()}</div><GetFly fx={getFx} />
+          <div className="w-full flex justify-center py-2"><Practice key={view.key} st={view.st} n={view.n} intro={view.intro} progress={progress}
+            onRecord={onRecord} onCatch={onCatch} onSolved={onSolved} onSave={onSave} onFinish={(r) => finish(view.st, r)} onQuit={quit} /></div></div>;
+      } else if (view.v === 'result') {
+        body = page(<ResultScreen view={view} progress={progress} onAgain={() => startStage(view.st)} onNext={view.next} onHome={() => setView({ v: 'home' })} onShop={() => setView({ v: 'shop' })} />);
+      } else if (view.v === 'shop') {
+        body = page(<ShopScreen progress={progress} onBuy={buy} />);
+      } else if (view.v === 'tank') {
+        body = page(<TankScreen progress={progress} />);
+      } else if (view.v === 'zukan') {
+        body = page(<ZukanScreen progress={progress} />);
+      } else if (view.v === 'dress') {
+        body = page(<DressScreen progress={progress} onSave={(lk, gen, uki) => persist({ ...progRef.current, look: lk, gen, uki })} />);
+      }
+
+      return (
+        <SetCtx.Provider value={settings}>
+          <TalkCtx.Provider value={talkCtx}>
+            {body}
+            {busy && <div className="fixed inset-0 bg-white/60 z-40 flex items-center justify-center text-3xl font-bold">よみこみ ちゅう…</div>}
+            {pinOpen && <PinPad onSubmit={submitPin} onClose={() => setPinOpen(false)} error={pinError} />}
+            {teacher && <TeacherView data={teacher} pin={pin} onClose={() => setTeacher(null)} onChanged={reloadTeacher} onSettings={applySettings} />}
+          </TalkCtx.Provider>
+        </SetCtx.Provider>
+      );
+    }
+
+    window.TSURI_READY.then(() => {
+      D = window.TSURI_DATA;
+      D.SPOTS.forEach(s => { SPOT[s.id] = s; });
+      D.FISH.forEach(f => { FISH[f.id] = f; });
+      STAGES = buildStages();
+      STAGES.forEach(s => { STAGE[s.id] = s; });
+      D.ITEM_CATS.forEach(c => c.items.forEach(it => { it.cat = c.id; }));
+      ALL_ITEMS = D.ITEM_CATS.flatMap(c => c.items);
+      ALL_ITEMS.forEach(it => { ITEM[it.id] = it; });
+      [...D.COLORS, ...ALL_ITEMS.filter(it => it.color).map(it => it.color)].forEach(c => { COLOR[c.id] = c; });
+      ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    }).catch(e => {
+      document.getElementById('root').innerHTML = '<div style="padding:40px;font-size:24px;line-height:1.8">さかなの データを よみこめませんでした。<br>ネットに つながって いるか たしかめて、ページを よみこみなおして ください。<div style="font-size:14px;color:#888">' + e.message + '</div></div>';
+    });
+  </script>
+</body>
+</html>
