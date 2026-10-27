@@ -110,7 +110,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.0.38';
+    const APP_VERSION = '1.0.39';
     const BASE = window.BUNBUN_BASE;
     const IMG = BASE + 'img/';
 
@@ -228,7 +228,12 @@
     };
 
     // ---- 読み上げの ことば ----
-    const fmtSpeech = (t) => String(t || '')
+    // 「1ぴき」「3びき」などの よみ（よみあげの こえが「いちひき」と よまない ように、ひらがなに なおす）
+    const HIKI_YOMI = ['', 'いっぴき', 'にひき', 'さんびき', 'よんひき', 'ごひき', 'ろっぴき', 'ななひき', 'はっぴき', 'きゅうひき', 'じゅっぴき'];
+    const hikiYomi = (t) => String(t).replace(/(\d+)\s*[ひぴび]き/g, (m, n) => HIKI_YOMI[Number(n)] || m);
+    // 「1ぴき」「2ひき」「3びき」（すうじの あとに つける）
+    const hiki = (n) => { const d = Number(n) % 10; return `${n}${d === 1 || d === 6 || d === 8 || d === 0 ? 'ぴき' : d === 3 ? 'びき' : 'ひき'}`; };
+    const fmtSpeech = (t) => hikiYomi(t || '')
       .replace(/〜/g, '').replace(/[「」『』]/g, '、').replace(/[①②③④⑤👑]/g, '')
       .replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu, '');
     // カード 1まいの よみ（じょしの「は」「へ」「を」は「わ」「え」「お」と よむ）
@@ -1552,7 +1557,7 @@
     function ZukanScreen({ progress }) {
       const talk = useTalk();
       const [tab, setTab] = useState('people');
-      useEffect(() => { talk.say(`まちの ひとは ${progress.people.length}にん、やっつけた バラバランは ${progress.beaten.length}ひき だよ。`); }, []);
+      useEffect(() => { talk.say(`まちの ひとは ${progress.people.length}にん、やっつけた バラバランは ${hiki(progress.beaten.length)} だよ。`); }, []);
       const built = new Set(Object.values(progress.town).map(c => c.b));
       return (
         <div className="w-full max-w-5xl p-3 flex flex-col items-center gap-3">

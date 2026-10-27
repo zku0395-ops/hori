@@ -97,7 +97,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.0.26';
+    const APP_VERSION = '1.0.27';
     const BASE = window.TSURI_BASE;
     const IMG = BASE + 'img/';
 
@@ -225,7 +225,12 @@
     };
 
     // ---- 読み上げの ことば ----
-    const fmtSpeech = (t) => String(t || '')
+    // 「1ぴき」「3びき」などの よみ（よみあげの こえが「いちひき」と よまない ように、ひらがなに なおす）
+    const HIKI_YOMI = ['', 'いっぴき', 'にひき', 'さんびき', 'よんひき', 'ごひき', 'ろっぴき', 'ななひき', 'はっぴき', 'きゅうひき', 'じゅっぴき'];
+    const hikiYomi = (t) => String(t).replace(/(\d+)\s*[ひぴび]き/g, (m, n) => HIKI_YOMI[Number(n)] || m);
+    // 「1ぴき」「2ひき」「3びき」（すうじの あとに つける）
+    const hiki = (n) => { const d = Number(n) % 10; return `${n}${d === 1 || d === 6 || d === 8 || d === 0 ? 'ぴき' : d === 3 ? 'びき' : 'ひき'}`; };
+    const fmtSpeech = (t) => hikiYomi(t || '')
       .replace(/〜/g, '').replace(/[「」『』]/g, '、').replace(/[①②③④⑤⓪]/g, '')
       .replace(/×/g, ' かける ').replace(/＋/g, ' たす ').replace(/＝/g, ' は ')
       .replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu, '');
@@ -357,7 +362,7 @@
         case MT.zero: return `0の かずが ちがうよ。${b.t === 'total' ? 'それぞれの えんを' : `ねだんは ${r.p}えん。`} よく みて、0が いくつ あるか たしかめよう。`;
         case MT.op: return b.t === 'mul' ? `「＋」を おしたかな？ ${r.p} × ${r.c} だよ。「×」の キーを おそう。` : '「×」を おしたかな？ ここは たしざんだよ。「＋」の キーを おそう。';
         case MT.price: return `ちがう さかなの ねだんを つかったかな？ ${r.f.n}は 1ぴき ${r.p}えん だよ。`;
-        case MT.kaisu: return b.t === 'add' ? `たす かずが ちがうよ。${r.p}えんを ${r.c}かい たそう。` : `かける かずを たしかめよう。${r.f.n}は ${r.c}ひき だよ。`;
+        case MT.kaisu: return b.t === 'add' ? `たす かずが ちがうよ。${r.p}えんを ${r.c}かい たそう。` : `かける かずを たしかめよう。${r.f.n}は ${hiki(r.c)} だよ。`;
         case MT.wasure: return 'たしわすれが あるよ。うえの えんを ぜんぶ たそう。';
         case MT.sugi: return 'おなじ えんを 2かい たしたかな？ 1つずつ たしていこう。';
         default: return 'でんたくの おしまちがいかな？「C」を おして、もう いちど ゆっくり おそう。';
@@ -1123,13 +1128,13 @@
             )}
             {pr.mode === 'mul' && c != null && (
               <div className="win-light p-3 w-full flex flex-wrap items-center gap-3 text-4xl font-bold pop">
-                <span className="box tag-p text-4xl">{r.p}えん</span><span>×</span><span className="box tag-c text-4xl">{r.c}ひき</span><span>＝</span>
+                <span className="box tag-p text-4xl">{r.p}えん</span><span>×</span><span className="box tag-c text-4xl">{hiki(r.c)}</span><span>＝</span>
                 <Box v={val('mul', 0)} on={isOn('mul', 0)} kind="m" unit="えん" big shake={shakeOn('mul', 0)} key={'m' + shakeK} />
               </div>
             )}
             {pr.mode === 'count' && done && (
               <div className="win-light p-3 flex flex-wrap items-center gap-2 text-3xl font-bold pop">
-                <span className="text-xl">ゲンじいの けいさん：</span><span className="box tag-p">1ぴき {r.p}えん</span>×<span className="box tag-c">{r.c}ひき</span>＝<span className="box tag-t">{r.m}えん</span>
+                <span className="text-xl">ゲンじいの けいさん：</span><span className="box tag-p">1ぴき {r.p}えん</span>×<span className="box tag-c">{hiki(r.c)}</span>＝<span className="box tag-t">{r.m}えん</span>
               </div>
             )}
             <FormulaHint />
@@ -1203,8 +1208,8 @@
       const ask = (b) => {
         const r = b.r != null ? pr.rows[b.r] : null;
         if (b.t === 'count') return pr.rows.length > 1 ? `${r.f.n}は なんびき かな？` : `${r.f.n}は なんびき つれたかな？ さわって かぞえて、かずを おそう。`;
-        if (b.t === 'add') return `1ぴき ${r.p}えんが ${r.c}ひき。${calcWord}、${r.p}えんを ${r.c}かい たそう。`;
-        if (b.t === 'mul') return pr.rows.length > 1 ? `${r.f.n}は、${r.p} × ${r.c} だね。${calcWord} けいさん しよう。` : `1ぴき ${r.p}えんが ${r.c}ひき。${calcWord}、${r.p} × ${r.c} を けいさん しよう。`;
+        if (b.t === 'add') return `1ぴき ${r.p}えんが ${hiki(r.c)}。${calcWord}、${r.p}えんを ${r.c}かい たそう。`;
+        if (b.t === 'mul') return pr.rows.length > 1 ? `${r.f.n}は、${r.p} × ${r.c} だね。${calcWord} けいさん しよう。` : `1ぴき ${r.p}えんが ${hiki(r.c)}。${calcWord}、${r.p} × ${r.c} を けいさん しよう。`;
         return `さいごに、ぜんぶの えんを たして、ごうけいを もとめよう。`;
       };
       const startSheet = () => {
@@ -1220,13 +1225,13 @@
           if (lv === 2) talk.say('5ひきずつ わくで かこんだよ。5の まとまりを つかって かぞえよう。', { mood: 'cheer' });
           if (lv === 3) {
             for (let k = 1; k <= r.c; k++) { if (!alive.current) return; setAnim({ r: b.r, n: k }); Sound.count(k); await new Promise(res => Speech.say(String(k), res)); }
-            talk.say(`いっしょに かぞえたね。${r.c}ひき。ひかって いる かずを おそう。`, { mood: 'happy' });
+            talk.say(`いっしょに かぞえたね。${hiki(r.c)}。ひかって いる かずを おそう。`, { mood: 'happy' });
           }
           return;
         }
         if (lv === 1) {
           if (b.t === 'add') talk.say(`${r.p}えんを ${r.c}かい たすよ。${calcWord}「${r.p}」「＋」「${r.p}」…と おして、さいごに「＝」だよ。`, { mood: 'cheer' });
-          else if (b.t === 'mul') talk.say(`1ぴき ${r.p}えんが ${r.c}ひき だから、${r.p} × ${r.c}。${calcWord}「${r.p}」「×」「${r.c}」「＝」と おそう。`, { mood: 'cheer' });
+          else if (b.t === 'mul') talk.say(`1ぴき ${r.p}えんが ${hiki(r.c)} だから、${r.p} × ${r.c}。${calcWord}「${r.p}」「×」「${r.c}」「＝」と おそう。`, { mood: 'cheer' });
           else talk.say('それぞれの えんを ぜんぶ たそう。「＋」で つないで、さいごに「＝」だよ。', { mood: 'cheer' });
         }
         if (lv === 2) talk.say(`しきを みてね。${b.t === 'total' ? 'オレンジの えんを ぜんぶ たすよ。' : 'あおが ねだん、きいろが なんびき だよ。'}`, { mood: 'cheer' });
@@ -1279,7 +1284,7 @@
         });
         onSolved(pr.total, pr.mode === 'mul');
         setSeikai(x => x + 1); Sound.seikai();
-        await talk.say(pr.mode === 'count' ? `${pr.rows[0].c}ひき！ 1ぴき ${pr.rows[0].p}えん だから、ぜんぶで ${pr.total}えん。${pr.total}えん もらえるよ！` : `ぜんぶで ${pr.total}えん！ ${pr.total}えん もらえるよ！`, { mood: 'happy' });
+        await talk.say(pr.mode === 'count' ? `${hiki(pr.rows[0].c)}！ 1ぴき ${pr.rows[0].p}えん だから、ぜんぶで ${pr.total}えん。${pr.total}えん もらえるよ！` : `ぜんぶで ${pr.total}えん！ ${pr.total}えん もらえるよ！`, { mood: 'happy' });
         if (!alive.current) return;
         setSeikai(0);
         if (i + 1 >= n) { onFinish({ ...stats.current, n }); return; }
@@ -1667,7 +1672,7 @@
                   <FishPic f={f} size={92} sil={!got} />
                   <div className="text-lg font-bold leading-tight text-center">{got ? f.n : '？？？'}{f.nushi ? ' 👑' : ''}</div>
                   <div className="text-sm font-bold text-sky-800">{got ? `${f.p}えん` : SPOT[f.s].name}</div>
-                  {got && <div className="text-xs text-stone-600">{z.n}ひき・さいだい {cmText(z.max)}</div>}
+                  {got && <div className="text-xs text-stone-600">{hiki(z.n)}・さいだい {cmText(z.max)}</div>}
                 </button>
               );
             })}
@@ -1925,7 +1930,7 @@
             {tab === 'settings' && (
               <div className="bg-white rounded-xl p-4 flex flex-col gap-3 max-w-3xl">
                 <label className="flex items-center gap-3">よみあげの はやさ：<input type="range" min="0.5" max="1.2" step="0.05" value={s.rate} onChange={e => setS({ ...s, rate: Number(e.target.value) })} /> {s.rate}倍
-                  <button className="border rounded px-2" onClick={() => { Speech.rate = s.rate; Speech.say('1ぴき 200えんの たいが 3びき つれた。'); }}>ためす</button></label>
+                  <button className="border rounded px-2" onClick={() => { Speech.rate = s.rate; Speech.say(fmtSpeech('1ぴき 200えんの たいが 3びき つれた。')); }}>ためす</button></label>
                 <div>もじの おおきさ：{opt('font', [[0.9, 'ちいさめ'], [1, 'ふつう'], [1.15, 'おおきめ'], [1.3, 'とても おおきい']])}</div>
                 <div>1回の 問題の数：{opt('count', [[3, 'すくなめ'], [5, 'ふつう'], [10, 'おおめ']])}<div className="text-sm text-stone-500 ml-2">ふつう：⓪〜② は5問、③ は3問、④ は2問、⑤ と はってん は1問です。すくなめ・おおめ にすると、それに合わせて へったり ふえたり します。</div></div>
                 <div>こうかおん：{opt('sound', [[true, 'ならす'], [false, 'ならさない']])}</div>
