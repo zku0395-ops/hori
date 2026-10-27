@@ -53,7 +53,8 @@ for y0 in range(H):
                         ny, nx = y+dy, x+dx
                         if 0 <= ny < H and 0 <= nx < W and fg[ny, nx] and not lab[ny, nx]: lab[ny, nx] = n; q.append((ny, nx))
             comps.append((n, pts, minx, maxx, miny, maxy))
-big = sorted([c for c in comps if c[1] > 3000], key=lambda c: c[2])
+mx = max(c[1] for c in comps)
+big = sorted([c for c in comps if c[1] > max(3000, mx * 0.15)], key=lambda c: c[2])  # キラキラ などの 小さい かたまりは、ちかくの ものに つける
 print('big', [(c[1], c[2], c[3]) for c in big], 'want', len(ids))
 assert len(big) == len(ids), 'かずが あいません'
 owner = {c[0]: i for i, c in enumerate(big)}
@@ -62,7 +63,7 @@ for c in comps:
     if c[0] in owner: continue
     cx, cy = (c[2] + c[3]) / 2, (c[4] + c[5]) / 2
     d = [max(0, b[2] - cx, cx - b[3]) + max(0, b[4] - cy, cy - b[5]) for b in big]
-    if min(d) < 60: owner[c[0]] = int(np.argmin(d))
+    if min(d) < (150 if c[1] > 300 else 60): owner[c[0]] = int(np.argmin(d))
 alpha_all = np.asarray(Image.fromarray((fg * 255).astype('uint8')).filter(ImageFilter.MinFilter(3)).filter(ImageFilter.GaussianBlur(0.8)))
 rgb = np.asarray(im)
 prev = Image.new('RGBA', (300 * len(ids), 200), (200, 230, 250, 255))
