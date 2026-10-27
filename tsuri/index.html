@@ -97,7 +97,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.0.6';
+    const APP_VERSION = '1.0.7';
     const BASE = window.TSURI_BASE;
     const IMG = BASE + 'img/';
 
@@ -1004,7 +1004,10 @@
         if (idx + 1 < pr.rows.length) { setIdx(idx + 1); setStage('ready'); talk.say(pick(['つぎも なげよう！', 'もう いちど なげよう！', 'つぎの さかなを つろう！'])); }
         else { await wait(300); if (alive.current) onDone(); }
       };
-      const boat = sp.id >= 5 && sp.id <= 6 ? (sp.id === 6 ? '🛥️' : '🚣') : null;
+      // ふねの えもじは、つりばの 絵が ない ときだけ だす（絵には ふねが かいて ある）
+      const [bgOk, setBgOk] = useState(!MISSING.has(`spot_${sp.id}.webp`));
+      useEffect(() => { const im = new Image(); im.onerror = () => { MISSING.add(`spot_${sp.id}.webp`); setBgOk(false); }; im.src = IMG + `spot_${sp.id}.webp`; }, []);
+      const boat = !bgOk && sp.id >= 5 && sp.id <= 6 ? (sp.id === 6 ? '🛥️' : '🚣') : null;
       const ukiE = uki ? uki.e : null;
       const cast_ = stage !== 'ready';
       const fx = cast_ ? 64 : 27, fy = cast_ ? 66 : 58;
