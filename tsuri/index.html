@@ -97,7 +97,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.0.1';
+    const APP_VERSION = '1.0.2';
     const BASE = window.TSURI_BASE;
     const IMG = BASE + 'img/';
 
@@ -591,7 +591,7 @@
             for (let i = 0; i < a.length; i += 4) {
               if (a[i + 3] < 10) continue;
               const [h, s, l] = rgb2hsl(a[i], a[i + 1], a[i + 2]);
-              if (h < 192 || h > 258 || s < 0.25 || l < 0.08 || l > 0.93) continue;
+              if (h < 192 || h > 258 || s < 0.5 || l < 0.08 || l > 0.93) continue;
               const px = (i / 4) % W, py = Math.floor(i / 4 / W);
               const nh = color.niji ? (py / H) * 300 + (px / W) * 60 : color.h + (h - 222) * 0.4;
               const ns = Math.min(1, s * color.s), nl = Math.max(0.04, Math.min(0.96, l + color.l));
@@ -691,7 +691,7 @@
         </svg>
       );
     }
-    function Hero({ look, size = 140, className = '' }) {
+    function Hero({ look, size = 140, className = '', flip = false }) {
       const lk = { ...defaultLook(), ...(look || {}) };
       const color = COLOR[lk.color] || D.COLORS[0];
       const [src, fail] = useRecolored(`hero_${lk.form || 1}.webp`, color);
@@ -700,7 +700,7 @@
         <div className={`relative inline-block ${className}`} style={{ width: size, height: size * 1.1 }}>
           <div className={fxOf(color)} style={{ width: size, height: size * 1.1 }}>
             {fail ? <HeroSvg look={lk} color={color} size={size} />
-              : src ? <img src={src} alt="つりびと" className="chara-img select-none" style={{ width: size, height: size * 1.1, objectFit: 'contain' }} draggable={false} />
+              : src ? <img src={src} alt="つりびと" className="chara-img select-none" style={{ width: size, height: size * 1.1, objectFit: 'contain', transform: flip ? 'scaleX(-1)' : undefined }} draggable={false} />
               : <div style={{ width: size, height: size * 1.1 }} />}
           </div>
           {hat && <div className="absolute pointer-events-none" style={{ left: '50%', top: -size * 0.12, transform: 'translateX(-50%)', fontSize: size * 0.32, lineHeight: 1 }}>{hat.e}</div>}
@@ -1007,17 +1007,17 @@
       const boat = sp.id >= 5 && sp.id <= 6 ? (sp.id === 6 ? '🛥️' : '🚣') : null;
       const ukiE = uki ? uki.e : null;
       const cast_ = stage !== 'ready';
-      const fx = cast_ ? 64 : 24, fy = cast_ ? 66 : 56;
+      const fx = cast_ ? 64 : 27, fy = cast_ ? 66 : 58;
       return (
         <div className="flex gap-3 w-full">
           <SpotBg sp={sp} className="flex-1 rounded-3xl border-4 border-sky-900" style={{ height: 'min(440px, calc(100vh - 230px))', minHeight: 330 }}>
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-full pointer-events-none">
-              <line x1="11" y1="74" x2="23" y2="38" stroke="#78350f" strokeWidth="1.1" vectorEffect="non-scaling-stroke" style={{ strokeWidth: 6 }} strokeLinecap="round" />
-              <line x1="23" y1="38" x2={fx} y2={fy} stroke="#f8fafc" vectorEffect="non-scaling-stroke" style={{ strokeWidth: 2, transition: 'all .6s' }} />
+              <line x1="14" y1="72" x2="26" y2="36" stroke="#78350f" strokeWidth="1.1" vectorEffect="non-scaling-stroke" style={{ strokeWidth: 6 }} strokeLinecap="round" />
+              <line x1="26" y1="36" x2={fx} y2={fy} stroke="#f8fafc" vectorEffect="non-scaling-stroke" style={{ strokeWidth: 2, transition: 'all .6s' }} />
             </svg>
             <div className="absolute" style={{ left: '2%', bottom: '4%' }}>
               {boat && <div className="absolute left-0 right-0 text-center" style={{ bottom: -18, fontSize: 120, lineHeight: 1 }}>{boat}</div>}
-              <div className="relative"><Hero look={look} size={140} /></div>
+              <div className="relative"><Hero look={look} size={150} flip /></div>
             </div>
             <div className={`absolute ${stage === 'wait' ? 'uki-wait' : stage === 'bite' ? 'uki-bite' : ''}`} style={{ left: `${fx}%`, top: `${fy}%`, transform: 'translate(-50%, -50%)', transition: 'left .6s, top .6s' }}>
               {ukiE ? <span style={{ fontSize: 34 }}>{ukiE}</span>
