@@ -30,7 +30,8 @@ function makeSheet(name) {
   return sh;
 }
 const sheets = {};
-const props = {}, folders = [], fetchLog = [];
+let fileSeq = 0;
+const props = {}, folders = [], fetchLog = [], cacheStore = {};
 let fetchReply = () => ({ getResponseCode: () => 500, getContentText: () => 'x' });
 const ss = {
   getSheetByName: (n) => sheets[n] || null,
@@ -49,10 +50,12 @@ const ctx = {
     base64Encode: (bytes) => Buffer.from(bytes.map(b => b & 255)).toString('base64'),
     newBlob: (bytes, type, name) => ({ bytes, type, name, getBytes: () => bytes }),
   },
+  CacheService: { getScriptCache: () => ({ get: (k) => (k in cacheStore ? cacheStore[k] : null), put: (k, v) => { cacheStore[k] = v; }, remove: (k) => { delete cacheStore[k]; } }) },
   PropertiesService: { getScriptProperties: () => ({ getProperty: (k) => (k in props ? props[k] : null), setProperty: (k, v) => { props[k] = String(v); } }) },
   DriveApp: {
+    getFileById: (id) => { for (const f of folders) for (const x of f.files) if (x.id === id) return { getBlob: () => x }; throw new Error('no file'); },
     getFoldersByName: (n) => { const l = folders.filter(f => f.name === n); return { hasNext: () => l.length > 0, next: () => l.shift() }; },
-    createFolder: (n) => { const f = { name: n, files: [], getFilesByName: (fn) => { const l = f.files.filter(x => x.name === fn); return { hasNext: () => l.length > 0, next: () => ({ getBlob: () => l.shift() }) }; }, getFiles: () => { const l = [...f.files]; return { hasNext: () => l.length > 0, next: () => l.shift() }; }, createFile: (b) => { f.files.push(b); return b; } }; folders.push(f); return f; },
+    createFolder: (n) => { const f = { name: n, files: [], getFilesByName: (fn) => { const l = f.files.filter(x => x.name === fn); return { hasNext: () => l.length > 0, next: () => ({ getBlob: () => l.shift() }) }; }, getFiles: () => { const l = [...f.files]; return { hasNext: () => l.length > 0, next: () => l.shift() }; }, createFile: (b) => { b.id = 'id' + (++fileSeq); b.getId = () => b.id; f.files.push(b); return b; } }; folders.push(f); return f; },
   },
   UrlFetchApp: { fetch: (url, o) => { fetchLog.push({ url, body: JSON.parse(o.payload), key: o.headers['x-goog-api-key'] }); return fetchReply(url); } },
   HtmlService: { createHtmlOutputFromFile: () => ({ setTitle() { return this; }, addMetaTag() { return this; }, setXFrameOptionsMode() { return this; } }), XFrameOptionsMode: {} },
@@ -143,12 +146,17 @@ ok(props.TTS_MODEL_OK === 'gemini-2.5-flash-preview-tts', 'つかえた モデ�
 v = ctx.getVoice('こんにちは', 'Gacrux');
 ok(v.ok && v.cached && fetchLog.length === 2, '2かいめは ドライブの こえを つかう（Gemini を よばない）');
 ok(ctx.getVoice('こんにちは', 'へんな こえ').cached === true, 'しらない こえの しゅるいは はじめの こえに する');
+ok(Object.values(cacheStore).length === 1, 'ドライブの ファイルの ばしょを おぼえる');
+fetchReply = () => okReply;
+v = ctx.getVoice('まえもって つくる', 'Gacrux', true);
+ok(v.ok && v.wav === '' && !v.cached && folders[0].files.length === 2, 'まとめて つくる ときは こえを かえさず ドライブに のこす');
+ok(ctx.getVoice('まえもって つくる', 'Gacrux').cached === true && ctx.getVoice('まえもって つくる', 'Gacrux').wav.length > 0, 'まえもって つくった こえを つかう');
 fetchReply = () => ({ getResponseCode: () => 429, getContentText: () => 'quota' });
 ok(ctx.getVoice('つぎの ぶん', 'Gacrux').reason === 'pause' && Number(props.TTS_PAUSE_UNTIL) > Date.now(), 'つかいすぎの ときは しばらく やすむ');
 const n0 = fetchLog.length;
 ok(ctx.getVoice('また つぎの ぶん', 'Gacrux').reason === 'pause' && fetchLog.length === n0, 'やすんで いる あいだは Gemini を よばない');
 const ts = ctx.getTtsStatus('0123');
-ok(ts.ok && ts.hasKey && ts.files === 1 && ts.today === 1 && /quota/.test(ts.lastError), '先生用画面の こえの ようす');
+ok(ts.ok && ts.hasKey && ts.files === 2 && ts.today === 2 && /quota/.test(ts.lastError), '先生用画面の こえの ようす');
 ok(ctx.getTtsStatus('9999').ok === false, 'こえの ようすも 暗証番号が いる');
 ok(ctx.getInitData().settings.tts === true && ctx.getInitData().settings.voice === 'Gacrux', 'こえの せってい（はじめは つかう・Gacrux）');
 ctx.saveSettings('0123', { tts: false, voice: 'Sulafat' });
