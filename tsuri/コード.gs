@@ -16,9 +16,11 @@ const SETTING_ROWS = [
   ['time', 'つりの じかん（びょう）', '60', '30・60・120、0 は じかん なし'],
   ['sound', 'こうかおん', 'ならす', 'ならす／ならさない'],
   ['bgm', 'おんがく（BGM）', 'つかわない', 'つかう／つかわない（つかう にすると、子どもの 画面で オン・オフ できる）'],
+  ['tts', 'ゲンじいの こえ（Gemini）', 'つかう', 'つかう／つかわない（APIキーが ないときは、ブラウザの こえで 読みます）'],
+  ['voice', 'ゲンじいの こえの しゅるい', 'Gacrux', 'Gacrux（おちついた）・Algenib（しゃがれた）・Charon（やさしく せつめい）・Sadaltager（ものしり）・Achird（したしみやすい）・Sulafat（あたたかい）'],
 ];
 // オン・オフの 設定の ことば（オンの ことば、オフの ことば）
-const ONOFF = { sound: ['ならす', 'ならさない'], bgm: ['つかう', 'つかわない'] };
+const ONOFF = { sound: ['ならす', 'ならさない'], bgm: ['つかう', 'つかわない'], tts: ['つかう', 'つかわない'] };
 // 先生が 変える フラグ（全部開く・はってん・てもとの でんたく）
 const FLAGS = ['unlockAll', 'hatten', 'realCalc'];
 
@@ -119,6 +121,7 @@ function appSettings_() {
     font: Number(get('font')) || 1,
     count: [3, 5, 10].indexOf(count) >= 0 ? count : 5,
     time: [0, 30, 60, 120].indexOf(Number(get('time'))) >= 0 ? Number(get('time')) : 60,
+    voice: TTS_VOICES.indexOf(get('voice')) >= 0 ? get('voice') : TTS_VOICES[0],
   };
   Object.keys(ONOFF).forEach(function (k) { s[k] = get(k) === ONOFF[k][0]; });
   return s;
@@ -412,4 +415,115 @@ function writeSummary_(agg, names) {
   }
   sh.getRange(out.length + 2, 1).setValue('※ 赤：60%未満　黄：60〜79%　緑：80%以上。ステージ：「3-2」＝3ばんめの つりば（いそ）の ② かけて もとめる（0〜5 の だんかい）。「7-1」「7-2」は はってん（つり たいかい）。　更新：' +
     Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy/MM/dd HH:mm'));
+}
+
+// ---------------------------------------------------------------------
+// ゲンじいの こえ（Gemini の よみあげ）
+//   APIキーは「プロジェクトの設定 → スクリプト プロパティ」の GEMINI_API_KEY に入れる（画面には出さない）
+//   一度 作った こえは、ドライブの「つりマスター こえ」フォルダに 保存して 使い回す
+// ---------------------------------------------------------------------
+const TTS_VOICES = ['Gacrux', 'Algenib', 'Charon', 'Sadaltager', 'Achird', 'Sulafat'];
+// つかう モデル（あたらしい じゅん。つかえない ときは つぎを ためす。スクリプト プロパティ GEMINI_TTS_MODEL で かえられる）
+const TTS_MODELS = ['gemini-3.1-flash-tts-preview', 'gemini-2.5-flash-preview-tts'];
+const TTS_STYLE = 'やさしい 漁師の おじいさんが、小学校の 低学年の 子どもに 話しかけるように、ゆっくり はっきり、あたたかく 読んでください。';
+const TTS_FOLDER = 'つりマスター こえ';
+const TTS_MAX_CHARS = 200;
+
+function ttsProps_() { return PropertiesService.getScriptProperties(); }
+
+function ttsHash_(text, voice) {
+  const d = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, voice + '|' + TTS_STYLE + '|' + text, Utilities.Charset.UTF_8);
+  return d.map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('');
+}
+
+function ttsFolder_() {
+  const it = DriveApp.getFoldersByName(TTS_FOLDER);
+  return it.hasNext() ? it.next() : DriveApp.createFolder(TTS_FOLDER);
+}
+
+// PCM（16bit・1ch）に WAV の あたまを つける
+function wavBytes_(pcm, rate) {
+  const n = pcm.length, h = [];
+  const s4 = function (t) { for (let i = 0; i < 4; i++) h.push(t.charCodeAt(i)); };
+  const u32 = function (v) { h.push(v & 255, (v >> 8) & 255, (v >> 16) & 255, (v >> 24) & 255); };
+  const u16 = function (v) { h.push(v & 255, (v >> 8) & 255); };
+  s4('RIFF'); u32(36 + n); s4('WAVE'); s4('fmt '); u32(16); u16(1); u16(1); u32(rate); u32(rate * 2); u16(2); u16(16); s4('data'); u32(n);
+  return h.map(function (b) { return b > 127 ? b - 256 : b; }).concat(pcm);
+}
+
+function ttsCountKey_() { return 'TTS_COUNT_' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd'); }
+
+function callGemini_(key, model, text, voice) {
+  const body = {
+    contents: [{ parts: [{ text: TTS_STYLE + '\n' + text }] }],
+    generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } } },
+  };
+  const res = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent', {
+    method: 'post', contentType: 'application/json', payload: JSON.stringify(body),
+    headers: { 'x-goog-api-key': key }, muteHttpExceptions: true,
+  });
+  const code = res.getResponseCode();
+  if (code !== 200) return { code: code, error: res.getContentText().slice(0, 300) };
+  const j = JSON.parse(res.getContentText());
+  const part = (((j.candidates || [])[0] || {}).content || {}).parts || [];
+  const inl = part.filter(function (x) { return x.inlineData && x.inlineData.data; })[0];
+  if (!inl) return { code: 500, error: 'こえが ありません' };
+  const m = /rate=(\d+)/.exec(inl.inlineData.mimeType || '');
+  return { code: 200, pcm: Utilities.base64Decode(inl.inlineData.data), rate: m ? Number(m[1]) : 24000 };
+}
+
+// アプリから よぶ：こえ（WAV の base64）を かえす。だめな ときは ok:false（アプリは ブラウザの こえで 読む）
+function getVoice(text, voice) {
+  text = String(text || '').trim();
+  if (!text || text.length > TTS_MAX_CHARS) return { ok: false, reason: 'text' };
+  if (TTS_VOICES.indexOf(voice) < 0) voice = TTS_VOICES[0];
+  const props = ttsProps_();
+  const key = props.getProperty('GEMINI_API_KEY');
+  if (!key) return { ok: false, reason: 'nokey' };
+  const name = ttsHash_(text, voice) + '.wav';
+  const folder = ttsFolder_();
+  const found = folder.getFilesByName(name);
+  if (found.hasNext()) return { ok: true, wav: Utilities.base64Encode(found.next().getBlob().getBytes()), cached: true };
+  if (Number(props.getProperty('TTS_PAUSE_UNTIL') || 0) > Date.now()) return { ok: false, reason: 'pause' };
+  const custom = props.getProperty('GEMINI_TTS_MODEL');
+  const models = custom ? [custom] : TTS_MODELS;
+  const start = Math.max(0, models.indexOf(props.getProperty('TTS_MODEL_OK') || ''));
+  let last = null;
+  for (let i = start; i < models.length; i++) {
+    const r = callGemini_(key, models[i], text, voice);
+    if (r.code === 200) {
+      props.setProperty('TTS_MODEL_OK', models[i]);
+      const ck = ttsCountKey_();
+      props.setProperty(ck, String(Number(props.getProperty(ck) || 0) + 1));
+      const bytes = wavBytes_(r.pcm, r.rate);
+      folder.createFile(Utilities.newBlob(bytes, 'audio/wav', name));
+      return { ok: true, wav: Utilities.base64Encode(bytes), cached: false };
+    }
+    last = r;
+    if (r.code === 429) { props.setProperty('TTS_PAUSE_UNTIL', String(Date.now() + 10 * 60 * 1000)); break; } // つかいすぎ：10ぷん やすむ
+    if (r.code !== 404 && r.code !== 400) break;
+  }
+  props.setProperty('TTS_LAST_ERROR', last ? (new Date().toISOString() + ' ' + last.code + ' ' + last.error) : '');
+  return { ok: false, reason: last && last.code === 429 ? 'pause' : 'error' };
+}
+
+// 先生用画面：こえの ようす
+function getTtsStatus(pin) {
+  if (!checkPin_(pin)) return { ok: false };
+  const p = ttsProps_();
+  const it = DriveApp.getFoldersByName(TTS_FOLDER);
+  let files = 0;
+  if (it.hasNext()) { const f = it.next().getFiles(); while (f.hasNext()) { f.next(); files++; } }
+  return {
+    ok: true, hasKey: !!p.getProperty('GEMINI_API_KEY'), model: p.getProperty('GEMINI_TTS_MODEL') || p.getProperty('TTS_MODEL_OK') || '',
+    today: Number(p.getProperty(ttsCountKey_()) || 0), files: files,
+    pauseUntil: Number(p.getProperty('TTS_PAUSE_UNTIL') || 0), lastError: p.getProperty('TTS_LAST_ERROR') || '',
+  };
+}
+
+// Apps Script の 画面で ためす：かんすうで ttsTest を えらんで ▶ 実行 → 「実行ログ」に けっかが 出る
+function ttsTest() {
+  const r = getVoice('こんにちは。わしは ゲンじい じゃ。いっしょに つりを しよう。', TTS_VOICES[0]);
+  console.log(r.ok ? 'OK：こえが できました（' + (r.cached ? 'ドライブに あった こえ' : 'あたらしく つくった こえ') + '）。モデル：' + (ttsProps_().getProperty('TTS_MODEL_OK') || '')
+    : 'うまく いきません：' + r.reason + '　' + (ttsProps_().getProperty('TTS_LAST_ERROR') || ''));
 }
