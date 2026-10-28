@@ -473,7 +473,8 @@ function callGemini_(key, model, text, voice) {
 }
 
 // アプリから よぶ：こえ（WAV の base64）を かえす。だめな ときは ok:false（アプリは ブラウザの こえで 読む）
-function getVoice(text, voice) {
+//   prep が true の ときは、こえを つくって ドライブに のこす だけ（まとめて つくる ボタン用。こえは かえさない）
+function getVoice(text, voice, prep) {
   text = String(text || '').trim();
   if (!text || text.length > TTS_MAX_CHARS) return { ok: false, reason: 'text' };
   if (TTS_VOICES.indexOf(voice) < 0) voice = TTS_VOICES[0];
@@ -481,9 +482,19 @@ function getVoice(text, voice) {
   const key = props.getProperty('GEMINI_API_KEY');
   if (!key) return { ok: false, reason: 'nokey' };
   const name = ttsHash_(text, voice) + '.wav';
+  // ドライブの ファイルの ばしょを おぼえて おいて、さがす じかんを へらす
+  const cache = CacheService.getScriptCache();
+  const fid = cache.get(name);
+  if (fid) {
+    try { const f = DriveApp.getFileById(fid); return { ok: true, wav: prep ? '' : Utilities.base64Encode(f.getBlob().getBytes()), cached: true }; } catch (e) { cache.remove(name); }
+  }
   const folder = ttsFolder_();
   const found = folder.getFilesByName(name);
-  if (found.hasNext()) return { ok: true, wav: Utilities.base64Encode(found.next().getBlob().getBytes()), cached: true };
+  if (found.hasNext()) {
+    const f = found.next();
+    cache.put(name, f.getId(), 21600);
+    return { ok: true, wav: prep ? '' : Utilities.base64Encode(f.getBlob().getBytes()), cached: true };
+  }
   if (Number(props.getProperty('TTS_PAUSE_UNTIL') || 0) > Date.now()) return { ok: false, reason: 'pause' };
   const custom = props.getProperty('GEMINI_TTS_MODEL');
   const models = custom ? [custom] : TTS_MODELS;
@@ -496,8 +507,9 @@ function getVoice(text, voice) {
       const ck = ttsCountKey_();
       props.setProperty(ck, String(Number(props.getProperty(ck) || 0) + 1));
       const bytes = wavBytes_(r.pcm, r.rate);
-      folder.createFile(Utilities.newBlob(bytes, 'audio/wav', name));
-      return { ok: true, wav: Utilities.base64Encode(bytes), cached: false };
+      const nf = folder.createFile(Utilities.newBlob(bytes, 'audio/wav', name));
+      cache.put(name, nf.getId(), 21600);
+      return { ok: true, wav: prep ? '' : Utilities.base64Encode(bytes), cached: false };
     }
     last = r;
     if (r.code === 429) { props.setProperty('TTS_PAUSE_UNTIL', String(Date.now() + 10 * 60 * 1000)); break; } // つかいすぎ：10ぷん やすむ
