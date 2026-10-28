@@ -30,6 +30,8 @@ function makeSheet(name) {
   return sh;
 }
 const sheets = {};
+const props = {}, folders = [], fetchLog = [];
+let fetchReply = () => ({ getResponseCode: () => 500, getContentText: () => 'x' });
 const ss = {
   getSheetByName: (n) => sheets[n] || null,
   insertSheet: (n) => (sheets[n] = makeSheet(n)),
@@ -39,7 +41,20 @@ const ctx = {
   SpreadsheetApp: { getActiveSpreadsheet: () => ss, getUi: () => ({ createMenu: () => ({ addItem() { return this; }, addToUi() {} }) }) },
   LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
   Session: { getScriptTimeZone: () => 'Asia/Tokyo' },
-  Utilities: { formatDate: (d) => d.toISOString().slice(0, 10).replace(/-/g, '/') + ' 10:00' },
+  Utilities: {
+    formatDate: (d, tz, f) => (f === 'yyyyMMdd' ? d.toISOString().slice(0, 10).replace(/-/g, '') : d.toISOString().slice(0, 10).replace(/-/g, '/') + ' 10:00'),
+    DigestAlgorithm: { MD5: 'md5' }, Charset: { UTF_8: 'utf8' },
+    computeDigest: (alg, str) => [...require('crypto').createHash('md5').update(str, 'utf8').digest()].map(b => (b > 127 ? b - 256 : b)),
+    base64Decode: (t) => [...Buffer.from(t, 'base64')].map(b => (b > 127 ? b - 256 : b)),
+    base64Encode: (bytes) => Buffer.from(bytes.map(b => b & 255)).toString('base64'),
+    newBlob: (bytes, type, name) => ({ bytes, type, name, getBytes: () => bytes }),
+  },
+  PropertiesService: { getScriptProperties: () => ({ getProperty: (k) => (k in props ? props[k] : null), setProperty: (k, v) => { props[k] = String(v); } }) },
+  DriveApp: {
+    getFoldersByName: (n) => { const l = folders.filter(f => f.name === n); return { hasNext: () => l.length > 0, next: () => l.shift() }; },
+    createFolder: (n) => { const f = { name: n, files: [], getFilesByName: (fn) => { const l = f.files.filter(x => x.name === fn); return { hasNext: () => l.length > 0, next: () => ({ getBlob: () => l.shift() }) }; }, getFiles: () => { const l = [...f.files]; return { hasNext: () => l.length > 0, next: () => l.shift() }; }, createFile: (b) => { f.files.push(b); return b; } }; folders.push(f); return f; },
+  },
+  UrlFetchApp: { fetch: (url, o) => { fetchLog.push({ url, body: JSON.parse(o.payload), key: o.headers['x-goog-api-key'] }); return fetchReply(url); } },
   HtmlService: { createHtmlOutputFromFile: () => ({ setTitle() { return this; }, addMetaTag() { return this; }, setXFrameOptionsMode() { return this; } }), XFrameOptionsMode: {} },
   console, Date, JSON, Math, Object, String, Number, Array,
 };
@@ -113,6 +128,31 @@ ok(ctx.restoreBackup('0123', { app: 'bunbun', roster: [] }).ok === false, 'ほ�
 ctx.clearRecords('0123', 'たろう');
 ok(sheets['きろく'].getLastRow() === 1 && sheets['名簿'].data[1][1] === '', 'この子の 記録を 消す');
 ok(ctx.restoreBackup('0123', bk.data).ok && JSON.parse(sheets['名簿'].data[1][1]).yen === 1600, 'バックアップから もどす');
+
+// 6. ゲンじいの こえ（Gemini）
+ok(ctx.getVoice('こんにちは', 'Gacrux').reason === 'nokey', 'APIキーが ない ときは つかわない');
+props.GEMINI_API_KEY = 'KEY';
+const pcm = Buffer.alloc(4800).toString('base64');
+const okReply = { getResponseCode: () => 200, getContentText: () => JSON.stringify({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/L16;codec=pcm;rate=24000', data: pcm } }] } }] }) };
+fetchReply = (url) => (/gemini-3\.1/.test(url) ? { getResponseCode: () => 404, getContentText: () => 'not found' } : okReply);
+let v = ctx.getVoice('こんにちは', 'Gacrux');
+const wav = Buffer.from(v.wav || '', 'base64');
+ok(v.ok && !v.cached && wav.slice(0, 4).toString() === 'RIFF' && wav.readUInt32LE(24) === 24000 && wav.length === 44 + 4800, 'こえを つくって WAV に する（24000Hz）');
+ok(fetchLog.length === 2 && fetchLog[1].key === 'KEY' && fetchLog[1].body.generationConfig.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName === 'Gacrux' && /こんにちは/.test(fetchLog[1].body.contents[0].parts[0].text), 'つかえない モデルなら つぎの モデルを ためす・キーと こえの しゅるいを おくる');
+ok(props.TTS_MODEL_OK === 'gemini-2.5-flash-preview-tts', 'つかえた モデルを おぼえる');
+v = ctx.getVoice('こんにちは', 'Gacrux');
+ok(v.ok && v.cached && fetchLog.length === 2, '2かいめは ドライブの こえを つかう（Gemini を よばない）');
+ok(ctx.getVoice('こんにちは', 'へんな こえ').cached === true, 'しらない こえの しゅるいは はじめの こえに する');
+fetchReply = () => ({ getResponseCode: () => 429, getContentText: () => 'quota' });
+ok(ctx.getVoice('つぎの ぶん', 'Gacrux').reason === 'pause' && Number(props.TTS_PAUSE_UNTIL) > Date.now(), 'つかいすぎの ときは しばらく やすむ');
+const n0 = fetchLog.length;
+ok(ctx.getVoice('また つぎの ぶん', 'Gacrux').reason === 'pause' && fetchLog.length === n0, 'やすんで いる あいだは Gemini を よばない');
+const ts = ctx.getTtsStatus('0123');
+ok(ts.ok && ts.hasKey && ts.files === 1 && ts.today === 1 && /quota/.test(ts.lastError), '先生用画面の こえの ようす');
+ok(ctx.getTtsStatus('9999').ok === false, 'こえの ようすも 暗証番号が いる');
+ok(ctx.getInitData().settings.tts === true && ctx.getInitData().settings.voice === 'Gacrux', 'こえの せってい（はじめは つかう・Gacrux）');
+ctx.saveSettings('0123', { tts: false, voice: 'Sulafat' });
+ok(ctx.getInitData().settings.tts === false && ctx.getInitData().settings.voice === 'Sulafat', 'こえの せっていを 保存する');
 
 console.log(bad ? `✖ ${bad}けん うまく いきません` : '✔ ぜんぶ うまく いきました');
 process.exit(bad ? 1 : 0);

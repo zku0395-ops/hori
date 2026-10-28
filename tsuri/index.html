@@ -97,7 +97,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.2.1';
+    const APP_VERSION = '1.3.0';
     const BASE = window.TSURI_BASE;
     const IMG = BASE + 'img/';
 
@@ -156,7 +156,47 @@
           setTimeout(() => window.speechSynthesis.speak(u), 60);
         } catch (e) { if (onEnd) setTimeout(onEnd, 200); }
       },
-      stop() { try { this.ok && window.speechSynthesis.cancel(); } catch (e) {} },
+      stop() {
+        try { this.ok && window.speechSynthesis.cancel(); } catch (e) {}
+        this.tok++; if (this.audio) { try { this.audio.pause(); } catch (e) {} this.audio = null; }
+      },
+      // ゲンじいの こえ（Gemini）。できた こえは この たんまつでも おぼえて おく。
+      // こえが まにあわない・つかえない・なまえが はいる ときは、ブラウザの こえで よむ
+      gemini: false, gvoice: 'Gacrux', avoid: '', tok: 0, audio: null, cache: new Map(), off: false,
+      sayVoice(text, onEnd) {
+        text = String(text || '');
+        const useG = this.gemini && !this.off && HAS_GAS && text.trim() && !/^[\d\s]+$/.test(text) && !(this.avoid && text.includes(this.avoid));
+        if (!useG) { this.say(text, onEnd); return; }
+        this.stop();
+        const tok = ++this.tok, key = this.gvoice + '|' + text;
+        let done = false;
+        const end = () => { if (!done) { done = true; onEnd && onEnd(); } };
+        const play = (url) => {
+          if (tok !== this.tok) return;
+          try {
+            const a = new Audio(url); this.audio = a;
+            a.playbackRate = Math.max(0.5, Math.min(1.6, (this.rate || 0.8) / 0.8));
+            a.onended = end; a.onerror = () => { if (tok === this.tok) this.say(text, end); };
+            const p = a.play(); if (p && p.catch) p.catch(() => { if (tok === this.tok) this.say(text, end); });
+          } catch (e) { this.say(text, end); }
+        };
+        if (this.cache.has(key)) { play(this.cache.get(key)); return; }
+        // 2.5びょう まっても こえが こなければ、ブラウザの こえで よむ（こえは つぎの ために ドライブに のこる）
+        const fallback = setTimeout(() => { if (tok === this.tok && !this.audio) { this.tok++; this.say(text, end); } }, 2500);
+        gas('getVoice', text, this.gvoice).then(r => {
+          clearTimeout(fallback);
+          if (r && r.ok) {
+            const bin = atob(r.wav), u8 = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+            const url = URL.createObjectURL(new Blob([u8], { type: 'audio/wav' }));
+            this.cache.set(key, url);
+            if (tok === this.tok) play(url);
+          } else {
+            if (r && (r.reason === 'nokey' || r.reason === 'pause')) this.off = true; // APIキーが ない・つかいすぎ：この あいだは ブラウザの こえ
+            if (tok === this.tok) { this.tok++; this.say(text, end); }
+          }
+        }).catch(() => { clearTimeout(fallback); if (tok === this.tok) { this.tok++; this.say(text, end); } });
+      },
     };
     if (Speech.ok) { Speech.pickVoice(); window.speechSynthesis.onvoiceschanged = () => Speech.pickVoice(); }
 
@@ -415,7 +455,8 @@
       google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
     });
     const LOG_HEADER = ['日時', 'なまえ', 'ステージ', 'つりば', 'だんかい', 'もんだい', 'ごうけい', 'けっか', 'まちがい', 'ヒント', 'まちがいの しゅるい', 'おした キー', 'でんたく', 'びょう', 'ID'];
-    const DEFAULT_SETTINGS = { rate: 0.8, font: 1, count: 5, time: 60, sound: true, bgm: false };
+    const DEFAULT_SETTINGS = { rate: 0.8, font: 1, count: 5, time: 60, sound: true, bgm: false, tts: true, voice: 'Gacrux' };
+    const VOICES = [['Gacrux', 'おちついた'], ['Algenib', 'しゃがれた'], ['Charon', 'やさしく せつめい'], ['Sadaltager', 'ものしり'], ['Achird', 'したしみやすい'], ['Sulafat', 'あたたかい']];
 
     // まとめ（先生用）— コード.gs の aggregate_ と おなじ しくみ
     const emptyStu = () => ({ count: 0, ok: 0, secs: 0, last: '', stages: {}, steps: {}, types: {}, misses: [] });
@@ -521,6 +562,10 @@
         if (HAS_GAS) return gas('saveSettings', pin, s);
         const d = Local.data(); const { newPin, ...rest } = s;
         d.settings = { ...d.settings, ...rest }; if (newPin) d.pin = newPin; Local.save(); return { ok: true };
+      },
+      async ttsStatus(pin) {
+        if (HAS_GAS) return gas('getTtsStatus', pin);
+        return { ok: true, demo: true, hasKey: false, model: '', today: 0, files: 0, pauseUntil: 0, lastError: '' };
       },
       async logRows(pin) {
         if (HAS_GAS) return gas('getLogRows', pin);
@@ -1912,6 +1957,23 @@
       return topOf(types, 10).map(([k, n]) => <div key={k} className="rounded-lg px-2 py-1 border bg-rose-50 mb-1"><b className="text-lg">{k}</b>　{n}回<div className="text-xs text-stone-600">{TYPE_NOTE[k] || ''}</div></div>);
     }
 
+    // Gemini の こえの ようす
+    function TtsStatus({ pin }) {
+      const [st, setSt] = useState(null);
+      useEffect(() => { api.ttsStatus(pin).then(setSt).catch(e => setSt({ ok: false, err: String(e && e.message || e) })); }, []);
+      if (!st) return <div className="text-sm mt-1">しらべて います…</div>;
+      if (!st.ok) return <div className="text-sm mt-1 text-rose-700">ようすを 見られませんでした {st.err || ''}</div>;
+      if (st.demo) return <div className="text-sm mt-1 text-stone-600">おためしモードでは Gemini の声は使えません（ブラウザの声で読みます）。</div>;
+      return (
+        <div className="text-sm mt-1 leading-relaxed">
+          <div>APIキー：{st.hasKey ? <b className="text-emerald-700">✔ 入っています</b> : <b className="text-rose-700">✖ まだ入っていません（ブラウザの声で読みます）</b>}</div>
+          <div>きょう 作った声：{st.today}こ　ドライブに ある声：{st.files}こ{st.model ? `　モデル：${st.model}` : ''}</div>
+          {st.pauseUntil > Date.now() && <div className="text-amber-700 font-bold">使える回数を こえたため、{new Date(st.pauseUntil).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })} まで休んでいます（そのあいだは ブラウザの声）。</div>}
+          {st.lastError && <div className="text-stone-500 break-all">さいごの エラー：{st.lastError}</div>}
+        </div>
+      );
+    }
+
     function TeacherView({ data, pin, onClose, onChanged, onSettings }) {
       const [tab, setTab] = useState('class');
       const [sel, setSel] = useState(data.students[0] ? data.students[0].name : null);
@@ -2070,6 +2132,13 @@
                 <div>1回の 問題の数：{opt('count', [[3, 'すくなめ'], [5, 'ふつう'], [10, 'おおめ']])}<div className="text-sm text-stone-500 ml-2">ふつう：⓪〜② は3問、③ は2問、④・⑤・はってん は1問です（1問ごとに1回 つりを します）。すくなめ・おおめ にすると、それに合わせて へったり ふえたり します。</div></div>
                 <div>つりの じかん：{opt('time', [[30, '30びょう'], [60, '1ぷん'], [120, '2ふん'], [0, 'じかん なし']])}<div className="text-sm text-stone-500 ml-2">この時間のあいだ、なげて ひく を くりかえし、1回で1ぴき つれます。つれた魚が そのまま計算の問題になります。じかん なし にすると「つりを おわる」ボタンで終わります。どれでも、だんかいごとの上限まで つれると早めに終わります。</div></div>
                 <div>こうかおん：{opt('sound', [[true, 'ならす'], [false, 'ならさない']])}</div>
+                <div className="rounded-xl border-2 border-sky-200 bg-sky-50 p-3">
+                  <div>ゲンじいの こえ（Gemini）：{opt('tts', [[true, 'つかう'], [false, 'つかわない']])}</div>
+                  <div className="mt-1">こえの しゅるい：{opt('voice', VOICES.map(([v, t]) => [v, t]))}
+                    <button className="ml-2 border rounded px-2 bg-white" onClick={() => { const g = Speech.gvoice, on = Speech.gemini; Speech.gvoice = s.voice; Speech.gemini = true; Speech.off = false; Speech.rate = s.rate; Speech.sayVoice('こんにちは。わしは ゲンじい じゃ。いっしょに つりを しよう。'); Speech.gvoice = g; Speech.gemini = on; }}>ためす</button></div>
+                  <TtsStatus pin={pin} />
+                  <div className="text-sm text-stone-500 mt-1">Google の Gemini で ゲンじいの声を作ります。APIキーは Apps Script の「スクリプト プロパティ」に入れます（README の「Gemini の こえ」）。一度作った声は ドライブの「つりマスター こえ」フォルダに保存して使い回します。声が まにあわないとき・使えないとき、子どもの名前が入るセリフ、数を数える声は、今までどおりブラウザの声で読みます。速さは「よみあげの はやさ」で変わります。</div>
+                </div>
                 <div>おんがく（BGM）：{opt('bgm', [[true, 'つかう'], [false, 'つかわない']])}<div className="text-sm text-stone-500 ml-2">つかう にすると、子どもの画面の上に 🎵 ボタンが出て、オン・オフできます（はじめは オン）。</div></div>
                 <div className="text-sm text-stone-600">電卓（アプリの画面か、手元の本物か）は、「子どもごと」で 1人ずつ切りかえます。</div>
                 <label>暗証番号を変える（4けた）：<input value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))} className="border-2 rounded px-2 py-1 w-24 ml-2" inputMode="numeric" placeholder="----" /></label>
@@ -2128,7 +2197,7 @@
           const id = ++sayId.current;
           lastSay.current = { text, opts };
           setTalk({ text, mood: opts.mood || 'normal', talking: true, k: id });
-          Speech.say(fmtSpeech(opts.speech || text), () => { if (sayId.current === id) setTalk(p => ({ ...p, talking: false })); resolve(); });
+          Speech.sayVoice(fmtSpeech(opts.speech || text), () => { if (sayId.current === id) setTalk(p => ({ ...p, talking: false })); resolve(); });
         });
         return { say: run, repeat: () => lastSay.current && run(lastSay.current.text, lastSay.current.opts), stop: () => Speech.stop() };
       }, []);
@@ -2138,6 +2207,9 @@
         const v = { ...DEFAULT_SETTINGS, ...s };
         v.sound = v.sound !== false && v.sound !== 'false';
         v.bgm = v.bgm === true || v.bgm === 'true';
+        v.tts = v.tts !== false && v.tts !== 'false';
+        v.voice = VOICES.some(x => x[0] === v.voice) ? v.voice : 'Gacrux';
+        Speech.gemini = v.tts; Speech.gvoice = v.voice;
         v.count = [3, 5, 10].includes(Number(v.count)) ? Number(v.count) : 5;
         v.time = [0, 30, 60, 120].includes(Number(v.time)) ? Number(v.time) : 60;
         setSettings(v);
@@ -2170,7 +2242,7 @@
       const updateProg = (fn) => { progRef.current = fn(progRef.current); setProgress(progRef.current); return progRef.current; };
 
       const login = async (n) => {
-        Sound.get(); Speech.say('');
+        Sound.get(); Speech.say(''); Speech.avoid = n; // なまえが はいる セリフは Gemini に おくらない
         setBusy(true);
         let server = '';
         try { server = await api.student(n); } catch (e) {}
