@@ -96,6 +96,106 @@
   STAGES.push({ id: 'H2', hatten: true, title: '□を もとめる', kind: 'blank',
     intro: 'はってん②。3 × □ ＝ 12 の □に はいる かずを かんがえよう。' });
 
+  // ---- ぼうけん（てんしゅかくを クリアすると ひらく） ----
+  // 8かしょの ばしょ。bg：はいけいの説明（絵は img/bouken_<p>.webp）
+  const PLACES = [
+    { p: 1, name: 'じょうかまち', e: '🏘️', color: '#f59e0b', bg: '夜の 城下町の 路地裏（ちょうちんの 明かり）',
+      intro: 'おしろの そとへ ぼうけんに でよう！ さいしょは よるの じょうかまち。あやしい かげが うごいて いるよ。' },
+    { p: 2, name: 'たけやぶ', e: '🎋', color: '#16a34a', bg: '月明かりの 竹やぶの 小道',
+      intro: 'たけやぶに ついたよ。かぜで たけが ざわざわ……。なにかが かくれて いるよ。' },
+    { p: 3, name: 'やまでら', e: '🛕', color: '#a16207', bg: '山寺の 境内（石灯籠と 本堂）',
+      intro: 'やまの うえの おてらだよ。ふしぎな ようかいたちが すんで いるよ。' },
+    { p: 4, name: 'かわら', e: '🏞️', color: '#0ea5e9', bg: '夕方の 川原（あしと 石ころ）',
+      intro: 'かわらに ついたよ。みずの なかから だれかが こっちを みて いるよ。' },
+    { p: 5, name: 'ゆきやま', e: '🏔️', color: '#60a5fa', bg: '吹雪の 雪山（針葉樹）',
+      intro: 'ゆきやまだよ。さむい さむい！ ふぶきの なかに あいてが まって いるよ。' },
+    { p: 6, name: 'ひのやま', e: '🌋', color: '#ef4444', bg: '火山の 岩場（赤い 溶岩）',
+      intro: 'ひのやまに ついたよ。あつい あつい！ ほのおの あいてに きを つけて。' },
+    { p: 7, name: 'うみべ・ふね', e: '⛵', color: '#0891b2', bg: '夜の 海と 大きな 帆船の 甲板',
+      intro: 'うみべから ふねに のったよ。なみの うえで たたかおう！' },
+    { p: 8, name: 'おにがしま', e: '👹', color: '#7c3aed', bg: '鬼ヶ島の 岩の 門と 宝の 山',
+      intro: 'いよいよ さいごの おにがしま！ おにの だいおうを たおして、ぼうけんを クリアしよう！' },
+  ];
+  // 48たい（ばしょごとに ふつう 5たい ＋ ボス）。n：じゅんばん（6＝ボス）、e：絵が ないときの 絵文字（絵は img/enemy_<id>.webp）
+  // hello：はじめの ことば、item：たおすと はじめの 1かいだけ もらえる おみやげ
+  const BOUKEN = [
+    // 1 じょうかまち
+    { id: 'bk_dorobo', p: 1, n: 1, name: 'どろぼう にんじゃ', e: '🥷', hello: 'その こばん、いただきだ！', item: 's_dango' },
+    { id: 'bk_nekomata', p: 1, n: 2, name: 'ねこまた', e: '🐈‍⬛', hello: 'にゃっはっは！ しっぽが 2ほん あるのさ。', item: 's_furin' },
+    { id: 'bk_nopperabo', p: 1, n: 3, name: 'のっぺらぼう', e: '😶', hello: 'ばあっ！ かおが ないだろう〜？', item: 's_koinobori' },
+    { id: 'bk_chochin', p: 1, n: 4, name: 'ちょうちん おばけ', e: '🏮', hello: 'べろべろば〜！ よみちは きけんだよ〜。', item: 's_senbei' },
+    { id: 'bk_kasabushi', p: 1, n: 5, name: 'かさ ぶし', e: '👒', hello: 'あみがさの したから、ずっと みて おったぞ。', item: 's_tako' },
+    { id: 'bk_kagenushi', p: 1, n: 6, boss: true, name: 'まちの かげぬし', e: '🌑', hello: 'この まちの よるは わしの もの。かげに のみこまれるが よい！', item: 's_kagi' },
+    // 2 たけやぶ
+    { id: 'bk_kamaitachi', p: 2, n: 1, name: 'かまいたち', e: '🌪️', hello: 'ひゅるるる〜！ かぜより はやいぞ！', item: 's_ocha' },
+    { id: 'bk_takenoko', p: 2, n: 2, name: 'たけのこ こぞう', e: '🎍', hello: 'にょきにょき！ ぼくの せは まだまだ のびるよ！', item: 's_tanabata' },
+    { id: 'bk_kitsunebi', p: 2, n: 3, name: 'きつねび', e: '🔥', hello: 'ゆら〜り ゆらり。どっちが ほんものかな〜？', item: 's_kuri' },
+    { id: 'bk_bakedanuki', p: 2, n: 4, name: 'ばけだぬき', e: '🦝', hello: 'ぽんぽこ！ なんにでも ばけて みせるぞ！', item: 's_kinoko' },
+    { id: 'bk_takeninja', p: 2, n: 5, name: 'たけやぶ にんじゃ', e: '🥷', hello: 'たけの かげに かくれて いたのさ！', item: 's_ohashi' },
+    { id: 'bk_kyubi', p: 2, n: 6, boss: true, name: 'きゅうびの きつね', e: '🦊', hello: 'こんこん……9ほんの しっぽの ちからを みせて あげる。', item: 's_houju' },
+    // 3 やまでら
+    { id: 'bk_hitotsume', p: 3, n: 1, name: 'ひとつめ こぞう', e: '👁️', hello: 'じーっ……おおきな めで みはって いるぞ。', item: 's_kane' },
+    { id: 'bk_nurikabe', p: 3, n: 2, name: 'ぬりかべ', e: '🧱', hello: 'ぬ〜り〜か〜べ〜。ここは とおれないぞ〜。', item: 's_hasu' },
+    { id: 'bk_azukiarai', p: 3, n: 3, name: 'あずきあらい', e: '🫘', hello: 'しょきしょき……あずき あらおか、くく とこか〜。', item: 's_rousoku' },
+    { id: 'bk_tsurube', p: 3, n: 4, name: 'つるべおとし', e: '🪣', hello: 'うえから どすーん！ びっくり したか？', item: 's_juzu' },
+    { id: 'bk_yamabushi', p: 3, n: 5, name: 'やまぶし にんじゃ', e: '📿', hello: 'やまで きたえた わざを うけて みよ！', item: 's_azuki' },
+    { id: 'bk_oonyudo', p: 3, n: 6, boss: true, name: 'おおにゅうどう', e: '🗿', hello: 'みあげるほど おおきいぞ〜。わしに かてるかな？', item: 's_suzu' },
+    // 4 かわら
+    { id: 'bk_kogappa', p: 4, n: 1, name: 'こがっぱ', e: '🥒', hello: 'きゅうり くれたら とおして あげても いいよ！', item: 's_kyuri' },
+    { id: 'bk_oogaeru', p: 4, n: 2, name: 'おおがえる', e: '🐸', hello: 'げろげろ！ ひとのみに して やるぞ！', item: 's_tsurizao' },
+    { id: 'bk_kawauso', p: 4, n: 3, name: 'かわうそ', e: '🦦', hello: 'すいすい〜。かわの なかは おいらの もの！', item: 's_hane' },
+    { id: 'bk_namazu', p: 4, n: 4, name: 'なまず おばけ', e: '🐟', hello: 'ぐらぐら〜っ！ じめんを ゆらして やるぞ！', item: 's_ishi' },
+    { id: 'bk_suiton', p: 4, n: 5, name: 'すいとん にんじゃ', e: '💧', hello: 'みずの なかから ずっと まって いたぞ！', item: 's_suika' },
+    { id: 'bk_kappaoyabun', p: 4, n: 6, boss: true, name: 'かっぱの おやぶん', e: '🐢', hello: 'おれさまが かわの おやぶんだ！ すもうでも くくでも まけんぞ！', item: 's_sara' },
+    // 5 ゆきやま
+    { id: 'bk_yukinko', p: 5, n: 1, name: 'ゆきんこ', e: '⛄', hello: 'ゆきがっせんしよう！ えいっ！', item: 's_sori' },
+    { id: 'bk_tsurara', p: 5, n: 2, name: 'つらら おばけ', e: '🧊', hello: 'つーん！ つめたい つららだぞ〜。', item: 's_tebukuro' },
+    { id: 'bk_yukidaruma', p: 5, n: 3, name: 'ゆきだるま むしゃ', e: '☃️', hello: 'ころころ ころがって、おおきく なったぞ！', item: 's_nabe' },
+    { id: 'bk_fubuki', p: 5, n: 4, name: 'ふぶき にんじゃ', e: '🌨️', hello: 'ふぶきに まぎれて しのびよったぞ！', item: 's_yakiimo' },
+    { id: 'bk_kooriookami', p: 5, n: 5, name: 'こおり おおかみ', e: '🐺', hello: 'うおおーん！ ゆきやまは わしらの なわばりだ！', item: 's_erimaki' },
+    { id: 'bk_yukionna', p: 5, n: 6, boss: true, name: 'ゆきおんな', e: '❄️', hello: 'ふう〜っ……こおりの いきで かためて あげましょう。', item: 's_kesshou' },
+    // 6 ひのやま
+    { id: 'bk_hinotama', p: 6, n: 1, name: 'ひのたま', e: '🔥', hello: 'ぼわっ！ あちちち、ちかよると あぶないぞ！', item: 's_hanabi' },
+    { id: 'bk_kanezumi', p: 6, n: 2, name: 'かえん ねずみ', e: '🐀', hello: 'ちゅちゅっ！ ほのおの けがわは あったかいぞ！', item: 's_tamago' },
+    { id: 'bk_iwaoni', p: 6, n: 3, name: 'いわ おに', e: '🪨', hello: 'ごつごつ！ いわの からだは かたいぞ！', item: 's_oke' },
+    { id: 'bk_wanyudo', p: 6, n: 4, name: 'わにゅうどう', e: '🛞', hello: 'ごろごろごろ〜！ ひの くるまが とおるぞ！', item: 's_tougarashi' },
+    { id: 'bk_kaenninja', p: 6, n: 5, name: 'かえん にんじゃ', e: '🥷', hello: 'ほのおの じゅつを みせて やる！', item: 's_hiuchi' },
+    { id: 'bk_kaenryu', p: 6, n: 6, boss: true, name: 'かえんりゅう', e: '🐲', hello: 'ごおおお！ ひのやまの ぬし、かえんりゅう さまだ！', item: 's_uroko' },
+    // 7 うみべ・ふね
+    { id: 'bk_funayurei', p: 7, n: 1, name: 'ふなゆうれい', e: '👻', hello: 'ひしゃく かして〜。うらめしや〜。', item: 's_kaigara' },
+    { id: 'bk_oodako', p: 7, n: 2, name: 'おおだこ', e: '🐙', hello: '8ほんの あしで つかまえて やるぞ！', item: 's_ebi' },
+    { id: 'bk_kanimusha', p: 7, n: 3, name: 'かに むしゃ', e: '🦀', hello: 'ちょきちょき！ よこあるきで せめるぞ！', item: 's_chizu' },
+    { id: 'bk_kaizoku', p: 7, n: 4, name: 'かいぞく にんじゃ', e: '🏴‍☠️', hello: 'この ふねの たからは わたさんぞ！', item: 's_rashinban' },
+    { id: 'bk_sameotoko', p: 7, n: 5, name: 'さめ おとこ', e: '🦈', hello: 'がぶがぶっ！ うみの なかでは まけないぞ！', item: 's_ikari' },
+    { id: 'bk_umibozu', p: 7, n: 6, boss: true, name: 'うみぼうず', e: '🌊', hello: 'ざっぱーん！ うみの そこから きたぞ〜。ふねを しずめて やる！', item: 's_shinju' },
+    // 8 おにがしま
+    { id: 'bk_kooni', p: 8, n: 1, name: 'こおに', e: '👺', hello: 'おにごっこ しようぜ！ おれが おにだけどな！', item: 's_momo' },
+    { id: 'bk_aooni', p: 8, n: 2, name: 'あおおに', e: '👹', hello: 'あかおにの あにきの かたきだ！', item: 's_taiko' },
+    { id: 'bk_kioni', p: 8, n: 3, name: 'きいろ おに', e: '👹', hello: 'ぴかぴか きいろの かなぼうを くらえ！', item: 's_hata' },
+    { id: 'bk_midorioni', p: 8, n: 4, name: 'みどり おに', e: '👹', hello: 'どすこい！ ちからくらべなら まけないぞ！', item: 's_okane' },
+    { id: 'bk_monban', p: 8, n: 5, name: 'おにの もんばん', e: '🚪', hello: 'この もんの さきへは いかせんぞ！', item: 's_sakura' },
+    { id: 'bk_daiou', p: 8, n: 6, boss: true, name: 'おにの だいおう', e: '👑', hello: 'がっはっは！ よくぞ ここまで きた。わしが おにがしまの だいおうだ！', item: 's_oukan' },
+  ];
+  // ぼうけんの おみやげ（48こ。ばしょごとに 6こ、6こめは ボスの とくべつな アイテム）
+  const SOUVENIRS = [
+    { id: 's_dango', name: 'みたらし だんご', e: '🍡' }, { id: 's_furin', name: 'ふうりん', e: '🎐' }, { id: 's_koinobori', name: 'こいのぼり', e: '🎏' },
+    { id: 's_senbei', name: 'おせんべい', e: '🍘' }, { id: 's_tako', name: 'たこあげの たこ', e: '🪁' }, { id: 's_kagi', name: 'かげの かぎ', e: '🗝️', sp: true },
+    { id: 's_ocha', name: 'おちゃ', e: '🍵' }, { id: 's_tanabata', name: 'たなばた かざり', e: '🎋' }, { id: 's_kuri', name: 'くり', e: '🌰' },
+    { id: 's_kinoko', name: 'きのこ', e: '🍄' }, { id: 's_ohashi', name: 'たけの おはし', e: '🥢' }, { id: 's_houju', name: 'きつねの ほうじゅ', e: '🔶', sp: true },
+    { id: 's_kane', name: 'おてらの かね', e: '🔔' }, { id: 's_hasu', name: 'はすの はな', e: '🪷' }, { id: 's_rousoku', name: 'ろうそく', e: '🕯️' },
+    { id: 's_juzu', name: 'じゅず', e: '📿' }, { id: 's_azuki', name: 'あずき', e: '🫘' }, { id: 's_suzu', name: 'ふしぎな すず', e: '🛎️', sp: true },
+    { id: 's_kyuri', name: 'きゅうり', e: '🥒' }, { id: 's_tsurizao', name: 'つりざお', e: '🎣' }, { id: 's_hane', name: 'とりの はね', e: '🪶' },
+    { id: 's_ishi', name: 'まるい いし', e: '🪨' }, { id: 's_suika', name: 'すいか', e: '🍉' }, { id: 's_sara', name: 'かっぱの おさら', e: '🍽️', sp: true },
+    { id: 's_sori', name: 'そり', e: '🛷' }, { id: 's_tebukuro', name: 'てぶくろ', e: '🧤' }, { id: 's_nabe', name: 'あったか なべ', e: '🍲' },
+    { id: 's_yakiimo', name: 'やきいも', e: '🍠' }, { id: 's_erimaki', name: 'えりまき', e: '🧣' }, { id: 's_kesshou', name: 'ゆきの けっしょう', e: '❄️', sp: true },
+    { id: 's_hanabi', name: 'はなび', e: '🎆' }, { id: 's_tamago', name: 'おんせん たまご', e: '🥚' }, { id: 's_oke', name: 'おんせんの おけ', e: '♨️' },
+    { id: 's_tougarashi', name: 'とうがらし', e: '🌶️' }, { id: 's_hiuchi', name: 'ひうちいし', e: '💎' }, { id: 's_uroko', name: 'りゅうの うろこ', e: '🐉', sp: true },
+    { id: 's_kaigara', name: 'かいがら', e: '🐚' }, { id: 's_ebi', name: 'えび', e: '🦐' }, { id: 's_chizu', name: 'たからの ちず', e: '🗺️' },
+    { id: 's_rashinban', name: 'らしんばん', e: '🧭' }, { id: 's_ikari', name: 'ふねの いかり', e: '⚓' }, { id: 's_shinju', name: 'しんじゅの かい', e: '🦪', sp: true },
+    { id: 's_momo', name: 'もも', e: '🍑' }, { id: 's_taiko', name: 'おにの たいこ', e: '🥁' }, { id: 's_hata', name: 'はた', e: '🎌' },
+    { id: 's_okane', name: 'おにの こばん', e: '🪙' }, { id: 's_sakura', name: 'さくらの えだ', e: '🌸' }, { id: 's_oukan', name: 'おにの おうかん', e: '👑', sp: true },
+  ];
+
   // ---- にんじゃの すがた ----
   // いろ（ずきん・ふく・おびの セット）。はじめから えらべる 6いろ と、よろずやで かう とくべつな いろ
   const COLORS = [
@@ -163,5 +263,5 @@
     { n: 'にんじゃ マスター', all: true },
   ];
 
-  (typeof window !== 'undefined' ? window : globalThis).KUKU_DATA = { TONAE, FLOORS, ENEMIES, TREASURES, STEP, STAGES, COLORS, ITEM_CATS, TITLES };
+  (typeof window !== 'undefined' ? window : globalThis).KUKU_DATA = { TONAE, FLOORS, ENEMIES, TREASURES, STEP, STAGES, COLORS, ITEM_CATS, TITLES, PLACES, BOUKEN, SOUVENIRS };
 })();

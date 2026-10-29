@@ -50,6 +50,30 @@ D.ENEMIES.forEach(en => {
   if (/[一-鿿]/.test(en.name + en.hello + en.escape)) ng(`${en.id}：ことばに ふりがなの ない 漢字が あります`);
 });
 
+// 3c. ぼうけん（8かしょ × ふつう5たい＋ボス、おみやげ 48こ）
+if (D.PLACES.length !== 8) ng(`ぼうけんの ばしょは 8かしょ の はずです（${D.PLACES.length}）`);
+const bid = new Set(), sid = new Set(D.SOUVENIRS.map(x => x.id)), used = new Set();
+if (sid.size !== 48 || D.SOUVENIRS.length !== 48) ng(`おみやげは 48こ（id が かさならない）の はずです（${D.SOUVENIRS.length}）`);
+D.PLACES.forEach(pl => {
+  if (!pl.name || !pl.intro || !pl.bg) ng(`ばしょ ${pl.p}：なまえ・せつめい・はいけいが たりません`);
+  if (/[一-鿿]/.test(pl.name + pl.intro)) ng(`ばしょ ${pl.p}：ふりがなの ない 漢字が あります`);
+  const list = D.BOUKEN.filter(en => en.p === pl.p);
+  if (list.map(en => en.n).join(',') !== '1,2,3,4,5,6') ng(`ばしょ ${pl.p}：あいてが 1〜6 の じゅんに ありません`);
+  if (list.filter(en => en.boss).length !== 1 || !list[5] || !list[5].boss) ng(`ばしょ ${pl.p}：6たいめが ボスに なって いません`);
+});
+D.BOUKEN.forEach(en => {
+  if (bid.has(en.id) || eid.has(en.id)) ng(`ぼうけんの あいての id が かさなって いる：${en.id}`);
+  bid.add(en.id);
+  if (!en.name || !en.e || !en.hello) ng(`${en.id}：なまえ・絵文字・ことばが たりません`);
+  if (/[一-鿿]/.test(en.name + en.hello)) ng(`${en.id}：ことばに ふりがなの ない 漢字が あります`);
+  if (!sid.has(en.item)) ng(`${en.id}：おみやげ ${en.item} が ありません`);
+  if (used.has(en.item)) ng(`${en.id}：おみやげ ${en.item} が ほかの あいてと かさなって います`);
+  used.add(en.item);
+  const it = D.SOUVENIRS.find(x => x.id === en.item);
+  if (it && !!it.sp !== !!en.boss) ng(`${en.id}：ボスには とくべつな おみやげ（sp）を つけます`);
+});
+D.SOUVENIRS.forEach(x => { if (!x.e || !x.name) ng(`${x.id}：なまえか 絵文字が ありません`); if (/[一-鿿]/.test(x.name)) ng(`${x.id}：なまえに 漢字が あります`); });
+
 // 4. いろ・よろずや・しょうごう
 if (D.COLORS.length !== 6) ng(`はじめの いろは 6しゅるいの はずです（${D.COLORS.length}）`);
 const P = [5, 5, 5, 5, 15, 15, 15, 30, 30, 60];
@@ -66,5 +90,5 @@ D.ITEM_CATS.forEach(c => {
 });
 if (!D.TITLES.some(t => t.all)) ng('はってん ぜんぶの しょうごうが ありません');
 
-console.log(bad ? `✖ ${bad}けん` : `✔ ステージ ${D.STAGES.length}・あいて ${D.ENEMIES.length}・たからもの ${D.TREASURES.length}・よろずや ${iid.size}こ・となえかた 81こ。もんだい なし`);
+console.log(bad ? `✖ ${bad}けん` : `✔ ステージ ${D.STAGES.length}・あいて ${D.ENEMIES.length}・ぼうけん ${D.PLACES.length}かしょ ${D.BOUKEN.length}たい・おみやげ ${D.SOUVENIRS.length}こ・たからもの ${D.TREASURES.length}・よろずや ${iid.size}こ・となえかた 81こ。もんだい なし`);
 process.exit(bad ? 1 : 0);
