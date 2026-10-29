@@ -264,7 +264,7 @@
     { n: 'くく でんせつの にんじゃ', bouken: true },
   ];
   // ぼうけんを ぜんぶ クリアすると もらえる とくべつな いろ（よろずやでは うらない）
-  const BOUKEN_COLOR = { id: 'densetsu', name: 'でんせつの よろい', zukin: '#b45309', fuku: '#facc15', obi: '#7f1d1d', pattern: 'shine' };
+  const BOUKEN_COLOR = { id: 'densetsu', name: 'でんせつの よろい', zukin: '#b91c1c', fuku: '#facc15', obi: '#b91c1c', pattern: 'shine' };
 
   (typeof window !== 'undefined' ? window : globalThis).KUKU_DATA = { TONAE, FLOORS, ENEMIES, TREASURES, STEP, STAGES, COLORS, ITEM_CATS, TITLES, PLACES, BOUKEN, SOUVENIRS, BOUKEN_COLOR };
 })();

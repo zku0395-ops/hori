@@ -99,6 +99,7 @@ kuku/tools/test_gas.js   コード.gs のテスト（node kuku/tools/test_gas.js
 | カゲマルせんせい（ふつう・にっこり・びっくり・ほめる） | `kagemaru.webp`・`kagemaru_happy.webp`・`kagemaru_surprise.webp`・`kagemaru_cheer.webp` |
 | 子どもの忍者（6しょく × かたち2） | `ninja_aka_1.webp` 〜 `ninja_kuro_2.webp`（いろ：aka・ao・midori・kiiro・murasaki・kuro） |
 | 子どもの忍者（とくべつな いろ × かたち2） | `ninja_sakura_1.webp`・`ninja_gin_1.webp`・`ninja_kin_1.webp`・`ninja_niji_1.webp`（かたち2は `_2`） |
+| 子どもの忍者（でんせつの よろい × かたち2。ぼうけんを ぜんぶ クリアすると もらえる） | `ninja_densetsu_1.webp`・`ninja_densetsu_2.webp` |
 | はじめの画面（夜のお城と満月） | `castle.webp` |
 | ろうか | `rouka.webp` |
 | たからもの（10こ） | `treasure_makimono.webp` など（`data/mondai.js` の TREASURES の id） |
@@ -227,5 +228,4 @@ kuku/tools/test_gas.js   コード.gs のテスト（node kuku/tools/test_gas.js
 - よろずやの値段（使ってみて、たまりすぎ・たりなすぎがあれば調整します）
 - ぼうけんの あいて48たいと 場所8まいの絵（Canva で作りました。使ってみて、取りかえたい絵があれば作り直します）
 - ぼうけんの あいての セリフ・おみやげ（使ってみて、子どもに合わないものがあれば直します）
-- 「でんせつの よろい」の忍者の絵（いまは自作の絵。Canva で作るか）
 - プリント（`kuku/print/`）を作るか（アプリと同じ段の順の れんしゅうと テスト）
