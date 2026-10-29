@@ -90,7 +90,7 @@
       var h = location.hostname;
       var local = location.protocol === 'file:' || /github\.io$/.test(h) || h === 'localhost' || h === '127.0.0.1';
       window.TSURI_BASE = local ? '' : 'https://zku0395-ops.github.io/hori/tsuri/';
-      var V = '5';
+      var V = '6';
       var load = function (f) {
         return new Promise(function (ok, ng) {
           var s = document.createElement('script');
@@ -105,7 +105,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.6.0';
+    const APP_VERSION = '1.6.1';
     const BASE = window.TSURI_BASE;
     const IMG = BASE + 'img/';
 
@@ -1593,7 +1593,7 @@
           {phase === 'intro' && <div className="relative h-80 flex items-center justify-center">
             <div className="win px-8 py-4 flex flex-col items-center pop"><div className="text-6xl font-bold">{sp.icon} {sp.name}</div><div className="text-2xl text-sky-200 mt-1">{step.icon} {step.name}</div></div>
           </div>}
-          {phase === 'fish' && <FishingScene key={'f' + i} st={st} plan={plan} progress={progress} look={progress.look} uki={ukiOf(progress)} first={i === 0} secs={Number(S.time) || 0} onCatch={onCatch} onDone={startSheet} />}
+          {phase === 'fish' && <FishingScene key={'f' + i} st={st} plan={plan} progress={progress} look={progress.look} uki={ukiOf(progress)} first={i === 0} secs={step.time != null ? step.time : (Number(S.time) || 0)} onCatch={onCatch} onDone={startSheet} />}
           {(phase === 'sheet' || phase === 'done') && (
             <div className="flex gap-3 items-start w-full">
               <div className="flex-1 min-w-0"><Sheet pr={pr} blanks={blanks} bi={bi} vals={vals} shakeK={shakeK} hint={hint} marks={marks} onTap={tapFish} anim={anim} done={phase === 'done'} /></div>
@@ -2298,7 +2298,7 @@
                   <button className="border rounded px-2" onClick={() => { Speech.rate = s.rate; Speech.say(fmtSpeech('1ぴき 200えんの たいが 3びき つれた。')); }}>ためす</button></label>
                 <div>もじの おおきさ：{opt('font', [[0.9, 'ちいさめ'], [1, 'ふつう'], [1.15, 'おおきめ'], [1.3, 'とても おおきい']])}</div>
                 <div>1回の 問題の数：{opt('count', [[3, 'すくなめ'], [5, 'ふつう'], [10, 'おおめ']])}<div className="text-sm text-stone-500 ml-2">ふつう：①・② は3問、③ は2問、④・⑤・はってん は1問です（1問ごとに1回 つりを します）。すくなめ・おおめ にすると、それに合わせて へったり ふえたり します。</div></div>
-                <div>つりの じかん：{opt('time', [[30, '30びょう'], [60, '1ぷん'], [120, '2ふん'], [0, 'じかん なし']])}<div className="text-sm text-stone-500 ml-2">この時間のあいだ、なげて ひく を くりかえし、1回で1ぴき つれます。つれた魚が そのまま計算の問題になります。じかん なし にすると「つりを おわる」ボタンで終わります。どれでも、だんかいごとの上限まで つれると早めに終わります。</div></div>
+                <div>つりの じかん：{opt('time', [[30, '30びょう'], [60, '1ぷん'], [120, '2ふん'], [0, 'じかん なし']])}<div className="text-sm text-stone-500 ml-2">この時間のあいだ、なげて ひく を くりかえし、1回で1ぴき つれます。つれた魚が そのまま計算の問題になります。じかん なし にすると「つりを おわる」ボタンで終わります。どれでも、だんかいごとの上限まで つれると早めに終わります。「① たして もとめる」「② かけて もとめる」は、この設定に関係なく いつも30びょうです。</div></div>
                 <div>こうかおん：{opt('sound', [[true, 'ならす'], [false, 'ならさない']])}</div>
                 <div className="rounded-xl border-2 border-sky-200 bg-sky-50 p-3">
                   <div>ゲンじいの こえ（Gemini）：{opt('tts', [[true, 'つかう'], [false, 'つかわない']])}</div>
