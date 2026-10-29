@@ -88,6 +88,7 @@ window.SORA = {
           { id: 'kurisagari', emoji: '🐿️', name: 'くりさがりの ある ひきざんマスター', url: 'https://sites.google.com/view/kurisagariarihissann/%E3%83%9B%E3%83%BC%E3%83%A0' },
           { id: 'bunshoumondai', emoji: '📝', name: 'ぶんしょうもんだいマスター（たしざん・ひきざん）', url: 'https://sites.google.com/view/bunsyoumondai1/%E3%83%9B%E3%83%BC%E3%83%A0' },
           { id: 'kaimono', emoji: '🛒', name: 'かいものマスター', url: 'https://sites.google.com/view/kaimonomasternew/%E3%83%9B%E3%83%BC%E3%83%A0' },
+          { id: 'tsurimaster', emoji: '🎣', name: 'ゲンじいの つりマスター への みち', url: 'https://script.google.com/macros/s/AKfycbzPdlp3vc2V6KOM0Mta6P4qFObfaGoxYf97l-aUhhF-kwrglbW7iX3OJ7D6ZPCrzNnR/exec' },
         ] },
         { id: 'kakewari', name: 'かけざん・わりざん', emoji: '✖️', apps: [
           { id: 'kakeimi', emoji: '🍡', name: 'かけざんの いみ', url: 'https://sites.google.com/view/kakezannoiminew/%E3%83%9B%E3%83%BC%E3%83%A0' },
