@@ -1862,7 +1862,7 @@
        ぼうけんの 地図（すごろくの ように すすむ）
        ========================================================= */
     // 地図の 上の 8つの ばしょ（1000×750 の 中の 位置。ChatGPT の 地図に あわせて なおす）
-    const MAP_SPOTS = [[130, 640], [320, 575], [205, 440], [400, 375], [610, 450], [775, 330], [590, 205], [850, 120]];
+    const MAP_SPOTS = [[142, 653], [397, 604], [525, 514], [756, 459], [459, 290], [697, 304], [836, 207], [912, 117]];
     function MapFallback() {
       // ChatGPT の 地図が とどくまでの かりの 地図
       const areas = [['🕳️', '#d6b48a'], ['💧', '#bae6fd'], ['🌾', '#bbf7d0'], ['🎋', '#86efac'], ['🧊', '#e0f2fe'], ['🌴', '#4ade80'], ['🌊', '#93c5fd'], ['🏰', '#fde68a']];
@@ -1902,7 +1902,7 @@
           <div className="home-scene">
             <svg viewBox="0 0 1000 750" preserveAspectRatio="xMidYMid meet" aria-hidden="true" style={{ background: '#dcfce7' }}>
               {mapOk ? <image href="img/bouken/map.webp" x="0" y="0" width="1000" height="750" preserveAspectRatio="xMidYMid slice" /> : <MapFallback />}
-              <path d={path} fill="none" stroke="#fff" strokeWidth="12" strokeDasharray="4 22" strokeLinecap="round" opacity=".9" />
+              {!mapOk && <path d={path} fill="none" stroke="#fff" strokeWidth="12" strokeDasharray="4 22" strokeLinecap="round" opacity=".9" />}
               {BOUKEN.map((b, i) => {
                 const [x, y] = MAP_SPOTS[i];
                 const s2 = STAGE_MAP[b.id];
@@ -1911,7 +1911,7 @@
                 const isNext = i === curI;
                 return (
                   <g key={b.id} onClick={isOpen ? () => { sfx('tap'); onGo(s2); } : undefined} style={{ cursor: isOpen ? 'pointer' : 'default' }} data-spot={b.id}>
-                    <circle cx={x} cy={y} r="44" fill={cleared ? '#fffbeb' : isOpen ? '#fff' : 'rgba(255,255,255,.7)'} stroke={isNext ? '#f59e0b' : cleared ? '#d97706' : '#94a3b8'} strokeWidth={isNext ? 8 : 5} className={isNext ? 'pulse' : undefined} />
+                    <circle cx={x} cy={y} r="44" fill={cleared ? '#fffbeb' : isOpen ? '#fff' : 'rgba(255,255,255,.55)'} stroke={isNext ? '#f59e0b' : cleared ? '#d97706' : '#94a3b8'} strokeWidth={isNext ? 8 : 5} className={isNext ? 'pulse' : undefined} />
                     {cleared
                       ? <text x={x} y={y + 3} fontSize="48" textAnchor="middle" dominantBaseline="central" className="emoji">{b.takara[0]}</text>
                       : <text x={x} y={y + 3} fontSize="44" fontWeight="900" textAnchor="middle" dominantBaseline="central" fill={isOpen ? '#7c4a1e' : '#94a3b8'}>{isOpen ? '？' : '🔒'}</text>}
