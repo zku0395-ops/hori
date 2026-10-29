@@ -514,6 +514,7 @@
     function useImgOk(src) {
       const [ok, setOk] = useState(IMG_OK[src]);
       useEffect(() => {
+        if (!src) { setOk(false); return; }
         if (IMG_OK[src] != null) { setOk(IMG_OK[src]); return; }
         const im = new Image();
         im.onload = () => { IMG_OK[src] = true; setOk(true); };
@@ -523,6 +524,7 @@
       return ok;
     }
     const animalSrc = b => `img/bouken/${b.key}.webp`;
+    const bgSrc = b => `img/bouken/bg_${b.key}.webp`;   // その ばしょの 背景（ないときは うすい みどり）
     function AnimalPic({ b, size = 120, className = '' }) {
       const ok = useImgOk(animalSrc(b));
       if (ok) return <img src={animalSrc(b)} alt={b.full} draggable="false" className={className} style={{ height: size, width: 'auto', flex: 'none', userSelect: 'none' }} />;
@@ -1954,6 +1956,7 @@
     // ---- どうぶつと であう ----
     function MeetScreen({ stage, onStart }) {
       const b = stage.animal;
+      const bgOk = useImgOk(bgSrc(b));
       const [talking, setTalking] = useState(false);
       useEffect(() => {
         let alive = true;
@@ -1962,11 +1965,11 @@
       }, []);
       return (
         <div className="play">
-          <div className="work" style={{ alignItems: 'center', justifyContent: 'center', background: '#f0fdf4' }}>
-            <div className="qhead" style={{ alignSelf: 'stretch' }}><span>{stage.label}</span><R t={b.place} /></div>
-            <div className="grow col" style={{ alignItems: 'center', justifyContent: 'center' }}>
-              <div className={talking ? 'wiggle' : ''}><AnimalPic b={b} size={300} /></div>
-              <div className="bold" style={{ fontSize: '2rem', color: '#7c4a1e' }}>{b.full}</div>
+          <div className="work" style={{ alignItems: 'center', justifyContent: 'center', background: bgOk ? `#f0fdf4 url(${bgSrc(b)}) center bottom / cover no-repeat` : '#f0fdf4' }}>
+            <div className="qhead" style={{ alignSelf: 'stretch', ...(bgOk ? { background: 'rgba(255,255,255,.85)', borderRadius: 12, padding: '.2rem .6rem' } : {}) }}><span>{stage.label}</span><R t={b.place} /></div>
+            <div className="grow col" style={{ alignItems: 'center', justifyContent: bgOk ? 'flex-end' : 'center', paddingBottom: bgOk ? '1rem' : 0 }}>
+              <div className={talking ? 'wiggle' : ''} style={bgOk ? { filter: 'drop-shadow(0 6px 4px rgba(0,0,0,.25))' } : null}><AnimalPic b={b} size={300} /></div>
+              <div className="bold" style={{ fontSize: '2rem', color: '#7c4a1e', ...(bgOk ? { background: 'rgba(255,255,255,.9)', borderRadius: 999, padding: '.1rem 1.2rem', marginTop: '.3rem' } : {}) }}>{b.full}</div>
             </div>
           </div>
           <div className="panel">
@@ -2179,6 +2182,7 @@
       const stageClear = res.stageClear;
       const friend = res.firstClear && stage.friend ? FRIEND_MAP[stage.friend] : null;
       const animal = stage.animal && stageClear ? stage.animal : null;   // ぼうけんの おれい
+      const bgOk = useImgOk(animal ? bgSrc(animal) : '');
       const rewardRef = useRef(null);
       const [talking, setTalking] = useState(false);
       const nextStage = stageClear ? findNext(app.state) : null;
@@ -2208,9 +2212,9 @@
       return (
         <div className="wrap tc kids" style={{ maxWidth: 900 }}>
           <Confetti />
-          <div className="row center" style={{ marginTop: '.4rem', gap: '1rem', alignItems: 'flex-end' }}>
-            {animal && <div className="wiggle"><AnimalPic b={animal} size={170} /></div>}
-            <Kurumi size={animal ? 110 : 140} mood="happy" talking={talking} />
+          <div className="row center" style={{ marginTop: '.4rem', gap: '1rem', alignItems: 'flex-end', ...(animal && bgOk ? { maxWidth: 600, margin: '.4rem auto 0', height: 300, borderRadius: 24, border: '4px solid #e7c58f', background: `url(${bgSrc(animal)}) center 70% / cover no-repeat`, paddingBottom: '1.2rem' } : {}) }}>
+            {animal && <div className="wiggle" style={bgOk ? { filter: 'drop-shadow(0 6px 4px rgba(0,0,0,.25))' } : null}><AnimalPic b={animal} size={bgOk ? 200 : 170} /></div>}
+            <div style={animal && bgOk ? { filter: 'drop-shadow(0 6px 4px rgba(0,0,0,.25))' } : null}><Kurumi size={animal ? 110 : 140} mood="happy" talking={talking} /></div>
           </div>
           <div className="pop bold" style={{ fontSize: stageClear ? '3rem' : '3.3rem', color: '#15803d', textShadow: '0 4px 0 #bbf7d0', lineHeight: 1.3 }}>
             {animal ? <>🎁 <R t={`${animal.call}から おれいだよ！`} /></> : stageClear ? <>🏆 <R t={`${stage.label} クリア！`} /></> : '🎉 1かい クリア！'}
