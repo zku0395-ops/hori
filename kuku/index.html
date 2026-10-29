@@ -91,7 +91,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.1.4';
+    const APP_VERSION = '1.2.0';
     const BASE = window.KUKU_BASE;
     const IMG = BASE + 'img/';
 
@@ -204,6 +204,8 @@
     //  3. データ（data/mondai.js から）
     // =====================================================================
     let D = null, STAGES = [], ITEM = {}, ALL_ITEMS = [], COLOR = {}, TREASURE = {}, FLOOR_OF = {}, ENEMY = {};
+    // ぼうけん：BSTAGES（48たい ぶんの ステージ）、BFOE（あいて）、PLACE（ばしょ）、SOUV（おみやげ）
+    let BSTAGES = [], BFOE = {}, PLACE = {}, SOUV = {};
     const DAN_ORDER = () => D.FLOORS.map(f => f.a);
     const iriStages = () => STAGES.filter(s => s.iri);
     const floorStages = (a) => STAGES.filter(s => s.a === a);
@@ -213,11 +215,11 @@
     // じゅんばんに すすむ ステージ（いりぐち → 1かい〜9かい → てんしゅかく）
     const mainStages = () => [...iriStages(), ...DAN_ORDER().flatMap(a => floorStages(a)), tenshu()];
     const STEP_NUM = '⓪①②③④';
-    const stageLabel = (st) => st.iri ? `いりぐち ${'①②③'[Number(st.id.slice(2)) - 1]}` : st.a ? `${st.a}の だん ${STEP_NUM[st.s]}` : st.tenshu ? '🏯' : st.review ? '🔁' : `はってん${st.id === 'H1' ? '①' : '②'}`;
-    const stepName = (st) => st.iri ? 'しのびの いりぐち' : st.a ? `${FLOOR_OF[st.a].f}かい ${st.a}の だん ${STEP_NUM[st.s]}${st.title}` : st.tenshu ? 'てんしゅかく' : st.review ? 'ふくしゅう' : 'はってん';
+    const stageLabel = (st) => st.bouken ? `${PLACE[st.place].e} ${PLACE[st.place].name}` : st.iri ? `いりぐち ${'①②③'[Number(st.id.slice(2)) - 1]}` : st.a ? `${st.a}の だん ${STEP_NUM[st.s]}` : st.tenshu ? '🏯' : st.review ? '🔁' : `はってん${st.id === 'H1' ? '①' : '②'}`;
+    const stepName = (st) => st.bouken ? `ぼうけん ${PLACE[st.place].name} ${st.boss ? 'ボス' : st.n}` : st.iri ? 'しのびの いりぐち' : st.a ? `${FLOOR_OF[st.a].f}かい ${st.a}の だん ${STEP_NUM[st.s]}${st.title}` : st.tenshu ? 'てんしゅかく' : st.review ? 'ふくしゅう' : 'はってん';
     // たたかう あいて（④にんじゃ しけん・てんしゅかく）
-    const enemyOf = (st) => st.tenshu ? D.ENEMIES.find(en => en.f === 'T') : st.kind === 'shiken' && st.a ? D.ENEMIES.find(en => en.f === FLOOR_OF[st.a].f) : null;
-    const roomFile = (en) => `room_${en.f === 'T' ? 't' : en.f}.webp`;
+    const enemyOf = (st) => st.bouken ? BFOE[st.foe] : st.tenshu ? D.ENEMIES.find(en => en.f === 'T') : st.kind === 'shiken' && st.a ? D.ENEMIES.find(en => en.f === FLOOR_OF[st.a].f) : null;
+    const roomFile = (en) => en.p ? `bouken_${en.p}.webp` : `room_${en.f === 'T' ? 't' : en.f}.webp`;
     const tonae = (a, b) => D.TONAE[a][b - 1];
     const tonaeText = (a, b) => tonae(a, b).join(' ');
     const kukuKey = (a, b) => `${a}×${b}`;
@@ -318,13 +320,13 @@
     // =====================================================================
     //  5. しんちょく（進み具合）
     // =====================================================================
-    const newProgress = () => ({ v: 1, t: 0, coins: 0, earned: 0, items: [], cleared: {}, treasures: [], enemies: [], part: null, weak: {},
+    const newProgress = () => ({ v: 1, t: 0, coins: 0, earned: 0, items: [], cleared: {}, treasures: [], enemies: [], bitems: [], part: null, weak: {},
       welcome: 0, unlockAll: false, hatten: false, skipIri: false, look: null });
     function parseProgress(s) {
       let p = null;
       try { p = typeof s === 'string' ? (s ? JSON.parse(s) : null) : s; } catch (e) { p = null; }
       const q = { ...newProgress(), ...(p || {}) };
-      ['items', 'treasures', 'enemies'].forEach(k => { if (!Array.isArray(q[k])) q[k] = []; });
+      ['items', 'treasures', 'enemies', 'bitems'].forEach(k => { if (!Array.isArray(q[k])) q[k] = []; });
       ['cleared', 'weak'].forEach(k => { if (!q[k] || typeof q[k] !== 'object') q[k] = {}; });
       return q;
     }
@@ -342,6 +344,12 @@
     const titlesOf = (p) => D.TITLES.filter(t => t.all ? hattenAll(p) : floorsCleared(p) >= t.f).map(t => t.n);
     const titleOf = (p) => { const t = titlesOf(p).filter(n => n !== 'にんじゃ マスター'); return hattenAll(p) ? 'にんじゃ マスター' : (t[t.length - 1] || D.TITLES[0].n); };
     const ownedColors = (p) => [...D.COLORS, ...ALL_ITEMS.filter(it => it.color && p.items.includes(it.id)).map(it => it.color)];
+    // ぼうけん：てんしゅかくを クリアすると ひらく。ばしょは じゅんばんに、あいては 1たいずつ（5たい たおすと ボス）
+    const boukenOpen = (p) => !!(p.unlockAll || p.cleared.T);
+    const placeOpen = (p, pl) => boukenOpen(p) && (!!p.unlockAll || pl === 1 || !!p.cleared[`B${pl - 1}-6`]);
+    const bStageOpen = (p, st) => placeOpen(p, st.place) && (!!p.unlockAll || (st.boss ? range(1, 5).every(n => p.cleared[`B${st.place}-${n}`]) : st.n === 1 || !!p.cleared[`B${st.place}-${st.n - 1}`]));
+    const placeDone = (p, pl) => BSTAGES.filter(s => s.place === pl && p.cleared[s.id]).length;
+    const boukenDone = (p) => BSTAGES.filter(s => p.cleared[s.id]).length;
     const defaultLook = () => ({ color: 'ao', form: 1, buki: null, mochi: null, aibou: null });
 
     // こたえかた（えらぶ／すうじ）
@@ -657,18 +665,18 @@
     function BattleScene({ en, look, hp, max, hit, miss, end, bubble }) {
       return (
         <div className="relative w-full rounded-2xl border-4 border-slate-700 overflow-hidden" style={{ height: 168 }}>
-          <Bg file={roomFile(en)} style={{ position: 'absolute', inset: 0 }} fallback={<div className="absolute inset-0" style={{ background: 'linear-gradient(#3b2f2f, #6b4f3a 60%, #a0764e)' }} />} />
+          <Bg file={roomFile(en)} style={{ position: 'absolute', inset: 0 }} fallback={<div className="absolute inset-0" style={{ background: en.p ? `linear-gradient(#1e293b, ${PLACE[en.p].color})` : 'linear-gradient(#3b2f2f, #6b4f3a 60%, #a0764e)' }} />} />
           <div className="absolute inset-0 bg-black/20" />
           <div className="absolute" style={{ right: '1%', bottom: -20, width: 220, height: 170, background: 'radial-gradient(ellipse at 50% 55%, rgba(255,240,210,.5), rgba(255,240,210,0) 68%)' }} />
           <div className="absolute bottom-1" style={{ left: '6%' }}><Ninja look={look} size={108} /></div>
           {hit > 0 && <div key={hit} className="absolute fly" style={{ top: 60 }}><Shuriken s={42} color="#cbd5e1" /></div>}
           <div style={{ right: '6%' }} className={`absolute bottom-1 flex flex-col items-center ${end === 'win' ? 'vanish' : end === 'escape' ? 'runaway' : ''}`}>
             <div className="bg-black/60 rounded-full px-2 py-1 mb-1 flex items-center gap-1">
-              <span className="text-xs font-bold text-white">{en.name}</span>
+              <span className="text-xs font-bold text-white">{en.boss ? '👑 ' : ''}{en.name}</span>
               {Array.from({ length: max }, (_, j) => <span key={j} className={`inline-block w-4 h-3 rounded-sm ${j < hp ? 'bg-red-500' : 'bg-slate-500'}`} />)}
               {hp === 0 && !end && <span className="text-xs font-bold text-amber-300 ml-1">ふらふら…</span>}
             </div>
-            <div key={'h' + hit} className={hit > 0 ? 'ouch' : ''}><EnemyFace en={en} size={124} className={end ? '' : 'enemy-idle'} /></div>
+            <div key={'h' + hit} className={hit > 0 ? 'ouch' : ''}><EnemyFace en={en} size={en.boss ? 140 : 124} className={end ? '' : 'enemy-idle'} /></div>
           </div>
           {end === 'win' && <div className="absolute bottom-4 text-8xl smoke" style={{ right: '8%' }}>💨</div>}
           {bubble && <div key={bubble.k} className={`absolute bg-white rounded-2xl border-4 border-slate-700 px-3 py-1 text-xl font-bold ${end ? 'pop' : 'fade-out'}`} style={{ right: '20%', top: 44, maxWidth: '45%' }}>{bubble.t}</div>}
@@ -1109,7 +1117,9 @@
       const alive = useRef(true);
       // たたかい（④にんじゃ しけん・てんしゅかく）：まちがえずに こたえると あいての たいりょくが へる
       const en = useMemo(() => enemyOf(st), []);
-      const need = Number(settings.pass) || 0;
+      // ぼうけん：まちがえても こたえが でるまで つづけ、10もん こたえたら かち（ヒントを つかっても あたる）
+      const bk = !!st.bouken;
+      const need = bk ? 0 : Number(settings.pass) || 0;
       const maxHp = need > 0 ? need : problems.length;
       const [hp, setHp] = useState(maxHp);
       const [hit, setHit] = useState(0);
@@ -1170,7 +1180,7 @@
             return;
           }
           // しけん・てんしゅかくは とちゅうから に しない（ごうかくを きめる ため）
-          if (st.kind !== 'shiken' && !st.tenshu) onSave({ st: st.id, left: problems.length - i - 1, start: ['deai', 'tonae', 'junban'].includes(st.kind) ? p.b + 1 : 0 }, stats.current.weak);
+          if (st.kind !== 'shiken' && !st.tenshu && !bk) onSave({ st: st.id, left: problems.length - i - 1, start: ['deai', 'tonae', 'junban'].includes(st.kind) ? p.b + 1 : 0 }, stats.current.weak);
           setI(i + 1);
         },
       };
@@ -1204,11 +1214,20 @@
       const tr = r.newTreasure && TREASURE[r.newTreasure];
       const fl = st.a ? FLOOR_OF[st.a] : null;
       const en = r.enemy && ENEMY[r.enemy];
+      const bk = !!st.bouken;
+      const item = r.newItem && SOUV[r.newItem];
+      const enCoins = bk ? r.bonus : 10;
       const [open, setOpen] = useState(false);
       useEffect(() => {
         Sound.big();
         (async () => {
-          if (en && r.won) await talk.say(`${en.name}を たおした！ こばんを 10まい てに いれたよ。${r.newEnemy ? 'あいて ずかんに くわわったよ。' : ''}`, { mood: 'happy' });
+          if (en && r.won) await talk.say(`${en.name}を たおした！ こばんを ${enCoins}まい てに いれたよ。${r.newEnemy ? 'あいて ずかんに くわわったよ。' : ''}`, { mood: 'happy' });
+          if (bk) {
+            if (item) { Sound.big(); await talk.say(`おみやげの「${item.name}」を もらったよ！ ぼうけん ずかんに くわわったよ。`, { mood: 'surprise' }); }
+            if (r.allClear) await talk.say('すごい！ おにがしまの だいおうを たおして、ぼうけんを ぜんぶ クリアしたよ！ きみは ほんものの くく にんじゃだ！', { mood: 'cheer' });
+            else if (r.placeClear) await talk.say(`${PLACE[st.place].name}を クリア！ ${st.place < D.PLACES.length ? `つぎは ${PLACE[st.place + 1].name}へ いけるよ。` : ''}`, { mood: 'cheer' });
+            return;
+          }
           if (en && !r.won) await talk.say(`${en.name}は にげて しまった！`, { mood: 'surprise' });
           if (exam && !r.passed) { await talk.say(`おしい！ まちがえずに できたのは ${r.ok}もん。ごうかくは ${r.need}もん いじょう だよ。${st.tenshu ? 'ふくしゅうの へや' : '③ばらばら'}で しゅぎょう して、もういちど ちょうせん しよう。こばんを ${r.coins}まい あげるよ。`, { mood: 'cheer' }); return; }
           if (exam) await talk.say(st.tenshu ? 'すごい！ てんしゅかくの しけんに ごうかく！' : `ごうかく！ ${st.a}の だんの にんじゃ しけん クリア！`, { mood: 'cheer' });
@@ -1226,14 +1245,20 @@
         <div className="w-full max-w-4xl flex flex-col items-center gap-4 p-4">
           <KagemaruBar size={110} />
           <div className="bg-white rounded-3xl border-4 border-indigo-400 p-6 flex flex-col items-center gap-3 pop w-full">
-            <div className="text-5xl font-bold text-indigo-800">{exam ? (r.passed ? '🎉 ごうかく！' : '💪 おしい！') : r.stageClear ? '🏆 しゅぎょう クリア！' : '⭐ よく できました！'}</div>
+            <div className="text-5xl font-bold text-indigo-800">{bk ? (r.allClear ? '🏆 ぼうけん クリア！' : r.placeClear ? `⭐ ${PLACE[st.place].name} クリア！` : '⚔️ しょうり！') : exam ? (r.passed ? '🎉 ごうかく！' : '💪 おしい！') : r.stageClear ? '🏆 しゅぎょう クリア！' : '⭐ よく できました！'}</div>
             {exam && <div className="text-3xl font-bold text-center">まちがえずに {r.ok}もん ／ {r.n}もん{r.need ? <div className="text-xl text-slate-600">（ごうかくは {r.need}もん いじょう）</div> : null}</div>}
             <div className="text-5xl">{Array.from({ length: r.n }, (_, j) => j < r.ok ? '⭐' : '✩').join('')}</div>
             <div className="text-3xl font-bold flex items-center gap-1"><Koban s={36} /> ＋{r.coins + (r.bonus || 0)}まい</div>
             {en && (
               <div className={`flex items-center gap-4 rounded-3xl px-5 py-2 border-4 ${r.won ? 'spot border-amber-400 text-white' : 'bg-slate-100 border-slate-300'}`}>
                 <EnemyFace en={en} size={90} className={r.won ? 'opacity-60 grayscale' : ''} />
-                <div>{r.won ? <><div className="text-2xl font-bold text-amber-300">⚔️ {en.name}を たおした！</div><div className="text-lg">こばん ＋10まい{r.newEnemy ? '　📖 あいて ずかんに くわわった' : ''}</div></> : <div className="text-2xl font-bold">💨 {en.name}は にげて しまった…</div>}</div>
+                <div>{r.won ? <><div className="text-2xl font-bold text-amber-300">⚔️ {en.name}を たおした！</div><div className="text-lg">こばん ＋{enCoins}まい{r.newEnemy ? '　📖 あいて ずかんに くわわった' : ''}</div></> : <div className="text-2xl font-bold">💨 {en.name}は にげて しまった…</div>}</div>
+              </div>
+            )}
+            {item && (
+              <div className="flex items-center gap-4 bg-emerald-50 border-4 border-emerald-300 rounded-3xl px-6 py-3 pop">
+                <div className="text-7xl hop">{item.e}</div>
+                <div><div className="text-2xl font-bold text-emerald-700">🎁 おみやげ ゲット！{item.sp ? '（とくべつ）' : ''}</div><div className="text-4xl font-bold">{item.name}</div><div className="text-lg">🗺️ ぼうけん ずかんに くわわった</div></div>
               </div>
             )}
             {tr && (
@@ -1247,7 +1272,7 @@
           <div className="flex flex-wrap gap-4 justify-center">
             {onNext && <Btn onClick={onNext} color="#16a34a" light="#dcfce7" className="text-3xl px-8">{view.nextLabel || 'つぎへ ▶'}</Btn>}
             <Btn onClick={onAgain} color="#0284c7" light="#e0f2fe">🔁 もういちど</Btn>
-            <Btn onClick={onHome} color="#4338ca" light="#e0e7ff">🏯 おしろへ</Btn>
+            <Btn onClick={onHome} color="#4338ca" light="#e0e7ff">{bk ? '🗺️ ちずへ' : '🏯 おしろへ'}</Btn>
           </div>
         </div>
       );
@@ -1359,14 +1384,15 @@
       );
     }
 
-    function MapScreen({ name, progress, onStage, onContinue, onShop, onRoom, onZukan, onGame, onWelcome }) {
+    function MapScreen({ name, progress, onStage, onContinue, onShop, onRoom, onZukan, onGame, onWelcome, onBouken }) {
       const talk = useTalk();
       const cur = currentStage(progress);
       useEffect(() => {
         if (!progress.welcome) {
           talk.say(`${name}さん、ようこそ！ わたしは にんじゃの カゲマル。くくの しゅぎょうを して、おしろの たからものを あつめよう！`, { mood: 'happy' });
           onWelcome();
-        } else talk.say(progress.part ? 'つづきから しゅぎょう しよう！' : `つぎは『${stageLabel(cur)} ${cur.title}』だよ。`);
+        } else if (progress.cleared.T && !progress.bitems.length) talk.say('てんしゅかくを クリアしたから、ぼうけんに いけるよ！「ぼうけん」を おしてね。', { mood: 'cheer' });
+        else talk.say(progress.part ? 'つづきから しゅぎょう しよう！' : `つぎは『${stageLabel(cur)} ${cur.title}』だよ。`);
       }, []);
       const R = review();
       const showH = progress.hatten || progress.unlockAll;
@@ -1375,6 +1401,9 @@
           <div className="bg-white/90 rounded-3xl p-2 w-full max-w-5xl"><KagemaruBar size={96} compact /></div>
           <div className="flex flex-wrap gap-3 justify-center">
             <Btn onClick={onContinue} color="#16a34a" light="#dcfce7" className="text-3xl px-8 glow">▶ {progress.part ? 'つづきから' : <>{stageLabel(cur)} <Rb t={cur.title} /></>}</Btn>
+            {boukenOpen(progress)
+              ? <Btn onClick={onBouken} color="#0f766e" light="#ccfbf1" className={`text-3xl px-8 ${progress.cleared.T && !progress.bitems.length ? 'glow' : ''}`}>🗺️ ぼうけん</Btn>
+              : <Btn disabled color="#94a3b8" light="#f1f5f9" className="">🔒 ぼうけん<span className="text-sm block">てんしゅかくを クリアすると ひらくよ</span></Btn>}
             <Btn onClick={onRoom} color="#4338ca" light="#e0e7ff">🥷 にんじゃの へや</Btn>
             <Btn onClick={onZukan} color="#0284c7" light="#e0f2fe">📖 ずかん</Btn>
             <Btn onClick={onShop} color="#b45309" light="#fef3c7">🏮 よろずや</Btn>
@@ -1389,6 +1418,66 @@
       );
     }
 
+    // ぼうけんの ちず（8かしょ）と、えらんだ ばしょの あいて 6たい
+    function BoukenScreen({ progress, look, onStage }) {
+      const talk = useTalk();
+      const opens = D.PLACES.filter(pl => placeOpen(progress, pl.p));
+      const curPl = (opens.find(pl => placeDone(progress, pl.p) < 6) || opens[opens.length - 1] || D.PLACES[0]).p;
+      const [sel, setSel] = useState(curPl);
+      const pl = PLACE[sel];
+      const sts = BSTAGES.filter(st => st.place === sel);
+      const nextSt = sts.find(st => bStageOpen(progress, st) && !progress.cleared[st.id]);
+      useEffect(() => { talk.say(boukenDone(progress) ? `ぼうけんの ちずだよ。たおした あいては ${boukenDone(progress)}たい。${PLACE[curPl].name}で たたかおう！` : PLACE[curPl].intro, { mood: 'cheer' }); }, []);
+      const pick = (p) => { if (!placeOpen(progress, p)) { talk.say('まえの ばしょの ボスを たおすと いけるよ。'); return; } Sound.tap(); setSel(p); talk.say(PLACE[p].intro); };
+      return (
+        <div className="w-full max-w-6xl p-3 flex flex-col items-center gap-3">
+          <KagemaruBar size={80} compact />
+          <div className="w-full grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {D.PLACES.map(x => {
+              const open = placeOpen(progress, x.p), done = placeDone(progress, x.p);
+              return (
+                <button key={x.p} onClick={() => pick(x.p)}
+                  className={`btn3d relative rounded-2xl border-4 overflow-hidden h-28 text-left ${sel === x.p ? 'ring-4 ring-yellow-300' : ''}`} style={{ borderColor: x.color }}>
+                  <Bg file={`bouken_${x.p}.webp`} style={{ position: 'absolute', inset: 0 }} fallback={<div className="absolute inset-0" style={{ background: `linear-gradient(135deg, #1e293b, ${x.color})` }} />} />
+                  <div className={`absolute inset-0 ${open ? 'bg-black/25' : 'bg-black/60'}`} />
+                  <div className="relative p-2 text-white h-full flex flex-col justify-between">
+                    <div className="flex items-center gap-1"><span className="rounded-full bg-white/90 text-slate-800 font-bold px-2 text-sm">{x.p}</span><span className="text-xl font-bold drop-shadow">{x.e} {x.name}</span></div>
+                    <div className="flex items-end justify-between">
+                      <span className="text-lg font-bold drop-shadow">{open ? `⭐ ${done} / 6` : '🔒'}</span>
+                      {x.p === curPl && open && <Ninja look={look} size={50} bare />}
+                      {done === 6 && <span className="text-2xl">🏆</span>}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <div className="w-full rounded-3xl border-4 bg-white/95 p-3 flex flex-col gap-2" style={{ borderColor: pl.color }}>
+            <div className="text-2xl font-bold">{pl.e} {pl.name}　<span className="text-lg text-slate-600">あいてを 1たいずつ たおそう。5たい たおすと ボスが でるよ</span></div>
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+              {sts.map(st => {
+                const foe = BFOE[st.foe], open = bStageOpen(progress, st), clear = !!progress.cleared[st.id];
+                const now = nextSt && nextSt.id === st.id;
+                return (
+                  <button key={st.id} onClick={() => { if (open) onStage(st); else talk.say(st.boss ? 'ふつうの あいてを 5たい たおすと、ボスが でて くるよ。' : 'まえの あいてを たおすと たたかえるよ。'); }}
+                    className={`btn3d relative rounded-2xl border-4 p-1 flex flex-col items-center ${clear ? 'spot border-amber-400 text-white' : open ? 'bg-white border-indigo-400' : 'bg-stone-200 border-stone-300'} ${now ? 'glow' : ''}`}>
+                    {st.boss && <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 rounded-full px-2 text-sm font-bold text-slate-900">👑 ボス</div>}
+                    <EnemyFace en={foe} size={st.boss ? 104 : 88} got={open || clear} />
+                    <div className="text-base font-bold leading-tight text-center" style={{ wordBreak: 'keep-all' }}>{open || clear ? foe.name : '？？？'}</div>
+                    {clear && <div className="absolute -top-3 -right-2 text-xl">⭐</div>}
+                    {!open && <div className="absolute -top-3 -left-2 text-xl">🔒</div>}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-lg font-bold">🎁 おみやげ：
+              {sts.map(st => { const it = SOUV[BFOE[st.foe].item], got = progress.bitems.includes(it.id); return <span key={it.id} title={it.name} className={`text-3xl ${got ? '' : 'opacity-25 grayscale'}`}>{it.e}</span>; })}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     function StageModal({ st, progress, onStart, onResume, onClose }) {
       const talk = useTalk();
       useEffect(() => { talk.say(st.intro); }, []);
@@ -1396,11 +1485,12 @@
       return (
         <div className="fixed inset-0 bg-black/50 z-40 flex items-center justify-center p-4" onClick={onClose}>
           <div className="bg-indigo-50 rounded-3xl p-5 border-4 border-indigo-400 flex flex-col items-center gap-4 pop max-w-3xl w-full" onClick={e => e.stopPropagation()}>
-            <div className="text-lg font-bold text-indigo-800">{st.a ? `${FLOOR_OF[st.a].f}かい ・ ${st.a}の だん` : st.iri ? 'しのびの いりぐち' : st.hatten ? '✨ はってん' : ''}</div>
+            <div className="text-lg font-bold text-indigo-800">{st.bouken ? `🗺️ ぼうけん ・ ${PLACE[st.place].name}${st.boss ? ' ・ 👑 ボス' : ` ・ ${st.n}たいめ`}` : st.a ? `${FLOOR_OF[st.a].f}かい ・ ${st.a}の だん` : st.iri ? 'しのびの いりぐち' : st.hatten ? '✨ はってん' : ''}</div>
             <div className="text-4xl font-bold">{stageLabel(st)} <Rb t={st.title} /></div>
             <div className="flex items-start gap-3"><Kagemaru size={90} /><div className="text-2xl bg-white rounded-2xl px-4 py-3 leading-loose font-bold"><Rb t={st.intro} /></div></div>
             {enemyOf(st) && <div className="flex items-center gap-3 spot text-white rounded-2xl px-4 py-1"><EnemyFace en={enemyOf(st)} size={80} /><div className="text-2xl font-bold">あいて：{enemyOf(st).name}</div></div>}
-            {progress.cleared[st.id] && <div className="text-xl font-bold text-amber-700">⭐ クリアずみ（なんかいでも できるよ）</div>}
+            {progress.cleared[st.id] && <div className="text-xl font-bold text-amber-700">⭐ クリアずみ（なんかいでも できるよ{st.bouken ? '。こばんは もらえるよ' : ''}）</div>}
+            {st.bouken && <div className="text-lg font-bold text-slate-600">くくが 10もん でるよ。ぜんぶ こたえたら かち！ {SOUV[BFOE[st.foe].item].e} {progress.bitems.includes(BFOE[st.foe].item) ? 'おみやげは もらったよ' : 'かつと おみやげが もらえるよ'}</div>}
             <div className="flex gap-3 flex-wrap justify-center">
               {part && <Btn onClick={onResume} color="#16a34a" light="#dcfce7">▶ つづきから（あと {part.left}もん）</Btn>}
               <Btn onClick={onStart} color="#16a34a" light="#dcfce7" className="text-3xl px-8">{part ? 'はじめから' : '▶ はじめる'}</Btn>
@@ -1461,13 +1551,14 @@
       const talk = useTalk();
       const [tab, setTab] = useState('tr');
       useEffect(() => { talk.say(`おたから ずかんだよ。いま ${progress.treasures.length}こ。ぜんぶで ${D.TREASURES.length}こ あるよ。`); }, []);
-      const show = (t) => { Sound.tap(); setTab(t); talk.say(t === 'tr' ? `おたから ずかんだよ。いま ${progress.treasures.length}こ。` : `あいて ずかんだよ。たおした あいては ${progress.enemies.length}たい。ぜんぶで ${D.ENEMIES.length}たい いるよ。`); };
+      const show = (t) => { Sound.tap(); setTab(t); if (t === 'bk') { talk.say(`ぼうけん ずかんだよ。おみやげは ${progress.bitems.length}こ。ぜんぶで ${D.SOUVENIRS.length}こ あるよ。`); return; } talk.say(t === 'tr' ? `おたから ずかんだよ。いま ${progress.treasures.length}こ。` : `あいて ずかんだよ。たおした あいては ${progress.enemies.length}たい。ぜんぶで ${D.ENEMIES.length}たい いるよ。`); };
       return (
         <div className="w-full max-w-5xl p-3 flex flex-col items-center gap-3">
           <KagemaruBar size={90} compact />
           <div className="flex gap-2">
             <button onClick={() => show('tr')} className={`btn3d rounded-2xl border-2 px-4 py-2 text-xl font-bold ${tab === 'tr' ? 'bg-amber-100 border-amber-500' : 'bg-white border-slate-300'}`}>💎 おたから ずかん</button>
             <button onClick={() => show('en')} className={`btn3d rounded-2xl border-2 px-4 py-2 text-xl font-bold ${tab === 'en' ? 'bg-slate-700 text-white border-slate-900' : 'bg-white border-slate-300'}`}>⚔️ あいて ずかん</button>
+            {boukenOpen(progress) && <button onClick={() => show('bk')} className={`btn3d rounded-2xl border-2 px-4 py-2 text-xl font-bold ${tab === 'bk' ? 'bg-emerald-100 border-emerald-500' : 'bg-white border-slate-300'}`}>🗺️ ぼうけん ずかん</button>}
           </div>
           {tab === 'en' && (
             <>
@@ -1483,6 +1574,28 @@
                     </button>
                   );
                 })}
+              </div>
+            </>
+          )}
+          {tab === 'bk' && (
+            <>
+              <div className="text-2xl font-bold bg-white rounded-2xl px-4 py-1 border-2 border-emerald-400">🎁 {progress.bitems.length} / {D.SOUVENIRS.length}　⚔️ {boukenDone(progress)} / {BSTAGES.length}たい</div>
+              <div className="flex flex-col gap-2 w-full">
+                {D.PLACES.map(pl => (
+                  <div key={pl.p} className="bg-white rounded-2xl border-4 px-3 py-2 flex flex-wrap items-center gap-2" style={{ borderColor: pl.color }}>
+                    <div className="w-40 text-xl font-bold">{pl.e} {pl.name}</div>
+                    {BSTAGES.filter(st => st.place === pl.p).map(st => {
+                      const it = SOUV[BFOE[st.foe].item], got = progress.bitems.includes(it.id);
+                      return (
+                        <button key={it.id} onClick={() => got && talk.say(`${it.name}だよ。${BFOE[st.foe].name}から もらったよ。`)}
+                          className={`rounded-2xl border-2 w-28 py-1 flex flex-col items-center ${got ? (it.sp ? 'bg-amber-50 border-amber-400' : 'bg-emerald-50 border-emerald-300') : 'bg-stone-100 border-stone-200'}`}>
+                          <span className={`text-4xl ${got ? '' : 'opacity-20 grayscale'}`}>{it.e}</span>
+                          <span className="text-sm font-bold text-center leading-tight">{got ? it.name : '？？？'}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
             </>
           )}
@@ -1752,7 +1865,7 @@
                       return (
                         <tr key={st.name} className="border-t cursor-pointer hover:bg-indigo-50" onClick={() => { setSel(st.name); setTab('child'); }}>
                           <td className="p-2 font-bold">{st.name}</td>
-                          <td>{floorsCleared(p)} / 9{p.cleared.T ? '＋てんしゅかく' : ''}<div className="text-xs text-slate-500">いま：{stageLabel(cur)} {cur.title}</div></td>
+                          <td>{floorsCleared(p)} / 9{p.cleared.T ? '＋てんしゅかく' : ''}<div className="text-xs text-slate-500">いま：{stageLabel(cur)} {cur.title}</div>{boukenDone(p) ? <div className="text-xs text-emerald-700 font-bold">🗺️ ぼうけん {boukenDone(p)} / {BSTAGES.length}たい</div> : null}</td>
                           <td>{p.treasures.length} / {D.TREASURES.length}</td>
                           <td>{p.coins}</td>
                           <td>{st.count}</td>
@@ -1792,11 +1905,12 @@
                       <div className="font-bold text-xl mb-1">{student.name}　<span className="text-base">🎖️ {titleOf(prog)}</span></div>
                       <div>ごうかく した 階：{floorsCleared(prog)} / 9{prog.cleared.T ? '（てんしゅかく ごうかく）' : ''}　たから：{prog.treasures.length} / {D.TREASURES.length}　こばん：{prog.coins}（これまでに {prog.earned}）　かった もの：{prog.items.length}</div>
                       <div>問題：{student.count}　まちがえずに：{pct(student.ok, student.count)}　さいご：{student.last || '－'}</div>
+                      {boukenOpen(prog) && <div>🗺️ ぼうけん：たおした あいて {boukenDone(prog)} / {BSTAGES.length}　おみやげ {prog.bitems.length} / {D.SOUVENIRS.length}　いま：{(D.PLACES.filter(pl => placeOpen(prog, pl.p)).pop() || D.PLACES[0]).name}</div>}
                       <div className="mt-2 font-bold">ステージごとの結果</div>
                       <table className="w-full text-left text-sm">
                         <thead className="bg-slate-100"><tr><th className="p-1">ステージ</th><th>クリア</th><th>問題</th><th>まちがえずに</th></tr></thead>
                         <tbody>
-                          {[...mainStages(), review(), ...hattenStages()].map(st => {
+                          {[...mainStages(), review(), ...hattenStages(), ...BSTAGES].map(st => {
                             const g = student.stages[st.id] || [0, 0];
                             if (!g[0] && !prog.cleared[st.id]) return null;
                             return <tr key={st.id} className="border-t"><td className="p-1">{stageLabel(st)} {st.title}</td><td>{prog.cleared[st.id] ? '⭐' : ''}</td><td>{g[0]}</td><td style={{ background: rateColor(g[1], g[0]) }}>{pct(g[1], g[0])}</td></tr>;
@@ -1967,7 +2081,7 @@
         records.current = [];
         titleStart.current = titlesOf(progRef.current);
         const fixed = st.a || st.tenshu;
-        const n = part ? part.left : fixed ? 9 : Number(settings.count) || 5;
+        const n = part ? part.left : st.bouken ? 10 : fixed ? 9 : Number(settings.count) || 5;
         setView({ v: 'practice', st, n, start: part && part.start ? part.start : 1, intro: part ? 'つづきから はじめよう。' : null, key: uid() });
       };
       const onRecord = (r) => { records.current.push({ ...r, id: uid() }); };
@@ -1978,6 +2092,7 @@
       const finish = (st, result) => {
         let p = { ...progRef.current, part: null, weak: mergeWeak(progRef.current.weak, result.weak) };
         pendingWeak.current = {};
+        if (st.bouken) { finishBouken(st, result, p); return; }
         let bonus = 0, stageClear = false, newTreasure = null, passed = true, need = 0;
         const exam = st.kind === 'shiken' || st.tenshu;
         if (exam) { need = Number(settings.pass) || 0; passed = result.ok >= need; }
@@ -1999,10 +2114,30 @@
           if (list[i + 1] && stageOpen(p, list[i + 1])) next = () => startStage(list[i + 1]);
         }
         let nextLabel = null;
+        if (st.tenshu && passed && !next) { next = () => setView({ v: 'bouken' }); nextLabel = '🗺️ ぼうけんへ ▶'; }
         if (exam && !passed && st.a) { const bara = STAGES.find(s => s.a === st.a && s.s === 3); next = () => startStage(bara); nextLabel = '③ ばらばらで しゅぎょう ▶'; }
         setView({ v: 'result', st, result: { ...result, bonus, stageClear, newTreasure, newTitle, passed, need, newEnemy }, next, nextLabel });
       };
-      const quit = () => { talkApi.stop(); persist({ ...progRef.current, weak: mergeWeak(progRef.current.weak, pendingWeak.current) }); pendingWeak.current = {}; setView({ v: 'map' }); };
+      // ぼうけん：かつと こばん（ふつう 10・ボス 30）。おみやげは はじめの 1かいだけ
+      const finishBouken = (st, result, p) => {
+        const foe = BFOE[st.foe];
+        const first = !p.cleared[st.id];
+        if (first) p.cleared = { ...p.cleared, [st.id]: 1 };
+        const bonus = st.boss ? 30 : 10;
+        let newItem = null;
+        if (!p.bitems.includes(foe.item)) { p.bitems = [...p.bitems, foe.item]; newItem = foe.item; }
+        p.coins += bonus; p.earned += bonus;
+        p = persist(p);
+        const nextSt = st.boss ? BSTAGES.find(s => s.place === st.place + 1 && s.n === 1) : BSTAGES.find(s => s.place === st.place && s.n === st.n + 1);
+        let next = null, nextLabel = null;
+        if (nextSt && bStageOpen(p, nextSt)) {
+          next = () => startStage(nextSt);
+          nextLabel = st.boss ? `${PLACE[nextSt.place].e} ${PLACE[nextSt.place].name}へ ▶` : nextSt.boss ? '👑 ボスと たたかう ▶' : 'つぎの あいてへ ▶';
+        }
+        const allClear = st.boss && st.place === D.PLACES.length && first;
+        setView({ v: 'result', st, result: { ...result, bonus, newItem, placeClear: st.boss && first, allClear, won: true }, next, nextLabel });
+      };
+      const quit = () => { talkApi.stop(); persist({ ...progRef.current, weak: mergeWeak(progRef.current.weak, pendingWeak.current) }); pendingWeak.current = {}; setView({ v: view.st && view.st.bouken ? 'bouken' : 'map' }); };
       const buy = (it) => {
         const p = progRef.current;
         if (p.coins < it.p || p.items.includes(it.id)) return;
@@ -2059,7 +2194,7 @@
         body = <div className="min-h-screen flex flex-col">{bar(false)}
           <MapScreen name={name} progress={progress} onStage={(st) => { Sound.tap(); setStageSel(st); }} onContinue={cont}
             onShop={() => setView({ v: 'shop' })} onRoom={() => setView({ v: 'room' })} onZukan={() => setView({ v: 'zukan' })} onGame={() => setView({ v: 'game' })}
-            onWelcome={() => persist({ ...progRef.current, welcome: 1 })} />
+            onWelcome={() => persist({ ...progRef.current, welcome: 1 })} onBouken={() => { Sound.tap(); setView({ v: 'bouken' }); }} />
           {stageSel && <StageModal key={stageSel.id} st={stageSel} progress={progress} onClose={() => setStageSel(null)}
             onStart={() => startStage(stageSel)} onResume={() => startStage(stageSel, progress.part)} />}</div>;
       } else if (view.v === 'practice') {
@@ -2068,7 +2203,10 @@
             onRecord={onRecord} onCoin={onCoin} onSave={onSave} onFinish={(r) => finish(view.st, r)} onQuit={quit} /></div></div>;
       } else if (view.v === 'result') {
         body = <div className="min-h-screen flex flex-col items-center washi">{bar()}<ResultScreen view={view} look={progress.look}
-          onAgain={() => startStage(view.st)} onNext={view.next} onHome={() => setView({ v: 'map' })} /></div>;
+          onAgain={() => startStage(view.st)} onNext={view.next} onHome={() => setView({ v: view.st.bouken ? 'bouken' : 'map' })} /></div>;
+      } else if (view.v === 'bouken') {
+        body = <div className="min-h-screen flex flex-col items-center washi">{bar()}<BoukenScreen progress={progress} look={progress.look} onStage={(st) => { Sound.tap(); setStageSel(st); }} />
+          {stageSel && <StageModal key={stageSel.id} st={stageSel} progress={progress} onClose={() => setStageSel(null)} onStart={() => startStage(stageSel)} onResume={() => startStage(stageSel)} />}</div>;
       } else if (view.v === 'shop') {
         body = <div className="min-h-screen flex flex-col items-center washi">{bar()}<ShopScreen progress={progress} onBuy={buy} /></div>;
       } else if (view.v === 'room') {
@@ -2099,6 +2237,11 @@
       D.TREASURES.forEach(t => { TREASURE[t.id] = t; });
       D.FLOORS.forEach(f => { FLOOR_OF[f.a] = f; });
       D.ENEMIES.forEach(en => { ENEMY[en.id] = en; });
+      D.PLACES.forEach(pl => { PLACE[pl.p] = pl; });
+      D.SOUVENIRS.forEach(x => { SOUV[x.id] = x; });
+      D.BOUKEN.forEach(en => { BFOE[en.id] = en; ENEMY[en.id] = en; });
+      BSTAGES = D.BOUKEN.map(en => ({ id: `B${en.p}-${en.n}`, bouken: true, place: en.p, n: en.n, boss: !!en.boss, foe: en.id, kind: 'mix', all: true, title: en.name,
+        intro: (en.n === 1 ? PLACE[en.p].intro + ' ' : '') + (en.boss ? `${PLACE[en.p].name}の ボス、${en.name}が あらわれた！` : `${en.name}が あらわれた！`) + ' くくを 10もん こたえて たおそう！' }));
       ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     }).catch(e => {
       document.getElementById('root').innerHTML = '<div style="padding:40px;font-size:24px;line-height:1.8">もんだいの データを よみこめませんでした。<br>ネットに つながって いるか たしかめて、ページを よみこみなおして ください。<div style="font-size:14px;color:#888">' + e.message + '</div></div>';
