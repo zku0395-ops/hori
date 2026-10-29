@@ -91,7 +91,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.2.0';
+    const APP_VERSION = '1.2.1';
     const BASE = window.KUKU_BASE;
     const IMG = BASE + 'img/';
 
@@ -341,15 +341,21 @@
     const currentStage = (p) => mainStages().find(st => stageOpen(p, st) && !isCleared(p, st.id)) || tenshu();
     const floorsCleared = (p) => passedDans(p).length;
     const hattenAll = (p) => hattenStages().every(st => p.cleared[st.id]);
-    const titlesOf = (p) => D.TITLES.filter(t => t.all ? hattenAll(p) : floorsCleared(p) >= t.f).map(t => t.n);
-    const titleOf = (p) => { const t = titlesOf(p).filter(n => n !== 'にんじゃ マスター'); return hattenAll(p) ? 'にんじゃ マスター' : (t[t.length - 1] || D.TITLES[0].n); };
-    const ownedColors = (p) => [...D.COLORS, ...ALL_ITEMS.filter(it => it.color && p.items.includes(it.id)).map(it => it.color)];
+    const titlesOf = (p) => D.TITLES.filter(t => t.bouken ? boukenAll(p) : t.all ? hattenAll(p) : floorsCleared(p) >= t.f).map(t => t.n);
+    const titleOf = (p) => {
+      const special = D.TITLES.filter(t => t.all || t.bouken).map(t => t.n);
+      const t = titlesOf(p).filter(n => !special.includes(n));
+      const bt = D.TITLES.find(x => x.bouken);
+      return bt && boukenAll(p) ? bt.n : hattenAll(p) ? 'にんじゃ マスター' : (t[t.length - 1] || D.TITLES[0].n);
+    };
+    const ownedColors = (p) => [...D.COLORS, ...ALL_ITEMS.filter(it => it.color && p.items.includes(it.id)).map(it => it.color), ...(boukenAll(p) && D.BOUKEN_COLOR ? [D.BOUKEN_COLOR] : [])];
     // ぼうけん：てんしゅかくを クリアすると ひらく。ばしょは じゅんばんに、あいては 1たいずつ（5たい たおすと ボス）
     const boukenOpen = (p) => !!(p.unlockAll || p.cleared.T);
     const placeOpen = (p, pl) => boukenOpen(p) && (!!p.unlockAll || pl === 1 || !!p.cleared[`B${pl - 1}-6`]);
     const bStageOpen = (p, st) => placeOpen(p, st.place) && (!!p.unlockAll || (st.boss ? range(1, 5).every(n => p.cleared[`B${st.place}-${n}`]) : st.n === 1 || !!p.cleared[`B${st.place}-${st.n - 1}`]));
     const placeDone = (p, pl) => BSTAGES.filter(s => s.place === pl && p.cleared[s.id]).length;
     const boukenDone = (p) => BSTAGES.filter(s => p.cleared[s.id]).length;
+    const boukenAll = (p) => BSTAGES.length > 0 && boukenDone(p) === BSTAGES.length;
     const defaultLook = () => ({ color: 'ao', form: 1, buki: null, mochi: null, aibou: null });
 
     // こたえかた（えらぶ／すうじ）
@@ -1224,7 +1230,7 @@
           if (en && r.won) await talk.say(`${en.name}を たおした！ こばんを ${enCoins}まい てに いれたよ。${r.newEnemy ? 'あいて ずかんに くわわったよ。' : ''}`, { mood: 'happy' });
           if (bk) {
             if (item) { Sound.big(); await talk.say(`おみやげの「${item.name}」を もらったよ！ ぼうけん ずかんに くわわったよ。`, { mood: 'surprise' }); }
-            if (r.allClear) await talk.say('すごい！ おにがしまの だいおうを たおして、ぼうけんを ぜんぶ クリアしたよ！ きみは ほんものの くく にんじゃだ！', { mood: 'cheer' });
+            if (r.allClear) await talk.say('すごい！ ぼうけんの あいてを ぜんぶ たおしたよ！ しょうごう「くく でんせつの にんじゃ」と、とくべつな いろ「でんせつの よろい」を あげるよ。にんじゃの へやで きがえてね！', { mood: 'cheer' });
             else if (r.placeClear) await talk.say(`${PLACE[st.place].name}を クリア！ ${st.place < D.PLACES.length ? `つぎは ${PLACE[st.place + 1].name}へ いけるよ。` : ''}`, { mood: 'cheer' });
             return;
           }
@@ -1253,6 +1259,12 @@
               <div className={`flex items-center gap-4 rounded-3xl px-5 py-2 border-4 ${r.won ? 'spot border-amber-400 text-white' : 'bg-slate-100 border-slate-300'}`}>
                 <EnemyFace en={en} size={90} className={r.won ? 'opacity-60 grayscale' : ''} />
                 <div>{r.won ? <><div className="text-2xl font-bold text-amber-300">⚔️ {en.name}を たおした！</div><div className="text-lg">こばん ＋{enCoins}まい{r.newEnemy ? '　📖 あいて ずかんに くわわった' : ''}</div></> : <div className="text-2xl font-bold">💨 {en.name}は にげて しまった…</div>}</div>
+              </div>
+            )}
+            {r.allClear && (
+              <div className="flex items-center gap-4 bg-amber-100 border-4 border-amber-400 rounded-3xl px-6 py-3 pop">
+                <Ninja look={{ ...look, color: 'densetsu' }} size={90} bare />
+                <div><div className="text-2xl font-bold text-amber-700">🎖️ しょうごう「くく でんせつの にんじゃ」</div><div className="text-xl font-bold">🎨 とくべつな いろ「でんせつの よろい」を もらった！</div><div className="text-base">にんじゃの へやで きがえられるよ</div></div>
               </div>
             )}
             {item && (
@@ -1613,7 +1625,7 @@
             })}
           </div>}
           <div className="flex flex-wrap gap-2 justify-center">
-            {D.TITLES.map(t => { const on = titlesOf(progress).includes(t.n); return <span key={t.n} className={`rounded-full px-3 py-1 border-2 font-bold ${on ? 'bg-amber-100 border-amber-400' : 'bg-white border-slate-200 text-slate-400'}`}>{on ? '🎖️' : '🔒'} {t.n}{t.all ? '（はってん ぜんぶ）' : t.f ? `（${t.f}かい ごうかく）` : ''}</span>; })}
+            {D.TITLES.map(t => { const on = titlesOf(progress).includes(t.n); return <span key={t.n} className={`rounded-full px-3 py-1 border-2 font-bold ${on ? 'bg-amber-100 border-amber-400' : 'bg-white border-slate-200 text-slate-400'}`}>{on ? '🎖️' : '🔒'} {t.n}{t.bouken ? '（ぼうけん ぜんぶ）' : t.all ? '（はってん ぜんぶ）' : t.f ? `（${t.f}かい ごうかく）` : ''}</span>; })}
           </div>
         </div>
       );
@@ -2134,7 +2146,7 @@
           next = () => startStage(nextSt);
           nextLabel = st.boss ? `${PLACE[nextSt.place].e} ${PLACE[nextSt.place].name}へ ▶` : nextSt.boss ? '👑 ボスと たたかう ▶' : 'つぎの あいてへ ▶';
         }
-        const allClear = st.boss && st.place === D.PLACES.length && first;
+        const allClear = boukenAll(p) && !titleStart.current.includes((D.TITLES.find(t => t.bouken) || {}).n);
         setView({ v: 'result', st, result: { ...result, bonus, newItem, placeClear: st.boss && first, allClear, won: true }, next, nextLabel });
       };
       const quit = () => { talkApi.stop(); persist({ ...progRef.current, weak: mergeWeak(progRef.current.weak, pendingWeak.current) }); pendingWeak.current = {}; setView({ v: view.st && view.st.bouken ? 'bouken' : 'map' }); };
@@ -2233,7 +2245,7 @@
       D.ITEM_CATS.forEach(c => c.items.forEach(it => { it.cat = c.id; }));
       ALL_ITEMS = D.ITEM_CATS.flatMap(c => c.items);
       ALL_ITEMS.forEach(it => { ITEM[it.id] = it; });
-      [...D.COLORS, ...ALL_ITEMS.filter(it => it.color).map(it => it.color)].forEach(c => { COLOR[c.id] = c; });
+      [...D.COLORS, ...ALL_ITEMS.filter(it => it.color).map(it => it.color), ...(D.BOUKEN_COLOR ? [D.BOUKEN_COLOR] : [])].forEach(c => { COLOR[c.id] = c; });
       D.TREASURES.forEach(t => { TREASURE[t.id] = t; });
       D.FLOORS.forEach(f => { FLOOR_OF[f.a] = f; });
       D.ENEMIES.forEach(en => { ENEMY[en.id] = en; });
