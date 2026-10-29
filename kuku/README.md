@@ -104,8 +104,8 @@ kuku/tools/test_gas.js   コード.gs のテスト（node kuku/tools/test_gas.js
 | たからもの（10こ） | `treasure_makimono.webp` など（`data/mondai.js` の TREASURES の id） |
 | たたかう あいて（10たい） | `enemy_mihari.webp` など（`data/mondai.js` の ENEMIES の id） |
 | たたかう へや（10まい） | `room_1.webp` 〜 `room_9.webp`、`room_t.webp`（てんしゅかく） |
-| ぼうけんの あいて（48たい） | `enemy_bk_dorobo.webp` など（`data/mondai.js` の BOUKEN の id）。絵がないあいては絵文字で出ます |
-| ぼうけんの 場所（8まい） | `bouken_1.webp` 〜 `bouken_8.webp`。絵がない場所は色の背景で出ます |
+| ぼうけんの あいて（48たい） | `enemy_bk_dorobo.webp` など（`data/mondai.js` の BOUKEN の id） |
+| ぼうけんの 場所（8まい） | `bouken_1.webp` 〜 `bouken_8.webp`（たたかいの場面と ちずの カード） |
 
 ## 公開の手順
 
@@ -225,7 +225,7 @@ kuku/tools/test_gas.js   コード.gs のテスト（node kuku/tools/test_gas.js
 - しけんの合格の目安（いまは 9問中7問。使ってみて、きびしすぎ・やさしすぎがあれば調整します）
 - 「じどう」で すうじ に切りかわる時期（いまは ③ばらばら の2回目から）
 - よろずやの値段（使ってみて、たまりすぎ・たりなすぎがあれば調整します）
-- ぼうけんの あいて48たいと 場所8まいの絵（1か所ずつ Canva で作り、見ていただいてから次の場所へ）
-- ぼうけんの 2か所目から あとの あいての名前・セリフ・おみやげ（いまは案。絵を作るときに相談して直します）
+- ぼうけんの あいて48たいと 場所8まいの絵（Canva で作りました。使ってみて、取りかえたい絵があれば作り直します）
+- ぼうけんの あいての セリフ・おみやげ（使ってみて、子どもに合わないものがあれば直します）
 - ぼうけんを ぜんぶ クリアしたあとの しょうごう や ごほうびを足すか
 - プリント（`kuku/print/`）を作るか（アプリと同じ段の順の れんしゅうと テスト）
