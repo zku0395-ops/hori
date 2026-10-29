@@ -83,7 +83,7 @@
       normal: { label: 'ふつう',   volShift: 0,  snrSpan: 24, accS0: 0.45, dynScale: 1.0,  dynFloor: 0.2,  speedLo: 2.5, speedHi: 7.0, hayaTarget: 6.0 },
       hard:   { label: 'きびしい', volShift: 3,  snrSpan: 30, accS0: 0.55, dynScale: 1.25, dynFloor: 0,    speedLo: 3.0, speedHi: 6.5, hayaTarget: 7.0 },
     };
-    const DEFAULT_SETTINGS = { strict: 'normal', fontSize: 'm', slit: true, sfx: true, hakaseVoice: true, modelSpeed: 'normal', unlockAll: false, micGoodDb: -30 };
+    const DEFAULT_SETTINGS = { strict: 'normal', fontSize: 'm', slit: true, sfx: true, hakaseVoice: true, modelSpeed: 'normal', gemini: true, gHakase: 'Algenib', gModel: 'Erinome', unlockAll: false, micGoodDb: -30 };
     const FONT_SCALE = { s: 0.8, m: 1, l: 1.2, xl: 1.4 };
     const HAKASE_VOICE = { rate: 1.0, pitch: 0.8 };
     const PART_INFO = {
@@ -325,8 +325,10 @@
       const dictRe = new RegExp(keys.map(escapeRe).join('|'), 'g');
       const keep = stage && stage.keepSpace;
       const speech = task.tts || task.lines.map(l => { const t = stripMarkup(l); return keep ? t : t.replace(/[ 　]+/g, ''); });
+      // Gemini の おてほんは、漢字を ふりがなに して 読ませる（「犬」を「けん」と 読まないように）
+      const gspeech = task.tts || lines.map(toks => toks.map(t => t.type === 'kanji' ? t.rt : t.type === 'char' ? t.text : ' ').join('').replace(/ +/g, ' ').trim());
       const maxLen = Math.max(...task.lines.map(l => stripMarkup(l).length));
-      const info = { lines, target: target.join(''), map, mora, dict, dictRe, speech, maxLen, maxSec: clamp(mora * 1.3 + 12, 12, 240) };
+      const info = { lines, target: target.join(''), map, mora, dict, dictRe, speech, gspeech, maxLen, maxSec: clamp(mora * 1.3 + 12, 12, 240) };
       INFO_CACHE[task.id] = info;
       return info;
     }
@@ -373,7 +375,7 @@
       try { s = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { s = null; }
       const st = normalizeState(s);
       if (!s || !s.deviceId) saveState(st);
-      CURRENT.settings = st.settings;
+      CURRENT.settings = st.settings; CURRENT.sync = st.sync; CURRENT.name = st.profile ? st.profile.name : '';
       return st;
     }
     function saveState(s) { try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch (e) { console.warn(e); } }
@@ -648,8 +650,30 @@
     }
 
     // 読み上げ（はかせの声・お手本）
+    //   Gemini の声：記録の送り先（音読用 Apps Script）に たのんで 作る。文を「。」ごとに わけて、じゅんに 流す。
+    //   できた声は この端末（IndexedDB）にも おぼえる。6びょうで まにあわない・使えない・名前が 入る 文は、ブラウザの声で 読む
+    const GVOICES = {
+      hakase: [['Algenib', 'おじいさん（ひくめ）'], ['Gacrux', 'おとな（おちついた）'], ['Charon', 'ものしり'], ['Sadaltager', 'はかせ'], ['Achird', 'やさしい']],
+      model: [['Erinome', 'はっきり'], ['Iapetus', 'すっきり'], ['Kore', 'しっかり'], ['Aoede', 'かるやか'], ['Sulafat', 'あたたか'], ['Achernar', 'やわらか']],
+    };
+    const VoiceDB = {
+      db: null,
+      open() {
+        if (this.db) return this.db;
+        this.db = new Promise((ok, ng) => {
+          try {
+            const r = indexedDB.open('ondoku_voice', 1);
+            r.onupgradeneeded = () => r.result.createObjectStore('v');
+            r.onsuccess = () => ok(r.result); r.onerror = () => ng(r.error);
+          } catch (e) { ng(e); }
+        });
+        return this.db;
+      },
+      async get(k) { try { const db = await this.open(); return await new Promise(ok => { const q = db.transaction('v').objectStore('v').get(k); q.onsuccess = () => ok(q.result || null); q.onerror = () => ok(null); }); } catch (e) { return null; } },
+      async put(k, v) { try { const db = await this.open(); db.transaction('v', 'readwrite').objectStore('v').put(v, k); } catch (e) {} },
+    };
     const TTS = {
-      voice: null,
+      voice: null, tok: 0, audio: null, cache: new Map(), off: false, WAIT: 6000, done: null,
       init() {
         if (!('speechSynthesis' in window)) return;
         const pick = () => {
@@ -659,7 +683,8 @@
         pick();
         speechSynthesis.onvoiceschanged = pick;
       },
-      speak(text, { rate = 1, pitch = 1 } = {}) {
+      // ブラウザの声
+      browser(text, { rate = 1, pitch = 1 } = {}) {
         return new Promise(resolve => {
           if (!('speechSynthesis' in window) || !text) return resolve();
           speechSynthesis.cancel();
@@ -674,7 +699,84 @@
           speechSynthesis.speak(u);
         });
       },
-      cancel() { if ('speechSynthesis' in window) speechSynthesis.cancel(); },
+      gvoice(role) { const s = CURRENT.settings || {}, v = role === 'model' ? s.gModel : s.gHakase, list = GVOICES[role] || GVOICES.hakase; return list.some(x => x[0] === v) ? v : list[0][0]; },
+      ready() { const s = CURRENT.settings || {}, y = CURRENT.sync || {}; return s.gemini !== false && !!y.url && REC_URL_RE.test(y.url) && !!y.key; },
+      split(text) { return String(text || '').split(/(?<=[。！？!?])\s*/).map(t => t.trim()).filter(Boolean); },
+      useGemini(t) { return this.ready() && !this.off && !!t && /[ぁ-んァ-ヶ一-龯]/.test(t) && !(CURRENT.name && t.includes(CURRENT.name)); },
+      // Apps Script に たのむ（記録と 同じ 送り先・合言葉）
+      async ask(extra) {
+        const y = CURRENT.sync || {};
+        const res = await fetch(y.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ app: 'ondoku-hakase', key: y.key || '', ...extra }) });
+        return res.json();
+      },
+      // 1つの 文の 声（objectURL）。なければ Apps Script に たのむ（おなじ 文を 2かい たのまない）
+      voiceUrl(t, role) {
+        const key = role + '|' + this.gvoice(role) + '|' + t;
+        if (this.cache.has(key)) return this.cache.get(key);
+        const pr = (async () => {
+          const blob = await VoiceDB.get(key);
+          if (blob) return URL.createObjectURL(blob);
+          const r = await this.ask({ tts: { text: t, role, voice: this.gvoice(role) } });
+          if (!r || !r.ok) {
+            if (r && (r.reason === 'nokey' || r.reason === 'pause' || r.error === 'key')) this.off = true; // APIキーが ない・使いすぎ：この あいだは ブラウザの声
+            throw new Error((r && (r.reason || r.error)) || 'voice');
+          }
+          const bin = atob(r.wav), u8 = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+          const b = new Blob([u8], { type: 'audio/wav' });
+          VoiceDB.put(key, b);
+          return URL.createObjectURL(b);
+        })();
+        pr.catch(() => { if (this.cache.get(key) === pr) this.cache.delete(key); });
+        this.cache.set(key, pr);
+        return pr;
+      },
+      // role：hakase（はかせ）・model（おてほん）。gRate は Gemini の 声を 流す 速さ、gtext は Gemini に 読ませる 文（ふりがな）
+      speak(text, opts = {}) {
+        const role = opts.role || 'hakase';
+        if (opts.gtext && this.ready() && !this.off) text = opts.gtext;
+        const parts = this.split(text);
+        this.cancel();
+        if (!parts.some(t => this.useGemini(t))) return this.browser(text, opts);
+        const tok = ++this.tok;
+        return new Promise(resolve => {
+          let fin = false;
+          const end = () => { if (!fin) { fin = true; if (this.done === end) this.done = null; resolve(); } };
+          this.done = end;
+          const urls = parts.map(() => null);
+          const want = (i) => { if (i < parts.length && !urls[i] && this.useGemini(parts[i])) urls[i] = this.voiceUrl(parts[i], role); };
+          want(0); want(1); // さきに つぎの 文も たのんで おく
+          const next = (i) => {
+            if (tok !== this.tok) return end();
+            if (i >= parts.length) return end();
+            want(i + 1);
+            const t = parts[i];
+            const browser = () => { if (tok === this.tok) this.browser(t, opts).then(() => next(i + 1)); else end(); };
+            if (!urls[i]) return browser();
+            let timedOut = false;
+            const timer = setTimeout(() => { timedOut = true; browser(); }, this.WAIT);
+            urls[i].then(url => {
+              clearTimeout(timer);
+              if (timedOut) return;
+              if (tok !== this.tok) return end();
+              try {
+                const a = new Audio(url); this.audio = a;
+                a.playbackRate = Math.max(0.5, Math.min(1.6, opts.gRate || 1)); a.preservesPitch = true;
+                a.onended = () => { if (this.audio === a) this.audio = null; next(i + 1); };
+                a.onerror = () => { if (this.audio === a) this.audio = null; browser(); };
+                const p = a.play(); if (p && p.catch) p.catch(() => browser());
+              } catch (e) { browser(); }
+            }).catch(() => { clearTimeout(timer); if (!timedOut) browser(); });
+          };
+          next(0);
+        });
+      },
+      cancel() {
+        this.tok++;
+        if ('speechSynthesis' in window) speechSynthesis.cancel();
+        if (this.audio) { try { this.audio.pause(); } catch (e) {} this.audio = null; }
+        if (this.done) this.done();
+      },
     };
     TTS.init();
 
@@ -1447,10 +1549,12 @@
         } else {
           const baseRate = settings.modelSpeed === 'slow' ? 0.75 : settings.modelSpeed === 'fast' ? 1.05 : 0.9;
           const rate = baseRate * (slow ? 0.72 : 1);
+          // Gemini の 声は「ふつう」を 1ばいに して、ゆっくり おてほんは 0.75ばい
+          const gRate = (settings.modelSpeed === 'slow' ? 0.85 : settings.modelSpeed === 'fast' ? 1.15 : 1) * (slow ? 0.75 : 1);
           for (let i = 0; i < info.speech.length; i++) {
             if (token !== tokenRef.current) return;
             setLine(Math.min(i, info.lines.length - 1));
-            await TTS.speak(info.speech[i], { rate });
+            await TTS.speak(info.speech[i], { rate, role: 'model', gRate, gtext: info.gspeech[i] });
             if (token !== tokenRef.current) return;
             await sleep(slow ? 450 : 250);
           }
@@ -2185,6 +2289,94 @@
       );
     }
 
+    // はかせの 決まった セリフ（「声を つくっておく」で 先に 作る）
+    const HAKASE_LINES = [
+      'きょうも いっしょに おんどくを しよう。', 'すべての ちょうせんを クリアしたぞ！', 'すきな かだいに もういちど ちょうせん しよう。',
+      'この ことばを よんで みよう！ まずは おてほんを きいてね。', 'はやくちことばじゃ！ まずは おてほんを きいて みよう。', 'この ぶんを よんで みよう！ まずは おてほんを きいてね。',
+      'つぎは れんしゅうじゃ。こえに だして よんで みよう。じゅんびが できたら ろくおん ボタンを おしてね。',
+      'こえメーターを みながら よんで みよう。みどりの ところが ちょうど いい おおきさじゃ。',
+      'マイクが つかえないみたいじゃ。せんせいに しらせてね。', 'とちゅうで やめたよ。じゅんびが できたら もういちど どうぞ。',
+      'ふむふむ… はかせが きいて おるぞ…', 'もういちど ちょうせんじゃ！ がんばれ！',
+      'インターネットに つながって いないみたいじゃ。せんせいに しらせてね。', 'はかせの みみが うまく はたらかなかった。もういちど ためして みてね。',
+    ];
+    function prepList() {
+      const L = [], seen = new Set();
+      const add = (role, text) => TTS.split(text).forEach(t => { const k = role + '|' + t; if (!seen.has(k) && /[ぁ-んァ-ヶ一-龯]/.test(t)) { seen.add(k); L.push([role, t]); } });
+      HAKASE_LINES.forEach(t => add('hakase', t));
+      STAGES.forEach(st => st.tasks.forEach(task => getTaskInfo(task, st).gspeech.forEach(t => add('model', t))));
+      return L;
+    }
+
+    // Gemini の 声（先生用画面）
+    function GeminiPanel({ app }) {
+      const s = app.state.settings, sync = app.state.sync || {};
+      const set = (k, v) => app.update(st => ({ ...st, settings: { ...st.settings, [k]: v } }));
+      const [stat, setStat] = useState(null);
+      const [prep, setPrep] = useState(null);
+      const stopRef = useRef(false);
+      const linked = !!sync.url && REC_URL_RE.test(sync.url) && !!sync.key;
+      const load = async () => {
+        if (!linked) return;
+        setStat({ loading: true });
+        try { setStat(await TTS.ask({ ttsStatus: true })); } catch (e) { setStat({ ok: false, net: true }); }
+      };
+      useEffect(() => { load(); return () => { stopRef.current = true; }; }, []);
+      const test = (role) => { TTS.off = false; TTS.speak(role === 'model' ? 'おおきな かぶ。うんとこしょ、どっこいしょ。' : 'こんにちは。わしは ホーホーはかせ じゃ。いっしょに おんどくを しよう。', { role, pitch: role === 'hakase' ? 0.8 : 1 }); };
+      const runPrep = async () => {
+        const list = prepList(); stopRef.current = false;
+        let made = 0, fail = 0;
+        for (let i = 0; i < list.length; i++) {
+          if (stopRef.current) break;
+          setPrep({ i, n: list.length, made, fail });
+          const [role, t] = list[i];
+          try {
+            const r = await TTS.ask({ tts: { text: t, role, voice: TTS.gvoice(role), prep: true } });
+            if (r && r.ok) { if (!r.cached) { made++; await sleep(7000); } } // 使える 回数を こえないように、1つ 作るごとに 7びょう 待つ
+            else { fail++; if (r && (r.reason === 'nokey' || r.reason === 'pause' || r.error === 'key')) { setPrep({ i, n: list.length, made, fail, stop: r.reason || r.error }); load(); return; } }
+          } catch (e) { fail++; }
+        }
+        const halt = stopRef.current;
+        setPrep({ i: list.length, n: list.length, made, fail, done: !halt, halted: halt }); load();
+      };
+      const Sel = ({ k, role }) => (
+        <select className="rounded-xl border-2 border-slate-300 px-3 py-2 text-lg" value={TTS.gvoice(role)} onChange={e => set(k, e.target.value)}>
+          {GVOICES[role].map(([v, lb]) => <option key={v} value={v}>{lb}（{v}）</option>)}
+        </select>
+      );
+      const why = { nokey: 'APIキーが入っていません（README の手順で GEMINI_API_KEY を入れてください）', pause: '使いすぎのため、10分ほど休んでいます', key: '合言葉が合いません（入口ページから開き直してください）' };
+      return (
+        <div className="flex flex-col gap-2 w-full">
+          <div className="flex gap-2 flex-wrap">
+            {[[true, 'つかう'], [false, 'つかわない']].map(([v, lb]) => (
+              <button key={String(v)} onClick={() => { TTS.off = false; set('gemini', v); }} className={`rounded-xl px-4 py-2 font-bold border-2 ${(s.gemini !== false) === v ? 'bg-sky-500 text-white border-sky-600' : 'bg-white text-slate-600 border-slate-300'}`}>{lb}</button>
+            ))}
+          </div>
+          {!linked && <div className="text-amber-700 font-bold">記録の送り先が まだ ありません。入口ページ（Apps Script）から「▶ はじめる」で開くと、Gemini の声が使えます。それまでは ブラウザの声で読みます。</div>}
+          <div className="flex items-center gap-2 flex-wrap">はかせ：<Sel k="gHakase" role="hakase" /><Btn color="sky" size="sm" onClick={() => test('hakase')}>🔊 ためす</Btn></div>
+          <div className="flex items-center gap-2 flex-wrap">おてほん：<Sel k="gModel" role="model" /><Btn color="sky" size="sm" onClick={() => test('model')}>🔊 ためす</Btn></div>
+          {linked && <div className="text-slate-600">
+            {!stat || stat.loading ? 'ようすを 調べています…'
+              : stat.net ? 'Apps Script に つながりませんでした。'
+              : !stat.ok ? (why[stat.error] || 'ようすが 分かりませんでした。')
+              : <>
+                  {stat.hasKey ? '✅ APIキー：あり' : '⚠ APIキー：なし（README の手順で入れてください）'}　きょう作った声：{stat.today}　ドライブにある声：{stat.files}
+                  {stat.model && <>　モデル：{stat.model}</>}
+                  {stat.pauseUntil > Date.now() && <div className="text-amber-700">使いすぎのため、{new Date(stat.pauseUntil).toLocaleTimeString()} まで ブラウザの声になります。</div>}
+                  {stat.lastError && <div className="text-xs text-slate-400 break-all">さいごの エラー：{stat.lastError}</div>}
+                </>}
+            <button className="ml-2 underline text-sm" onClick={load}>もういちど 調べる</button>
+          </div>}
+          {linked && <div className="flex items-center gap-2 flex-wrap">
+            {!prep || prep.done || prep.stop || prep.halted
+              ? <Btn color="green" size="sm" onClick={runPrep}>🎙️ 声を つくっておく</Btn>
+              : <Btn color="slate" size="sm" onClick={() => { stopRef.current = true; }}>■ とめる</Btn>}
+            {prep && <span className="font-bold text-slate-700">{prep.halted ? `とめました（あたらしく ${prep.made}こ 作りました。もういちど おすと、つづきから 作ります）` : prep.done ? `おわりました（あたらしく ${prep.made}こ 作りました${prep.fail ? `。できなかった声 ${prep.fail}こ` : ''}）` : prep.stop ? `とちゅうで とまりました：${why[prep.stop] || prep.stop}` : `${prep.i + 1} / ${prep.n}（あたらしく ${prep.made}こ）`}</span>}
+          </div>}
+          <div className="text-sm text-slate-500">すべての課題の おてほんと、はかせの 決まったセリフを、先に作ってドライブに保存します。使える回数をこえないように、1つ作るごとに7びょう待つので、全部で30〜40分ほど かかります。画面を開いたままにしてください。とちゅうで とめても、作った声は 残ります。</div>
+        </div>
+      );
+    }
+
     function SettingsTab({ app }) {
       const { state, update } = app;
       const s = state.settings;
@@ -2209,6 +2401,7 @@
           <Row label="1行ずつ表示" desc="リーディングスリット（読む行以外をうすくする）の初期設定。子どもも課題画面で切り替えられます。"><Choice k="slit" options={[[true, 'オン'], [false, 'オフ']]} /></Row>
           <Row label="効果音"><Choice k="sfx" options={[[true, 'オン'], [false, 'オフ']]} /></Row>
           <Row label="はかせの声" desc="はかせのセリフを読み上げます。"><Choice k="hakaseVoice" options={[[true, 'オン'], [false, 'オフ']]} /></Row>
+          <Row label="Gemini の声" desc="はかせの声と おてほんを、Gemini の 自然な声で読みます。子どもの名前が入る文と、声が まにあわないときは、ブラウザの声で読みます。先生が録音したお手本があるときは、先生の声が先です。"><GeminiPanel app={app} /></Row>
           <Row label="お手本（機械の声）の速さ"><Choice k="modelSpeed" options={[['slow', 'ゆっくり'], ['normal', 'ふつう'], ['fast', 'はやめ']]} /></Row>
           <Row label="すべてのステージを開く" desc="オンにすると、合格していなくても全部の課題に挑戦できます。"><Choice k="unlockAll" options={[[false, 'オフ'], [true, 'オン']]} /></Row>
           <Row label="マイクの調整"><MicCalibration app={app} /></Row>
@@ -2424,7 +2617,7 @@
       const update = useCallback((fn) => {
         const next = fn(stateRef.current);
         stateRef.current = next;
-        CURRENT.settings = next.settings;
+        CURRENT.settings = next.settings; CURRENT.sync = next.sync; CURRENT.name = next.profile ? next.profile.name : '';
         setState(next); saveState(next);
         return next;
       }, []);

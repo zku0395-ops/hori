@@ -8,6 +8,9 @@
  *   2. 記録の「受け取り口」
  *      アプリから送られてきた点数を、このスプレッドシートの「きろく」シートに書き込み、
  *      「いちらん」シートを作り直します。録音は受け取りません。
+ *   3. はかせの声・おてほんの声づくり（Gemini の読み上げ）
+ *      APIキーは「プロジェクトの設定 → スクリプト プロパティ」の GEMINI_API_KEY に入れます。
+ *      作った声は、ドライブの「おんどくはかせ こえ」フォルダに保存して使い回します。
  *
  * 準備のしかたは README.md の「Google Apps Script とスプレッドシートの準備」を見てください。
  */
@@ -46,6 +49,9 @@ function doPost(e) {
   if (!body || body.app !== 'ondoku-hakase' || String(body.key || '') !== getKey_()) {
     return json_({ ok: false, error: 'key' });
   }
+  // 声づくり（記録は 書かない）
+  if (body.tts) return json_(getVoice(body.tts.text, body.tts.role, body.tts.voice, !!body.tts.prep));
+  if (body.ttsStatus) return json_(getTtsStatus());
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
@@ -267,4 +273,132 @@ function num_(v) {
 
 function json_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ---------- はかせの声・おてほんの声（Gemini の読み上げ） ---------- */
+//   APIキーは「プロジェクトの設定 → スクリプト プロパティ」の GEMINI_API_KEY に入れる（画面には出さない）
+//   一度 作った声は、ドライブの「おんどくはかせ こえ」フォルダに 保存して 使い回す
+const TTS_VOICES = {
+  hakase: ['Algenib', 'Gacrux', 'Charon', 'Sadaltager', 'Achird'],
+  model: ['Erinome', 'Iapetus', 'Kore', 'Aoede', 'Sulafat', 'Achernar'],
+};
+const TTS_STYLE = {
+  hakase: 'もの知りで やさしい フクロウの おじいさん博士が、小学校の 低学年の 子どもに 話しかけるように、ゆっくり はっきり、あたたかく 読んでください。',
+  model: '小学校の 音読の お手本として、ことばの 区切りを はっきり、ていねいに、ふつうの 速さで 読んでください。',
+};
+// つかう モデル（あたらしい じゅん。つかえない ときは つぎを ためす。スクリプト プロパティ GEMINI_TTS_MODEL で かえられる）
+const TTS_MODELS = ['gemini-3.1-flash-tts-preview', 'gemini-2.5-flash-preview-tts'];
+const TTS_FOLDER = 'おんどくはかせ こえ';
+const TTS_MAX_CHARS = 300;
+
+function ttsProps_() { return PropertiesService.getScriptProperties(); }
+
+function ttsHash_(text, role, voice) {
+  const d = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, voice + '|' + TTS_STYLE[role] + '|' + text, Utilities.Charset.UTF_8);
+  return d.map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('');
+}
+
+function ttsFolder_() {
+  const it = DriveApp.getFoldersByName(TTS_FOLDER);
+  return it.hasNext() ? it.next() : DriveApp.createFolder(TTS_FOLDER);
+}
+
+// PCM（16bit・1ch）に WAV の あたまを つける
+function wavBytes_(pcm, rate) {
+  const n = pcm.length, h = [];
+  const s4 = function (t) { for (let i = 0; i < 4; i++) h.push(t.charCodeAt(i)); };
+  const u32 = function (v) { h.push(v & 255, (v >> 8) & 255, (v >> 16) & 255, (v >> 24) & 255); };
+  const u16 = function (v) { h.push(v & 255, (v >> 8) & 255); };
+  s4('RIFF'); u32(36 + n); s4('WAVE'); s4('fmt '); u32(16); u16(1); u16(1); u32(rate); u32(rate * 2); u16(2); u16(16); s4('data'); u32(n);
+  return h.map(function (b) { return b > 127 ? b - 256 : b; }).concat(pcm);
+}
+
+function ttsCountKey_() { return 'TTS_COUNT_' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd'); }
+
+function callGemini_(key, model, text, role, voice) {
+  const body = {
+    contents: [{ parts: [{ text: TTS_STYLE[role] + '\n' + text }] }],
+    generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } } },
+  };
+  const res = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent', {
+    method: 'post', contentType: 'application/json', payload: JSON.stringify(body),
+    headers: { 'x-goog-api-key': key }, muteHttpExceptions: true,
+  });
+  const code = res.getResponseCode();
+  if (code !== 200) return { code: code, error: res.getContentText().slice(0, 300) };
+  const j = JSON.parse(res.getContentText());
+  const part = (((j.candidates || [])[0] || {}).content || {}).parts || [];
+  const inl = part.filter(function (x) { return x.inlineData && x.inlineData.data; })[0];
+  if (!inl) return { code: 500, error: '声が ありません' };
+  const m = /rate=(\d+)/.exec(inl.inlineData.mimeType || '');
+  return { code: 200, pcm: Utilities.base64Decode(inl.inlineData.data), rate: m ? Number(m[1]) : 24000 };
+}
+
+// アプリから よぶ：声（WAV の base64）を かえす。だめな ときは ok:false（アプリは ブラウザの声で 読む）
+//   role は hakase（はかせの セリフ）か model（おてほん）
+//   prep が true の ときは、声を 作って ドライブに のこす だけ（まとめて 作る ボタン用。声は かえさない）
+function getVoice(text, role, voice, prep) {
+  text = String(text || '').trim();
+  if (!text || text.length > TTS_MAX_CHARS) return { ok: false, reason: 'text' };
+  if (!TTS_VOICES[role]) role = 'hakase';
+  if (TTS_VOICES[role].indexOf(voice) < 0) voice = TTS_VOICES[role][0];
+  const props = ttsProps_();
+  const key = props.getProperty('GEMINI_API_KEY');
+  if (!key) return { ok: false, reason: 'nokey' };
+  const name = role + '_' + ttsHash_(text, role, voice) + '.wav';
+  // ドライブの ファイルの ばしょを おぼえて おいて、さがす 時間を へらす
+  const cache = CacheService.getScriptCache();
+  const fid = cache.get(name);
+  if (fid) {
+    try { const f = DriveApp.getFileById(fid); return { ok: true, wav: prep ? '' : Utilities.base64Encode(f.getBlob().getBytes()), cached: true }; } catch (e) { cache.remove(name); }
+  }
+  const folder = ttsFolder_();
+  const found = folder.getFilesByName(name);
+  if (found.hasNext()) {
+    const f = found.next();
+    cache.put(name, f.getId(), 21600);
+    return { ok: true, wav: prep ? '' : Utilities.base64Encode(f.getBlob().getBytes()), cached: true };
+  }
+  if (Number(props.getProperty('TTS_PAUSE_UNTIL') || 0) > Date.now()) return { ok: false, reason: 'pause' };
+  const custom = props.getProperty('GEMINI_TTS_MODEL');
+  const models = custom ? [custom] : TTS_MODELS;
+  const start = Math.max(0, models.indexOf(props.getProperty('TTS_MODEL_OK') || ''));
+  let last = null;
+  for (let i = start; i < models.length; i++) {
+    const r = callGemini_(key, models[i], text, role, voice);
+    if (r.code === 200) {
+      props.setProperty('TTS_MODEL_OK', models[i]);
+      const ck = ttsCountKey_();
+      props.setProperty(ck, String(Number(props.getProperty(ck) || 0) + 1));
+      const bytes = wavBytes_(r.pcm, r.rate);
+      const nf = folder.createFile(Utilities.newBlob(bytes, 'audio/wav', name));
+      cache.put(name, nf.getId(), 21600);
+      return { ok: true, wav: prep ? '' : Utilities.base64Encode(bytes), cached: false };
+    }
+    last = r;
+    if (r.code === 429) { props.setProperty('TTS_PAUSE_UNTIL', String(Date.now() + 10 * 60 * 1000)); break; } // 使いすぎ：10分 休む
+    if (r.code !== 404 && r.code !== 400) break;
+  }
+  props.setProperty('TTS_LAST_ERROR', last ? (new Date().toISOString() + ' ' + last.code + ' ' + last.error) : '');
+  return { ok: false, reason: last && last.code === 429 ? 'pause' : 'error' };
+}
+
+// 先生用画面：声の ようす
+function getTtsStatus() {
+  const p = ttsProps_();
+  const it = DriveApp.getFoldersByName(TTS_FOLDER);
+  let files = 0;
+  if (it.hasNext()) { const f = it.next().getFiles(); while (f.hasNext()) { f.next(); files++; } }
+  return {
+    ok: true, hasKey: !!p.getProperty('GEMINI_API_KEY'), model: p.getProperty('GEMINI_TTS_MODEL') || p.getProperty('TTS_MODEL_OK') || '',
+    today: Number(p.getProperty(ttsCountKey_()) || 0), files: files,
+    pauseUntil: Number(p.getProperty('TTS_PAUSE_UNTIL') || 0), lastError: p.getProperty('TTS_LAST_ERROR') || '',
+  };
+}
+
+// Apps Script の 画面で ためす：関数で ttsTest を えらんで ▶ 実行 → 「実行ログ」に 結果が 出る
+function ttsTest() {
+  const r = getVoice('こんにちは。わしは ホーホーはかせ じゃ。いっしょに おんどくを しよう。', 'hakase');
+  console.log(r.ok ? 'OK：声が できました（' + (r.cached ? 'ドライブに あった声' : 'あたらしく 作った声') + '）。モデル：' + (ttsProps_().getProperty('TTS_MODEL_OK') || '')
+    : 'うまく いきません：' + r.reason + '　' + (ttsProps_().getProperty('TTS_LAST_ERROR') || ''));
 }
