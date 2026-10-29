@@ -82,7 +82,7 @@
       var h = location.hostname;
       var local = location.protocol === 'file:' || /github\.io$/.test(h) || h === 'localhost' || h === '127.0.0.1';
       window.TSURI_BASE = local ? '' : 'https://zku0395-ops.github.io/hori/tsuri/';
-      var V = '3';
+      var V = '4';
       var load = function (f) {
         return new Promise(function (ok, ng) {
           var s = document.createElement('script');
@@ -97,7 +97,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.4.0';
+    const APP_VERSION = '1.5.0';
     const BASE = window.TSURI_BASE;
     const IMG = BASE + 'img/';
 
@@ -344,10 +344,10 @@
     const cmText = (cm) => (cm >= 100 ? `${Math.floor(cm / 100)}メートル${cm % 100 ? ` ${cm % 100}センチ` : ''}` : `${cm}センチ`);
 
     // 1かいの つりの きまり：かかる さかなの しゅるい（pool）と、つれる かずの 上限
-    //   ⓪〜②：1しゅるいだけ（上限は つりばの cmax）　③：2しゅるい　④：3〜4しゅるい　⑤・はってん：ぜんぶ
+    //   ①・②：1しゅるいだけ　③：2しゅるい　④：3〜4しゅるい　⑤・はってん：ぜんぶ。どれも ごうけい 15ひきまで（1しゅるいも 15ひきまで）
     function planOf(st, p) {
       const step = STEP_OF(st), sp = SPOT[st.spot];
-      const perCap = sp.cmax;
+      const perCap = 15;
       if (step.kinds === 'slide') return { pool: D.SLIDE.map(([id, price]) => ({ f: FISH[id], p: price, plain: 1 })), cap: step.cap, perCap };
       if (step.kinds === 'mix8') return { pool: shuffle(D.FISH.filter(f => !f.nushi)).slice(0, 8).map(f => ({ f, p: f.p, plain: 1 })), cap: step.cap, perCap };
       const list = spotFish(sp.id);
@@ -356,7 +356,7 @@
       const k = rand(step.kinds[0], step.kinds[1]);
       const kinds = shuffle(normal).slice(0, k);
       if (nushi && Math.random() < nushiChance(p)) kinds[k - 1] = nushi;
-      return { pool: kinds.map(f => ({ f, p: f.p })), cap: step.cap || perCap, perCap };
+      return { pool: kinds.map(f => ({ f, p: f.p })), cap: step.cap || 15, perCap };
     }
     // つぎに かかる さかな（まだ すくない しゅるいが かかりやすい）。上限に なったら null
     function pickFish(plan, caught, total, p) {
@@ -473,7 +473,7 @@
       const ch = mainChain(), i = ch.findIndex(s => s.id === st.id);
       return i <= 0 || isCleared(p, ch[i - 1].id);
     };
-    const spotOpen = (p, sid) => stageOpen(p, STAGE[`${sid}-${sid === 7 ? 1 : 0}`]);
+    const spotOpen = (p, sid) => stageOpen(p, STAGES.find(s => s.spot === sid)); // その つりばの さいしょの だんかい
     const currentStage = (p) => {
       const ch = mainChain();
       return ch.find(st => stageOpen(p, st) && !isCleared(p, st.id))
@@ -1054,10 +1054,10 @@
         <div className="flex flex-col gap-2">
           <div className="win-light px-3 py-2 text-xl font-bold">なんびき かな？</div>
           <div className="grid grid-cols-5 gap-2">
-            {Array.from({ length: 10 }, (_, i) => i + 1).map(n => {
+            {Array.from({ length: 15 }, (_, i) => i + 1).map(n => {
               const gone = off.includes(n);
               return <button key={n} disabled={gone || disabled} onClick={() => onPick(n)}
-                className={`btn3d h-20 rounded-2xl border-2 text-4xl font-bold ${gone ? 'opacity-0' : 'bg-yellow-50 border-yellow-500'} ${glowN === n ? 'glow' : ''}`}>{n}</button>;
+                className={`btn3d h-16 rounded-2xl border-2 text-4xl font-bold ${gone ? 'opacity-0' : 'bg-yellow-50 border-yellow-500'} ${glowN === n ? 'glow' : ''}`}>{n}</button>;
             })}
           </div>
         </div>
@@ -1330,7 +1330,7 @@
           <div className="flex flex-col gap-3 items-start w-full">
             <div className="win-light p-3 w-full flex flex-col gap-3">
               <div className="flex items-center gap-3"><FishPic f={r.f} size={90} /><span className="text-3xl font-bold">{r.f.n}</span>{isNushi(r) && <span className="text-xl font-bold text-amber-600">👑 ぬし</span>}<span className="flex-1" />{pr.mode !== 'count' && <PriceTag p={r.p} />}</div>
-              <div className="bg-sky-50 rounded-2xl p-2"><FishGroup r={r} size={r.c > 6 ? 84 : 110} marks={marks[0]} onTap={(j) => onTap(0, j)} five={five} animN={animN(0)} /></div>
+              <div className="bg-sky-50 rounded-2xl p-2"><FishGroup r={r} size={r.c > 10 ? 66 : r.c > 6 ? 84 : 110} marks={marks[0]} onTap={(j) => onTap(0, j)} five={five} animN={animN(0)} /></div>
               <div className="flex items-center gap-3 text-2xl font-bold">つれた かず：<Box v={c} on={isOn('count', 0)} kind="c" unit="ひき" w="5rem" big shake={shakeOn('count', 0)} key={'c' + shakeK} /></div>
             </div>
             {pr.mode === 'add' && c != null && (
@@ -2005,7 +2005,7 @@
       const add = (...ts) => ts.forEach(t => L.push(t));
       add('「なげる」を おして、さかなを つろう！ 1かいで 1ぴき つれるよ。', 'つぎの つりだよ。「なげる」を おそう！', 'まだ だよ。うきが しずむまで まとう。');
       [30, 60, 120].forEach(secs => add(`${secs >= 60 ? `${secs / 60}ぷん` : `${secs}びょう`}で なんびき つれるかな？「なげる」を おすと はじまるよ。1かいで 1ぴき つれるよ。`));
-      for (let n = 1; n <= 12; n++) add(`いっぱい つれたね！ ${hiki(n)} つれたよ！`, `じかん だよ！ ${hiki(n)} つれたね！`, `いっしょに かぞえたね。${hiki(n)}。ひかって いる かずを おそう。`);
+      for (let n = 1; n <= 15; n++) add(`いっぱい つれたね！ ${hiki(n)} つれたよ！`, `じかん だよ！ ${hiki(n)} つれたね！`, `いっしょに かぞえたね。${hiki(n)}。ひかって いる かずを おそう。`);
       add('5ひきずつ わくで かこんだよ。5の まとまりを つかって かぞえよう。', 'それぞれの えんを ぜんぶ たそう。「＋」で つないで、さいごに「＝」だよ。',
         'しきを みてね。オレンジの えんを ぜんぶ たすよ。', 'しきを みてね。あおが ねだん、きいろが なんびき だよ。',
         'でんたくで おす じゅんばんを だしたよ。そのとおりに おそう。', 'ひかって いる キーを じゅんばんに おそう。さいごに「こたえを いれる」だよ。',
@@ -2238,7 +2238,7 @@
                 <label className="flex items-center gap-3">よみあげの はやさ：<input type="range" min="0.5" max="1.2" step="0.05" value={s.rate} onChange={e => setS({ ...s, rate: Number(e.target.value) })} /> {s.rate}倍
                   <button className="border rounded px-2" onClick={() => { Speech.rate = s.rate; Speech.say(fmtSpeech('1ぴき 200えんの たいが 3びき つれた。')); }}>ためす</button></label>
                 <div>もじの おおきさ：{opt('font', [[0.9, 'ちいさめ'], [1, 'ふつう'], [1.15, 'おおきめ'], [1.3, 'とても おおきい']])}</div>
-                <div>1回の 問題の数：{opt('count', [[3, 'すくなめ'], [5, 'ふつう'], [10, 'おおめ']])}<div className="text-sm text-stone-500 ml-2">ふつう：⓪〜② は3問、③ は2問、④・⑤・はってん は1問です（1問ごとに1回 つりを します）。すくなめ・おおめ にすると、それに合わせて へったり ふえたり します。</div></div>
+                <div>1回の 問題の数：{opt('count', [[3, 'すくなめ'], [5, 'ふつう'], [10, 'おおめ']])}<div className="text-sm text-stone-500 ml-2">ふつう：①・② は3問、③ は2問、④・⑤・はってん は1問です（1問ごとに1回 つりを します）。すくなめ・おおめ にすると、それに合わせて へったり ふえたり します。</div></div>
                 <div>つりの じかん：{opt('time', [[30, '30びょう'], [60, '1ぷん'], [120, '2ふん'], [0, 'じかん なし']])}<div className="text-sm text-stone-500 ml-2">この時間のあいだ、なげて ひく を くりかえし、1回で1ぴき つれます。つれた魚が そのまま計算の問題になります。じかん なし にすると「つりを おわる」ボタンで終わります。どれでも、だんかいごとの上限まで つれると早めに終わります。</div></div>
                 <div>こうかおん：{opt('sound', [[true, 'ならす'], [false, 'ならさない']])}</div>
                 <div className="rounded-xl border-2 border-sky-200 bg-sky-50 p-3">
