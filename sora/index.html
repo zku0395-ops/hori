@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>そらの うえの がっこう</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+  <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+  <script src="apps.js"></script>
+  <style>
+    :root { --ink: #1e293b; --sub: #64748b; --sky: #5eb7fd; --fs: 1; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body { font-family: 'BIZ UDPGothic', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif; color: var(--ink); background: linear-gradient(#5eb7fd, #bfe3ff 60%, #f4fbff); -webkit-tap-highlight-color: transparent; overflow: hidden; }
+    button, a { font-family: inherit; touch-action: manipulation; cursor: pointer; }
+    .loading { display: flex; align-items: center; justify-content: center; height: 100vh; font-size: 28px; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,.25); }
+    .emoji { font-family: 'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif; line-height: 1; }
+    rt { font-size: .5em; }
+
+    /* 立体ボタン */
+    .btn3d { word-break: keep-all; border: 0; border-bottom: 6px solid rgba(0,0,0,.28); border-radius: 1.1rem; font-weight: 700; transition: transform .08s, border-bottom-width .08s, filter .15s; display: inline-flex; align-items: center; justify-content: center; gap: .4em; user-select: none; line-height: 1.3; text-decoration: none; }
+    .btn3d:active { transform: translateY(3px); border-bottom-width: 3px; }
+    .btn3d:hover { filter: brightness(1.05); }
+    .c-green { background: #16a34a; color: #fff; border-bottom-color: #166534; }
+    .c-sky { background: #0ea5e9; color: #fff; border-bottom-color: #0369a1; }
+    .c-white { background: #fff; color: #334155; border: 2px solid #cbd5e1; border-bottom: 6px solid #cbd5e1; }
+    .c-slate { background: #475569; color: #fff; border-bottom-color: #1e293b; }
+    .c-red { background: #f43f5e; color: #fff; border-bottom-color: #be123c; }
+
+    /* ===== がっこう（ホーム） ===== */
+    .stagewrap { width: 100vw; height: 100vh; height: 100dvh; display: flex; align-items: center; justify-content: center; }
+    .stage { position: relative; width: min(100vw, calc(100dvh * 16 / 9)); aspect-ratio: 16 / 9; container-type: inline-size; overflow: hidden; perspective: 130cqw; }
+    /* うしろの 空：島が 回っても はしが 見えないように、空と 雲の 色を ぬっておく */
+    .stage::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 60% 30% at 15% 85%, #fff 40%, transparent 100%), radial-gradient(ellipse 60% 30% at 85% 88%, #fff 40%, transparent 100%), linear-gradient(#5db6fd, #8fcbff 35%, #cfe9ff 65%, #f3f9ff); }
+    /* 島：空の 上で ゆっくり 左右に 向きを かえる */
+    .island { position: absolute; inset: 0; transform-style: preserve-3d; animation: sway 36s ease-in-out infinite; }
+    .island-in { position: absolute; inset: 0; background: url(img/gakko.webp) center / cover no-repeat; animation: drift 7s ease-in-out infinite;
+      -webkit-mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent), linear-gradient(to bottom, transparent, #000 4%, #000 96%, transparent); -webkit-mask-composite: source-in;
+      mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent), linear-gradient(to bottom, transparent, #000 4%, #000 96%, transparent); mask-composite: intersect; }
+    @keyframes sway { 0%, 100% { transform: scale(1.04) rotateY(0deg); } 25% { transform: scale(1.04) rotateY(15deg); } 75% { transform: scale(1.04) rotateY(-15deg); } }
+    @keyframes drift { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.2cqw); } }
+    .stage.paused .island, .stage.paused .island-in { animation-play-state: paused; }
+    .stage.still .island, .stage.still .island-in { animation: none; }
+    .motion { position: absolute; right: 1%; top: 9%; font-size: calc(1.4cqw * var(--fs)); padding: .5cqw 1.1cqw; border-radius: 1.2cqw; border-bottom-width: .45cqw; }
+    .title { position: absolute; left: 1.5%; top: 2.5%; background: rgba(255,255,255,.9); border-radius: 2cqw; padding: .6cqw 1.8cqw .8cqw; box-shadow: 0 .4cqw 1.2cqw rgba(30,64,120,.25); font-size: calc(2.7cqw * var(--fs)); font-weight: 700; color: #1d4ed8; letter-spacing: .05em; }
+    .title small { display: block; font-size: .45em; color: var(--sub); letter-spacing: 0; font-weight: 400; }
+    .spot { position: absolute; border: 0; background: transparent; border-radius: 2cqw; padding: 0; outline: .35cqw solid transparent; transition: outline-color .15s, background .15s; }
+    .spot:hover, .spot:focus-visible { outline-color: rgba(255,255,255,.95); background: rgba(255,255,255,.12); }
+    .spot:active { background: rgba(255,255,255,.28); }
+    .plate { position: absolute; left: 50%; bottom: 3%; transform: translateX(-50%); white-space: nowrap; display: inline-flex; align-items: center; gap: .4em; background: #fff; border-radius: 99px; padding: .45cqw 1.3cqw .55cqw; font-weight: 700; font-size: calc(1.55cqw * var(--fs)); color: #1e293b; border: .25cqw solid var(--c); border-bottom-width: .55cqw; box-shadow: 0 .3cqw .9cqw rgba(0,0,0,.25); animation: bob 2.6s ease-in-out infinite; animation-delay: var(--d); }
+    @keyframes bob { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, -.5cqw); } }
+    .fuwari { position: absolute; border: 0; background: transparent; padding: 0; }
+    .fuwari img { width: 100%; display: block; filter: drop-shadow(0 .5cqw .8cqw rgba(30,64,120,.3)); animation: float 3.4s ease-in-out infinite; }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4%); } }
+    .home-fuwari { left: 1%; bottom: 2%; width: 12%; }
+    .bubble { position: absolute; background: #fff; border-radius: 1.6cqw; padding: 1cqw 1.4cqw; font-size: calc(1.5cqw * var(--fs)); font-weight: 700; line-height: 1.5; box-shadow: 0 .4cqw 1.2cqw rgba(30,64,120,.25); border: .2cqw solid #bfdbfe; }
+    .home-bubble { left: 12.5%; bottom: 13%; max-width: 20%; }
+    .home-bubble::before { content: ''; position: absolute; left: -1cqw; bottom: 1.5cqw; border: .6cqw solid transparent; border-right: 1cqw solid #fff; border-left: 0; }
+    .shortcuts { position: absolute; left: 22%; right: 1.5%; bottom: 2%; display: flex; gap: 1.2cqw; justify-content: center; align-items: flex-end; pointer-events: none; }
+    .sgroup { pointer-events: auto; background: rgba(255,255,255,.9); border-radius: 1.6cqw; padding: .6cqw .9cqw .9cqw; box-shadow: 0 .4cqw 1.2cqw rgba(30,64,120,.25); }
+    .sgroup h3 { margin: 0 0 .5cqw; font-size: calc(1.15cqw * var(--fs)); color: #334155; }
+    .sgroup .row { display: flex; gap: .7cqw; }
+    .chip { background: #fff; color: #1e293b; border: .18cqw solid #cbd5e1; border-bottom: .45cqw solid #cbd5e1; border-radius: 1cqw; padding: .5cqw .9cqw; font-size: calc(1.1cqw * var(--fs)); max-width: 15cqw; text-align: left; }
+    .chip .emoji { font-size: 1.6em; flex: none; }
+    .chip .nm { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .gear { position: absolute; right: 1%; top: 2%; z-index: 2; border: 0; background: rgba(255,255,255,.55); border-radius: 99px; font-size: 1.6cqw; padding: .5cqw .8cqw; color: #334155; }
+
+    /* ===== へや ===== */
+    .room { position: fixed; inset: 0; background: center / cover no-repeat; display: flex; flex-direction: column; }
+    .roomtop { display: flex; align-items: center; gap: 12px; padding: 12px 16px 0; flex-wrap: wrap; }
+    .roomtitle { background: rgba(255,255,255,.92); border-radius: 18px; padding: 8px 20px; font-size: calc(1.7rem * var(--fs)); font-weight: 700; border-bottom: 5px solid var(--c); box-shadow: 0 3px 10px rgba(0,0,0,.18); display: inline-flex; align-items: center; gap: .4em; }
+    .s-md { padding: .65rem 1.1rem; font-size: calc(1.2rem * var(--fs)); }
+    .s-lg { padding: .9rem 1.8rem; font-size: calc(1.6rem * var(--fs)); }
+    .shelves { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; padding: 12px 16px 0; }
+    .shelf { background: #fff; color: #334155; border: 3px solid #fff; border-bottom: 6px solid #cbd5e1; padding: .5rem 1rem; font-size: calc(1.2rem * var(--fs)); }
+    .shelf.on { background: var(--c); color: #fff; border-color: var(--c); border-bottom-color: rgba(0,0,0,.3); }
+    .shelf .emoji { font-size: 1.2em; }
+    .panelwrap { flex: 1; min-height: 0; display: flex; justify-content: center; padding: 12px 16px 84px; }
+    .panel { width: min(1180px, 100%); background: rgba(255,255,255,.82); backdrop-filter: blur(2px); border-radius: 26px; padding: 18px; overflow-y: auto; box-shadow: 0 6px 24px rgba(0,0,0,.18); align-self: flex-start; max-height: 100%; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(210px * var(--fs)), 1fr)); gap: 14px; }
+    .card { position: relative; background: #fff; color: #1e293b; border: 2px solid #e2e8f0; border-left: 10px solid var(--c); border-bottom: 7px solid #cbd5e1; border-radius: 18px; padding: 14px 12px; min-height: 92px; justify-content: flex-start; text-align: left; font-size: calc(1.15rem * var(--fs)); }
+    .card .emoji { font-size: 2.3em; flex: none; }
+    .card .num { color: var(--c); font-weight: 700; font-size: 1.15em; margin-right: .15em; }
+    .card .cn { min-width: 0; word-break: normal; word-break: auto-phrase; overflow-wrap: anywhere; }
+    .star { position: absolute; top: -10px; right: -6px; font-size: 1.5rem; }
+    .empty { text-align: center; padding: 30px 10px; font-size: calc(1.4rem * var(--fs)); font-weight: 700; color: #6b21a8; line-height: 1.8; }
+    .room-fuwari { position: fixed; left: 10px; bottom: 4px; width: 84px; z-index: 5; }
+    .room-bubble { position: fixed; left: 100px; bottom: 18px; max-width: min(420px, 60vw); font-size: calc(1.1rem * var(--fs)); border-radius: 18px; padding: 10px 16px; z-index: 5; }
+
+    /* ===== まど（モーダル） ===== */
+    .overlay { position: fixed; inset: 0; background: rgba(15,23,42,.45); display: flex; align-items: center; justify-content: center; z-index: 20; padding: 16px; }
+    .modal { background: #fff; border-radius: 28px; padding: 26px 28px 24px; width: min(560px, 100%); text-align: center; box-shadow: 0 12px 40px rgba(0,0,0,.3); border-top: 12px solid var(--c, #0ea5e9); max-height: 100%; overflow-y: auto; }
+    .modal .big { font-size: 5rem; margin: 4px 0 10px; }
+    .modal .nm { font-size: calc(1.7rem * var(--fs)); font-weight: 700; line-height: 1.6; margin-bottom: 18px; }
+    .modal .acts { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+    /* ===== 先生用画面 ===== */
+    .pinpad { display: grid; grid-template-columns: repeat(3, 76px); gap: 10px; justify-content: center; margin: 14px 0; }
+    .pinpad button { font-size: 1.6rem; padding: .6rem 0; }
+    .pindots { font-size: 2rem; letter-spacing: .4em; height: 2.4rem; }
+    .teacher { position: fixed; inset: 0; background: #f1f5f9; z-index: 30; display: flex; flex-direction: column; font-size: 16px; }
+    .teacher header { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: #1e3a8a; color: #fff; flex-wrap: wrap; }
+    .teacher header h2 { margin: 0; font-size: 1.25rem; flex: 1; }
+    .ttabs { display: flex; gap: 8px; padding: 12px 16px 0; flex-wrap: wrap; }
+    .ttab { background: #fff; color: #334155; border: 2px solid #cbd5e1; border-bottom: 5px solid #cbd5e1; padding: .5rem 1rem; font-size: 1.05rem; }
+    .ttab.on { background: #1d4ed8; color: #fff; border-color: #1d4ed8; border-bottom-color: #1e3a8a; }
+    .tbody { flex: 1; overflow-y: auto; padding: 14px 16px 40px; }
+    .tbox { background: #fff; border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.08); max-width: 980px; }
+    .tbox h3 { margin: 0 0 10px; font-size: 1.1rem; }
+    .tbox h4 { margin: 12px 0 6px; font-size: 1rem; color: #475569; }
+    .trow { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid #f1f5f9; flex-wrap: wrap; }
+    .trow .tn { flex: 1; min-width: 200px; }
+    .trow.off .tn { color: #94a3b8; text-decoration: line-through; }
+    .tog { border: 2px solid #cbd5e1; background: #fff; border-radius: 10px; padding: .3rem .7rem; font-size: .95rem; }
+    .tog.on { background: #dbeafe; border-color: #3b82f6; color: #1e3a8a; font-weight: 700; }
+    .tog.tstar.on { background: #fef3c7; border-color: #f59e0b; color: #92400e; }
+    .note { color: #64748b; font-size: .92rem; line-height: 1.6; }
+    .tbox a.plink { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 10px; color: #1d4ed8; text-decoration: none; font-weight: 700; border: 1px solid #e2e8f0; margin-bottom: 8px; }
+    .tbox a.plink:hover { background: #eff6ff; }
+    .seg { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+    .seg button { border: 2px solid #cbd5e1; background: #fff; border-radius: 10px; padding: .4rem .9rem; font-size: 1rem; }
+    .seg button.on { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
+    .tinput { font-size: 1.1rem; padding: .4rem .6rem; border: 2px solid #cbd5e1; border-radius: 10px; width: 8em; font-family: inherit; }
+  </style>
+</head>
+<body>
+  <div id="root"><div class="loading">よみこみ ちゅう…</div></div>
+  <noscript>このページを つかうには JavaScript を オンに してください。</noscript>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef } = React;
+    const DATA = window.SORA;
+    const KEY = 'sora-gakko-v1';
+    const FS = { sm: 0.88, md: 1, lg: 1.2 };
+
+    /* =========================================================
+       ほぞん（この Chromebook の 中だけ）
+       ========================================================= */
+    const REDUCE = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+    const DEFAULT = { settings: { voice: true, rate: 0.8, font: 'md', pin: '1234', motion: !REDUCE }, hidden: [], osusume: null, recent: [] };
+    function load() {
+      try {
+        const s = JSON.parse(localStorage.getItem(KEY) || 'null');
+        if (s && typeof s === 'object') return { ...DEFAULT, ...s, settings: { ...DEFAULT.settings, ...(s.settings || {}) } };
+      } catch (e) {}
+      return JSON.parse(JSON.stringify(DEFAULT));
+    }
+    function save(st) { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
+
+    /* アプリの 一覧を たどりやすく する */
+    const APPS = {};
+    DATA.rooms.forEach(r => r.shelves.forEach(sh => sh.apps.forEach(a => { APPS[a.id] = { ...a, room: r, shelf: sh }; })));
+
+    /* {漢字|よみ} → ふりがな */
+    function Rb({ t }) {
+      const out = []; let last = 0; const re = /\{([^|}]+)\|([^}]+)\}/g; let m;
+      while ((m = re.exec(t))) {
+        if (m.index > last) out.push(t.slice(last, m.index));
+        out.push(<ruby key={m.index}>{m[1]}<rt>{m[2]}</rt></ruby>);
+        last = re.lastIndex;
+      }
+      if (last < t.length) out.push(t.slice(last));
+      return <>{out}</>;
+    }
+    /* たなの 中の ばんごう：①②③… */
+    const maru = n => n >= 1 && n <= 20 ? String.fromCharCode(0x2460 + n - 1) : '(' + n + ')';
+    const plain = t => t.replace(/\{([^|}]+)\|([^}]+)\}/g, '$2');
+    const sayOf = a => a.say || plain(a.name).replace(/[①]/g, ' いち').replace(/[②]/g, ' に').replace(/[★]/g, '');
+
+    /* =========================================================
+       よみあげ
+       ========================================================= */
+    const TTS = {
+      voice: null, settings: DEFAULT.settings,
+      init() {
+        if (!('speechSynthesis' in window)) return;
+        const choose = () => {
+          const vs = speechSynthesis.getVoices().filter(v => /^ja/i.test(v.lang));
+          this.voice = vs.find(v => /google/i.test(v.name)) || vs[0] || null;
+        };
+        choose();
+        speechSynthesis.onvoiceschanged = choose;
+      },
+      speak(text, { force = false } = {}) {
+        if (!('speechSynthesis' in window) || !text || (!this.settings.voice && !force)) return;
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = 'ja-JP'; if (this.voice) u.voice = this.voice;
+        u.rate = Number(this.settings.rate) || 0.8; u.pitch = 1.1;
+        this.current = u; // Chrome で とちゅうで 止まるのを ふせぐため 参照を のこす
+        speechSynthesis.speak(u);
+      },
+    };
+    TTS.init();
+
+    const HOME_MSG = 'そらの うえの がっこうへ ようこそ！ どの へやに いく？';
+
+    /* =========================================================
+       がっこう（ホーム）
+       ========================================================= */
+    function Home({ st, visible, onRoom, onApp, onTeacher, paused, setPaused }) {
+      const [msg, setMsg] = useState(HOME_MSG);
+      const osu = (st.osusume || DATA.osusume || []).filter(id => visible(id));
+      const rec = (st.recent || []).filter(id => visible(id)).slice(0, 3);
+      const talk = () => { setMsg(HOME_MSG); TTS.speak(HOME_MSG); };
+      return (
+        <div className="stagewrap">
+          <div className={'stage' + (!st.settings.motion ? ' still' : paused ? ' paused' : '')}>
+            <div className="island"><div className="island-in">
+            {DATA.rooms.map((r, i) => (
+              <button key={r.id} className="spot" aria-label={r.name} onClick={() => onRoom(r)}
+                style={{ left: r.spot.x + '%', top: r.spot.y + '%', width: r.spot.w + '%', height: r.spot.h + '%' }}>
+                <span className="plate" style={{ '--c': r.color, '--d': (i * 0.35) + 's' }}><span className="emoji">{r.emoji}</span>{r.name}</span>
+              </button>
+            ))}
+            </div></div>
+            <div className="title">そらの うえの がっこう<small>へやを おして アプリを えらぼう</small></div>
+            {st.settings.motion && <button className="btn3d c-white motion" onClick={() => setPaused(!paused)}>{paused ? <><span className="emoji">▶</span> うごかす</> : <><span className="emoji">⏸</span> とめる</>}</button>}
+            <button className="fuwari home-fuwari" onClick={talk} aria-label="フワリこうちょうせんせい"><img src="img/fuwari.webp" alt="フワリこうちょうせんせい" /></button>
+            <div className="bubble home-bubble">{msg}</div>
+            {(osu.length > 0 || rec.length > 0) && (
+              <div className="shortcuts">
+                {osu.length > 0 && <div className="sgroup"><h3><span className="emoji">⭐</span> きょうの おすすめ</h3>
+                  <div className="row">{osu.slice(0, 4).map(id => <Chip key={id} a={APPS[id]} onClick={() => onApp(APPS[id])} />)}</div></div>}
+                {rec.length > 0 && <div className="sgroup"><h3><span className="emoji">🕘</span> さいきん つかった</h3>
+                  <div className="row">{rec.map(id => <Chip key={id} a={APPS[id]} onClick={() => onApp(APPS[id])} />)}</div></div>}
+              </div>
+            )}
+            <button className="gear" onClick={onTeacher} aria-label="せんせいよう">⚙️ せんせい</button>
+          </div>
+        </div>
+      );
+    }
+    function Chip({ a, onClick }) {
+      return <button className="btn3d chip" onClick={onClick}><span className="emoji">{a.emoji}</span><span className="nm"><Rb t={a.name} /></span></button>;
+    }
+
+    /* =========================================================
+       へや
+       ========================================================= */
+    function roomMsg(r, sh) {
+      const list = sh.apps;
+      if (r.shelves.every(s => s.apps.length === 0)) return r.name + 'は いま じゅんびちゅう だよ。また きてね。';
+      if (r.shelves.length > 1) return r.name + ' だよ。うえの たなを えらんでから、アプリを おしてね。';
+      return r.name + ' だよ。アプリを おしてね。';
+    }
+    function Room({ room, shelfId, setShelf, st, visible, onApp, onBack }) {
+      const sh = room.shelves.find(s => s.id === shelfId) || room.shelves[0];
+      const apps = sh.apps.filter(a => visible(a.id));
+      const osu = st.osusume || DATA.osusume || [];
+      const [msg, setMsg] = useState(roomMsg(room, sh));
+      useEffect(() => { const m = roomMsg(room, sh); setMsg(m); TTS.speak(m); }, [room.id]);
+      const pickShelf = s => { setShelf(s.id); const m = s.name + 'の たな だよ。'; setMsg(m); TTS.speak(m); };
+      const allEmpty = room.shelves.every(s => s.apps.length === 0);
+      return (
+        <div className="room" style={{ backgroundImage: `url(${room.img})`, '--c': room.color }}>
+          <div className="roomtop">
+            <button className="btn3d c-white s-md" onClick={onBack}><span className="emoji">🏫</span> がっこうに もどる</button>
+            <div className="roomtitle"><span className="emoji">{room.emoji}</span>{room.name}</div>
+            <button className="btn3d c-sky s-md" onClick={() => TTS.speak(msg, { force: true })}><span className="emoji">🔊</span> もういちど</button>
+          </div>
+          {room.shelves.length > 1 && (
+            <div className="shelves">
+              {room.shelves.map(s => (
+                <button key={s.id} className={'btn3d shelf' + (s.id === sh.id ? ' on' : '')} onClick={() => pickShelf(s)}>
+                  <span className="emoji">{s.emoji}</span>{s.name}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="panelwrap">
+            <div className="panel">
+              {allEmpty ? (
+                <div className="empty"><div className="emoji" style={{ fontSize: '3rem' }}>🎪</div>いまは じゅんびちゅう だよ。<br />たのしみに まっててね！</div>
+              ) : apps.length === 0 ? (
+                <div className="empty">この たなには いま アプリが ないよ。</div>
+              ) : (
+                <div className="grid">
+                  {apps.map((a, i) => (
+                    <button key={a.id} className="btn3d card" onClick={() => onApp(APPS[a.id])}>
+                      <span className="emoji">{a.emoji}</span><span className="cn"><span className="num">{maru(i + 1)}</span><Rb t={a.name} /></span>
+                      {osu.includes(a.id) && <span className="emoji star">⭐</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <button className="fuwari room-fuwari" onClick={() => TTS.speak(msg, { force: true })} aria-label="フワリこうちょうせんせい"><img src="img/fuwari.webp" alt="フワリこうちょうせんせい" /></button>
+          <div className="bubble room-bubble">{msg}</div>
+        </div>
+      );
+    }
+
+    /* =========================================================
+       アプリを ひらく まど
+       ========================================================= */
+    function OpenModal({ a, onClose, onOpened }) {
+      useEffect(() => { TTS.speak(sayOf(a) + '。 はじめる を おしてね。'); }, [a.id]);
+      return (
+        <div className="overlay" onClick={onClose}>
+          <div className="modal" style={{ '--c': a.room.color }} onClick={e => e.stopPropagation()}>
+            <div className="emoji big">{a.emoji}</div>
+            <div className="nm"><Rb t={a.name} /></div>
+            <div className="acts">
+              <a className="btn3d c-green s-lg" href={a.url} target="_blank" rel="noopener" onClick={() => onOpened(a)}><span className="emoji">▶</span> はじめる</a>
+            </div>
+            <div className="acts" style={{ marginTop: 14 }}>
+              <button className="btn3d c-sky s-md" onClick={() => TTS.speak(sayOf(a), { force: true })}><span className="emoji">🔊</span> きく</button>
+              <button className="btn3d c-white s-md" onClick={onClose}>もどる</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* =========================================================
+       先生用画面
+       ========================================================= */
+    function PinModal({ pin, onOk, onClose }) {
+      const [v, setV] = useState(''); const [bad, setBad] = useState(false);
+      const push = d => {
+        const nv = (v + d).slice(0, 4); setV(nv); setBad(false);
+        if (nv.length === 4) { if (nv === pin) onOk(); else { setBad(true); setTimeout(() => setV(''), 400); } }
+      };
+      return (
+        <div className="overlay" onClick={onClose}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ '--c': '#1e3a8a' }}>
+            <div style={{ fontWeight: 700, fontSize: '1.3rem' }}>せんせい よう：あんしょう ばんごう</div>
+            <div className="pindots">{'●'.repeat(v.length)}{'○'.repeat(4 - v.length)}</div>
+            {bad && <div style={{ color: '#be123c' }}>ちがいます</div>}
+            <div className="pinpad">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => <button key={n} className="btn3d c-white" onClick={() => push(String(n))}>{n}</button>)}
+              <button className="btn3d c-white" onClick={() => setV(v.slice(0, -1))}>←</button>
+              <button className="btn3d c-white" onClick={() => push('0')}>0</button>
+              <button className="btn3d c-slate" onClick={onClose}>✕</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function Teacher({ st, update, onClose }) {
+      const [tab, setTab] = useState('print');
+      const [pin1, setPin1] = useState('');
+      const [done, setDone] = useState('');
+      const s = st.settings;
+      const osu = st.osusume || DATA.osusume || [];
+      const setS = patch => update({ ...st, settings: { ...s, ...patch } });
+      const toggleHide = id => update({ ...st, hidden: st.hidden.includes(id) ? st.hidden.filter(x => x !== id) : [...st.hidden, id] });
+      const toggleOsu = id => update({ ...st, osusume: osu.includes(id) ? osu.filter(x => x !== id) : [...osu, id] });
+      const tabs = [['print', '🖨️ プリント'], ['apps', '📱 アプリ（かくす・おすすめ）'], ['set', '⚙️ せってい']];
+      return (
+        <div className="teacher">
+          <header>
+            <h2>せんせい よう がめん</h2>
+            <button className="btn3d c-white s-md" onClick={onClose}>✕ とじる</button>
+          </header>
+          <div className="ttabs">{tabs.map(([k, l]) => <button key={k} className={'btn3d ttab' + (tab === k ? ' on' : '')} onClick={() => setTab(k)}>{l}</button>)}</div>
+          <div className="tbody">
+            {tab === 'print' && (
+              <div className="tbox">
+                <h3>プリント（印刷するページ）</h3>
+                <p className="note">新しいタブで開きます。子どもの画面には出ていません。</p>
+                {DATA.prints.map(p => <a key={p.id} className="plink" href={p.url} target="_blank" rel="noopener"><span className="emoji" style={{ fontSize: '1.6rem' }}>{p.emoji}</span>{p.name}</a>)}
+              </div>
+            )}
+            {tab === 'apps' && (
+              <>
+                <div className="tbox">
+                  <p className="note" style={{ margin: 0 }}>
+                    「👁 みせる」を押すと、そのアプリを子どもの画面から かくします（もう一度押すと もどります）。<br />
+                    「⭐ おすすめ」を押すと、学校の絵の下に「きょうの おすすめ」として出ます（4つまで出ます）。<br />
+                    この設定は、この Chromebook だけに保存されます。
+                  </p>
+                  <div style={{ marginTop: 10 }}>
+                    <button className="tog" onClick={() => update({ ...st, osusume: [] })}>⭐ おすすめを ぜんぶ はずす</button>{' '}
+                    <button className="tog" onClick={() => update({ ...st, hidden: [] })}>👁 かくした アプリを ぜんぶ もどす</button>
+                  </div>
+                </div>
+                {DATA.rooms.map(r => (
+                  <div className="tbox" key={r.id}>
+                    <h3><span className="emoji">{r.emoji}</span> {r.name}</h3>
+                    {r.shelves.map(sh => (
+                      <div key={sh.id}>
+                        {r.shelves.length > 1 && <h4>{sh.name}</h4>}
+                        {sh.apps.length === 0 && <div className="note">（まだ ありません）</div>}
+                        {sh.apps.map(a => {
+                          const hid = st.hidden.includes(a.id);
+                          return (
+                            <div key={a.id} className={'trow' + (hid ? ' off' : '')}>
+                              <span className="emoji">{a.emoji}</span>
+                              <span className="tn">{plain(a.name)}</span>
+                              <button className={'tog' + (!hid ? ' on' : '')} onClick={() => toggleHide(a.id)}>{hid ? '🚫 かくしている' : '👁 みせる'}</button>
+                              <button className={'tog tstar' + (osu.includes(a.id) ? ' on' : '')} onClick={() => toggleOsu(a.id)}>⭐ おすすめ</button>
+                              <a className="tog" href={a.url} target="_blank" rel="noopener" style={{ textDecoration: 'none', color: '#334155' }}>ひらく</a>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </>
+            )}
+            {tab === 'set' && (
+              <>
+                <div className="tbox">
+                  <h3>よみあげ</h3>
+                  <div className="trow"><span className="tn">フワリこうちょうせんせいの セリフを よみあげる</span>
+                    <span className="seg"><button className={s.voice ? 'on' : ''} onClick={() => setS({ voice: true })}>する</button><button className={!s.voice ? 'on' : ''} onClick={() => setS({ voice: false })}>しない</button></span></div>
+                  <div className="trow"><span className="tn">よみあげの はやさ（いま {Number(s.rate).toFixed(1)} ばい）</span>
+                    <span className="seg">{[0.6, 0.7, 0.8, 0.9, 1.0, 1.1].map(r => <button key={r} className={Number(s.rate) === r ? 'on' : ''} onClick={() => setS({ rate: r })}>{r.toFixed(1)}</button>)}</span>
+                    <button className="tog" onClick={() => { TTS.settings = { ...s }; TTS.speak(HOME_MSG, { force: true }); }}>🔊 ためす</button></div>
+                </div>
+                <div className="tbox">
+                  <h3>がっこうの しまの うごき</h3>
+                  <div className="trow"><span className="tn">学校の島を、空の上で ゆっくり左右に回す（子どもも「⏸ とめる」で止められます）</span>
+                    <span className="seg"><button className={s.motion ? 'on' : ''} onClick={() => setS({ motion: true })}>うごかす</button><button className={!s.motion ? 'on' : ''} onClick={() => setS({ motion: false })}>とめる</button></span></div>
+                </div>
+                <div className="tbox">
+                  <h3>もじの おおきさ</h3>
+                  <span className="seg">{[['sm', 'ちいさい'], ['md', 'ふつう'], ['lg', 'おおきい']].map(([k, l]) => <button key={k} className={s.font === k ? 'on' : ''} onClick={() => setS({ font: k })}>{l}</button>)}</span>
+                </div>
+                <div className="tbox">
+                  <h3>さいきん つかった</h3>
+                  <p className="note">学校の絵の下に出る「さいきん つかった」を消します。</p>
+                  <button className="tog" onClick={() => { update({ ...st, recent: [] }); setDone('さいきん つかった を けしました。'); }}>🧹 けす</button>
+                </div>
+                <div className="tbox">
+                  <h3>あんしょう ばんごう（4けた）</h3>
+                  <input className="tinput" inputMode="numeric" maxLength={4} value={pin1} onChange={e => setPin1(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="あたらしい ばんごう" />{' '}
+                  <button className="tog" disabled={pin1.length !== 4} onClick={() => { setS({ pin: pin1 }); setPin1(''); setDone('あんしょう ばんごうを かえました。'); }}>かえる</button>
+                </div>
+                {done && <div className="tbox" style={{ color: '#166534', fontWeight: 700 }}>✅ {done}</div>}
+              </>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    /* =========================================================
+       アプリ
+       ========================================================= */
+    function App() {
+      const [st, setSt] = useState(load);
+      const [view, setView] = useState({ type: 'home' });
+      const [shelf, setShelf] = useState({});
+      const [modal, setModal] = useState(null);
+      const [pinOpen, setPinOpen] = useState(false);
+      const [teacher, setTeacher] = useState(false);
+      const [paused, setPaused] = useState(false);
+      const update = ns => { setSt(ns); save(ns); };
+      TTS.settings = st.settings;
+      useEffect(() => { document.documentElement.style.setProperty('--fs', FS[st.settings.font] || 1); }, [st.settings.font]);
+      const visible = id => !!APPS[id] && !st.hidden.includes(id);
+      const opened = a => {
+        TTS.speak('いってらっしゃい！');
+        update({ ...st, recent: [a.id, ...st.recent.filter(x => x !== a.id)].slice(0, 6) });
+        setModal(null);
+      };
+      const room = view.type === 'room' ? DATA.rooms.find(r => r.id === view.roomId) : null;
+      return (
+        <>
+          {room ? (
+            <Room room={room} shelfId={shelf[room.id]} setShelf={id => setShelf({ ...shelf, [room.id]: id })} st={st} visible={visible}
+              onApp={a => setModal(a)} onBack={() => { setView({ type: 'home' }); TTS.speak(HOME_MSG); }} />
+          ) : (
+            <Home st={st} visible={visible} paused={paused} setPaused={setPaused} onRoom={r => setView({ type: 'room', roomId: r.id })} onApp={a => setModal(a)} onTeacher={() => setPinOpen(true)} />
+          )}
+          {modal && <OpenModal a={modal} onClose={() => setModal(null)} onOpened={opened} />}
+          {pinOpen && <PinModal pin={st.settings.pin} onClose={() => setPinOpen(false)} onOk={() => { setPinOpen(false); setTeacher(true); }} />}
+          {teacher && <Teacher st={st} update={update} onClose={() => setTeacher(false)} />}
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

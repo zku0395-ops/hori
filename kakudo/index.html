@@ -63,7 +63,7 @@
 
     /* ホーム */
     .home { max-width: 1400px; margin: 0 auto; padding: .6rem .75rem; display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 30%); gap: .8rem; height: calc(100vh - 56px); height: calc(100dvh - 56px); }
-    .home-scene { border-radius: 1.4rem; overflow: hidden; background: #8f1d1d; display: flex; align-items: center; justify-content: center; min-height: 0; box-shadow: 0 4px 14px rgba(0,0,0,.15); }
+    .home-scene { border-radius: 1.4rem; overflow: hidden; background: #3b2412; display: flex; align-items: center; justify-content: center; min-height: 0; box-shadow: 0 4px 14px rgba(0,0,0,.15); }
     .home-side { min-height: 0; overflow-y: auto; padding-bottom: .5rem; }
     @media (max-width: 900px) { .home { grid-template-columns: 1fr; height: auto; } .home-scene { aspect-ratio: 1000 / 600; } }
 
@@ -128,6 +128,8 @@
     @keyframes glow { 50% { box-shadow: 0 0 0 8px rgba(251,191,36,.55); } }
     .flicker { animation: flicker .35s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 50% 100%; }
     @keyframes flicker { to { transform: scaleY(1.18) scaleX(.94); } }
+    .ovenglow { animation: ovenglow 1.1s ease-in-out infinite alternate; }
+    @keyframes ovenglow { from { opacity: .15; } to { opacity: .5; } }
     .confetti { position: fixed; top: -60px; z-index: 60; pointer-events: none; animation: fall linear forwards; }
     @keyframes fall { to { transform: translateY(115vh) rotate(540deg); } }
     .fadein { animation: fadein .5s ease both; }
@@ -162,7 +164,7 @@
     .modal-bg { position: fixed; inset: 0; z-index: 50; background: rgba(15,23,42,.45); display: flex; align-items: center; justify-content: center; padding: 1rem; }
 
     @media (prefers-reduced-motion: reduce) {
-      .bob, .sway, .pulse, .glow, .flicker, .talk { animation: none !important; }
+      .bob, .sway, .pulse, .glow, .flicker, .ovenglow, .talk { animation: none !important; }
     }
   </style>
 </head>
@@ -692,10 +694,39 @@
         </g>
       );
     }
+    // ワニワニ先生の絵（Canva で 作った 画像）。表情ごとに 1まい。
+    // 表情の 画像が 読みこめない ときは ふつうの 画像、それも だめな ときは 上の SVG の 絵を 使う
+    const WANI_IMGS = { normal: 'img/wani.webp', happy: 'img/wani_happy.webp', think: 'img/wani_think.webp' };
+    const WANI_STATE = { failed: {}, subs: new Set() };
+    function WaniImg({ mood = 'normal', talking = false, mouth }) {
+      const [, setTick] = useState(0);
+      useEffect(() => { const f = () => setTick(t => t + 1); WANI_STATE.subs.add(f); return () => WANI_STATE.subs.delete(f); }, []);
+      const want = mood === 'happy' || mood === 'eat' ? 'happy' : mood === 'think' ? 'think' : 'normal';
+      const key = WANI_STATE.failed[want] ? 'normal' : want;
+      if (WANI_STATE.failed.normal) return <WaniBody mood={mood} talking={talking} mouth={mouth} />;
+      const onError = () => { WANI_STATE.failed[key] = true; WANI_STATE.subs.forEach(f => f()); };
+      const happy = want === 'happy';
+      const think = want === 'think';
+      return (
+        <g>
+          {happy
+            ? <animateTransform attributeName="transform" type="translate" values="0 0; 0 -14; 0 0" dur="0.5s" repeatCount="3" />
+            : <animateTransform attributeName="transform" type="translate" values="0 0; 0 -4; 0 0" dur="3.2s" repeatCount="indefinite" />}
+          <g transform={think && key !== 'think' ? 'rotate(-7 110 236)' : undefined}>
+            <g>
+              {talking && <animateTransform attributeName="transform" type="scale" additive="sum" values="1 1; 1.015 0.985; 1 1" dur="0.4s" repeatCount="indefinite" />}
+              <image key={key} href={WANI_IMGS[key]} x="-8" y="2" width="236" height="236" onError={onError} preserveAspectRatio="xMidYMax meet" />
+            </g>
+          </g>
+          {think && <text x="198" y="38" fontSize="44" fontWeight="900" fill="#f97316">?</text>}
+          {happy && key !== 'happy' && <g fill="#fbbf24"><text x="0" y="40" fontSize="28">✨</text><text x="196" y="130" fontSize="24">✨</text></g>}
+        </g>
+      );
+    }
     function WaniSensei({ mood = 'normal', talking = false, size = 140, mouth, className = '' }) {
       return (
         <svg viewBox="0 0 220 240" width={size} height={size * 240 / 220} className={className} style={{ overflow: 'visible', flex: 'none' }} aria-hidden="true">
-          <WaniBody mood={mood} talking={talking} mouth={mouth} />
+          <WaniImg mood={mood} talking={talking} mouth={mouth} />
         </svg>
       );
     }
@@ -716,9 +747,19 @@
       { id: 'pine', name: 'パイナップル', draw: () => <path d="M -10 8 Q -11 10 -8 10 L 8 10 Q 11 10 10 8 L 1 -9 Q 0 -11 -1 -9 Z" fill="#fde047" stroke="#ca8a04" strokeWidth="1.8" strokeLinejoin="round" /> },
     ];
     const TOP_MAP = Object.fromEntries(TOPPINGS.map(t => [t.id, t]));
+    // トッピングの 絵（Canva で 作った 画像）。読みこめない ときは 上の SVG の 絵を 使う
+    const TOP_STATE = { failed: {}, subs: new Set() };
+    function ToppingArt({ id, size = 34 }) {
+      const [, setTick] = useState(0);
+      useEffect(() => { const f = () => setTick(t => t + 1); TOP_STATE.subs.add(f); return () => TOP_STATE.subs.delete(f); }, []);
+      const t = TOP_MAP[id]; if (!t) return null;
+      if (TOP_STATE.failed[id]) return t.draw();
+      const onError = () => { TOP_STATE.failed[id] = true; TOP_STATE.subs.forEach(f => f()); };
+      return <image href={`img/top_${id}.webp`} x={-size / 2} y={-size / 2} width={size} height={size} onError={onError} preserveAspectRatio="xMidYMid meet" />;
+    }
     function ToppingIcon({ id, size = 40 }) {
       const t = TOP_MAP[id]; if (!t) return null;
-      return <svg viewBox="-17 -17 34 34" width={size} height={size} aria-hidden="true">{t.draw()}</svg>;
+      return <svg viewBox="-17 -17 34 34" width={size} height={size} aria-hidden="true"><ToppingArt id={id} /></svg>;
     }
 
     // ---- ピザ（まるごと）----
@@ -745,7 +786,7 @@
           {baked && spots.map((s, i) => <ellipse key={i} cx={s.x} cy={s.y} rx={s.rx} ry={s.ry} fill="#f59e0b" opacity=".45" />)}
           {toppings.map((id, i) => {
             const t = TOP_MAP[id]; if (!t) return null;
-            return <g key={i}>{pieces[i].map((p, j) => <g key={j} transform={`translate(${f1(p.x)} ${f1(p.y)}) rotate(${Math.round(p.rot)})`}>{t.draw()}</g>)}</g>;
+            return <g key={i}>{pieces[i].map((p, j) => <g key={j} transform={`translate(${f1(p.x)} ${f1(p.y)}) rotate(${Math.round(p.rot)})`}><ToppingArt id={id} size={30} /></g>)}</g>;
           })}
           {baked && <g stroke="rgba(120,53,15,.35)" strokeWidth="2">{[0, 45, 90, 135].map(a => { const [x1, y1] = P(0, 0, 92, a), [x2, y2] = P(0, 0, 92, a + 180); return <line key={a} x1={x1} y1={y1} x2={x2} y2={y2} />; })}</g>}
         </g>
@@ -873,19 +914,20 @@
       const lower = `M 0 0 L ${len - 18} 0 Q ${len + 2} 0 ${len + 4} 14 Q ${len} 32 ${len - 36} 34 L 40 42 Q -6 42 -24 22 Q -30 0 0 0 Z`;
       const upper = `M 0 0 L ${len - 18} 0 Q ${len + 4} 0 ${len + 6} -16 Q ${len} -34 ${len - 40} -38 L 90 -42 Q 66 -78 20 -74 Q -34 -66 -34 -24 Q -30 0 0 0 Z`;
       const hlc = '#f43f5e';
+      const MG = '#A9CC2E', MD = '#4E7A10';
       return (
         <g transform={`translate(${f1(x)} ${f1(y)}) rotate(${f1(-base)})`}>
           {/* からだ（つけねの うしろ）*/}
-          <ellipse cx="-70" cy="30" rx="70" ry="52" fill={GREEN} stroke={GREEN_D} strokeWidth="4" />
-          <ellipse cx="-62" cy="44" rx="40" ry="26" fill="#bbf7d0" />
+          <ellipse cx="-70" cy="30" rx="70" ry="52" fill={MG} stroke={MD} strokeWidth="4" />
+          <ellipse cx="-62" cy="44" rx="40" ry="26" fill="#F1E27A" />
           {open > 2 && <path d={sectorD(0, 0, len * 0.9, 0, open)} fill="#fda4af" />}
           {arc && open > 2 && <path d={arcD(0, 0, arcR, 0, open)} fill="none" stroke="#f97316" strokeWidth="5" />}
           {/* 下あご */}
-          <path d={lower} fill={GREEN} stroke={GREEN_D} strokeWidth="4" strokeLinejoin="round" />
+          <path d={lower} fill={MG} stroke={MD} strokeWidth="4" strokeLinejoin="round" />
           {teeth.map(t => <polygon key={t} points={`${t},0 ${t + 14},0 ${t + 7},-12`} fill="#fff" stroke="#cbd5e1" strokeWidth="1" />)}
           {/* 上あご */}
           <g transform={`rotate(${f1(-open)})`}>
-            <path d={upper} fill={GREEN} stroke={GREEN_D} strokeWidth="4" strokeLinejoin="round" />
+            <path d={upper} fill={MG} stroke={MD} strokeWidth="4" strokeLinejoin="round" />
             {teeth.map(t => <polygon key={t} points={`${t},0 ${t + 14},0 ${t + 7},12`} fill="#fff" stroke="#cbd5e1" strokeWidth="1" />)}
             <ellipse cx={len - 10} cy="-24" rx="4" ry="2.8" fill="#166534" />
             {hat && (
@@ -897,7 +939,7 @@
                 <rect x="-20" y="0" width="50" height="16" rx="4" fill="#fff" stroke="#cbd5e1" strokeWidth="2.5" />
               </g>
             )}
-            <circle cx="16" cy="-60" r="19" fill="#fff" stroke={GREEN_D} strokeWidth="3" />
+            <circle cx="16" cy="-60" r="19" fill="#fff" stroke={MD} strokeWidth="3" />
             <circle cx="21" cy="-59" r="8.5" fill="#1e293b" /><circle cx="24" cy="-62" r="2.6" fill="#fff" />
             {rays && <line x1="0" y1="0" x2={len} y2="0" stroke={hlEdges ? hlc : rayColor} strokeWidth={hlEdges ? 9 : 5} strokeLinecap="round" />}
           </g>
@@ -1047,14 +1089,67 @@
           <PlantPot x={110} y={575} s={1.1} />
           {/* ワニワニ先生 */}
           <g transform="translate(684 274) scale(1.3)" onClick={onWani} style={{ cursor: onWani ? 'pointer' : 'default' }}>
-            <WaniBody mood={waniMood} talking={talking} />
+            <WaniImg mood={waniMood} talking={talking} />
+          </g>
+        </svg>
+      );
+    }
+
+    // ---- ピザやさん（Canva で 作った 背景）。読みこめない ときは 上の SVG の お店を 出す ----
+    const SHOP_FRAMES = [{ x: 321, y: 205, r: 56 }, { x: 672, y: 205, r: 58 }, { x: 1034, y: 207, r: 46 }];
+    function ShopPhotoScene({ pizzas = [], onFrame, onWani, waniMood = 'normal', talking = false, newId }) {
+      const [failed, setFailed] = useState(false);
+      if (failed) return <ShopScene pizzas={pizzas} onFrame={onFrame} onWani={onWani} waniMood={waniMood} talking={talking} newId={newId} />;
+      return (
+        <svg viewBox="0 0 1600 900" style={{ width: '100%', height: '100%', display: 'block' }} preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <image href="img/shop.webp" x="0" y="0" width="1600" height="900" onError={() => setFailed(true)} />
+          {SHOP_FRAMES.map((f, i) => {
+            const p = pizzas[i];
+            return (
+              <g key={i} onClick={onFrame} style={{ cursor: onFrame ? 'pointer' : 'default' }}>
+                <rect x={f.x - f.r - 8} y={f.y - f.r - 14} width={f.r * 2 + 16} height={f.r * 2 + 40} fill="transparent" />
+                {p ? (
+                  <g>
+                    <g transform={`translate(${f.x} ${f.y - 6}) scale(${f.r / 100})`}><PizzaG toppings={p.toppings} seed={p.id} baked /></g>
+                    <text x={f.x} y={f.y + f.r + 14} textAnchor="middle" fontSize="18" fontWeight="700" fill="#78350f">{fmtDay(p.at)}</text>
+                  </g>
+                ) : (
+                  <g opacity=".55">
+                    <circle cx={f.x} cy={f.y - 6} r={f.r - 6} fill="none" stroke="#b45309" strokeWidth="4" strokeDasharray="10 9" />
+                    <text x={f.x} y={f.y - 4} textAnchor="middle" dominantBaseline="middle" fontSize="44" fontWeight="900" fill="#b45309">?</text>
+                  </g>
+                )}
+                {p && p.id === newId && <text x={f.x + f.r} y={f.y - f.r - 4} textAnchor="middle" fontSize="44">✨</text>}
+              </g>
+            );
+          })}
+          <g transform="translate(1150 420) scale(1.9)" onClick={onWani} style={{ cursor: onWani ? 'pointer' : 'default' }}>
+            <ellipse cx="110" cy="236" rx="70" ry="9" fill="rgba(0,0,0,.22)" />
+            <WaniImg mood={waniMood} talking={talking} />
           </g>
         </svg>
       );
     }
 
     // ---- ピザがま ----
+    // ピザがま（絵は img/oven.webp。読みこめないときは SVG の かま）
+    // children は 400×300 の座標で書く。絵のときは 口の位置に 合わせて うつす
+    const OVEN_STATE = { failed: false };
     function Oven({ pizzaIn = false, children }) {
+      const [failed, setFailed] = useState(OVEN_STATE.failed);
+      if (!failed) {
+        const onError = () => { OVEN_STATE.failed = true; setFailed(true); };
+        return (
+          <svg viewBox="0 0 800 611" style={{ width: '100%', height: '100%' }} aria-hidden="true">
+            <defs>
+              <radialGradient id="ovenGlowG"><stop offset="0" stopColor="#fde047" stopOpacity="0.9" /><stop offset="1" stopColor="#f97316" stopOpacity="0" /></radialGradient>
+            </defs>
+            <image href="img/oven.webp" x="0" y="0" width="800" height="611" onError={onError} />
+            <ellipse className="ovenglow" cx="400" cy="405" rx="170" ry="110" fill="url(#ovenGlowG)" />
+            <g transform="translate(400 490) scale(2) translate(-200 -252)">{children}</g>
+          </svg>
+        );
+      }
       return (
         <svg viewBox="0 0 400 300" style={{ width: '100%', height: '100%' }} aria-hidden="true">
           <defs>
@@ -2394,12 +2489,23 @@
 
     /* ---------- ステージ7：角を つくろう ---------- */
     const CUSTOMERS = ['🐰', '🐻', '🐼', '🐸', '🐧', '🐱', '🐶', '🦊', '🐨', '🐯'];
+    // お客さんの絵（img/cust_○○.webp）。読みこめないときは 絵文字
+    const CUSTOMER_IMGS = { '🐰': 'rabbit', '🐻': 'bear', '🐼': 'panda', '🐸': 'frog', '🐧': 'penguin', '🐱': 'cat', '🐶': 'dog', '🦊': 'fox', '🐨': 'koala', '🐯': 'tiger' };
+    const CUST_STATE = { failed: {}, subs: new Set() };
+    function CustomerFace({ who, cx, cy, size = 76 }) {
+      const [, setTick] = useState(0);
+      useEffect(() => { const f = () => setTick(t => t + 1); CUST_STATE.subs.add(f); return () => CUST_STATE.subs.delete(f); }, []);
+      const name = CUSTOMER_IMGS[who];
+      if (!name || CUST_STATE.failed[name]) return <text x={cx} y={cy + 2} textAnchor="middle" dominantBaseline="central" fontSize={size / 2}>{who}</text>;
+      const onError = () => { CUST_STATE.failed[name] = true; CUST_STATE.subs.forEach(f => f()); };
+      return <image href={`img/cust_${name}.webp`} x={cx - size / 2} y={cy - size / 2} width={size} height={size} onError={onError} preserveAspectRatio="xMidYMax meet" />;
+    }
     function OrderBubble({ x = 14, y = 12, v, who }) {
       return (
         <g pointerEvents="none">
           <rect x={x} y={y} width="290" height="100" rx="20" fill="#fff" stroke="#fda4af" strokeWidth="4" />
-          <circle cx={x + 46} cy={y + 50} r="32" fill="#ffe4e6" />
-          <text x={x + 46} y={y + 52} textAnchor="middle" dominantBaseline="central" fontSize="38">{who}</text>
+          <circle cx={x + 46} cy={y + 50} r="36" fill="#ffe4e6" />
+          <CustomerFace who={who} cx={x + 46} cy={y + 48} size={80} />
           <text x={x + 90} y={y + 30} fontSize="20" fontWeight="700" fill="#9f1239">ちゅうもん！</text>
           <text x={x + 90} y={y + 76} fontSize="42" fontWeight="900" fill="#be123c">{v}°</text>
           <text x={x + 90 + String(v).length * 24 + 30} y={y + 76} fontSize="22" fontWeight="700" fill="#9f1239">の ピザ</text>
@@ -2846,7 +2952,7 @@
         make: <PizzaSlice x={20} y={86} r={72} a1={0} sweep={60} />,
         reflex: <><path d={arcD(50, 50, 18, 0, 240)} fill="none" stroke="#f97316" strokeWidth="5" /><AngleFig x={50} y={50} a1={0} sweep={240} len={42} arc={0} w={4} color="#fde68a" /></>,
         guess: <text x="50" y="58" textAnchor="middle" dominantBaseline="central" fontSize="56">🤔</text>,
-        feed: <g transform="translate(-2 -10) scale(.5)"><WaniBody mood="eat" /></g>,
+        feed: <g transform="translate(-6 -12) scale(.5)"><WaniImg mood="normal" /></g>,
       }[kind];
       return <svg viewBox="0 0 100 100" width={size} height={size} style={{ flex: 'none', overflow: 'visible' }} aria-hidden="true">{k}</svg>;
     }
@@ -2870,7 +2976,7 @@
       return (
         <div className="home">
           <div className="home-scene">
-            <ShopScene pizzas={state.pizzas} onFrame={onAlbum} onWani={() => say(true)} talking={talking} waniMood={newId ? 'happy' : 'normal'} newId={newId} />
+            <ShopPhotoScene pizzas={state.pizzas} onFrame={onAlbum} onWani={() => say(true)} talking={talking} waniMood={newId ? 'happy' : 'normal'} newId={newId} />
           </div>
           <div className="col home-side kids">
             <div className="bubble" style={{ fontSize: '1.35rem' }}>
@@ -3003,7 +3109,7 @@
           {phase === 'out' && <Confetti />}
           <div style={{ position: 'relative', height: '58vh', maxHeight: 460 }}>
             <Oven>
-              {phase === 'in' && <g transform={`translate(${200} ${300 - 90 * k}) scale(${0.5 - 0.25 * k})`}><PizzaG toppings={pizza.toppings} seed={pizza.id} /></g>}
+              {phase !== 'out' && <g transform={`translate(${200} ${300 - 64 * k}) scale(${0.5 - 0.24 * k})`}><PizzaG toppings={pizza.toppings} seed={pizza.id} /></g>}
               {phase === 'bake' && <text x="200" y="120" textAnchor="middle" fontSize="30" fontWeight="900" fill="#fff" stroke="#7c2d12" strokeWidth="6" paintOrder="stroke">じゅうう…</text>}
             </Oven>
             {phase === 'out' && (

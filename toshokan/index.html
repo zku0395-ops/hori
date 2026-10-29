@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ショコの まなびの としょかん</title>
+
+  <script crossorigin="anonymous" src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+  <script crossorigin="anonymous" src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+  <script src="https://unpkg.com/marked@12.0.2/marked.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --fs: 1; --ink: #e8f6ff; --sub: #9cc7e6; --cyan: #3ee6ff; --glass: rgba(8, 22, 48, .78); }
+    html, body { height: 100%; }
+    body { font-family: 'BIZ UDPGothic', sans-serif; background: #050b1a; margin: 0; color: var(--ink);
+      font-size: calc(17px * var(--fs)); -webkit-tap-highlight-color: transparent; }
+    button, input, select, textarea { font-family: inherit; font-size: inherit; }
+    a { color: #7fe9ff; }
+    .btn { border: 0; border-radius: 14px; padding: .55em 1em; font-weight: 700; cursor: pointer; color: #04203a;
+      background: linear-gradient(#bff6ff, #6fd8f2); border-bottom: 5px solid #2a8fb0; transition: transform .08s, border-bottom-width .08s;
+      display: inline-flex; align-items: center; gap: .35em; text-decoration: none; line-height: 1.3; }
+    .btn:active:not(:disabled) { transform: translateY(3px); border-bottom-width: 2px; }
+    .btn:disabled { opacity: .45; cursor: default; }
+    .btn.big { font-size: 1.15em; padding: .7em 1.2em; }
+    .btn.gray { background: linear-gradient(#e6eef7, #b9c8d8); border-bottom-color: #73869b; }
+    .btn.gold { background: linear-gradient(#fff3c4, #ffd36a); border-bottom-color: #b98a1e; }
+    .btn.pink { background: linear-gradient(#ffd9e3, #ff9fb7); border-bottom-color: #b5536d; }
+    .btn.ghost { background: rgba(255,255,255,.08); color: var(--ink); border: 1px solid rgba(127,233,255,.45); border-bottom: 4px solid rgba(127,233,255,.45); }
+    .glass { background: var(--glass); border: 1px solid rgba(62,230,255,.45); border-radius: 22px;
+      box-shadow: 0 0 24px rgba(62,230,255,.25), inset 0 0 30px rgba(62,230,255,.08); backdrop-filter: blur(6px); }
+    .hall { position: fixed; inset: 0; background: #050b1a center/cover no-repeat; }
+    .hall:after { content: ''; position: absolute; inset: 0; background: linear-gradient(rgba(3,8,22,.55), rgba(3,8,22,.15) 35%, rgba(3,8,22,.65)); pointer-events: none; }
+    .top { position: relative; z-index: 3; display: flex; align-items: center; gap: 12px; padding: 12px 18px; flex-wrap: wrap; }
+    .logo { font-weight: 700; font-size: 1.45em; letter-spacing: .04em; text-shadow: 0 0 12px rgba(62,230,255,.9); }
+    .search { flex: 1; min-width: 220px; display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px;
+      background: rgba(5,18,40,.8); border: 1px solid rgba(62,230,255,.55); }
+    .search input { flex: 1; background: transparent; border: 0; color: var(--ink); outline: none; padding: 6px 2px; }
+    .shelves { position: relative; z-index: 2; display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 18px;
+      padding: 8px 24px 200px; max-width: 1180px; margin: 0 auto; perspective: 900px; }
+    .shelf { position: relative; cursor: pointer; border-radius: 18px; padding: 14px 14px 12px; text-align: left; color: var(--ink);
+      background: linear-gradient(160deg, rgba(10,30,60,.86), rgba(4,12,30,.92)); border: 2px solid var(--c);
+      box-shadow: 0 0 18px var(--c), inset 0 0 22px rgba(255,255,255,.04); transform: rotateX(6deg); transition: transform .2s, box-shadow .2s; }
+    .shelf:hover, .shelf:focus-visible { transform: rotateX(0) translateY(-4px); box-shadow: 0 0 30px var(--c); outline: none; }
+    .shelf:active { transform: translateY(2px); }
+    .shelf .name { font-size: 1.3em; font-weight: 700; display: flex; align-items: center; gap: .4em; }
+    .shelf .cnt { color: var(--sub); font-size: .85em; margin-top: 2px; }
+    .spines { display: flex; align-items: flex-end; gap: 3px; height: 62px; margin-top: 10px; padding: 0 4px 4px;
+      border-bottom: 5px solid var(--c); box-shadow: 0 6px 10px -6px var(--c); }
+    .spine { width: 14px; border-radius: 3px 3px 1px 1px; background: var(--sc); box-shadow: inset -3px 0 0 rgba(0,0,0,.25), inset 2px 0 0 rgba(255,255,255,.25); }
+    .shoko { position: fixed; right: 14px; bottom: 6px; z-index: 6; display: flex; align-items: flex-end; gap: 6px; pointer-events: none; }
+    .shoko img { width: calc(220px * var(--fs)); max-width: 32vw; filter: drop-shadow(0 0 18px rgba(62,230,255,.55)); pointer-events: auto; cursor: pointer; }
+    .bubble { position: relative; pointer-events: auto; max-width: 340px; margin-bottom: 70px; padding: 12px 16px; border-radius: 18px;
+      background: rgba(235,252,255,.96); color: #08263d; font-weight: 700; line-height: 1.55; box-shadow: 0 0 18px rgba(62,230,255,.6); }
+    .shoko.mini img { width: calc(110px * var(--fs)); }
+    .shoko.mini .bubble { margin-bottom: 30px; max-width: 280px; font-size: .9em; }
+    .bubble:after { content: ''; position: absolute; right: -14px; bottom: 22px; border: 8px solid transparent; border-left: 8px solid rgba(235,252,255,.96); }
+    .floaty { animation: floaty 3.2s ease-in-out infinite; }
+    @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    .pop { animation: pop .35s cubic-bezier(.17,.89,.32,1.28) both; }
+    @keyframes pop { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .layer { position: fixed; inset: 0; z-index: 5; display: flex; justify-content: center; align-items: flex-start; padding: 70px 14px 14px;
+      background: rgba(2,6,18,.55); overflow: auto; }
+    .panel { width: min(1100px, 100%); padding: 18px 20px 24px; margin-bottom: 120px; }
+    .phead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+    .phead h2 { margin: 0; font-size: 1.4em; flex: 1; }
+    .books { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+    .book { display: flex; gap: 12px; align-items: center; text-align: left; cursor: pointer; padding: 12px; border-radius: 16px; color: var(--ink);
+      background: rgba(255,255,255,.06); border: 1px solid rgba(127,233,255,.3); border-left: 8px solid var(--c); position: relative; padding-right: 34px; }
+    .book:hover { background: rgba(127,233,255,.12); }
+    .cover { width: 72px; height: 72px; flex: none; border-radius: 14px; display: grid; place-items: center; font-size: 40px; overflow: hidden;
+      background: radial-gradient(circle at 30% 25%, #ffffff, #cfe9f7); }
+    .cover img { width: 100%; height: 100%; object-fit: contain; }
+    .cover.l { width: 130px; height: 130px; font-size: 72px; border-radius: 22px; }
+    .badge { display: inline-block; font-size: .72em; padding: 2px 8px; border-radius: 999px; background: rgba(127,233,255,.2); color: #bdf4ff; margin-right: 4px; }
+    .star { position: absolute; top: 6px; right: 8px; font-size: 1.1em; }
+    .sec { margin-top: 16px; padding: 14px; border-radius: 16px; background: rgba(255,255,255,.05); border: 1px solid rgba(127,233,255,.22); }
+    .sec h3 { margin: 0 0 10px; font-size: 1.1em; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .muted { color: var(--sub); font-size: .88em; }
+    .inp { flex: 1; min-width: 220px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(127,233,255,.5); background: rgba(0,10,30,.6); color: var(--ink); }
+    select.inp { flex: none; min-width: 160px; }
+    .files { display: grid; grid-template-columns: minmax(220px, 300px) 1fr; gap: 12px; }
+    .flist { max-height: 70vh; overflow: auto; padding-right: 4px; }
+    .fbtn { display: block; width: 100%; text-align: left; padding: 7px 10px; border-radius: 10px; border: 0; background: transparent; color: var(--ink); cursor: pointer; word-break: break-all; }
+    .fbtn:hover { background: rgba(127,233,255,.12); }
+    .fbtn.on { background: rgba(127,233,255,.25); font-weight: 700; }
+    .fbtn.key { color: #ffe27a; }
+    details > summary { cursor: pointer; padding: 6px 8px; color: #bdf4ff; }
+    pre.code { margin: 0; max-height: 62vh; overflow: auto; padding: 12px; border-radius: 12px; background: #020814; color: #d8f1ff;
+      font: 13px/1.5 ui-monospace, Consolas, monospace; white-space: pre; tab-size: 2; user-select: text; }
+    .md { line-height: 1.75; user-select: text; }
+    .md table { border-collapse: collapse; margin: 10px 0; display: block; overflow: auto; }
+    .md th, .md td { border: 1px solid rgba(127,233,255,.35); padding: 6px 10px; vertical-align: top; }
+    .md th { background: rgba(127,233,255,.12); }
+    .md code { background: rgba(127,233,255,.12); padding: 1px 5px; border-radius: 5px; }
+    .md pre code { display: block; padding: 10px; overflow: auto; }
+    .md img { max-width: 100%; }
+    .md h1, .md h2 { border-bottom: 1px solid rgba(127,233,255,.3); padding-bottom: 4px; }
+    .imgs { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+    .imgs a { display: block; background: rgba(255,255,255,.9); border-radius: 10px; aspect-ratio: 1; overflow: hidden; }
+    .imgs img { width: 100%; height: 100%; object-fit: contain; }
+    .toast { position: fixed; left: 50%; top: 16px; transform: translateX(-50%); z-index: 9; padding: 10px 18px; border-radius: 14px;
+      background: #eafcff; color: #06304a; font-weight: 700; box-shadow: 0 0 20px rgba(62,230,255,.8); }
+    table.list { width: 100%; border-collapse: collapse; }
+    table.list td, table.list th { padding: 6px; border-bottom: 1px solid rgba(127,233,255,.2); text-align: left; vertical-align: middle; }
+    .check { margin: 0; padding-left: 1.2em; line-height: 1.9; }
+    @media (max-width: 720px) { .files { grid-template-columns: 1fr; } .shoko img { width: 140px; } .bubble { max-width: 60vw; margin-bottom: 40px; } }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div style="padding:60px;text-align:center;font-size:26px;color:#7fe9ff;font-weight:bold;">じゅんび ちゅう…</div>
+  </div>
+
+  <script>
+    // 絵は GitHub Pages から読みこみます（Apps Script のファイルを短くするため）
+    (function () {
+      var h = location.hostname;
+      var local = location.protocol === 'file:' || /github\.io$/.test(h) || h === 'localhost' || h === '127.0.0.1';
+      window.TOSHO_BASE = local ? '' : 'https://zku0395-ops.github.io/hori/toshokan/';
+    })();
+  </script>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useMemo, useRef } = React;
+    const APP_VERSION = '1.2.1';
+
+    // =====================================================================
+    //  1. リポジトリと 本の もくろく
+    // =====================================================================
+    const OWNER = 'zku0395-ops', REPO = 'hori', BRANCH = 'main';
+    const PAGES = 'https://zku0395-ops.github.io/hori/';
+    const RAW = `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/`;
+    const BLOB = `https://github.com/${OWNER}/${REPO}/blob/${BRANCH}/`;
+    const TREE_API = `https://api.github.com/repos/${OWNER}/${REPO}/git/trees/${BRANCH}?recursive=1`;
+    const IMG = window.TOSHO_BASE + 'img/';
+    // ショコの 表情：ふつう・よろこぶ・かんがえる・びっくり・ごあいさつ
+    const MOODS = { normal: 'shoko.webp', happy: 'shoko_happy.webp', think: 'shoko_think.webp', surprise: 'shoko_surprise.webp', bow: 'shoko_bow.webp' };
+    Object.values(MOODS).forEach(f => { const im = new Image(); im.src = IMG + f; }); // さきに 読みこんで、かわるときに ちらつかないように
+
+    const SUBJECTS = [
+      { id: 'kokugo', name: '国語', icon: '📕', c: '#ff6b81' },
+      { id: 'sansu', name: '算数', icon: '📗', c: '#4da3ff' },
+      { id: 'seikatsu', name: '生活単元', icon: '📙', c: '#ffb547' },
+      { id: 'ongaku', name: '音楽', icon: '🎵', c: '#ff8fd8' },
+      { id: 'zuko', name: '図工', icon: '🎨', c: '#ffe066' },
+      { id: 'sogo', name: '総合', icon: '📘', c: '#3ddc97' },
+      { id: 'taiiku', name: '体育', icon: '⚽', c: '#ff9a5c' },
+      { id: 'dotoku', name: '道徳', icon: '💗', c: '#f472b6' },
+      { id: 'seiseki', name: '成績', icon: '📊', c: '#7dd3fc' },
+      { id: 'komu', name: '校務', icon: '📓', c: '#b48cff' },
+    ];
+    const NEW_SUBJECT = { id: 'new', name: 'あたらしい本', icon: '✨', c: '#3ee6ff' };
+    const subjectOf = (id) => SUBJECTS.find(s => s.id === id) || NEW_SUBJECT;
+
+    // kind：pages＝GitHub Pages で開く（入口ページは Apps Script）、gas＝Apps Script で開く、print＝プリント（PDF）
+    // 新しいフォルダは、ここに なくても 自動で「あたらしい本」に入ります。
+    // appUrl：はじめから とうろく して おく Apps Script の URL（先生が 画面で とうろく すると そちらが つかわれます）
+    const CATALOG = {
+      '': { subject: 'kokugo', kind: 'pages', emoji: '🦉', chara: 'ホーホーはかせ', entry: true },
+      'katakana': { subject: 'kokugo', kind: 'gas', emoji: '🤖', chara: 'ロボタン' },
+      'kanapuzzle': { subject: 'kokugo', kind: 'print', emoji: '🧩', chara: 'ロボタン' },
+      'kanapuzzle/app': { subject: 'kokugo', kind: 'gas', emoji: '🧩', chara: 'ロボタン' },
+      'nazotoki': { subject: 'kokugo', kind: 'pages', img: 'nazotoki/img/wanda.webp', chara: 'ワンダせんせい', entry: true },
+      'nazotokiprint': { subject: 'kokugo', kind: 'print', img: 'nazotoki/img/wanda.webp', chara: 'ワンダせんせい' },
+      'kanji1': { subject: 'kokugo', kind: 'gas', img: 'kanji1/img/ponta.webp', chara: 'ポンタせんせい' },
+      'kanji2': { subject: 'kokugo', kind: 'gas', img: 'kanji2/img/ponta.webp', chara: 'ポンタせんせい' },
+      'kanji3': { subject: 'kokugo', kind: 'gas', img: 'kanji3/img/ponta.webp', chara: 'ポンタせんせい' },
+      'kanjiprint': { subject: 'kokugo', kind: 'print', img: 'kanji1/img/ponta.webp', chara: 'ポンタせんせい' },
+      'romaji': { subject: 'kokugo', kind: 'gas', img: 'romaji/img/gaji.webp', chara: 'ガジガジせんせい' },
+      'bunbun': { subject: 'kokugo', kind: 'gas', img: 'bunbun/img/chorou.webp', chara: 'ブンブンちょうろう', appUrl: 'https://script.google.com/macros/s/AKfycbxVQOeY_SsNNFZAKkU2BoqpOBZgAGBVop7p-QW7jN5tVWI5e-773ZGFZJ96y40dHPdwtg/exec' },
+      'kakudo': { subject: 'sansu', kind: 'pages', emoji: '🐊', chara: 'ワニワニ先生', entry: true },
+      'bunsu': { subject: 'sansu', kind: 'pages', emoji: '🐻', chara: 'モカせんせい', entry: true },
+      'zukei': { subject: 'sansu', kind: 'gas', emoji: '🔺', chara: 'トンガリはかせ' },
+      'hissan': { subject: 'sansu', kind: 'pages', img: 'hissan/img/kurumi.webp', chara: 'クルミせんせい', entry: true },
+      'hissan/print': { subject: 'sansu', kind: 'print', img: 'hissan/img/kurumi.webp', chara: 'クルミせんせい' },
+      'warizan': { subject: 'sansu', kind: 'gas', img: 'warizan/img/minori.webp', chara: 'ミノリせんせい' },
+      'kuku': { subject: 'sansu', kind: 'gas', img: 'kuku/img/kagemaru.webp', chara: 'カゲマルせんせい' },
+      'beads': { subject: 'seikatsu', kind: 'pages', emoji: '🦎', chara: 'ニジーせんせい' },
+      'tankentai': { subject: 'sogo', kind: 'pages', emoji: '🐦', chara: 'ツバサせんせい', entry: true },
+      'typing': { subject: 'sogo', kind: 'gas', img: 'typing/img/kibo.webp', chara: 'キャプテン・キーボ' },
+      'pico': { subject: 'sogo', kind: 'gas', img: 'pico/img/pico.webp', chara: 'ピコ' },
+      'shokuinshitsu': { subject: 'komu', kind: 'gas', emoji: '🏫', chara: '係のキャラクター' },
+      'toshokan': { subject: 'komu', kind: 'gas', img: 'toshokan/img/shoko.webp', emoji: '🤖', chara: 'ショコ' },
+    };
+    const KIND_LABEL = { pages: 'アプリ', gas: 'アプリ（Apps Script）', print: 'プリント', res: 'しりょう' };
+
+    // しりょう（Canva のデザイン・Google の ファイルなど）。URL から しゅるいを 見分ける
+    const RES_TYPES = [
+      { id: 'canva', name: 'Canva', icon: '🎨', test: u => /(^|\.)canva\.(com|link)$/.test(u.hostname) },
+      { id: 'doc', name: 'Google ドキュメント', icon: '📄', test: u => u.hostname === 'docs.google.com' && u.pathname.startsWith('/document') },
+      { id: 'slide', name: 'Google スライド', icon: '📽️', test: u => u.hostname === 'docs.google.com' && u.pathname.startsWith('/presentation') },
+      { id: 'sheet', name: 'Google スプレッドシート', icon: '📊', test: u => u.hostname === 'docs.google.com' && u.pathname.startsWith('/spreadsheets') },
+      { id: 'form', name: 'Google フォーム', icon: '📝', test: u => (u.hostname === 'docs.google.com' && u.pathname.startsWith('/forms')) || u.hostname === 'forms.gle' },
+      { id: 'pdf', name: 'PDF・ドライブ', icon: '📕', test: u => u.hostname === 'drive.google.com' || /\.pdf$/i.test(u.pathname) },
+      { id: 'youtube', name: 'YouTube', icon: '▶️', test: u => /(^|\.)youtube\.com$/.test(u.hostname) || u.hostname === 'youtu.be' },
+      { id: 'link', name: 'リンク', icon: '🔗', test: () => true },
+    ];
+    const resTypeOf = (id) => RES_TYPES.find(t => t.id === id) || RES_TYPES[RES_TYPES.length - 1];
+    const detectType = (url) => { try { return RES_TYPES.find(t => t.test(new URL(String(url).trim()))).id; } catch (e) { return 'link'; } };
+    const okUrl = (u) => /^https:\/\/\S+$/.test(String(u).trim());
+    const RES = 'res:';   // おきにいり・さいきん では、しりょうを「res:ID」と書く
+    const appKey = (dir) => dir === '' ? '/' : dir;   // しりょうの「つかう アプリ」：いちばん上（音読）は '/'
+    const newResId = () => 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    // たなの 中の しぼりこみ
+    const groupOf = (b) => b.isRes ? 'res' : b.kind === 'print' ? 'print' : 'app';
+    const FILTERS = [['all', 'ぜんぶ'], ['app', 'アプリ'], ['print', 'プリント'], ['res', 'しりょう']];
+    // README の見出しが読めなかったときの なまえ
+    const FALLBACK_TITLE = { '': 'おんどくはかせの ちょうせんじょう' };
+
+    // ファイルの しゅるい
+    const extOf = (p) => (p.match(/\.([^./]+)$/) || [, ''])[1].toLowerCase();
+    const IMG_EXT = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'];
+    const CODE_EXT = ['html', 'htm', 'gs', 'js', 'mjs', 'css', 'json', 'md', 'txt', 'csv', 'py', 'sh', 'yml', 'yaml'];
+    const IGNORE = (p) => p === 'CLAUDE.md' || p.startsWith('.') || /\/\./.test(p);
+
+    const enc = (p) => p.split('/').map(encodeURIComponent).join('/');
+    const rawUrl = (p) => RAW + enc(p);
+    const blobUrl = (p) => BLOB + enc(p);
+    const pagesUrl = (p) => PAGES + enc(p);
+    const dirUrl = (dir) => PAGES + (dir ? enc(dir) + '/' : '');
+
+    // 木（ファイルの一覧）から 本を つくる：README.md が ある フォルダが 1さつの 本
+    function buildBooks(paths) {
+      const files = paths.filter(p => !IGNORE(p));
+      const dirs = files.filter(p => /(^|\/)README\.md$/.test(p)).map(p => p.replace(/\/?README\.md$/, ''));
+      if (!dirs.includes('')) dirs.push('');
+      const owner = (p) => { // いちばん ふかい 本の フォルダ
+        let best = null;
+        dirs.forEach(d => { if ((d === '' || p.startsWith(d + '/')) && (best === null || d.length > best.length)) best = d; });
+        return best;
+      };
+      const by = {};
+      dirs.forEach(d => { by[d] = []; });
+      files.forEach(p => { const d = owner(p); if (d !== null) by[d].push(p); });
+      return dirs.map(dir => {
+        const meta = CATALOG[dir] || {};
+        const list = by[dir].sort((a, b) => a.localeCompare(b, 'ja'));
+        const local = list.map(p => dir ? p.slice(dir.length + 1) : p);
+        const hasGs = local.some(p => extOf(p) === 'gs');
+        const guessKind = local.some(p => p.startsWith('pdf/')) ? 'print'
+          : (local.some(p => /^[^/]+\.gs$/.test(p)) ? 'gas' : 'pages');
+        return {
+          dir, meta, known: !!CATALOG[dir],
+          kind: meta.kind || guessKind,
+          files: list,
+          code: list.filter(p => CODE_EXT.includes(extOf(p))),
+          pdfs: list.filter(p => extOf(p) === 'pdf'),
+          imgs: list.filter(p => IMG_EXT.includes(extOf(p))),
+          other: list.filter(p => !CODE_EXT.includes(extOf(p)) && extOf(p) !== 'pdf' && !IMG_EXT.includes(extOf(p))),
+          hasIndex: local.includes('index.html'),
+          hasEntry: meta.entry || local.some(p => p.startsWith('gas/')),
+          hasGs,
+        };
+      });
+    }
+
+    // Apps Script に はる だいじな ファイル（.gs と、おなじ フォルダの .html）
+    function isKeyFile(p, list) {
+      if (extOf(p) === 'gs') return true;
+      if (extOf(p) !== 'html') return false;
+      const d = p.replace(/[^/]*$/, '');
+      return list.some(q => q.startsWith(d) && !q.slice(d.length).includes('/') && extOf(q) === 'gs');
+    }
+
+    // =====================================================================
+    //  2. データの ほぞん（スプレッドシート／おためしモード）
+    // =====================================================================
+    const HAS_GAS = typeof google !== 'undefined' && google.script && google.script.run;
+    const gas = (fn, ...args) => new Promise((resolve, reject) => {
+      google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
+    });
+    const LS = 'toshokan_v1';
+    const lsGet = (k, d) => { try { const v = JSON.parse(localStorage.getItem(LS + '_' + k)); return v == null ? d : v; } catch (e) { return d; } };
+    const lsSet = (k, v) => { try { localStorage.setItem(LS + '_' + k, JSON.stringify(v)); } catch (e) {} };
+    const DEFAULT_STATE = { books: {}, resources: [], favorites: [], recent: [], settings: { voice: false, rate: 0.9, font: 1 } };
+
+    const store = {
+      async load() {
+        if (HAS_GAS) return Object.assign({}, DEFAULT_STATE, await gas('loadState'));
+        return lsGet('state', DEFAULT_STATE);
+      },
+      async saveBook(dir, data) { if (HAS_GAS) return gas('saveBook', dir, data); },
+      async saveList(key, list) { if (HAS_GAS) return gas('saveList', key, list); },
+      async saveSettings(s) { if (HAS_GAS) return gas('saveSettings', s); },
+      async saveResource(r) { if (HAS_GAS) return gas('saveResource', r); },
+      async deleteResource(id) { if (HAS_GAS) return gas('deleteResource', id); },
+      local(state) { if (!HAS_GAS) lsSet('state', state); },
+    };
+
+    // GitHub の ファイル一覧（1かいで ぜんぶ）。
+    // ① GitHub の 窓口（1時間に60回まで。かわって いなければ 回数に 入らない）
+    // ② 目録 mokuroku.json（node toshokan/tools/mokuroku.js で 作る）
+    // ③ Apps Script から 読む　④ まえに 読んだ もの　の じゅんに ためす。
+    const MOKUROKU = 'toshokan/mokuroku.json';
+    async function loadTree(force) {
+      const cache = lsGet('tree', null);
+      if (!force && cache && Date.now() - cache.at < 10 * 60 * 1000) return Object.assign({}, cache, { from: 'cache' });
+      const done = (paths, from, etag, titles) => {
+        const t = { paths, at: Date.now(), etag: etag || '', titles: titles || (cache && cache.titles) || {} };
+        lsSet('tree', t);
+        return Object.assign({}, t, { from });
+      };
+      try {
+        const headers = { Accept: 'application/vnd.github+json' };
+        if (cache && cache.etag) headers['If-None-Match'] = cache.etag;
+        const r = await fetch(TREE_API, { headers });
+        if (r.status === 304 && cache) return done(cache.paths, 'github', cache.etag);
+        if (!r.ok) throw new Error('GitHub ' + r.status);
+        const j = await r.json();
+        return done(j.tree.filter(t => t.type === 'blob').map(t => t.path), 'github', r.headers.get('ETag'));
+      } catch (e) { /* つぎへ */ }
+      try {
+        const j = JSON.parse(await fetchText(MOKUROKU));
+        if (Array.isArray(j.paths) && j.paths.length) return done(j.paths, 'mokuroku', '', j.titles);
+      } catch (e) { /* つぎへ */ }
+      if (HAS_GAS) {
+        try { return done(await gas('fetchTree'), 'server'); } catch (e) { /* つぎへ */ }
+      }
+      if (cache) return Object.assign({}, cache, { from: 'old', error: 'old' });
+      throw new Error('tree');
+    }
+
+    async function fetchText(path) {
+      try {
+        const r = await fetch(rawUrl(path), { cache: 'no-cache' });
+        if (!r.ok) throw new Error(String(r.status));
+        return await r.text();
+      } catch (e) {
+        if (HAS_GAS) return gas('fetchFile', path);
+        throw e;
+      }
+    }
+
+    // =====================================================================
+    //  3. ショコの こえ
+    // =====================================================================
+    let jaVoice = null;
+    const pickVoice = () => {
+      if (!('speechSynthesis' in window)) return;
+      const vs = speechSynthesis.getVoices().filter(v => /^ja/i.test(v.lang));
+      jaVoice = vs.find(v => /Google/.test(v.name)) || vs[0] || null;
+    };
+    if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+    function speak(text, settings) {
+      if (!settings.voice || !('speechSynthesis' in window)) return;
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text.replace(/\p{Extended_Pictographic}/gu, ''));
+      u.lang = 'ja-JP'; u.rate = Number(settings.rate) || 0.9; u.pitch = 1.25;
+      if (jaVoice) u.voice = jaVoice;
+      speechSynthesis.speak(u);
+    }
+
+    // コピー（Apps Script の 画面の 中でも うごくように、2つの やりかたを ためす）
+    function copyText(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.top = '-1000px';
+      document.body.appendChild(ta); ta.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta);
+      if (ok) return Promise.resolve();
+      return navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject(new Error('copy'));
+    }
+
+    // =====================================================================
+    //  4. 画面の 部品
+    // =====================================================================
+    function Cover({ book, large }) {
+      const [bad, setBad] = useState(false);
+      const m = book.meta;
+      return (
+        <div className={'cover' + (large ? ' l' : '')}>
+          {m.img && !bad ? <img src={PAGES + m.img} alt="" loading="lazy" onError={() => setBad(true)} /> : (m.emoji || '📘')}
+        </div>
+      );
+    }
+
+    function BookCard({ book, title, fav, onOpen, onFav }) {
+      const s = subjectOf(book.subject);
+      return (
+        <div className="book pop" style={{ '--c': s.c }} onClick={onOpen} role="button" tabIndex={0}
+          onKeyDown={e => { if (e.key === 'Enter') onOpen(); }}>
+          <Cover book={book} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700, lineHeight: 1.4 }}>{title.main}</div>
+            <div className="muted" style={{ marginTop: 4 }}>
+              <span className="badge">{book.isRes ? resTypeOf(book.type).name : KIND_LABEL[book.kind]}</span>{s.name}
+            </div>
+          </div>
+          <span className="star" role="button" title="おきにいり" onClick={e => { e.stopPropagation(); onFav(); }}>{fav ? '⭐' : '☆'}</span>
+        </div>
+      );
+    }
+
+    // README の 見出し「なまえ（せつめい）」を 2つに わける
+    function splitTitle(t, dir) {
+      t = (t || FALLBACK_TITLE[dir] || dir).replace(/^#\s*/, '').trim();
+      const m = t.match(/^(.*?)（(.*)）$/);
+      return m ? { main: m[1].trim(), sub: m[2] } : { main: t, sub: '' };
+    }
+
+    // =====================================================================
+    //  5. アプリ
+    // =====================================================================
+    function App() {
+      const [tree, setTree] = useState(null);       // { paths, at, from }
+      const [treeErr, setTreeErr] = useState('');
+      const [state, setState] = useState(null);
+      const [titles, setTitles] = useState(() => lsGet('titles', {}));
+      const [view, setView] = useState({ name: 'hall' }); // hall / shelf / book / settings
+      const [query, setQuery] = useState('');
+      const [say, setSay] = useState('こんにちは。ショコです。よみたい たなを えらんでね。');
+      const [mood, setMood] = useState('bow');
+      const [toast, setToast] = useState('');
+      const [bubbleOn, setBubbleOn] = useState(true);
+      const bgOk = useRef(true);
+
+      const settings = (state && state.settings) || DEFAULT_STATE.settings;
+      useEffect(() => { document.documentElement.style.setProperty('--fs', settings.font || 1); }, [settings.font]);
+
+      // mood：ショコの 表情（MOODS）。ふつう いがいの 表情は、すこし たつと ふつうに もどる
+      const talk = (t, m) => { setSay(t); setMood(m || 'normal'); setBubbleOn(true); speak(t, settings); };
+      useEffect(() => {
+        if (mood === 'normal') return;
+        const id = setTimeout(() => setMood('normal'), 4500);
+        return () => clearTimeout(id);
+      }, [mood, say]);
+      // 本や たなを ひらいて いる ときは、ふきだしを すこしで けす（ボタンに かさならないように）
+      const layerOpen = view.name !== 'hall' || !!query.trim();
+      useEffect(() => {
+        if (!layerOpen || !bubbleOn) return;
+        const id = setTimeout(() => setBubbleOn(false), 5000);
+        return () => clearTimeout(id);
+      }, [layerOpen, bubbleOn, say]);
+      const flash = (t) => { setToast(t); setTimeout(() => setToast(''), 2200); };
+
+      // はじめに 読みこむ
+      const refresh = async (force) => {
+        setTreeErr('');
+        try {
+          const t = await loadTree(force);
+          setTree(t);
+          if (t.error) { setTreeErr('GitHub に つながらなかったので、まえに 読んだ 一覧を 出しています。'); talk('GitHub に つながらなかったので、まえの 一覧を 出しています。', 'think'); }
+          if (force) flash('🔄 さいしんの 一覧に しました');
+        } catch (e) {
+          setTreeErr('GitHub の ファイルの 一覧が 読めませんでした。インターネットに つながっているか 確かめて、🔄 を 押してください。');
+          talk('ファイルの 一覧が 読めませんでした。インターネットを 確かめてね。', 'think');
+        }
+      };
+      useEffect(() => {
+        refresh(false);
+        store.load().then(s => setState(Object.assign({}, DEFAULT_STATE, s)))
+          .catch(() => { setState(DEFAULT_STATE); flash('スプレッドシートが 読めませんでした'); });
+      }, []);
+
+      // 本の 一覧（GitHub の 一覧 ＋ スプレッドシートの 教科・URL）
+      const books = useMemo(() => {
+        if (!tree) return [];
+        return buildBooks(tree.paths).map(b => {
+          const saved = (state && state.books[b.dir]) || {};
+          return Object.assign(b, {
+            subject: saved.subject || b.meta.subject || 'new',
+            appUrl: saved.appUrl || b.meta.appUrl || '', entryUrl: saved.entryUrl || '', memo: saved.memo || '',
+          });
+        }).sort((a, b) => {
+          const sa = SUBJECTS.findIndex(s => s.id === a.subject), sb = SUBJECTS.findIndex(s => s.id === b.subject);
+          const oa = Object.keys(CATALOG).indexOf(a.dir), ob = Object.keys(CATALOG).indexOf(b.dir);
+          return sa - sb || (oa < 0 ? 999 : oa) - (ob < 0 ? 999 : ob) || a.dir.localeCompare(b.dir);
+        });
+      }, [tree, state]);
+
+      // しりょう（先生が 登録した Canva・Google の ファイルなど）も 本と おなじ 形に する
+      const resItems = useMemo(() => ((state && state.resources) || []).map(r => ({
+        isRes: true, dir: RES + r.id, id: r.id, title: r.title, url: r.url, type: r.type || 'link', app: r.app || '',
+        subject: r.subject || 'new', memo: r.memo || '', kind: 'res', meta: { emoji: resTypeOf(r.type).icon },
+      })).sort((a, b) => a.title.localeCompare(b.title, 'ja')), [state]);
+      const items = useMemo(() => books.concat(resItems), [books, resItems]);
+
+      // README の 見出しを 読む（まだ 読んで いない 本だけ）
+      useEffect(() => {
+        if (!books.length) return;
+        const known = (tree && tree.titles) || {};
+        const need = books.filter(b => !titles[b.dir] && !known[b.dir]);
+        if (!need.length) return;
+        Promise.all(need.map(b => fetchText(b.dir ? b.dir + '/README.md' : 'README.md')
+          .then(t => [b.dir, (t.split('\n').find(l => /^#\s/.test(l)) || '').trim()])
+          .catch(() => [b.dir, ''])))
+          .then(pairs => {
+            setTitles(prev => {
+              const next = Object.assign({}, prev);
+              pairs.forEach(([d, t]) => { if (t) next[d] = t; });
+              lsSet('titles', next);
+              return next;
+            });
+          });
+      }, [books.length]);
+
+      const titleOf = (b) => b.isRes ? { main: b.title, sub: '' }
+        : splitTitle(titles[b.dir] || (tree && tree.titles && tree.titles[b.dir]), b.dir);
+
+      // 保存
+      const update = (fn) => setState(prev => { const next = fn(JSON.parse(JSON.stringify(prev))); store.local(next); return next; });
+      const saveBook = (dir, patch) => {
+        update(s => { s.books[dir] = Object.assign({}, s.books[dir] || {}, patch); return s; });
+        const cur = Object.assign({}, (state.books[dir] || {}), patch);
+        store.saveBook(dir, cur).then(() => flash('💾 ほぞん しました')).catch(() => { flash('⚠ ほぞん できませんでした'); talk('ほぞん できませんでした。インターネットを 確かめてね。', 'think'); });
+      };
+      const toggleFav = (dir) => {
+        let list;
+        if (!state.favorites.includes(dir)) talk('⭐ おきにいりに 入れました。', 'happy');
+        update(s => { const i = s.favorites.indexOf(dir); if (i >= 0) s.favorites.splice(i, 1); else s.favorites.unshift(dir); list = s.favorites; return s; });
+        setTimeout(() => store.saveList('favorites', list), 0);
+      };
+      const markRecent = (dir) => {
+        let list;
+        update(s => { s.recent = [dir].concat(s.recent.filter(d => d !== dir)).slice(0, 12); list = s.recent; return s; });
+        setTimeout(() => store.saveList('recent', list), 0);
+      };
+      const saveSettings = (patch) => {
+        let next;
+        update(s => { s.settings = Object.assign({}, s.settings, patch); next = s.settings; return s; });
+        setTimeout(() => store.saveSettings(next), 0);
+      };
+
+      const saveResource = (r) => {
+        update(s => { const i = s.resources.findIndex(x => x.id === r.id); if (i >= 0) s.resources[i] = r; else s.resources.push(r); return s; });
+        store.saveResource(r).then(() => flash('💾 ほぞん しました')).catch(() => { flash('⚠ ほぞん できませんでした'); talk('ほぞん できませんでした。インターネットを 確かめてね。', 'think'); });
+      };
+      // けすと、おきにいり・さいきん からも けす（スプレッドシートの 方は コード.gs が けす）
+      const deleteResource = (id) => {
+        update(s => {
+          s.resources = s.resources.filter(x => x.id !== id);
+          s.favorites = s.favorites.filter(d => d !== RES + id);
+          s.recent = s.recent.filter(d => d !== RES + id);
+          return s;
+        });
+        store.deleteResource(id).then(() => flash('🗑️ けしました')).catch(() => flash('⚠ けせませんでした'));
+      };
+
+      const isFav = (dir) => state && state.favorites.includes(dir);
+
+      // 検索
+      const hits = useMemo(() => {
+        const q = query.trim().toLowerCase();
+        if (!q) return [];
+        return items.filter(b => {
+          const t = titleOf(b), s = subjectOf(b.subject);
+          const a = b.isRes && b.app && books.find(x => appKey(x.dir) === b.app);
+          const extra = b.isRes ? [resTypeOf(b.type).name, a ? titleOf(a).main : '']
+            : [b.dir, b.meta.chara];
+          return [t.main, t.sub, s.name, KIND_LABEL[b.kind], b.memo].concat(extra).join(' ').toLowerCase().includes(q);
+        });
+      }, [query, items, titles]);
+      const noHit = !!query.trim() && !hits.length;
+      useEffect(() => { if (noHit) talk('みつからないなあ。ほかの ことばで さがしてみてね。', 'think'); }, [noHit]);
+
+      const openShelf = (id) => {
+        setView({ name: 'shelf', id, filter: 'all' });
+        const msg = {
+          fav: '⭐ おきにいりの たなです。よく つかう 本を あつめました。',
+          recent: '🕘 さいきん ひらいた 本です。',
+          new: '✨ あたらしい 本です。本を 押して、どの 教科の たなに 入れるか 決めてね。',
+        }[id] || `${subjectOf(id).name}の たなです。どの 本を ひらきますか？`;
+        talk(msg);
+      };
+      const openBook = (b) => { setView({ name: 'book', dir: b.dir, from: view }); talk(`「${titleOf(b).main}」です。`); };
+      const back = () => {
+        if (view.from && ['shelf', 'book'].includes(view.from.name)) setView(view.from);
+        else { setView({ name: 'hall' }); talk('よみたい たなを えらんでね。'); }
+      };
+      // しりょうを ふやす・なおす（preset：はじめから 入れて おく たな・アプリ）
+      const openResForm = (preset, id) => {
+        setView({ name: 'resform', id, preset: preset || {}, from: view });
+        talk(id ? 'しりょうを なおします。' : 'URL を 貼り付けてね。しゅるいは わたしが 見分けます。');
+      };
+      const openUrl = (b) => { markRecent(b.dir); window.open(b.url, '_blank', 'noopener'); };
+
+      if (!state) return <div style={{ padding: 60, textAlign: 'center', fontSize: 24, color: '#7fe9ff' }}>じゅんび ちゅう…</div>;
+
+      const shelfBooks = (id) => id === 'fav' ? state.favorites.map(d => items.find(b => b.dir === d)).filter(Boolean)
+        : id === 'recent' ? state.recent.map(d => items.find(b => b.dir === d)).filter(Boolean)
+        : items.filter(b => b.subject === id);
+      const newCount = shelfBooks('new').length;
+      const shelfList = SUBJECTS.concat(newCount ? [NEW_SUBJECT] : [])
+        .concat([{ id: 'fav', name: 'おきにいり', icon: '⭐', c: '#ffd36a' }, { id: 'recent', name: 'さいきん ひらいた', icon: '🕘', c: '#9fb4ff' }]);
+
+      const book = view.name === 'book' && items.find(b => b.dir === view.dir);
+      const appTitles = books.map(b => [appKey(b.dir), titleOf(b).main, b.subject]);
+
+      return (
+        <>
+          <div className="hall" style={{ backgroundImage: bgOk.current ? `url(${IMG}library.webp)` : 'none' }} />
+          <div className="top">
+            <div className="logo">📚 ショコの まなびの としょかん</div>
+            <label className="search">🔍
+              <input value={query} onChange={e => setQuery(e.target.value)} placeholder="さがす（れい：かんじ、プリント、指導案）" aria-label="さがす" />
+              {query && <button className="btn gray" style={{ padding: '.2em .6em' }} onClick={() => setQuery('')}>✕</button>}
+            </label>
+            <button className="btn gold" onClick={() => openResForm({})}>＋ しりょう</button>
+            <button className="btn ghost" onClick={() => refresh(true)} title="GitHub から 読みなおす">🔄 さいしん</button>
+            <button className="btn ghost" onClick={() => setView({ name: 'settings' })}>⚙️ せってい</button>
+          </div>
+          {treeErr && <div className="glass" style={{ position: 'relative', zIndex: 3, margin: '0 24px 12px', padding: '10px 14px' }}>⚠ {treeErr}</div>}
+
+          {/* ホール：教科の たな */}
+          <div className="shelves">
+            {shelfList.map(s => {
+              const list = shelfBooks(s.id);
+              return (
+                <button key={s.id} className="shelf pop" style={{ '--c': s.c }} onClick={() => openShelf(s.id)}>
+                  <div className="name"><span>{s.icon}</span>{s.name}</div>
+                  <div className="cnt">{!tree ? 'よみこみ ちゅう…' : `本 ${list.length}さつ`}</div>
+                  <div className="spines">
+                    {list.slice(0, 12).map((b, i) => (
+                      <span key={b.dir} className="spine" style={{ '--sc': subjectOf(b.subject).c, height: 34 + ((i * 37 + b.dir.length * 7) % 24), filter: `hue-rotate(${(i * 23) % 60 - 30}deg)` }} />
+                    ))}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* さがす */}
+          {query.trim() && (
+            <div className="layer" onClick={e => { if (e.target === e.currentTarget) setQuery(''); }}>
+              <div className="panel glass pop">
+                <div className="phead"><h2>🔍 「{query}」 の 本（{hits.length}さつ）</h2><button className="btn gray" onClick={() => setQuery('')}>✕ とじる</button></div>
+                {hits.length ? <div className="books">{hits.map(b => (
+                  <BookCard key={b.dir} book={b} title={titleOf(b)} fav={isFav(b.dir)} onFav={() => toggleFav(b.dir)} onOpen={() => { setQuery(''); openBook(b); }} />
+                ))}</div> : <p>みつかりませんでした。ほかの ことばで さがしてみてね。</p>}
+              </div>
+            </div>
+          )}
+
+          {/* たな */}
+          {view.name === 'shelf' && !query.trim() && (() => {
+            const s = shelfList.find(x => x.id === view.id) || NEW_SUBJECT;
+            const all = shelfBooks(view.id);
+            const filter = view.filter || 'all';
+            const list = filter === 'all' ? all : all.filter(b => groupOf(b) === filter);
+            const isSubject = SUBJECTS.some(x => x.id === view.id);
+            return (
+              <div className="layer" onClick={e => { if (e.target === e.currentTarget) back(); }}>
+                <div className="panel glass pop" style={{ borderColor: s.c }}>
+                  <div className="phead"><h2>{s.icon} {s.name}の たな</h2>
+                    {isSubject && <button className="btn gold" onClick={() => openResForm({ subject: view.id })}>＋ しりょうを ふやす</button>}
+                    <button className="btn" onClick={back}>◀ ホールへ もどる</button></div>
+                  <div className="row" style={{ marginBottom: 12 }}>
+                    {FILTERS.map(([id, name]) => {
+                      const n = id === 'all' ? all.length : all.filter(b => groupOf(b) === id).length;
+                      return <button key={id} className={'btn' + (filter === id ? ' gold' : ' ghost')} onClick={() => setView(Object.assign({}, view, { filter: id }))}>{name}（{n}）</button>;
+                    })}
+                  </div>
+                  {list.length ? <div className="books">{list.map(b => (
+                    <BookCard key={b.dir} book={b} title={titleOf(b)} fav={isFav(b.dir)} onFav={() => toggleFav(b.dir)} onOpen={() => openBook(b)} />
+                  ))}</div> : <p>{filter !== 'all' ? 'この しゅるいの 本は ありません。' : view.id === 'fav' ? '本の ☆ を 押すと、ここに 入ります。' : view.id === 'recent' ? 'まだ ありません。' : 'この たなには まだ 本が ありません。'}</p>}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* 本 */}
+          {book && !query.trim() && (
+            <div className="layer" onClick={e => { if (e.target === e.currentTarget) back(); }}>
+              {book.isRes ? (
+                <ResourceView item={book} app={books.find(b => appKey(b.dir) === book.app)} appTitle={book.app ? (appTitles.find(a => a[0] === book.app) || [, book.app])[1] : ''}
+                  fav={isFav(book.dir)} onFav={() => toggleFav(book.dir)} onBack={back} onOpen={() => openUrl(book)}
+                  onEdit={() => openResForm({}, book.id)} onOpenApp={(b) => openBook(b)}
+                  onAsk={() => talk('えっ、ほんとうに けしますか？', 'surprise')}
+                  onDelete={() => { deleteResource(book.id); talk('しりょうを けしました。'); back(); }} />
+              ) : (
+                <BookView book={book} title={titleOf(book)} fav={isFav(book.dir)} onFav={() => toggleFav(book.dir)}
+                  onBack={back} onSave={(patch) => saveBook(book.dir, patch)} onOpened={() => markRecent(book.dir)} talk={talk} flash={flash}
+                  related={resItems.filter(r => r.app === appKey(book.dir))} onOpenRes={(r) => openBook(r)}
+                  onAddRes={() => openResForm({ app: appKey(book.dir), subject: book.subject !== 'new' ? book.subject : '' })} />
+              )}
+            </div>
+          )}
+
+          {/* しりょうを ふやす・なおす */}
+          {view.name === 'resform' && !query.trim() && (
+            <div className="layer" onClick={e => { if (e.target === e.currentTarget) back(); }}>
+              <ResourceForm initial={view.id ? state.resources.find(r => r.id === view.id) : null} preset={view.preset} apps={appTitles}
+                onCancel={back}
+                onSave={(r) => {
+                  saveResource(r);
+                  talk(`「${r.title}」を ${subjectOf(r.subject).name}の たなに 入れました。`, 'happy');
+                  const from = view.from || { name: 'hall' };
+                  if (from.name === 'book') setView(from);
+                  else setView({ name: 'book', dir: RES + r.id, from });
+                }} />
+            </div>
+          )}
+
+          {/* せってい */}
+          {view.name === 'settings' && !query.trim() && (
+            <div className="layer" onClick={e => { if (e.target === e.currentTarget) setView({ name: 'hall' }); }}>
+              <Settings settings={settings} onChange={saveSettings} books={books} resCount={state.resources.length} titleOf={titleOf} tree={tree}
+                onSaveBook={saveBook} onBack={() => setView({ name: 'hall' })} talk={talk} />
+            </div>
+          )}
+
+          <div className={'shoko' + (layerOpen ? ' mini' : '')}>
+            {say && bubbleOn && <div className="bubble pop" key={say} onClick={() => speak(say, Object.assign({}, settings, { voice: true }))}>{say}</div>}
+            <img className="floaty" src={IMG + MOODS[mood]} alt="ショコ" onClick={() => talk(say || 'こんにちは。ショコです。', mood)}
+              onError={e => { if (mood !== 'normal') setMood('normal'); else e.target.style.display = 'none'; }} />
+          </div>
+          {toast && <div className="toast pop">{toast}</div>}
+        </>
+      );
+    }
+
+    // =====================================================================
+    //  6. 本の 画面
+    // =====================================================================
+    function BookView({ book, title, fav, onFav, onBack, onSave, onOpened, talk, flash, related, onOpenRes, onAddRes }) {
+      const s = subjectOf(book.subject);
+      const [tab, setTab] = useState(null);         // readme / code / pdf / img
+      const [appUrl, setAppUrl] = useState(book.appUrl);
+      const [entryUrl, setEntryUrl] = useState(book.entryUrl);
+      const [memo, setMemo] = useState(book.memo);
+      useEffect(() => { setAppUrl(book.appUrl); setEntryUrl(book.entryUrl); setMemo(book.memo); setTab(null); }, [book.dir]);
+
+      const okUrl = (u) => /^https:\/\/\S+$/.test(u.trim());
+      const pagesLink = book.kind !== 'gas' && book.hasIndex ? dirUrl(book.dir) : '';
+      const open = (url) => { onOpened(); window.open(url, '_blank', 'noopener'); };
+
+      const urlRow = (label, value, setValue, key, hint) => (
+        <div style={{ marginTop: 10 }}>
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>{label}</div>
+          <div className="row">
+            {book[key] ? <button className="btn big" onClick={() => open(book[key])}>▶ ひらく</button> : null}
+            <input className="inp" value={value} onChange={e => setValue(e.target.value)} placeholder="https://script.google.com/macros/s/……/exec" />
+            <button className="btn gold" disabled={value.trim() === book[key] || (value.trim() !== '' && !okUrl(value))}
+              onClick={() => { onSave({ [key]: value.trim() }); talk(value.trim() ? 'URL を とうろく しました。' : 'URL を けしました。', value.trim() ? 'happy' : 'normal'); }}>💾 とうろく</button>
+          </div>
+          <div className="muted" style={{ marginTop: 4 }}>{value.trim() !== '' && !okUrl(value) ? '⚠ https:// で はじまる URL を 入れてください。' : hint}</div>
+        </div>
+      );
+
+      return (
+        <div className="panel glass pop" style={{ borderColor: s.c }}>
+          <div className="phead">
+            <button className="btn" onClick={onBack}>◀ もどる</button>
+            <span style={{ flex: 1 }} />
+            <button className="btn ghost" onClick={onFav}>{fav ? '⭐ おきにいり' : '☆ おきにいりに 入れる'}</button>
+          </div>
+          <div className="row" style={{ alignItems: 'flex-start', gap: 18 }}>
+            <Cover book={book} large />
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <h2 style={{ margin: '0 0 6px', fontSize: '1.5em' }}>{title.main}</h2>
+              {title.sub && <div style={{ color: '#bdf4ff', marginBottom: 6 }}>{title.sub}</div>}
+              <div className="muted">
+                <span className="badge">{KIND_LABEL[book.kind]}</span>
+                {book.meta.chara ? `${book.meta.chara}　` : ''}フォルダ：<code>{book.dir || '/（いちばん上）'}</code>
+              </div>
+              <div className="row" style={{ marginTop: 10 }}>
+                <span className="muted">たな：</span>
+                <select className="inp" value={book.subject} onChange={e => { onSave({ subject: e.target.value }); talk(`${subjectOf(e.target.value).name}の たなに 入れました。`, 'happy'); }}>
+                  {book.subject === 'new' && <option value="new">✨ あたらしい本（まだ きめて いない）</option>}
+                  {SUBJECTS.map(x => <option key={x.id} value={x.id}>{x.icon} {x.name}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="sec">
+            <h3>▶ アプリを ひらく</h3>
+            {pagesLink && (
+              <div className="row">
+                <button className="btn big" onClick={() => open(pagesLink)}>{book.kind === 'print' ? '🖨️ いんさつ用の ページを ひらく' : '▶ アプリを ひらく（GitHub Pages）'}</button>
+                <span className="muted">{pagesLink}</span>
+              </div>
+            )}
+            {book.kind === 'gas' && urlRow('Apps Script の アプリ', appUrl, setAppUrl, 'appUrl',
+              'Apps Script の「デプロイを管理」に出る、ウェブアプリの URL を 1かいだけ 貼り付けて とうろく します。')}
+            {book.kind === 'pages' && book.hasEntry && urlRow('入口ページ（Apps Script）', entryUrl, setEntryUrl, 'entryUrl',
+              '子どもに くばる 入口ページの URL です。Apps Script の「デプロイを管理」に出る URL を 貼り付けます。')}
+            {book.kind !== 'gas' && !book.hasEntry && !book.known && urlRow('ほかの URL（あれば）', appUrl, setAppUrl, 'appUrl', 'Apps Script や Googleサイトの URL が あれば とうろく できます。')}
+          </div>
+
+          <div className="sec">
+            <h3>📚 この 本の 中み</h3>
+            <div className="row">
+              <button className={'btn' + (tab === 'readme' ? ' gold' : '')} onClick={() => setTab(tab === 'readme' ? null : 'readme')}>📘 せつめいしょ</button>
+              <button className={'btn' + (tab === 'code' ? ' gold' : '')} onClick={() => setTab(tab === 'code' ? null : 'code')}>📄 コード（{book.code.length}）</button>
+              {book.pdfs.length > 0 && <button className={'btn' + (tab === 'pdf' ? ' gold' : '')} onClick={() => setTab(tab === 'pdf' ? null : 'pdf')}>🖨️ PDF（{book.pdfs.length}）</button>}
+              {book.imgs.length > 0 && <button className={'btn' + (tab === 'img' ? ' gold' : '')} onClick={() => setTab(tab === 'img' ? null : 'img')}>🖼️ 絵（{book.imgs.length}）</button>}
+              <a className="btn ghost" href={`https://github.com/${OWNER}/${REPO}/tree/${BRANCH}/${enc(book.dir)}`} target="_blank" rel="noopener">🐙 GitHub で みる</a>
+            </div>
+            {tab === 'readme' && <Readme book={book} />}
+            {tab === 'code' && <CodeView book={book} flash={flash} />}
+            {tab === 'pdf' && (
+              <ul style={{ lineHeight: 2 }}>{book.pdfs.map(p => (
+                <li key={p}><a href={pagesUrl(p)} target="_blank" rel="noopener" onClick={onOpened}>{p.slice(book.dir ? book.dir.length + 1 : 0)}</a></li>
+              ))}</ul>
+            )}
+            {tab === 'img' && (
+              <div className="imgs" style={{ marginTop: 12 }}>{book.imgs.map(p => (
+                <a key={p} href={pagesUrl(p)} target="_blank" rel="noopener" title={p}><img src={pagesUrl(p)} alt={p} loading="lazy" /></a>
+              ))}</div>
+            )}
+            {book.other.length > 0 && <div className="muted" style={{ marginTop: 10 }}>ほかの ファイル：{book.other.map(p => <a key={p} href={blobUrl(p)} target="_blank" rel="noopener" style={{ marginRight: 10 }}>{p.split('/').pop()}</a>)}</div>}
+          </div>
+
+          <div className="sec">
+            <div className="row" style={{ marginBottom: 10 }}>
+              <h3 style={{ margin: 0, flex: 1 }}>📎 かんけいする しりょう（{related.length}）</h3>
+              <button className="btn gold" onClick={onAddRes}>＋ しりょうを ふやす</button>
+            </div>
+            {related.length ? (
+              <div className="books">{related.map(r => (
+                <div key={r.dir} className="book" style={{ '--c': subjectOf(r.subject).c }} role="button" tabIndex={0} onClick={() => onOpenRes(r)}>
+                  <div className="cover" style={{ width: 52, height: 52, fontSize: 30 }}>{resTypeOf(r.type).icon}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700 }}>{r.title}</div>
+                    <div className="muted">{resTypeOf(r.type).name}</div>
+                  </div>
+                </div>
+              ))}</div>
+            ) : <div className="muted">指導案（Google ドキュメント）・授業の スライド・Canva の デザインなどを、この アプリに 結びつけて 登録できます。</div>}
+          </div>
+
+          <div className="sec">
+            <h3>📝 メモ</h3>
+            <div className="row">
+              <input className="inp" value={memo} onChange={e => setMemo(e.target.value)} placeholder="れい：2学期に つかう。Aさんは ステージ3から。" />
+              <button className="btn gold" disabled={memo === book.memo} onClick={() => onSave({ memo })}>💾 ほぞん</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    //  6-2. しりょうの 本の 画面
+    // =====================================================================
+    function ResourceView({ item, app, appTitle, fav, onFav, onBack, onOpen, onEdit, onDelete, onOpenApp, onAsk }) {
+      const s = subjectOf(item.subject), t = resTypeOf(item.type);
+      const [asking, setAsking] = useState(false);
+      useEffect(() => setAsking(false), [item.id]);
+      return (
+        <div className="panel glass pop" style={{ borderColor: s.c }}>
+          <div className="phead">
+            <button className="btn" onClick={onBack}>◀ もどる</button>
+            <span style={{ flex: 1 }} />
+            <button className="btn ghost" onClick={onFav}>{fav ? '⭐ おきにいり' : '☆ おきにいりに 入れる'}</button>
+          </div>
+          <div className="row" style={{ alignItems: 'flex-start', gap: 18 }}>
+            <div className="cover l">{t.icon}</div>
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <h2 style={{ margin: '0 0 6px', fontSize: '1.5em' }}>{item.title}</h2>
+              <div className="muted"><span className="badge">{t.name}</span>{s.icon} {s.name}の たな</div>
+              <div className="row" style={{ marginTop: 14 }}>
+                <button className="btn big" onClick={onOpen}>▶ ひらく（あたらしい タブ）</button>
+              </div>
+              <div className="muted" style={{ marginTop: 6, wordBreak: 'break-all' }}>{item.url}</div>
+            </div>
+          </div>
+          {item.app && (
+            <div className="sec">
+              <h3>📎 つかう アプリ</h3>
+              {app ? <button className="btn ghost" onClick={() => onOpenApp(app)}>📚 {appTitle} を みる</button>
+                : <div className="muted">{appTitle}（いまは 見つかりません）</div>}
+            </div>
+          )}
+          {item.memo && <div className="sec"><h3>📝 メモ</h3><div style={{ whiteSpace: 'pre-wrap' }}>{item.memo}</div></div>}
+          <div className="sec">
+            <div className="row">
+              <button className="btn" onClick={onEdit}>✏️ なおす</button>
+              {!asking ? <button className="btn pink" onClick={() => { setAsking(true); onAsk(); }}>🗑️ けす</button> : (
+                <>
+                  <b>ほんとうに けしますか？（{t.name}の ファイルそのものは けしません）</b>
+                  <button className="btn pink" onClick={onDelete}>🗑️ けす</button>
+                  <button className="btn gray" onClick={() => setAsking(false)}>やめる</button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    //  6-3. しりょうを ふやす・なおす
+    // =====================================================================
+    function ResourceForm({ initial, preset, apps, onSave, onCancel }) {
+      const r0 = initial || {};
+      const [url, setUrl] = useState(r0.url || '');
+      const [title, setTitle] = useState(r0.title || '');
+      const [type, setType] = useState(r0.type || '');          // '' のときは URL から 見分ける
+      const [app, setApp] = useState(r0.app || preset.app || '');
+      const [subject, setSubject] = useState(r0.subject || preset.subject || '');
+      const [memo, setMemo] = useState(r0.memo || '');
+      const [touched, setTouched] = useState(!!(r0.subject || preset.subject));
+      const auto = detectType(url);
+      const t = resTypeOf(type || auto);
+      const badUrl = url.trim() !== '' && !okUrl(url);
+      const ready = okUrl(url) && title.trim() && SUBJECTS.some(x => x.id === subject);
+      const pickApp = (dir) => {
+        setApp(dir);
+        const a = apps.find(x => x[0] === dir);
+        if (a && !touched && a[2] !== 'new') setSubject(a[2]); // アプリと おなじ たなに する
+      };
+      const save = () => onSave({
+        id: r0.id || newResId(), url: url.trim(), title: title.trim().slice(0, 100), type: type || auto,
+        subject, app, memo: memo.trim().slice(0, 500),
+      });
+      return (
+        <div className="panel glass pop">
+          <div className="phead"><h2>{initial ? '✏️ しりょうを なおす' : '＋ しりょうを ふやす'}</h2><button className="btn gray" onClick={onCancel}>やめる</button></div>
+          <div className="sec">
+            <h3>① URL を 貼り付ける</h3>
+            <input className="inp" style={{ width: '100%', boxSizing: 'border-box' }} value={url} onChange={e => setUrl(e.target.value)} placeholder="https://docs.google.com/…　や　https://www.canva.com/…" />
+            <div className="muted" style={{ marginTop: 6 }}>
+              {badUrl ? '⚠ https:// で はじまる URL を 入れてください。'
+                : 'Canva は「共有 → リンクをコピー」、Google の ファイルは「共有 → リンクをコピー」で URL が コピーできます。'}
+            </div>
+            {okUrl(url) && (
+              <div className="row" style={{ marginTop: 10 }}>
+                <span style={{ fontSize: '1.6em' }}>{t.icon}</span><b>{t.name}</b>
+                <span className="muted">（ちがう ときは えらびなおせます）</span>
+                <select className="inp" value={type} onChange={e => setType(e.target.value)}>
+                  <option value="">じどう（{resTypeOf(auto).name}）</option>
+                  {RES_TYPES.map(x => <option key={x.id} value={x.id}>{x.icon} {x.name}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
+          <div className="sec">
+            <h3>② なまえ</h3>
+            <input className="inp" style={{ width: '100%', boxSizing: 'border-box' }} value={title} maxLength={100} onChange={e => setTitle(e.target.value)} placeholder="れい：かんじ マーケットの 指導案（1学期）" />
+          </div>
+          <div className="sec">
+            <h3>③ つかう アプリ（なくても よい）</h3>
+            <select className="inp" value={app} onChange={e => pickApp(e.target.value)}>
+              <option value="">（えらばない）</option>
+              {apps.map(([dir, name]) => <option key={dir} value={dir}>{name}</option>)}
+            </select>
+            <div className="muted" style={{ marginTop: 6 }}>えらぶと、その アプリの 本の 画面にも 出ます。</div>
+          </div>
+          <div className="sec">
+            <h3>④ たな</h3>
+            <div className="row">
+              {SUBJECTS.map(x => (
+                <button key={x.id} className={'btn' + (subject === x.id ? ' gold' : ' ghost')} onClick={() => { setSubject(x.id); setTouched(true); }}>{x.icon} {x.name}</button>
+              ))}
+            </div>
+          </div>
+          <div className="sec">
+            <h3>⑤ メモ（なくても よい）</h3>
+            <textarea className="inp" style={{ width: '100%', boxSizing: 'border-box', minHeight: 70 }} value={memo} maxLength={500} onChange={e => setMemo(e.target.value)} placeholder="れい：6月の 研究授業で つかった。" />
+          </div>
+          <div className="row" style={{ marginTop: 16 }}>
+            <button className="btn big gold" disabled={!ready} onClick={save}>💾 とうろく</button>
+            {!ready && <span className="muted">{!okUrl(url) ? 'URL を 入れてください。' : !title.trim() ? 'なまえを 入れてください。' : 'たなを えらんでください。'}</span>}
+          </div>
+        </div>
+      );
+    }
+
+    function Readme({ book }) {
+      const [html, setHtml] = useState('');
+      const [err, setErr] = useState('');
+      useEffect(() => {
+        const path = book.dir ? book.dir + '/README.md' : 'README.md';
+        fetchText(path).then(t => {
+          const div = document.createElement('div');
+          div.innerHTML = window.marked ? marked.parse(t) : '<pre>' + t.replace(/[&<]/g, c => c === '&' ? '&amp;' : '&lt;') + '</pre>';
+          const base = book.dir ? book.dir + '/' : '';
+          // 相対リンクは GitHub へ、絵は GitHub Pages へ
+          div.querySelectorAll('a[href]').forEach(a => {
+            const h = a.getAttribute('href');
+            if (!/^(https?:|mailto:|#)/.test(h)) a.setAttribute('href', BLOB + new URL(h, 'http://x/' + base).pathname.slice(1));
+            a.setAttribute('target', '_blank'); a.setAttribute('rel', 'noopener');
+          });
+          div.querySelectorAll('img[src]').forEach(im => {
+            const h = im.getAttribute('src');
+            if (!/^https?:/.test(h)) im.setAttribute('src', PAGES + new URL(h, 'http://x/' + base).pathname.slice(1));
+          });
+          div.querySelectorAll('script, iframe').forEach(n => n.remove());
+          setHtml(div.innerHTML);
+        }).catch(() => setErr('せつめいしょが 読めませんでした。'));
+      }, [book.dir]);
+      if (err) return <p>⚠ {err}</p>;
+      return html ? <div className="md" style={{ marginTop: 12 }} dangerouslySetInnerHTML={{ __html: html }} /> : <p>よみこみ ちゅう…</p>;
+    }
+
+    function CodeView({ book, flash }) {
+      const base = book.dir ? book.dir + '/' : '';
+      const keys = book.code.filter(p => isKeyFile(p, book.files));
+      const first = keys.find(p => /\.gs$/.test(p)) || keys[0] || book.code.find(p => /index\.html$/.test(p)) || book.code[0];
+      const [cur, setCur] = useState(first);
+      const [text, setText] = useState('');
+      const [err, setErr] = useState('');
+      useEffect(() => {
+        if (!cur) return;
+        setText(''); setErr('');
+        fetchText(cur).then(setText).catch(() => setErr('ファイルが 読めませんでした。'));
+      }, [cur]);
+
+      // フォルダごとに まとめる
+      const groups = {};
+      book.code.forEach(p => {
+        const rel = p.slice(base.length);
+        const g = rel.includes('/') ? rel.replace(/\/[^/]*$/, '') : '';
+        (groups[g] = groups[g] || []).push(p);
+      });
+      const names = Object.keys(groups).sort();
+      const lines = text ? text.split('\n') : [];
+      const last = lines.slice().reverse().find(l => l.trim()) || '';
+      const fileBtn = (p) => (
+        <button key={p} className={'fbtn' + (p === cur ? ' on' : '') + (keys.includes(p) ? ' key' : '')} onClick={() => setCur(p)}>
+          {keys.includes(p) ? '📋 ' : '📄 '}{p.slice(base.length)}
+        </button>
+      );
+
+      if (!book.code.length) return <p>コードの ファイルは ありません。</p>;
+      return (
+        <div className="files" style={{ marginTop: 12 }}>
+          <div className="flist">
+            {keys.length > 0 && <div className="muted" style={{ margin: '0 0 4px 6px' }}>📋＝Apps Script に 貼る ファイル</div>}
+            {names.map(g => g === '' ? groups[g].map(fileBtn) : (
+              <details key={g} open={groups[g].some(p => keys.includes(p) || p === cur) || groups[g].length <= 4}>
+                <summary>📁 {g}/（{groups[g].length}）</summary>
+                <div style={{ paddingLeft: 10 }}>{groups[g].map(fileBtn)}</div>
+              </details>
+            ))}
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div className="row" style={{ marginBottom: 8 }}>
+              <b style={{ wordBreak: 'break-all' }}>{cur && cur.slice(base.length)}</b>
+              <span style={{ flex: 1 }} />
+              <button className="btn gold" disabled={!text} onClick={() => copyText(text).then(() => flash('📋 ぜんぶ コピー しました')).catch(() => flash('⚠ コピー できませんでした。Raw を ひらいて Ctrl＋A → Ctrl＋C を してください'))}>📋 ぜんぶ コピー</button>
+              <a className="btn" href={rawUrl(cur)} target="_blank" rel="noopener">Raw を ひらく</a>
+              <a className="btn ghost" href={blobUrl(cur)} target="_blank" rel="noopener">GitHub</a>
+            </div>
+            {text && <div className="muted" style={{ marginBottom: 6 }}>{lines.length}行。いちばん下の行：<code>{last.trim().slice(0, 60)}</code>（貼り付けたあと、いちばん下が これと おなじか 確かめます）</div>}
+            {err ? <p>⚠ {err}</p> : <pre className="code">{text || 'よみこみ ちゅう…'}</pre>}
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    //  7. せってい
+    // =====================================================================
+    function Settings({ settings, onChange, books, resCount, titleOf, tree, onSaveBook, onBack, talk }) {
+      const [urls, setUrls] = useState(() => Object.fromEntries(books.map(b => [b.dir, b.kind === 'pages' ? b.entryUrl : b.appUrl])));
+      const [check, setCheck] = useState(null);
+      const need = books.filter(b => b.kind === 'gas' || (b.kind === 'pages' && b.hasEntry));
+      const runCheck = async () => {
+        const rows = [];
+        rows.push(['画面の 版', APP_VERSION, true]);
+        rows.push(['スプレッドシート', HAS_GAS ? 'つながっています' : 'おためしモード（この 端末だけに 保存）', HAS_GAS]);
+        try { const r = await fetch(TREE_API); rows.push(['GitHub の 一覧', r.ok ? 'よめます' : `よめません（${r.status}）`, r.ok]); }
+        catch (e) { rows.push(['GitHub の 一覧', 'つながりません', false]); }
+        try { const r = await fetch(rawUrl('README.md'), { cache: 'no-cache' }); rows.push(['コードの 読みこみ', r.ok ? 'よめます' : `よめません（${r.status}）`, r.ok]); }
+        catch (e) { rows.push(['コードの 読みこみ', 'つながりません', false]); }
+        rows.push(['本の かず', `${books.length}さつ（ファイル ${tree ? tree.paths.length : 0}こ）`, books.length > 0]);
+        rows.push(['しりょうの かず', `${resCount}こ`, true]);
+        const FROM = { github: 'GitHub', mokuroku: '目録（mokuroku.json）', server: 'Apps Script', cache: 'この 端末に 保存した もの', old: 'まえに 読んだ もの（古いかも しれません）' };
+        rows.push(['一覧の 読みこみ元', tree ? FROM[tree.from] || tree.from : 'まだ', !!tree && tree.from !== 'old']);
+        const miss = need.filter(b => !(b.kind === 'pages' ? b.entryUrl : b.appUrl));
+        rows.push(['URL の とうろく', miss.length ? `まだ ${miss.length}さつ` : 'ぜんぶ とうろく ずみ', !miss.length]);
+        rows.push(['よみあげ', 'speechSynthesis' in window ? 'つかえます' : 'つかえません', 'speechSynthesis' in window]);
+        setCheck(rows);
+      };
+      return (
+        <div className="panel glass pop">
+          <div className="phead"><h2>⚙️ せってい</h2><button className="btn" onClick={onBack}>◀ ホールへ もどる</button></div>
+
+          <div className="sec">
+            <h3>🤖 ショコの こえ・もじ</h3>
+            <div className="row">
+              <button className={'btn' + (settings.voice ? ' gold' : ' gray')} onClick={() => { onChange({ voice: !settings.voice }); if (!settings.voice) speak('こえで よみあげます。', Object.assign({}, settings, { voice: true })); }}>
+                {settings.voice ? '🔊 こえ：オン' : '🔇 こえ：オフ'}</button>
+              <span className="muted">はやさ</span>
+              <select className="inp" value={settings.rate} onChange={e => onChange({ rate: Number(e.target.value) })}>
+                {[0.7, 0.8, 0.9, 1, 1.1].map(v => <option key={v} value={v}>{v === 1 ? '1（ふつう）' : v}</option>)}
+              </select>
+              <span className="muted">もじの おおきさ</span>
+              <select className="inp" value={settings.font} onChange={e => onChange({ font: Number(e.target.value) })}>
+                {[[0.9, 'ちいさめ'], [1, 'ふつう'], [1.15, 'おおきめ'], [1.3, 'とても おおきい']].map(([v, n]) => <option key={v} value={v}>{n}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className="sec">
+            <h3>🔗 Apps Script の URL を まとめて とうろく</h3>
+            <p className="muted" style={{ marginTop: 0 }}>それぞれの スプレッドシートで「拡張機能 → Apps Script → デプロイ → デプロイを管理」を開き、ウェブアプリの URL を コピーして 貼り付けます。</p>
+            <table className="list"><tbody>
+              {need.map(b => {
+                const key = b.kind === 'pages' ? 'entryUrl' : 'appUrl';
+                const v = urls[b.dir] || '';
+                const bad = v.trim() !== '' && !/^https:\/\/\S+$/.test(v.trim());
+                return (
+                  <tr key={b.dir}>
+                    <td style={{ width: '34%' }}>{titleOf(b).main}<div className="muted">{b.kind === 'pages' ? '入口ページ' : 'アプリ'}</div></td>
+                    <td><input className="inp" style={{ width: '100%' }} value={v} onChange={e => setUrls(Object.assign({}, urls, { [b.dir]: e.target.value }))} placeholder="https://script.google.com/macros/s/……/exec" />
+                      {bad && <div className="muted">⚠ https:// で はじまる URL を 入れてください。</div>}</td>
+                    <td style={{ width: 150, whiteSpace: 'nowrap' }}><button className="btn gold" disabled={bad || v.trim() === (b[key] || '')} onClick={() => onSaveBook(b.dir, { [key]: v.trim() })}>💾 とうろく</button></td>
+                  </tr>
+                );
+              })}
+            </tbody></table>
+          </div>
+
+          <div className="sec">
+            <h3>🩺 どうさ チェック</h3>
+            <button className="btn" onClick={runCheck}>🩺 チェックする</button>
+            {check && <ul className="check">{check.map(([k, v, ok]) => <li key={k}>{ok ? '✅' : '⚠'} {k}：{v}</li>)}</ul>}
+            {check && <p className="muted">うまく いかないときは、この 結果を そのまま Claude に 貼り付けてください。</p>}
+          </div>
+          <p className="muted">版 {APP_VERSION}　{HAS_GAS ? '' : '（おためしモード：保存は この 端末の 中だけです）'}</p>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
