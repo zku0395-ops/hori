@@ -43,7 +43,7 @@ D.SLIDE.forEach(([id, p]) => { if (!D.FISH.some(f => f.id === id)) ng(`スライ
 if (D.SLIDE.length !== 8) ng('スライドの さかなが 8しゅるい では ありません');
 
 // 3. だんかい
-if (D.STEPS.length !== 6) ng('だんかいが 6つ では ありません');
+if (D.STEPS.length !== 5) ng('だんかいが 5つ（①〜⑤）では ありません');
 [...D.STEPS, ...D.HATTEN_STEPS].forEach(s => { if (KANJI.test(s.name + s.topic)) ng(`だんかい ${s.name}：漢字が あります`); });
 
 // 4. おみせ
