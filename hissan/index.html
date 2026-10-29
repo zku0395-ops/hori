@@ -213,6 +213,7 @@
       skipPrep: false,      // じゅんび①〜③を とばす
       unlockAll: false,     // すべての ステップを 開く
       advanced: false,      // 発展を 開く
+      bouken: false,        // ぼうけんを 開く（クリアしていなくても）
       voice: true,          // クルミせんせいの 声
       sfx: true,            // 効果音・ファンファーレ
       fontSize: 'm',
@@ -225,6 +226,7 @@
       { min: 7, name: 'ひっさん はかせ', icon: '🎓' },
       { min: 9, name: 'ぎんこう ちょう', icon: '👑' },
     ];
+    const BOUKEN_TITLE = { name: 'ぼうけん マスター', icon: '🗺️' };   // ぼうけんを ぜんぶ クリア
     // つまずきの 種類（先生用の 名前）
     const ERR = {
       reverse: '大きい方から小さい方をひいた',
@@ -507,6 +509,25 @@
     // mood: normal / happy / think
     const KURUMI_IMG = { normal: 'img/kurumi.webp', happy: 'img/kurumi_happy.webp', think: 'img/kurumi_think.webp' };
     Object.values(KURUMI_IMG).forEach(src => { const im = new Image(); im.src = src; });
+    // 画像が 読めるか（ChatGPT の 絵が まだ ない ときは 絵文字に する）
+    const IMG_OK = {};
+    function useImgOk(src) {
+      const [ok, setOk] = useState(IMG_OK[src]);
+      useEffect(() => {
+        if (IMG_OK[src] != null) { setOk(IMG_OK[src]); return; }
+        const im = new Image();
+        im.onload = () => { IMG_OK[src] = true; setOk(true); };
+        im.onerror = () => { IMG_OK[src] = false; setOk(false); };
+        im.src = src;
+      }, [src]);
+      return ok;
+    }
+    const animalSrc = b => `img/bouken/${b.key}.webp`;
+    function AnimalPic({ b, size = 120, className = '' }) {
+      const ok = useImgOk(animalSrc(b));
+      if (ok) return <img src={animalSrc(b)} alt={b.full} draggable="false" className={className} style={{ height: size, width: 'auto', flex: 'none', userSelect: 'none' }} />;
+      return <span className={`emoji ${className}`} style={{ fontSize: size * 0.8, lineHeight: 1, display: 'inline-block', width: size, textAlign: 'center', flex: 'none' }} aria-label={b.full}>{b.e}</span>;
+    }
     function Kurumi({ mood = 'normal', talking = false, size = 140, className = '' }) {
       return (
         <img src={KURUMI_IMG[mood] || KURUMI_IMG.normal} alt="クルミせんせい" draggable="false"
@@ -937,6 +958,32 @@
       { id: 'h2', grp: 'adv', label: 'はってん イ', name: 'こたえが 1けた', sub: '43 − 36 など', kind: 'hissan', form: 'memo', decInput: true, gen: 'small', friend: 'tentoumushi' },
       { id: 'h3', grp: 'adv', label: 'はってん ウ', name: 'おはなしの もんだい', sub: 'しきを つくって ひっさん', kind: 'hissan', form: 'memo', story: true, zero: true, friend: 'chou' },
     ];
+
+    /* ---- ぼうけん（はってんウ（または ステップ6）の あとに ひらく）----
+       mix：問題の まぜかた（n：ふつう／z：1のくらいが 0 を おおめ／a：はってんア・イも／s：おはなしも） */
+    const BOUKEN = [
+      { id: 'b1', key: 'mogura', e: '🐭', full: 'もぐらの モグくん', call: 'モグくん', place: 'つちの トンネル', takara: ['💎', 'きらきら いし'], mix: 'n',
+        meet: 'こんにちは！ ぼくは もぐらの モグくん。\nトンネルで あつめた どんぐりを かぞえて いたら、わからなく なっちゃった。\nひきざんで たすけて くれる？' },
+      { id: 'b2', key: 'kame', e: '🐢', full: 'かめの おばあさん', call: 'かめの おばあさん', place: 'ちいさな いけ', takara: ['🐚', 'かいがら'], mix: 'n',
+        meet: 'あら、いらっしゃい。かめの おばあさんよ。\nいけの さかなに あげる えさを けいさん したいの。\nてつだって くれる？' },
+      { id: 'b3', key: 'hitsuji', e: '🐑', full: 'ひつじの メイちゃん', call: 'メイちゃん', place: 'おかと くさはら', takara: ['🧶', 'けいと'], mix: 'z',
+        meet: 'やっほー！ ひつじの メイちゃんだよ。\nけいとの たまを つかったら、いくつ のこるかな？\n1のくらいが 0の もんだいも あるよ。' },
+      { id: 'b4', key: 'panda', e: '🐼', full: 'パンダの パンパン', call: 'パンパン', place: 'たけやぶ', takara: ['🍃', 'ささの は'], mix: 'z',
+        meet: 'のんびり パンダの パンパンだよ。\nささの はを たべたら、のこりが わからなく なったんだ。\nいっしょに けいさん して くれる？' },
+      { id: 'b5', key: 'penguin', e: '🐧', full: 'ペンギンの ペンタくん', call: 'ペンタくん', place: 'こおりの みずうみ', takara: ['❄️', 'ゆきの けっしょう'], mix: 'a',
+        meet: 'こおりの みずうみへ ようこそ！ ペンギンの ペンタだよ。\nさかなを みんなに くばるんだ。\nひく かずが 1けたの もんだいも あるよ。' },
+      { id: 'b6', key: 'saru', e: '🐒', full: 'さるの モモちゃん', call: 'モモちゃん', place: 'ジャングル', takara: ['🍌', 'きんの バナナ'], mix: 'a',
+        meet: 'ジャングルの さるの モモだよ！\nバナナの かずを かぞえて！\nこたえが 1けたに なる もんだいも あるよ。' },
+      { id: 'b7', key: 'zou', e: '🐘', full: 'ぞうの パオくん', call: 'パオくん', place: 'おおきな みずうみ', takara: ['🌼', 'はなの かんむり'], mix: 's',
+        meet: 'ぞうの パオだよ。みずうみの みずを はこんで いるんだ。\nおはなしの もんだいも あるよ。\nがんばってね。' },
+      { id: 'b8', key: 'lion', e: '🦁', full: 'もりの おうさま ライオン', call: 'おうさま', place: 'もりの おしろ', takara: ['👑', 'おうかん'], mix: 's',
+        meet: 'よく きたね。わたしは もりの おうさま ライオンだ。\nここまで よく がんばった。\nさいごの 10もんを といて みせて おくれ。' },
+    ];
+    const BOUKEN_IDS = BOUKEN.map(b => b.id);
+    const BOUKEN_REWARD = 20;   // 10もん おえた ときの どんぐり
+    const NUM_MARK = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧'];
+    BOUKEN.forEach((b, i) => STAGES.push({ id: b.id, grp: 'bouken', label: `ぼうけん ${NUM_MARK[i]}`, name: b.full, sub: b.place, kind: 'hissan', form: 'memo', decInput: true, mix: b.mix, animal: b }));
+    const BOUKEN_MAP = Object.fromEntries(BOUKEN.map(b => [b.id, b]));
     const STAGE_MAP = Object.fromEntries(STAGES.map(s => [s.id, s]));
     const MAIN_IDS = ['j1', 'j2', 'j3', 's1', 's2', 's3', 's4', 's5', 's6'];
     const ADV_IDS = ['h1', 'h2', 'h3'];
@@ -985,7 +1032,8 @@
     FRIENDS.forEach(f => { if (f.alt && !emojiSupported(f.e)) { f.e = f.alt[0]; f.name = f.alt[1]; } });
     const FRIEND_MAP = Object.fromEntries(FRIENDS.map(f => [f.id, f]));
     const ALL_ITEMS = SHOP.flatMap(c => c.list);
-    const ITEM_MAP = Object.fromEntries(ALL_ITEMS.map(it => [it.id, it]));
+    const TAKARA_ITEMS = BOUKEN.map(b => ({ id: `takara-${b.key}`, cat: 'takara', e: b.takara[0], name: b.takara[1], price: 0, stage: b.id }));
+    const ITEM_MAP = Object.fromEntries(ALL_ITEMS.concat(TAKARA_ITEMS).map(it => [it.id, it]));
 
     /* =========================================================
        問題を つくる（1かい ＝ 5問。毎回 ちがう 問題）
@@ -1016,7 +1064,27 @@
       }
       return genPair({ zero: stage.zero && i === zeroAt });
     }
+    const MIX_KINDS = { n: ['n', 'n', 'n', 'n', 'z'], z: ['n', 'n', 'n', 'z', 'z'], a: ['n', 'n', 'z', 'o', 'm'], s: ['n', 'z', 'o', 'm', 's'] };
+    function genMixOne(k) {
+      if (k === 'o') return genOne({ gen: 'oneDigit' }, 0, -1);
+      if (k === 'm') return genOne({ gen: 'small' }, 0, -1);
+      return genPair({ zero: k === 'z' });
+    }
+    function genMixSet(stage) {
+      const kinds = shuffle(MIX_KINDS[stage.mix] || MIX_KINDS.n);
+      if (kinds[0] === 's') { kinds.push(kinds.shift()); }   // おはなしの もんだいは 1もんめに しない
+      const seen = new Set(), out = [];
+      kinds.forEach(k => {
+        let q;
+        for (let t = 0; t < 40; t++) { q = genMixOne(k); if (!seen.has(q.a + '-' + q.b)) break; }
+        seen.add(q.a + '-' + q.b);
+        if (k === 's') { const st = pick(STORIES); q = { ...q, story: st.t, unit: st.u }; }
+        out.push({ ...q, key: q.a + '-' + q.b });
+      });
+      return out;
+    }
     function genSet(stage) {
+      if (stage.mix) return genMixSet(stage);
       const out = [];
       const seen = new Set();
       if (stage.kind === 'ten') {
@@ -1072,17 +1140,34 @@
     const isSkipped = (id, st) => { const i = MAIN_IDS.indexOf(id); return i >= 0 && i < startIndex(st); };
     const isDone = (id, st) => isCleared(id, st) || isSkipped(id, st);
     function titleOf(st) {
+      if (BOUKEN_IDS.every(id => isCleared(id, st))) return BOUKEN_TITLE;
       const n = MAIN_IDS.filter(id => isDone(id, st)).length;
       let t = TITLES[0]; TITLES.forEach(x => { if (n >= x.min) t = x; });
       return t;
     }
+    // ぼうけんが ひらいて いるか（はってんを ひらいて いれば はってんウ、ひらいて いなければ ステップ6 を クリアで ひらく）
+    function boukenOpen(st) {
+      const s = st.settings;
+      return !!s.bouken || !!s.unlockAll || (s.advanced ? isCleared('h3', st) : isDone('s6', st));
+    }
     function isStageOpen(stage, st) {
+      if (stage.grp === 'bouken') {
+        if (!boukenOpen(st)) return false;
+        const i = BOUKEN_IDS.indexOf(stage.id);
+        return i === 0 || !!st.settings.unlockAll || isCleared(BOUKEN_IDS[i - 1], st);
+      }
       if (stage.grp === 'adv') return !!st.settings.advanced;
       if (st.settings.unlockAll) return true;
       const i = MAIN_IDS.indexOf(stage.id);
       return i <= startIndex(st) || isDone(MAIN_IDS[i - 1], st);
     }
-    function lockHint(stage) {
+    function boukenLockText(st) { return st.settings.advanced ? 'はってん ウを クリアすると ひらくよ' : 'ステップ6を クリアすると ひらくよ'; }
+    function lockHint(stage, st) {
+      if (stage.grp === 'bouken') {
+        if (st && !boukenOpen(st)) return boukenLockText(st);
+        const i = BOUKEN_IDS.indexOf(stage.id);
+        return `${STAGE_MAP[BOUKEN_IDS[i - 1]].name}に あうと ひらくよ`;
+      }
       if (stage.grp === 'adv') return 'せんせいが ひらいて くれるよ';
       const i = MAIN_IDS.indexOf(stage.id);
       return `${STAGE_MAP[MAIN_IDS[i - 1]].label}を クリアすると ひらくよ`;
@@ -1101,7 +1186,7 @@
     const SYNC_BATCH = 200;
     const stageName = s => `${s.label} ${stripMarkup(s.name)}`;
     function syncColumns() {
-      return STAGES.map(s => ({ id: s.id, short: s.label.replace('じゅんび', 'じ').replace('ステップ', 'S').replace('はってん ', '発'), label: stageName(s) }));
+      return STAGES.map(s => ({ id: s.id, short: s.grp === 'bouken' ? `冒${BOUKEN_IDS.indexOf(s.id) + 1}` : s.label.replace('じゅんび', 'じ').replace('ステップ', 'S').replace('はってん ', '発'), label: stageName(s) }));
     }
     async function buildSummary(st) {
       const hist = await DB.getAll('history');
@@ -1253,9 +1338,11 @@
         <div className="play">
           <div className="work" ref={h.workRef}>
             <div className="qhead">
+              {h.stage.animal && <AnimalPic b={h.stage.animal} size={40} />}
               <span>{h.stage.label}</span>
               <R t={h.stage.name} />
               <span className="grow" />
+              {h.stage.animal && <span className="tag" style={{ background: '#fef3c7', color: '#7c4a1e', fontSize: '1rem' }}>あと {PER_SET * SETS_TO_CLEAR - (h.no || 1) + 1}もん</span>}
               <SetDots idx={h.idx} />
             </div>
             {top}
@@ -1390,7 +1477,7 @@
         },
       }), []);
       const host = {
-        stage, idx, phase, fb, hint, hintPress, mood, talking, status, hintGlow, workRef, setEnd: !!(res && res.setEnd),
+        stage, idx, no, phase, fb, hint, hintPress, mood, talking, status, hintGlow, workRef, setEnd: !!(res && res.setEnd),
         onHint: () => {
           const r = R_.current;
           const lv = Math.min(r.hints.length, hint + 1);
@@ -1542,9 +1629,9 @@
       if (stage.form === 'two' || stage.form === 'one') return stage.form;
       return memoOpen ? 'one' : null;
     }
-    function cellSeq(stage, memoOpen) {
+    function cellSeq(stage, memoOpen, p) {
       const seq = [];
-      if (stage.story) seq.push('e_a1', 'e_a0', 'e_b1', 'e_b0');
+      if (stage.story || (p && p.story)) seq.push('e_a1', 'e_a0', 'e_b1', 'e_b0');
       seq.push('mark');
       const form = formOf(stage, memoOpen);
       if (form === 'two') ['f_b0', 'f_r1', 'f_r1c', 'f_a0', 'f_sum'].forEach(id => { if (!(stage.given || []).includes(id)) seq.push(id); });
@@ -1566,12 +1653,12 @@
       const [marked, setMarked] = useState(false);
       const [vals, setVals] = useState({});
       const [gone, setGone] = useState({});
-      const seq = cellSeq(stage, memoOpen);
+      const seq = cellSeq(stage, memoOpen, p);
       const cur = done ? null : seq.find(id => id === 'mark' ? !marked : vals[id] == null);
       const copyForm = !!formOf(stage, memoOpen);   // 1のくらいの こたえを 式から うつす
       if (location.protocol === 'file:') window.__cur = { cur, exp: cur && cur !== 'mark' ? expectOf(cur, p) : null }; // 動作確認用
       const early = ['s1', 's2', 's3'].includes(stage.id);
-      const exprDone = !stage.story || ['e_a1', 'e_a0', 'e_b1', 'e_b0'].every(id => vals[id] != null);
+      const exprDone = !p.story || ['e_a1', 'e_a0', 'e_b1', 'e_b0'].every(id => vals[id] != null);
       const unit = p.unit || 'こ';
 
       const promptOf = (id) => {
@@ -1581,7 +1668,7 @@
           case 'e_b1': return { prompt: `ひく かずは？\nへった かずを いれよう。`, hints: ['あげた・たべた・つかった かずを ひくよ。', `ひく かずは ${p.b}。`, `${B1}の ボタンを おそう。`] };
           case 'e_b0': return { prompt: `ひく かずは？\nへった かずを いれよう。`, silent: true, hints: ['あげた・たべた・つかった かずを ひくよ。', `ひく かずは ${p.b}。`, `${B0}の ボタンを おそう。`] };
           case 'mark': return {
-            prompt: early || stage.story ? `${W.ichi}は ${A0}から ${B0}。ひけないね。\n${W.juu}の ${A1}に タッチして、10を かりよう。` : 'まず、くりさがりの しるしを つけよう。',
+            prompt: early || p.story ? `${W.ichi}は ${A0}から ${B0}。ひけないね。\n${W.juu}の ${A1}に タッチして、10を かりよう。` : 'まず、くりさがりの しるしを つけよう。',
             hints: [`${W.ichi}は ${A0}から ${B0}は ひけないね。${W.juu}から 10を かりよう。`, `ふくろを 1つ あけると 10こ。${W.juu}の ${A1}は 1 へるよ。`, `ひかって いる ${A1}に タッチしよう。`],
           };
           case 'f_b0': return { prompt: `10から ひく ${W.kazu}は？\n${W.hiku}の ${W.ichi}だよ。`, hints: [`${W.hiku}は したの ${W.kazu}。その ${W.ichi}を みよう。`, `ひかって いる ${W.kazu}だよ。`, `${B0}の ボタンを おそう。`] };
@@ -1722,7 +1809,6 @@
       const onSolved = () => {
         const newIdx = idx + 1;
         const setEnd = newIdx >= PER_SET;
-        const gain = 1 + (setEnd ? SET_BONUS : 0);
         let out = {};
         app.update(st => {
           const pr = prog(st, stage.id);
@@ -1730,7 +1816,9 @@
           const sets = (pr.sets || 0) + (setEnd ? 1 : 0);
           const stageClear = setEnd && sets % SETS_TO_CLEAR === 0;
           const firstClear = stageClear && !pr.cleared;
-          out = { setEnd, stageClear, firstClear, setNo: ((sets - 1) % SETS_TO_CLEAR) + 1, bagUp: Math.floor((before + 1) / 10) > Math.floor(before / 10) ? Math.floor((before + 1) / 10) : 0, before: before + 1 };
+          const reward = stageClear && stage.grp === 'bouken' ? BOUKEN_REWARD : 0;
+          const gain = 1 + (setEnd ? SET_BONUS : 0) + reward;
+          out = { setEnd, stageClear, firstClear, reward, setNo: ((sets - 1) % SETS_TO_CLEAR) + 1, bagUp: Math.floor((before + 1) / 10) > Math.floor(before / 10) ? Math.floor((before + 1) / 10) : 0, before: before + 1 };
           return {
             ...st, acorns: st.acorns + gain, earned: st.earned + gain,
             progress: { ...st.progress, [stage.id]: { ...pr, sets, idx: setEnd ? 0 : newIdx, cur: setEnd ? null : pr.cur, cleared: pr.cleared || stageClear, clears: Math.floor(sets / SETS_TO_CLEAR), firstClearAt: pr.firstClearAt || (firstClear ? Date.now() : undefined), lastAt: Date.now() } },
@@ -1765,15 +1853,139 @@
         h1: <>{bg}{txt('42', 30, 22)}{txt('− 7', 54, 20)}</>,
         h2: <>{bg}{txt('43', 26, 20)}{txt('−36', 46, 18)}{txt('7', 66, 16, '#059669')}</>,
         h3: <>{bg}{txt('📖', 42, 34)}</>,
+        ...Object.fromEntries(BOUKEN.map(b => [b.id, <>{bg}<text x="40" y="44" textAnchor="middle" dominantBaseline="central" fontSize="40" className="emoji">{b.e}</text></>])),
       }[id];
       return <svg viewBox="0 0 80 80" width={size} height={size} aria-hidden="true" style={{ flex: 'none' }}>{body}</svg>;
+    }
+
+    /* =========================================================
+       ぼうけんの 地図（すごろくの ように すすむ）
+       ========================================================= */
+    // 地図の 上の 8つの ばしょ（1000×750 の 中の 位置。ChatGPT の 地図に あわせて なおす）
+    const MAP_SPOTS = [[142, 653], [397, 604], [525, 514], [756, 459], [459, 290], [697, 304], [836, 207], [912, 117]];
+    function MapFallback() {
+      // ChatGPT の 地図が とどくまでの かりの 地図
+      const areas = [['🕳️', '#d6b48a'], ['💧', '#bae6fd'], ['🌾', '#bbf7d0'], ['🎋', '#86efac'], ['🧊', '#e0f2fe'], ['🌴', '#4ade80'], ['🌊', '#93c5fd'], ['🏰', '#fde68a']];
+      return (
+        <g>
+          <rect x="0" y="0" width="1000" height="750" fill="#dcfce7" />
+          <path d="M 0 520 Q 250 430 500 520 Q 750 600 1000 470 L 1000 750 L 0 750 Z" fill="#bbf7d0" />
+          {MAP_SPOTS.map(([x, y], i) => <g key={i}><circle cx={x} cy={y} r="78" fill={areas[i][1]} opacity=".75" /><text x={x + 62} y={y - 52} fontSize="44" className="emoji" textAnchor="middle" dominantBaseline="central">{areas[i][0]}</text></g>)}
+        </g>
+      );
+    }
+    function MapScreen({ app, onGo, from }) {
+      const st = app.state;
+      const name = st.profile ? st.profile.name : '';
+      const curI = BOUKEN_IDS.findIndex(id => !isCleared(id, st));
+      const target = curI < 0 ? BOUKEN.length - 1 : curI;
+      const [pos, setPos] = useState(from != null && from >= 0 ? from : target);
+      const [talking, setTalking] = useState(false);
+      const mapOk = useImgOk('img/bouken/map.webp');
+      const tb = BOUKEN[target];
+      const tStage = STAGE_MAP[tb.id];
+      const open = isStageOpen(tStage, st);
+      const met = BOUKEN_IDS.filter(id => isCleared(id, st)).length;
+      const msg = curI < 0
+        ? 'ぼうけん クリア！ もりの なかまが みんな ともだちに なったよ。\nすきな ばしょに また あそびに いこう。'
+        : `つぎは「${tb.place}」の ${tb.full}に あいに いこう！`;
+      const say = async (force = false) => { setTalking(true); await TTS.speak(msg, { force }); setTalking(false); };
+      useEffect(() => {
+        const t1 = setTimeout(() => setPos(target), 600);
+        const t2 = setTimeout(() => say(), pos !== target ? 1800 : 300);
+        return () => { clearTimeout(t1); clearTimeout(t2); TTS.cancel(); };
+      }, []);
+      const [px, py] = MAP_SPOTS[pos];
+      const path = 'M ' + MAP_SPOTS.map(([x, y]) => `${x} ${y}`).join(' L ');
+      return (
+        <div className="home">
+          <div className="home-scene">
+            <svg viewBox="0 0 1000 750" preserveAspectRatio="xMidYMid meet" aria-hidden="true" style={{ background: '#dcfce7' }}>
+              {mapOk ? <image href="img/bouken/map.webp" x="0" y="0" width="1000" height="750" preserveAspectRatio="xMidYMid slice" /> : <MapFallback />}
+              {!mapOk && <path d={path} fill="none" stroke="#fff" strokeWidth="12" strokeDasharray="4 22" strokeLinecap="round" opacity=".9" />}
+              {BOUKEN.map((b, i) => {
+                const [x, y] = MAP_SPOTS[i];
+                const s2 = STAGE_MAP[b.id];
+                const cleared = isCleared(b.id, st);
+                const isOpen = isStageOpen(s2, st);
+                const isNext = i === curI;
+                return (
+                  <g key={b.id} onClick={isOpen ? () => { sfx('tap'); onGo(s2); } : undefined} style={{ cursor: isOpen ? 'pointer' : 'default' }} data-spot={b.id}>
+                    <circle cx={x} cy={y} r="44" fill={cleared ? '#fffbeb' : isOpen ? '#fff' : 'rgba(255,255,255,.55)'} stroke={isNext ? '#f59e0b' : cleared ? '#d97706' : '#94a3b8'} strokeWidth={isNext ? 8 : 5} className={isNext ? 'pulse' : undefined} />
+                    {cleared
+                      ? <text x={x} y={y + 3} fontSize="48" textAnchor="middle" dominantBaseline="central" className="emoji">{b.takara[0]}</text>
+                      : <text x={x} y={y + 3} fontSize="44" fontWeight="900" textAnchor="middle" dominantBaseline="central" fill={isOpen ? '#7c4a1e' : '#94a3b8'}>{isOpen ? '？' : '🔒'}</text>}
+                    <circle cx={x - 38} cy={y - 38} r="18" fill="#7c4a1e" />
+                    <text x={x - 38} y={y - 37} fontSize="22" fontWeight="900" fill="#fff" textAnchor="middle" dominantBaseline="central">{i + 1}</text>
+                  </g>
+                );
+              })}
+              {/* クルミせんせいの コマ */}
+              <g style={{ transform: `translate(${px + 58}px, ${py - 6}px)`, transition: 'transform 1.2s ease-in-out' }} pointerEvents="none">
+                <ellipse cx="0" cy="44" rx="40" ry="10" fill="rgba(0,0,0,.18)" />
+                <image href={KURUMI_IMG.normal} x="-46" y="-118" width="92" height="160" preserveAspectRatio="xMidYMax meet" />
+              </g>
+            </svg>
+          </div>
+          <div className="col home-side kids">
+            <div className="row" style={{ alignItems: 'flex-start', gap: '.6rem' }}>
+              <div style={{ cursor: 'pointer' }} onClick={() => say(true)}><Kurumi size={80} talking={talking} /></div>
+              <div className="bubble grow" style={{ fontSize: '1.3rem' }}><span>{name}さん、</span><R t={msg} /></div>
+            </div>
+            {curI >= 0 && open && (
+              <Btn color="green" size="xl" onClick={() => onGo(tStage)} data-go="1">▶ {tb.call}に あいに いく</Btn>
+            )}
+            {curI >= 0 && !open && <div className="card tc bold">🔒 <R t={lockHint(tStage, st)} /></div>}
+            <div className="card">
+              <div className="bold" style={{ fontSize: '1.2rem', marginBottom: '.4rem' }}>🎒 たからもの {met} / {BOUKEN.length}</div>
+              <div className="row wrapflex" style={{ gap: '.4rem' }}>
+                {BOUKEN.map(b => {
+                  const got = isCleared(b.id, st);
+                  return <div key={b.id} className="tc" style={{ width: 64, padding: '.2rem', borderRadius: '.8rem', border: `3px solid ${got ? '#fcd34d' : '#e2e8f0'}`, background: got ? '#fffbeb' : '#f8fafc' }}>
+                    <div className="emoji" style={{ fontSize: '1.9rem', filter: got ? 'none' : 'grayscale(1)', opacity: got ? 1 : .3 }}>{b.takara[0]}</div>
+                  </div>;
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    // ---- どうぶつと であう ----
+    function MeetScreen({ stage, onStart }) {
+      const b = stage.animal;
+      const [talking, setTalking] = useState(false);
+      useEffect(() => {
+        let alive = true;
+        (async () => { setTalking(true); await TTS.speak(b.meet); if (alive) setTalking(false); })();
+        return () => { alive = false; TTS.cancel(); };
+      }, []);
+      return (
+        <div className="play">
+          <div className="work" style={{ alignItems: 'center', justifyContent: 'center', background: '#f0fdf4' }}>
+            <div className="qhead" style={{ alignSelf: 'stretch' }}><span>{stage.label}</span><R t={b.place} /></div>
+            <div className="grow col" style={{ alignItems: 'center', justifyContent: 'center' }}>
+              <div className={talking ? 'wiggle' : ''}><AnimalPic b={b} size={300} /></div>
+              <div className="bold" style={{ fontSize: '2rem', color: '#7c4a1e' }}>{b.full}</div>
+            </div>
+          </div>
+          <div className="panel">
+            <div className="bubble" key={b.id} style={{ fontSize: '1.4rem' }} onClick={() => TTS.speak(b.meet, { force: true })}><R t={b.meet} /></div>
+            <div className="card row center" style={{ gap: '.6rem', borderColor: '#fcd34d', background: '#fffbeb' }}>
+              <span className="bold">10もん とくと</span><span className="emoji" style={{ fontSize: '2rem' }}>{b.takara[0]}</span><span className="bold">と</span><AcornIcon size={30} /><span className="bold">{BOUKEN_REWARD}こ</span>
+            </div>
+            <div className="row center"><Btn color="white" size="lg" onClick={() => TTS.speak(b.meet, { force: true })}>🔊 もういちど</Btn></div>
+            <Btn color="green" size="xl" className="pop" onClick={onStart} data-meet-start="1"><R t="もんだいを はじめる ▶" /></Btn>
+          </div>
+        </div>
+      );
     }
 
     /* =========================================================
        ホーム（もりの どんぐりぎんこう）
        ========================================================= */
     let GREETED = false;
-    function HomeScreen({ app, onPlay, onMenu, onHouse, onAlbum }) {
+    function HomeScreen({ app, onPlay, onMenu, onHouse, onAlbum, onBouken }) {
       const st = app.state;
       const next = findNext(st);
       const name = st.profile ? st.profile.name : '';
@@ -1782,6 +1994,7 @@
       const pos = next ? stepPos(st, next.id) : 0;
       const msg = next
         ? `どんぐり ぎんこうへ ようこそ！\nきょうは「${next.label} ${next.name}」に ちょうせん しよう。`
+        : boukenOpen(st) && !BOUKEN_IDS.every(id => isCleared(id, st)) ? 'ステップは ぜんぶ クリア！ すごいね！\nこんどは ぼうけんに でかけよう。'
         : 'ぜんぶ クリア！ すごいね！\nすきな ステップで あそぼう。';
       const say = async (force = false) => { setTalking(true); await TTS.speak(`${name}さん、${msg}`, { force }); setTalking(false); };
       useEffect(() => { if (!GREETED) { GREETED = true; say(); } return () => TTS.cancel(); }, []);
@@ -1806,6 +2019,9 @@
             )}
             {next && <div className="tc muted bold" style={{ marginTop: '-.3rem' }}><R t={`${next.label}　${next.name}（${pos + 1}もんめから）`} /></div>}
             <Btn color="amber" size="lg" onClick={onMenu} data-menu="1">📋 メニュー（ステップ）</Btn>
+            {boukenOpen(st)
+              ? <Btn color="orange" size="lg" onClick={onBouken} data-bouken="1">🗺️ ぼうけんに でかける</Btn>
+              : <div className="card tc muted bold" style={{ padding: '.5rem' }}>🗺️ ぼうけん：<R t={boukenLockText(st)} /></div>}
             <div className="row">
               <Btn color="wood" size="lg" className="grow" onClick={onHouse} data-house="1">🏠 もりの おうち</Btn>
               <Btn color="violet" size="lg" className="grow" onClick={onAlbum} data-album="1">📖 アルバム</Btn>
@@ -1833,7 +2049,7 @@
             <div className="grow">
               <div style={{ fontSize: '1rem', color: '#a0612b' }}>{s.label}</div>
               <div><R t={s.name} /></div>
-              <div style={{ fontSize: '.95rem', color: '#64748b', lineHeight: 1.6 }}>{open ? <R t={s.sub} /> : <R t={lockHint(s)} />}</div>
+              <div style={{ fontSize: '.95rem', color: '#64748b', lineHeight: 1.6 }}>{open ? <R t={s.sub} /> : <R t={lockHint(s, st)} />}</div>
               {open && !cleared && <div className="minibar"><div style={{ width: `${pos / (PER_SET * SETS_TO_CLEAR) * 100}%` }} /></div>}
             </div>
             <div className="tc" style={{ minWidth: '4.8rem' }}>
@@ -1856,6 +2072,8 @@
             <div className="menu-grid">{STAGES.filter(s => s.grp === 'main').map(item)}</div>
             <div className="grp-title">はってん</div>
             <div className="menu-grid">{STAGES.filter(s => s.grp === 'adv').map(item)}</div>
+            <div className="grp-title">ぼうけん</div>
+            <div className="menu-grid">{STAGES.filter(s => s.grp === 'bouken').map(item)}</div>
           </div>
         </div>
       );
@@ -1957,9 +2175,11 @@
     /* =========================================================
        1かい（5問）クリア・ステップ クリア
        ========================================================= */
-    function SetClearScreen({ app, stage, res, titleUp, onContinue, onHouse, onHome, onNextStage }) {
+    function SetClearScreen({ app, stage, res, titleUp, onContinue, onHouse, onHome, onNextStage, onMap }) {
       const stageClear = res.stageClear;
       const friend = res.firstClear && stage.friend ? FRIEND_MAP[stage.friend] : null;
+      const animal = stage.animal && stageClear ? stage.animal : null;   // ぼうけんの おれい
+      const rewardRef = useRef(null);
       const [talking, setTalking] = useState(false);
       const nextStage = stageClear ? findNext(app.state) : null;
       const bonusRef = useRef(null);
@@ -1969,27 +2189,44 @@
           const el = bonusRef.current;
           if (el) { const b = el.getBoundingClientRect(); flyAcorns({ x: b.left + b.width / 2, y: b.top + b.height / 2 }, SET_BONUS); }
         }, 900);
+        const tmR = animal ? setTimeout(() => {
+          const el = rewardRef.current;
+          if (el) { const b = el.getBoundingClientRect(); flyAcorns({ x: b.left + b.width / 2, y: b.top + b.height / 2 }, 6); }
+        }, 1500) : null;
         const before = res.before || 0;
-        const bagN = Math.floor((before + SET_BONUS) / 10) > Math.floor(before / 10) ? Math.floor((before + SET_BONUS) / 10) : 0;
-        const tmBag = bagN ? setTimeout(() => showBagUp(bagN), 2300) : null;
-        const text = (stageClear ? `${stage.label} クリア！ おめでとう！` : `1かい クリア！ よく がんばったね。`) + `\nボーナスの どんぐりを ${SET_BONUS}こ あげるよ。`
-          + (friend ? `\n${friend.name}が あそびに きたよ！` : '') + (titleUp ? `\nしょうごうが「${titleUp.name}」に なったよ！` : '');
+        const total = SET_BONUS + (res.reward || 0);
+        const bagN = Math.floor((before + total) / 10) > Math.floor(before / 10) ? Math.floor((before + total) / 10) : 0;
+        const tmBag = bagN ? setTimeout(() => showBagUp(bagN), 2600) : null;
+        const text = animal
+          ? `${animal.call}「ありがとう！ たすかったよ。おれいに ${animal.takara[1]}と、どんぐりを ${BOUKEN_REWARD}こ あげるね。」\nボーナスの どんぐりも ${SET_BONUS}こ もらえたよ。` + (titleUp ? `\nしょうごうが「${titleUp.name}」に なったよ！` : '')
+          : (stageClear ? `${stage.label} クリア！ おめでとう！` : `1かい クリア！ よく がんばったね。`) + `\nボーナスの どんぐりを ${SET_BONUS}こ あげるよ。`
+            + (friend ? `\n${friend.name}が あそびに きたよ！` : '') + (titleUp ? `\nしょうごうが「${titleUp.name}」に なったよ！` : '');
         const tm2 = setTimeout(async () => { setTalking(true); await TTS.speak(text); setTalking(false); }, bagN ? 5600 : (stageClear ? 2600 : 1700));
-        return () => { clearTimeout(tm); clearTimeout(tm2); if (tmBag) clearTimeout(tmBag); TTS.cancel(); };
+        return () => { clearTimeout(tm); clearTimeout(tm2); if (tmBag) clearTimeout(tmBag); if (tmR) clearTimeout(tmR); TTS.cancel(); };
       }, []);
       const setNo = res.setNo || 1;
       return (
         <div className="wrap tc kids" style={{ maxWidth: 900 }}>
           <Confetti />
-          <div className="row center" style={{ marginTop: '.4rem' }}><Kurumi size={140} mood="happy" talking={talking} /></div>
+          <div className="row center" style={{ marginTop: '.4rem', gap: '1rem', alignItems: 'flex-end' }}>
+            {animal && <div className="wiggle"><AnimalPic b={animal} size={170} /></div>}
+            <Kurumi size={animal ? 110 : 140} mood="happy" talking={talking} />
+          </div>
           <div className="pop bold" style={{ fontSize: stageClear ? '3rem' : '3.3rem', color: '#15803d', textShadow: '0 4px 0 #bbf7d0', lineHeight: 1.3 }}>
-            {stageClear ? <>🏆 <R t={`${stage.label} クリア！`} /></> : '🎉 1かい クリア！'}
+            {animal ? <>🎁 <R t={`${animal.call}から おれいだよ！`} /></> : stageClear ? <>🏆 <R t={`${stage.label} クリア！`} /></> : '🎉 1かい クリア！'}
           </div>
           {stageClear && <div className="bold" style={{ fontSize: '1.5rem', marginTop: '.3rem' }}><R t={stage.name} /></div>}
           <div className="card row center pop" style={{ margin: '1rem auto', maxWidth: 560, borderColor: '#fcd34d', background: '#fffbeb', gap: '1rem' }}>
             <div ref={bonusRef} className="row" style={{ gap: '.2rem' }}>{range0(SET_BONUS).map(i => <AcornIcon key={i} size={48} />)}</div>
             <div className="bold" style={{ fontSize: '1.8rem', color: '#7c4a1e' }}>ボーナス ＋{SET_BONUS}</div>
           </div>
+          {animal && (
+            <div className="card row center pop wrapflex" style={{ maxWidth: 640, margin: '0 auto 1rem', borderColor: '#fcd34d', background: '#fffbeb', gap: '1.2rem' }}>
+              <div className="tc"><div className="emoji wiggle" style={{ fontSize: '4.2rem' }}>{animal.takara[0]}</div><div className="bold" style={{ fontSize: '1.3rem' }}>{animal.takara[1]}</div></div>
+              <div ref={rewardRef} className="tc"><div className="row center" style={{ gap: '.2rem' }}><BagIcon size={44} /><BagIcon size={44} /></div><div className="bold" style={{ fontSize: '1.3rem', color: '#7c4a1e' }}>どんぐり ＋{BOUKEN_REWARD}</div></div>
+              <div className="muted bold" style={{ flexBasis: '100%' }}>🎒 たからものは もりの おうちに かざれるよ</div>
+            </div>
+          )}
           {friend && (
             <div className="card pop" style={{ maxWidth: 560, margin: '0 auto 1rem', borderColor: '#86efac', background: '#f0fdf4' }}>
               <div className="emoji wiggle" style={{ fontSize: '5rem' }}>{friend.e}</div>
@@ -2009,7 +2246,9 @@
           </div>
           <div className="col" style={{ maxWidth: 560, margin: '0 auto' }}>
             {!stageClear && <Btn color="green" size="xl" onClick={onContinue} data-continue="1"><R t="つぎの 5もんへ ▶" /></Btn>}
-            {stageClear && nextStage && <Btn color="green" size="xl" onClick={() => onNextStage(nextStage)} data-continue="1"><R t="つぎの ステップへ ▶" /></Btn>}
+            {stageClear && stage.grp === 'bouken' && <Btn color="green" size="xl" onClick={onMap} data-continue="1"><R t="🗺️ ちずに もどる ▶" /></Btn>}
+            {stageClear && stage.grp !== 'bouken' && nextStage && <Btn color="green" size="xl" onClick={() => onNextStage(nextStage)} data-continue="1"><R t="つぎの ステップへ ▶" /></Btn>}
+            {stageClear && stage.grp !== 'bouken' && !nextStage && boukenOpen(app.state) && !BOUKEN_IDS.every(id => isCleared(id, app.state)) && <Btn color="orange" size="xl" onClick={onMap} data-continue="1"><R t="🗺️ ぼうけんに でかける ▶" /></Btn>}
             <div className="row">
               <Btn color="wood" size="lg" className="grow" onClick={onHouse}>🏠 もりの おうち</Btn>
               <Btn color="white" size="lg" className="grow" onClick={onHome}>おわる</Btn>
@@ -2027,10 +2266,13 @@
       const [cat, setCat] = useState(SHOP[0].id);
       const [buying, setBuying] = useState(null);
       const [placing, setPlacing] = useState(null);
-      const c = SHOP.find(x => x.id === cat);
+      const CATS = SHOP.concat([{ id: 'takara', name: 'たからもの', icon: '🎒', list: TAKARA_ITEMS }]);
+      const c = CATS.find(x => x.id === cat);
+      const isOwned = it => it.cat === 'takara' ? isCleared(it.stage, st) : !!st.owned[it.id];
       const placedAt = (id) => st.placed[id];
       const tapItem = (it) => {
-        if (st.owned[it.id]) { sfx('open'); setPlacing(it); TTS.speak(`${it.name}を どこに おく？`); return; }
+        if (isOwned(it)) { sfx('open'); setPlacing(it); TTS.speak(`${it.name}を どこに おく？`); return; }
+        if (it.cat === 'takara') { sfx('tap'); TTS.speak(`${it.name}は、ぼうけんで ${BOUKEN_MAP[it.stage].call}から もらえるよ。`); return; }
         sfx('open'); setBuying(it);
         TTS.speak(st.acorns >= it.price ? `${it.name}は どんぐり ${it.price}こ だよ。かいますか？` : `${it.name}は どんぐり ${it.price}こ。あと ${it.price - st.acorns}こ たりないよ。`);
       };
@@ -2066,12 +2308,19 @@
             </div>
             <div className="card">
               <div className="cats">
-                {SHOP.map(x => <button key={x.id} className={`cat ${cat === x.id ? 'on' : ''}`} onClick={() => { sfx('tap'); setCat(x.id); }} data-cat={x.id}><span className="emoji" style={{ fontSize: '1.4rem' }}>{x.icon}</span>{x.name}</button>)}
+                {CATS.map(x => <button key={x.id} className={`cat ${cat === x.id ? 'on' : ''}`} onClick={() => { sfx('tap'); setCat(x.id); }} data-cat={x.id}><span className="emoji" style={{ fontSize: '1.4rem' }}>{x.icon}</span>{x.name}</button>)}
               </div>
               <div className="shop-grid">
                 {c.list.map(it => {
-                  const owned = !!st.owned[it.id];
+                  const owned = isOwned(it);
                   const poor = !owned && st.acorns < it.price;
+                  if (it.cat === 'takara' && !owned) return (
+                    <button key={it.id} className="item poor" onClick={() => tapItem(it)} data-item={it.id}>
+                      <span className="em emoji" style={{ filter: 'grayscale(1)', opacity: .35 }}>{it.e}</span>
+                      <span className="nm">？</span>
+                      <span className="pr" style={{ fontSize: '.85rem' }}>🗺️ ぼうけんで もらえる</span>
+                    </button>
+                  );
                   const at = placedAt(it.id);
                   return (
                     <button key={it.id} className={`item ${owned ? 'owned' : ''} ${poor ? 'poor' : ''}`} onClick={() => tapItem(it)} data-item={it.id}>
@@ -2154,7 +2403,7 @@
               <div className="bold" style={{ fontSize: '1.3rem' }}>ともだち {friendsOf(st).length} / {FRIENDS.length}</div>
             </div>
             <div className="friend-grid" style={{ marginTop: '.7rem' }}>
-              {STAGES.map(s => {
+              {STAGES.filter(s => s.friend).map(s => {
                 const f = FRIEND_MAP[s.friend];
                 const got = isCleared(s.id, st);
                 return (
@@ -2162,6 +2411,24 @@
                     <div className="em emoji">{f.e}</div>
                     <div style={{ fontSize: '1.15rem' }}>{got ? f.name : '？'}</div>
                     <div className="muted" style={{ fontSize: '.85rem' }}><R t={got ? `${s.label}で きたよ` : `${s.label}を クリアすると あえるよ`} /></div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div className="card" style={{ marginBottom: '.8rem' }}>
+            <div className="row between wrapflex">
+              <div className="bold" style={{ fontSize: '1.6rem', color: '#c2410c' }}>🗺️ ぼうけんで あった なかま</div>
+              <div className="bold" style={{ fontSize: '1.3rem' }}>{BOUKEN_IDS.filter(id => isCleared(id, st)).length} / {BOUKEN.length}</div>
+            </div>
+            <div className="friend-grid" style={{ marginTop: '.7rem' }}>
+              {BOUKEN.map(b => {
+                const got = isCleared(b.id, st);
+                return (
+                  <div key={b.id} className={`friend ${got ? '' : 'empty'}`} style={got ? { borderColor: '#fdba74' } : undefined}>
+                    <div style={{ height: 76, display: 'flex', alignItems: 'center', justifyContent: 'center', filter: got ? 'none' : 'grayscale(1) brightness(0)', opacity: got ? 1 : .14 }}><AnimalPic b={b} size={72} /></div>
+                    <div style={{ fontSize: '1.05rem' }}>{got ? b.full : '？'}</div>
+                    <div className="muted" style={{ fontSize: '.85rem' }}>{got ? <>{b.takara[0]} {b.takara[1]}</> : `${b.place}に いるよ`}</div>
                   </div>
                 );
               })}
@@ -2178,6 +2445,13 @@
                   {x.name === t.name && <span className="tag" style={{ background: '#facc15', color: '#451a03' }}>いま</span>}
                 </div>
               ))}
+              {(() => { const x = BOUKEN_TITLE, on = t.name === x.name; return (
+                <div className="row" style={{ padding: '.4rem .7rem', borderRadius: '1rem', background: on ? '#fef9c3' : '#f8fafc', border: `3px solid ${on ? '#facc15' : '#e2e8f0'}`, opacity: on ? 1 : 0.45 }}>
+                  <span className="emoji" style={{ fontSize: '1.8rem' }}>{x.icon}</span>
+                  <span className="bold grow" style={{ fontSize: '1.3rem' }}>{x.name}</span>
+                  <span className="muted bold">ぼうけんを ぜんぶ クリア</span>
+                  {on && <span className="tag" style={{ background: '#facc15', color: '#451a03' }}>いま</span>}
+                </div>); })()}
             </div>
           </div>
         </div>
@@ -2405,6 +2679,7 @@
           <TRow label="じゅんび①〜③" desc="「とばす」にすると、ステップ1から始めます（じゅんびはメニューから選べば練習できます）。"><Choice k="skipPrep" options={[[false, 'する'], [true, 'とばす']]} /></TRow>
           <TRow label="すべてのステップを開く" desc="オンにすると、前のステップをクリアしていなくても挑戦できます。"><Choice k="unlockAll" options={[[false, 'オフ'], [true, 'オン']]} /></TRow>
           <TRow label="発展" desc="発展ア（2けた−1けた）、発展イ（答えが1けた）、発展ウ（お話の問題）です。開くと子どもの画面のメニューに出ます。"><Choice k="advanced" options={[[false, '閉じる'], [true, '開く']]} /></TRow>
+          <TRow label="ぼうけん" desc="8ぴきの動物に会いながら10問ずつとく、まとめのステージです。ふつうは、発展を開いているときは発展ウ、開いていないときはステップ6をクリアすると開きます。「開く」にすると、すぐに挑戦できます（動物は1ぴきずつ順に開きます）。"><Choice k="bouken" options={[[false, 'クリアで開く'], [true, '開く']]} /></TRow>
           <div className="bold" style={{ marginTop: '.6rem', color: '#0369a1' }}>画面と音</div>
           <TRow label="色分け" desc="ひかれる数を赤、ひく数を青、10を緑で表示します。式の中の数字も同じ色にします。色が気になる児童は「出さない」にします。"><Choice k="color" options={[[true, '出す'], [false, '出さない']]} /></TRow>
           <TRow label="10のふくろの絵" desc="じゅんび①・②の絵と、ヒントの2〜3段階目に出す「10こ入りのふくろ・ばらのどんぐり」の絵です。「出さない」にすると、ヒントでは数字を光らせます。"><Choice k="bag" options={[[true, '出す'], [false, '出さない']]} /></TRow>
@@ -2620,20 +2895,25 @@
       const openStage = (stage) => {
         const p = prog(stateRef.current, stage.id);
         const fresh = !(p.sets || 0) && !(p.idx || 0) && !p.cleared;
+        if (stage.grp === 'bouken') { go(fresh || p.cleared ? { name: 'meet', stageId: stage.id } : { name: 'play', stageId: stage.id, titleBefore: titleOf(stateRef.current), k: Date.now() }); return; }
         go(fresh && INTRO[stage.id] ? { name: 'intro', stageId: stage.id } : { name: 'play', stageId: stage.id, titleBefore: titleOf(stateRef.current), k: Date.now() });
       };
+      const stage = view.stageId ? STAGE_MAP[view.stageId] : null;
+      const goMap = (fromId) => go({ name: 'bouken', from: fromId ? BOUKEN_IDS.indexOf(fromId) : null });
       const back = () => {
-        if (view.name === 'play' || view.name === 'intro') go({ name: 'menu' });
+        if ((view.name === 'play' || view.name === 'meet') && stage && stage.grp === 'bouken') go({ name: 'bouken' });
+        else if (view.name === 'play' || view.name === 'intro') go({ name: 'menu' });
         else go({ name: 'home' });
       };
-      const stage = view.stageId ? STAGE_MAP[view.stageId] : null;
 
       return (
         <div style={{ minHeight: '100vh' }}>
           <Header app={app} view={view} onHome={() => !['setup', 'teacher'].includes(view.name) && go({ name: 'home' })} onBack={back}
                   onTeacher={() => setPinOpen(true)} onHouse={() => !['setup', 'teacher'].includes(view.name) && go({ name: 'house' })} />
           {view.name === 'setup' && <SetupScreen onDone={(profile) => { update(s => ({ ...s, profile })); Sync.run(app); go({ name: 'home' }); }} />}
-          {view.name === 'home' && <HomeScreen app={app} onPlay={openStage} onMenu={() => go({ name: 'menu' })} onHouse={() => go({ name: 'house' })} onAlbum={() => go({ name: 'album' })} />}
+          {view.name === 'home' && <HomeScreen app={app} onPlay={openStage} onMenu={() => go({ name: 'menu' })} onHouse={() => go({ name: 'house' })} onAlbum={() => go({ name: 'album' })} onBouken={() => goMap()} />}
+          {view.name === 'bouken' && <MapScreen key={view.k || 'map'} app={app} from={view.from} onGo={openStage} />}
+          {view.name === 'meet' && stage && <MeetScreen key={stage.id} stage={stage} onStart={() => go({ name: 'play', stageId: stage.id, titleBefore: titleOf(stateRef.current), k: Date.now() })} />}
           {view.name === 'menu' && <MenuScreen app={app} onOpen={openStage} />}
           {view.name === 'intro' && stage && <IntroScreen key={stage.id} stage={stage} onStart={() => go({ name: 'play', stageId: stage.id, titleBefore: titleOf(stateRef.current), k: Date.now() })} />}
           {view.name === 'play' && stage && (
@@ -2646,7 +2926,8 @@
           {view.name === 'setclear' && stage && (
             <SetClearScreen key={JSON.stringify(view.res)} app={app} stage={stage} res={view.res} titleUp={view.titleUp}
                             onContinue={() => go({ name: 'play', stageId: stage.id, titleBefore: titleOf(stateRef.current), k: Date.now() })}
-                            onNextStage={openStage} onHouse={() => go({ name: 'house' })} onHome={() => go({ name: 'home' })} />
+                            onNextStage={openStage} onHouse={() => go({ name: 'house' })} onHome={() => go({ name: 'home' })}
+                            onMap={() => goMap(stage.grp === 'bouken' ? stage.id : null)} />
           )}
           {view.name === 'house' && <HouseScreen app={app} />}
           {view.name === 'album' && <AlbumScreen app={app} />}
