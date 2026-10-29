@@ -254,14 +254,17 @@
     ] },
   ];
 
-  // ---- しょうごう（f：ごうかく した 階の かず、all：はってんを ぜんぶ クリア） ----
+  // ---- しょうごう（f：ごうかく した 階の かず、all：はってんを ぜんぶ クリア、bouken：ぼうけんを ぜんぶ クリア） ----
   const TITLES = [
     { n: 'みならい にんじゃ', f: 0 },
     { n: 'げにん', f: 3 },
     { n: 'ちゅうにん', f: 6 },
     { n: 'じょうにん', f: 9 },
     { n: 'にんじゃ マスター', all: true },
+    { n: 'くく でんせつの にんじゃ', bouken: true },
   ];
+  // ぼうけんを ぜんぶ クリアすると もらえる とくべつな いろ（よろずやでは うらない）
+  const BOUKEN_COLOR = { id: 'densetsu', name: 'でんせつの よろい', zukin: '#b45309', fuku: '#facc15', obi: '#7f1d1d', pattern: 'shine' };
 
-  (typeof window !== 'undefined' ? window : globalThis).KUKU_DATA = { TONAE, FLOORS, ENEMIES, TREASURES, STEP, STAGES, COLORS, ITEM_CATS, TITLES, PLACES, BOUKEN, SOUVENIRS };
+  (typeof window !== 'undefined' ? window : globalThis).KUKU_DATA = { TONAE, FLOORS, ENEMIES, TREASURES, STEP, STAGES, COLORS, ITEM_CATS, TITLES, PLACES, BOUKEN, SOUVENIRS, BOUKEN_COLOR };
 })();
