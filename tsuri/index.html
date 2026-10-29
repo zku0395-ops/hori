@@ -48,6 +48,14 @@
     @keyframes ukiwait { 0%,100% { transform: translate(-50%, -50%) translateY(0); } 50% { transform: translate(-50%, -50%) translateY(5px); } }
     .uki-bite { animation: ukibite .5s ease-in-out infinite; }
     @keyframes ukibite { 0%,100% { transform: translate(-50%, -50%) translateY(10px); } 50% { transform: translate(-50%, -50%) translateY(22px); } }
+    .uki-reel { animation: ukireel .18s linear infinite; }
+    @keyframes ukireel { 0%,100% { transform: translate(-50%, -50%) translateX(-2px); } 50% { transform: translate(-50%, -50%) translateX(2px) translateY(3px); } }
+    .kage { animation: kage .35s ease-in-out infinite; }
+    @keyframes kage { 0%,100% { transform: rotate(-7deg); } 50% { transform: rotate(7deg); } }
+    .leap { animation: leap .55s cubic-bezier(.25,.9,.35,1.25) both; transform-origin: 0 0; }
+    @keyframes leap { 0% { transform: translateY(120px) rotate(-90deg) scale(.6); opacity: .4; } 70% { transform: translateY(-12px) rotate(10deg) scale(1.05); opacity: 1; } 100% { transform: translateY(0) rotate(0) scale(1); } }
+    .yurayura { animation: yurayura .7s ease-in-out infinite; transform-origin: 0 0; }
+    @keyframes yurayura { 0%,100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
     .ring { position: absolute; border: 3px solid rgba(255,255,255,.85); border-radius: 50%; animation: ring 1.2s ease-out infinite; transform: translate(-50%, -50%); }
     @keyframes ring { from { width: 10px; height: 4px; opacity: 1; } to { width: 110px; height: 34px; opacity: 0; } }
     .jump { animation: jump .9s cubic-bezier(.2,.9,.3,1.2) both; }
@@ -97,7 +105,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.5.1';
+    const APP_VERSION = '1.6.0';
     const BASE = window.TSURI_BASE;
     const IMG = BASE + 'img/';
 
@@ -1070,7 +1078,7 @@
     function FishingScene({ st, plan, progress, look, uki, first, secs, onCatch, onDone }) {
       const talk = useTalk();
       const sp = SPOT[st.spot];
-      const [stage, setStage] = useState('ready'); // ready → wait → bite → show → ready …　→ end
+      const [stage, setStage] = useState('ready'); // ready → windup → wait → bite → reel（まきとる）→ hang（つりあげる）→ show → ready …　→ end
       const [caught, setCaught] = useState({});    // id → { f, p, plain, c, size }
       const [order, setOrder] = useState([]);
       const [last, setLast] = useState(null);
@@ -1078,19 +1086,23 @@
       const [started, setStarted] = useState(false);
       const alive = useRef(true);
       const timer = useRef(null);
-      const S = useRef({ caught: {}, order: [], total: 0, stage: 'ready', over: false, next: null });
+      const raf = useRef(0);
+      const S = useRef({ caught: {}, order: [], total: 0, stage: 'ready', over: false, next: null, cur: null, paused: 0, pauseAt: 0 });
+      const [rk, setRk] = useState(0);              // まきとりの すすみぐあい（0〜1）
       S.current.stage = stage;
       const total = order.reduce((a, id) => a + caught[id].c, 0);
       useEffect(() => {
         talk.say(first ? (secs ? `${secs >= 60 ? `${secs / 60}ぷん` : `${secs}びょう`}で なんびき つれるかな？「なげる」を おすと はじまるよ。1かいで 1ぴき つれるよ。` : '「なげる」を おして、さかなを つろう！ 1かいで 1ぴき つれるよ。') : 'つぎの つりだよ。「なげる」を おそう！');
-        return () => { alive.current = false; clearTimeout(timer.current); };
+        return () => { alive.current = false; clearTimeout(timer.current); cancelAnimationFrame(raf.current); };
       }, []);
       // のこり じかん
       useEffect(() => {
         if (!started || !secs) return;
         const t0 = Date.now();
         const iv = setInterval(() => {
-          const l = Math.max(0, secs - Math.floor((Date.now() - t0) / 1000));
+          // ひいて いる あいだは とめる
+          const now = Date.now(), stop = S.current.paused + (S.current.pauseAt ? now - S.current.pauseAt : 0);
+          const l = Math.max(0, secs - Math.floor((now - t0 - stop) / 1000));
           setLeft(l);
           if (l <= 0) { clearInterval(iv); timeUp(); }
         }, 250);
@@ -1112,7 +1124,7 @@
       };
       const timeUp = () => {
         // うきが しずんで いる ときは、ひくまで まつ
-        if (S.current.stage === 'bite' || S.current.stage === 'show') { S.current.endSoon = true; return; }
+        if (['bite', 'reel', 'hang', 'show'].includes(S.current.stage)) { S.current.endSoon = true; return; }
         finish('time');
       };
       // ねらう ばしょ（%）。みずの うえだけ
@@ -1147,8 +1159,30 @@
       const pull = () => {
         if (stage === 'wait') { talk.say('まだ だよ。うきが しずむまで まとう。'); return; }
         if (stage !== 'bite') return;
-        Sound.reel(); setStage('show');
-        const x = S.current.next, id = x.f.id, size = sizeOf(x.f, progress);
+        // リールを まいて、さかなの かげが てまえまで ちかづく（このあいだ のこり じかんは とめる）
+        const x = S.current.next, size = sizeOf(x.f, progress);
+        S.current.cur = { x, size };
+        S.current.pauseAt = Date.now();
+        setRk(0); setStage('reel'); Sound.reel();
+        talk.say('よいしょ！ よいしょ！');
+        const ms = isNushi({ ...x, size }) ? 2600 : 2000, t0 = performance.now();
+        let lastSnd = t0;
+        const step = (t) => {
+          if (!alive.current) return;
+          const k = Math.min(1, (t - t0) / ms);
+          setRk(k);
+          if (t - lastSnd > 420 && k < 1) { lastSnd = t; Sound.reel(); }
+          if (k < 1) { raf.current = requestAnimationFrame(step); return; }
+          // みずから ぴょんと はねて、さおの さきに ぶらさがる
+          Sound.splash(); setStage('hang');
+          timer.current = setTimeout(() => { if (alive.current) landed(); }, 1100);
+        };
+        raf.current = requestAnimationFrame(step);
+      };
+      const landed = () => {
+        const { x, size } = S.current.cur, id = x.f.id;
+        S.current.paused += Date.now() - S.current.pauseAt; S.current.pauseAt = 0;
+        setStage('show');
         const old = S.current.caught[id];
         const g = old ? { ...old, c: old.c + 1, size: Math.max(old.size, size) } : { ...x, c: 1, size };
         S.current.caught = { ...S.current.caught, [id]: g };
@@ -1169,7 +1203,7 @@
       const [bgOk, setBgOk] = useState(!MISSING.has(`spot_${sp.id}.webp`));
       useEffect(() => { const im = new Image(); im.onerror = () => { MISSING.add(`spot_${sp.id}.webp`); setBgOk(false); }; im.src = IMG + `spot_${sp.id}.webp`; }, []);
       const boat = !bgOk && sp.id >= 5 && sp.id <= 6 ? (sp.id === 6 ? '🛥️' : '🚣') : null;
-      const cast_ = stage === 'wait' || stage === 'bite' || stage === 'show';
+      const cast_ = ['wait', 'bite', 'reel', 'hang', 'show'].includes(stage);
       // がめんの おおきさ（つりざおを ピクセルで かくため）
       const box = useRef(null);
       const [dim, setDim] = useState({ w: 800, h: 420 });
@@ -1182,11 +1216,11 @@
         return () => { if (ro) ro.disconnect(); else window.removeEventListener('resize', f); };
       }, []);
       // さおの かくど（ど。マイナスが うえ）。なめらかに うごかす
-      const ROD = { ready: -58, windup: -118, wait: -30, bite: -26, show: -78, end: -58 };
+      const ROD = { ready: -58, windup: -118, wait: -30, bite: -26, reel: -48, hang: -72, show: -78, end: -58 };
       const [ang, setAng] = useState(ROD.ready);
       const angRef = useRef(ang);
       useEffect(() => {
-        const to = ROD[stage] ?? ROD.ready, from = angRef.current, t0 = performance.now(), ms = stage === 'windup' ? 280 : stage === 'wait' ? 220 : 350;
+        const to = ROD[stage] ?? ROD.ready, from = angRef.current, t0 = performance.now(), ms = stage === 'windup' ? 280 : stage === 'wait' ? 220 : stage === 'reel' ? 500 : 350;
         let raf;
         const step = (t) => { const k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3), a = from + (to - from) * e; angRef.current = a; setAng(a); if (k < 1) raf = requestAnimationFrame(step); };
         raf = requestAnimationFrame(step);
@@ -1199,8 +1233,17 @@
       const rad = ang * Math.PI / 180;
       const tipX = gx + L * Math.cos(rad), tipY = gy + L * Math.sin(rad);
       // うきの いち（なげた あとは ねらった ところ。まえは さおの さきに ぶらさがる）
-      const ux = cast_ ? castAt.x / 100 * dim.w : tipX + 4, uy = cast_ ? castAt.y / 100 * dim.h : tipY + 46;
-      const far = cast_ ? 0.62 + 0.38 * (castAt.y - AIM.y0) / (AIM.y1 - AIM.y0) : 1; // とおくは ちいさく みえる
+      let ux = cast_ ? castAt.x / 100 * dim.w : tipX + 4, uy = cast_ ? castAt.y / 100 * dim.h : tipY + 46;
+      let far = cast_ ? 0.62 + 0.38 * (castAt.y - AIM.y0) / (AIM.y1 - AIM.y0) : 1; // とおくは ちいさく みえる
+      // まきとる ときは、つりびとの ほうへ ちかづく（きしの てまえで とまる。とまる ところが nx, ny）
+      const hx = gx + L * 1.2, hy = dim.h * 0.8, ux0 = ux, uy0 = uy;
+      const nx = ux0 + (hx - ux0) * 0.75, ny = uy0 + (hy - uy0) * 0.75;
+      if (stage === 'reel' || stage === 'hang' || stage === 'show') { const e = (stage !== 'reel' ? 1 : 1 - Math.pow(1 - rk, 2)) * 0.75; ux += (hx - ux) * e; uy += (hy - uy) * e; far += (1 - far) * e; }
+      // かげの おおきさは さかなの おおきさに あわせる
+      const cur = S.current.cur;
+      const kageW = cur ? Math.max(60, Math.min(150, 40 + Math.sqrt(cur.size) * 7)) : 80;
+      const hangW = Math.max(100, kageW);
+      const hanging = (stage === 'hang' || stage === 'show') && cur; // つりあげた あとは さおの さきに ぶらさがった まま
       const r = last;
       const H = 'min(440px, calc(100vh - 230px))';
       return (
@@ -1218,7 +1261,7 @@
             </div>
             <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox={`0 0 ${dim.w} ${dim.h}`}>
               {/* いと */}
-              <path d={cast_ ? `M${tipX} ${tipY} Q${(tipX + ux) / 2} ${Math.max(tipY, uy) + (stage === 'bite' ? 4 : 26)} ${ux} ${uy - 10 * far}` : `M${tipX} ${tipY} L${ux} ${uy - 18}`} stroke="#f8fafc" strokeWidth="2" fill="none" />
+              <path d={hanging ? `M${tipX} ${tipY} L${tipX} ${tipY + 32}` : stage === 'reel' ? `M${tipX} ${tipY} L${ux} ${uy - 10 * far}` : cast_ ? `M${tipX} ${tipY} Q${(tipX + ux) / 2} ${Math.max(tipY, uy) + (stage === 'bite' ? 4 : 26)} ${ux} ${uy - 10 * far}` : `M${tipX} ${tipY} L${ux} ${uy - 18}`} stroke="#f8fafc" strokeWidth="2" fill="none" />
               {/* つりざお（てで にぎって いる） */}
               <g transform={`translate(${gx} ${gy}) rotate(${ang})`}>
                 <rect x="-22" y="-5" width="46" height="10" rx="5" fill="#7c2d12" stroke="#1c1917" strokeWidth="2" />
@@ -1229,12 +1272,28 @@
               {/* にぎって いる て */}
               <ellipse cx={gx} cy={gy} rx="9" ry="8" fill="#fcc88e" stroke="#7c4a1e" strokeWidth="2" />
             </svg>
-            <div className={`absolute pointer-events-none ${stage === 'wait' ? 'uki-wait' : stage === 'bite' ? 'uki-bite' : ''}`} style={{ left: ux, top: uy, transform: 'translate(-50%, -50%)', transition: cast_ ? 'left .45s ease-out, top .45s ease-out' : 'none' }}>
+            {/* さかなの かげ（まきとる あいだ、うきの したで およぐ） */}
+            {stage === 'reel' && cur && <div className="absolute pointer-events-none" style={{ left: ux, top: uy + 22 * far, transform: `translate(-50%, -50%) scale(${far})` }}>
+              <div className="kage" style={{ filter: 'brightness(0) opacity(.5)' }}><FishPic f={cur.x.f} size={kageW} /></div>
+            </div>}
+            {stage === 'reel' && <div className="ring" style={{ left: ux, top: uy + 10 * far }} />}
+            {/* みずから はねて、さおの さきに ぶらさがる（あたまが うえ） */}
+            {hanging && <>
+              {stage === 'hang' && <div className="ring" style={{ left: nx, top: ny }} />}
+              <div className="absolute pointer-events-none" style={{ left: tipX, top: tipY + 30 }}>
+                <div className="leap"><div className="yurayura">
+                  <div style={{ position: 'absolute', left: -hangW * 0.31, top: hangW, transform: 'rotate(-90deg)', transformOrigin: '0 0' }}>
+                    <FishPic f={cur.x.f} size={hangW} />
+                  </div>
+                </div></div>
+              </div>
+            </>}
+            {!hanging && <div className={`absolute pointer-events-none ${stage === 'wait' ? 'uki-wait' : stage === 'bite' ? 'uki-bite' : stage === 'reel' ? 'uki-reel' : ''}`} style={{ left: ux, top: uy, transform: 'translate(-50%, -50%)', transition: cast_ && stage !== 'reel' ? 'left .45s ease-out, top .45s ease-out' : 'none' }}>
               <div style={{ transform: `scale(${far})`, transition: 'transform .45s' }}>
                 {uki ? <ItemIcon it={uki} size={64} />
                   : <svg width="26" height="40" viewBox="0 0 26 40"><path d="M13 0 v8" stroke="#1c1917" strokeWidth="2" /><ellipse cx="13" cy="18" rx="9" ry="11" fill="#ef4444" stroke="#1c1917" strokeWidth="2" /><path d="M4 20 h18 a9 11 0 0 1 -18 0z" fill="#fff" stroke="#1c1917" strokeWidth="2" /></svg>}
               </div>
-            </div>
+            </div>}
             {stage === 'bite' && <><div className="ring" style={{ left: ux, top: uy + 14 * far }} /><div className="absolute text-6xl font-bold text-yellow-300 pop pointer-events-none" style={{ left: ux + 14, top: uy - 86, textShadow: '3px 3px 0 #b91c1c' }}>！</div></>}
             {stage === 'show' && r && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -2003,7 +2062,7 @@
     function prepTexts() {
       const L = [];
       const add = (...ts) => ts.forEach(t => L.push(t));
-      add('「なげる」を おして、さかなを つろう！ 1かいで 1ぴき つれるよ。', 'つぎの つりだよ。「なげる」を おそう！', 'まだ だよ。うきが しずむまで まとう。');
+      add('「なげる」を おして、さかなを つろう！ 1かいで 1ぴき つれるよ。', 'つぎの つりだよ。「なげる」を おそう！', 'まだ だよ。うきが しずむまで まとう。', 'よいしょ！ よいしょ！');
       [30, 60, 120].forEach(secs => add(`${secs >= 60 ? `${secs / 60}ぷん` : `${secs}びょう`}で なんびき つれるかな？「なげる」を おすと はじまるよ。1かいで 1ぴき つれるよ。`));
       for (let n = 1; n <= 15; n++) add(`いっぱい つれたね！ ${hiki(n)} つれたよ！`, `じかん だよ！ ${hiki(n)} つれたね！`, `いっしょに かぞえたね。${hiki(n)}。ひかって いる かずを おそう。`);
       add('5ひきずつ わくで かこんだよ。5の まとまりを つかって かぞえよう。', 'それぞれの えんを ぜんぶ たそう。「＋」で つないで、さいごに「＝」だよ。',
