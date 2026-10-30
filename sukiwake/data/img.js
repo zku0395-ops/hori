@@ -120,6 +120,7 @@ window.SUKI_IMG = [
   'items/d09.webp',
   'items/d10.webp',
   'items/d11.webp',
+  'items/d12.webp',
   'items/d13.webp',
   'items/d14.webp',
   'items/d15.webp',
