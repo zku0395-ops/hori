@@ -3,4 +3,5 @@
 window.SUKI_IMG = [
   'perari.webp',
   'perari_happy.webp',
+  'perari_think.webp',
 ];
