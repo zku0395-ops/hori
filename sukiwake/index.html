@@ -90,7 +90,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.0.7';
+    const APP_VERSION = '1.0.8';
     const BASE = window.SUKI_BASE;
     const IMG = BASE + 'img/';
 
@@ -191,6 +191,7 @@
       { id: '5', no: '⑤', name: 'まとめ', type: 'all', n: 3, desc: '2つの ぶんを ぜんぶ じぶんで かく' },
       { id: 'h1', no: 'はってん①', name: 'なぜ すきかと いうと', type: 'write', n: 3, blanks: ['なぜ すきかと いうと、'], hatten: true, desc: '「なぜ すきかと いうと、〜からです。」で かく' },
       { id: 'h2', no: 'はってん②', name: 'りゆうを 2つ', type: 'write', n: 3, blanks: ['そのりゆうは、', 'それに、'], hatten: true, desc: '「それに、」で りゆうを もう 1つ かく' },
+      { id: 'c', no: '⑥', name: 'チャンピオン（じゆうに かく）', short: 'チャンピオン', type: 'all', n: 0, endless: true, hatten: true, desc: '2つの ぶんを ぜんぶ じぶんで、すきなだけ かく' },
     ];
     const STAGE = {}; STAGES.forEach(s => { STAGE[s.id] = s; });
     const MAIN = STAGES.filter(s => !s.hatten);
@@ -250,7 +251,7 @@
     }
     const isCleared = (p, id) => !!p.cleared[id];
     const stageOpen = (p, st) => {
-      if (st.hatten) return !!(p.hatten || p.unlockAll) && (st.id === 'h1' || p.unlockAll || isCleared(p, 'h1'));
+      if (st.hatten) return !!(p.hatten || p.unlockAll) && (st.id === 'h1' || p.unlockAll || isCleared(p, st.id === 'c' ? 'h2' : 'h1'));
       if (p.unlockAll) return true;
       const i = MAIN.findIndex(s => s.id === st.id);
       return i <= 0 || isCleared(p, MAIN[i - 1].id);
@@ -270,7 +271,7 @@
       google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
     });
     const LOG_HEADER = ['日時', 'なまえ', 'ステージ', 'ばしょ', 'もの', 'つくった ぶん', 'けっか', 'まちがい', 'ヒント', 'まちがいの しゅるい', 'えらんだ カード', 'かいた ことば', 'びょう', 'ID'];
-    const WRITE_STAGES = ['4', '5', 'h1', 'h2'];
+    const WRITE_STAGES = ['4', '5', 'h1', 'h2', 'c'];
     const DEFAULT_SETTINGS = { rate: 0.8, font: 1, happyo: true, color: true, sound: true };
 
     // まとめ（先生用）— コード.gs の aggregate_ と おなじ しくみ
@@ -1151,7 +1152,7 @@
       const got = useRef({ heart: 0, items: [], miss: 0 });
       const t0 = useRef(0);
       const me = meOf(progress);
-      useEffect(() => { talk.say((intro || `${st.no} 「${st.name}」。`) + ' どこへ いく？ ばしょを えらんでね。'); }, []);
+      useEffect(() => { talk.say((intro || `${st.no} 「${st.name}」。`) + (st.endless ? ' 2つの ぶんを ぜんぶ じぶんで かこう。すきなだけ かいて いいよ。' : '') + ' どこへ いく？ ばしょを えらんでね。'); }, []);
       const pickPlace = (p) => { setPl(p); setPhase('shelf'); talk.say(`${p.say} すきな ものを 1つ えらんでね。`); };
       const pickItem = (x) => { setIt(x); t0.current = Date.now(); setPhase('q'); };
       const done = (r) => {
@@ -1163,10 +1164,10 @@
           onIntro(it, s1, s2, st.id, HEART_PER);
           got.current.heart += HEART_PER; got.current.items.push(it.id);
           const k = idx + 1; setTv(null); setSeikai(false);
-          if (k >= n) { onFinish({ ...got.current }); return; }
-          onSave({ st: st.id, left: n - k });
+          if (!st.endless && k >= n) { onFinish({ ...got.current }); return; }
+          if (!st.endless) onSave({ st: st.id, left: n - k });
           setIdx(k); setIt(null); setPhase('shelf');
-          talk.say(`${k + 1}つめ！ つぎは なにを しょうかい する？`);
+          talk.say(st.endless ? `${k}こ かけたね！ つぎは なにを しょうかい する？ おわる ときは「おしまい」を おしてね。` : `${k + 1}つめ！ つぎは なにを しょうかい する？`);
         };
         if (set.happyo) setTv({ s1, s2, next });
         else { Sound.seikai(); setSeikai(true); setTimeout(next, 1600); }
@@ -1175,13 +1176,15 @@
       return (
         <div className={`w-full max-w-5xl flex flex-col ${phase === 'q' ? 'gap-1.5 pt-1' : 'gap-3'} px-3 pb-0 relative`} style={{ zIndex: 1 }}>
           <div className="flex items-center gap-2">
-            <div className="text-xl font-bold bg-teal-700 text-white rounded-full px-4 py-1">{st.no} {st.name}</div>
-            <div className="flex gap-1">{Array.from({ length: n }, (_, i) => <span key={i} className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-sm ${i < idx ? 'bg-pink-400 border-pink-600' : i === idx ? 'bg-yellow-200 border-yellow-500' : 'bg-white border-stone-300'}`}>{i < idx ? '❤' : ''}</span>)}</div>
+            <div className="text-xl font-bold bg-teal-700 text-white rounded-full px-4 py-1 whitespace-nowrap">{st.no} {st.short || st.name}</div>
+            {st.endless ? <div className="text-xl font-bold bg-pink-100 border-2 border-pink-400 rounded-full px-4 whitespace-nowrap">✍️ {idx}こ かいた</div> : <div className="flex gap-1">{Array.from({ length: n }, (_, i) => <span key={i} className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-sm ${i < idx ? 'bg-pink-400 border-pink-600' : i === idx ? 'bg-yellow-200 border-yellow-500' : 'bg-white border-stone-300'}`}>{i < idx ? '❤' : ''}</span>)}</div>}
             {phase === 'q' && it && <div className="flex items-center gap-1 ml-2"><ItemArt it={it} size={44} /><span className="text-2xl font-bold">{it.n}</span></div>}
             <div className="flex-1" />
             {phase === 'shelf' && <button onClick={() => { Sound.tap(); setPhase('town'); talk.say('どこへ いく？'); }} className="btn3d bg-white border-2 border-teal-700 rounded-2xl px-3 py-1 text-xl font-bold">🗺️ ほかの ばしょ</button>}
             {phase === 'q' && <button onClick={() => { Sound.tap(); setPhase('shelf'); }} className="btn3d bg-white border-2 border-stone-400 rounded-2xl px-3 py-1 text-lg font-bold">↩ ものを えらびなおす</button>}
-            <button onClick={onQuit} className="btn3d bg-white border-2 border-stone-400 rounded-2xl px-3 py-1 text-lg font-bold">やすむ</button>
+            {st.endless
+              ? (phase === 'town' || phase === 'shelf') && !tv && !seikai && <button onClick={() => { if (idx) onFinish({ ...got.current }); else onQuit(); }} className="btn3d bg-green-100 border-2 border-green-600 rounded-2xl px-4 py-1 text-xl font-bold">🏁 おしまい</button>
+              : <button onClick={onQuit} className="btn3d bg-white border-2 border-stone-400 rounded-2xl px-3 py-1 text-lg font-bold">やすむ</button>}
           </div>
           <MsgWin size={phase === 'q' ? 60 : 92} compact={phase === 'q'} acc={progress.deco.pera} />
           {phase === 'town' && <TownGrid progress={progress} onPick={pickPlace} />}
@@ -1331,7 +1334,8 @@
       const talk = useTalk();
       useEffect(() => { talk.say('ステージを えらんでね。クリアすると つぎの ステージが ひらくよ。'); }, []);
       return (
-        <div className="w-full max-w-4xl flex flex-col gap-3 p-4">
+        <div className="w-full max-w-4xl flex flex-col gap-3 p-4 relative" style={{ zIndex: 1 }}>
+          {IMG_OK.has('title.webp') && <img src={IMG + 'title.webp'} alt="" className="fixed inset-0 w-full h-full object-cover pointer-events-none" style={{ zIndex: -1 }} draggable={false} />}
           <MsgWin size={80} compact acc={progress.deco.pera} />
           {STAGES.filter(s => !s.hatten || progress.hatten || progress.unlockAll).map(st => {
             const open = stageOpen(progress, st), clear = isCleared(progress, st.id), resume = progress.part && progress.part.st === st.id;
@@ -1340,7 +1344,7 @@
                 className={`btn3d rounded-3xl border-4 px-5 py-3 flex items-center gap-4 text-left ${open ? '' : 'opacity-50'}`}
                 style={{ borderColor: st.hatten ? '#7c3aed' : '#0f766e', background: !open ? '#f5f5f4' : st.hatten ? '#f5f3ff' : '#f0fdfa' }}>
                 <span className="text-3xl font-bold w-36 shrink-0">{st.no}</span>
-                <span className="flex-1"><span className="text-3xl font-bold block">{st.name}</span><span className="text-lg text-stone-600">{st.desc}（{st.n}かい）</span></span>
+                <span className="flex-1"><span className="text-3xl font-bold block">{st.name}</span><span className="text-lg text-stone-600">{st.desc}（{st.endless ? 'なんかいでも' : `${st.n}かい`}）</span></span>
                 <span className="text-4xl">{!open ? '🔒' : clear ? '⭐' : resume ? '▶' : ''}</span>
               </button>
             );
