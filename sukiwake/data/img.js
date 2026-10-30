@@ -2,4 +2,5 @@
 // 絵を 入れたら、ここに なまえを 足します（例：'perari.webp', 'items/y01.webp'）
 window.SUKI_IMG = [
   'perari.webp',
+  'perari_happy.webp',
 ];

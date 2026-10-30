@@ -42,8 +42,8 @@
     .chara-img { filter: drop-shadow(0 4px 4px rgba(0,0,0,.2)); }
     /* りゆうの カード */
     .rcard { position: relative; display: inline-flex; align-items: center; justify-content: center; border: 3px solid; border-radius: 14px;
-      min-height: 3.6rem; padding: .3rem .9rem; font-size: 1.75rem; font-weight: 700; line-height: 1.2; box-shadow: 0 4px 0 rgba(0,0,0,.2); }
-    .rcard .kind { position: absolute; top: -.75rem; left: .5rem; font-size: .8rem; background: #fff; border: 2px solid; border-radius: 99px; padding: 0 .45rem; line-height: 1.35; }
+      min-height: 3.6rem; min-width: 10.5rem; padding: .45rem .9rem .3rem; font-size: 1.75rem; font-weight: 700; line-height: 1.2; box-shadow: 0 4px 0 rgba(0,0,0,.2); }
+    .rcard .kind { position: absolute; top: -.75rem; left: .5rem; white-space: nowrap; font-size: .8rem; background: #fff; border: 2px solid; border-radius: 99px; padding: 0 .45rem; line-height: 1.35; }
     .slot { display: inline-flex; align-items: center; justify-content: center; min-width: 5.5rem; min-height: 3.6rem; border: 3px dashed #14b8a6; border-radius: 14px; background: #f0fdfa; padding: 0 .5rem; }
     .sent { font-size: 2rem; font-weight: 700; line-height: 1.9; }
     .wsent .sent { font-size: 1.6rem; line-height: 1.6; }
@@ -89,7 +89,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.0.1';
+    const APP_VERSION = '1.0.2';
     const BASE = window.SUKI_BASE;
     const IMG = BASE + 'img/';
 
@@ -738,13 +738,13 @@
         <div className="flex flex-col items-center gap-5 w-full">
           <div className="flex flex-wrap gap-2 items-center justify-center bg-white rounded-2xl p-4 border-4 border-teal-200 w-full">
             {target.map((c, i) => i < k
-              ? <span key={i} className={`rcard ${c.j ? 'text-2xl' : ''}`} style={{ background: c.j ? '#dcfce7' : '#fff7ed', borderColor: c.j ? '#16a34a' : '#ea580c', minWidth: c.j ? '3rem' : undefined }}>{c.t}</span>
+              ? <span key={i} className={`rcard ${c.j ? 'text-2xl' : ''}`} style={{ background: c.j ? '#dcfce7' : '#fff7ed', borderColor: c.j ? '#16a34a' : '#ea580c', minWidth: c.j ? '3rem' : '5rem' }}>{c.t}</span>
               : <span key={i} className="slot text-3xl font-bold text-stone-300">{h.level >= 2 ? c.t : (i + 1)}</span>)}
           </div>
           <div className="flex flex-wrap gap-4 justify-center min-h-[4rem]">
             {cards.map(c => c.i < k ? null : (
               <button key={c.i} onClick={() => tap(c)} className={`rcard btn3d ${shake === c.i ? 'shake' : ''} ${h.level >= 3 && c.i === k ? 'glow' : ''}`}
-                style={{ background: c.j ? '#dcfce7' : '#fff7ed', borderColor: c.j ? '#16a34a' : '#ea580c', fontSize: c.j ? '1.5rem' : undefined }}>{c.t}</button>
+                style={{ background: c.j ? '#dcfce7' : '#fff7ed', borderColor: c.j ? '#16a34a' : '#ea580c', fontSize: c.j ? '1.5rem' : undefined, minWidth: c.j ? '3.5rem' : '5rem' }}>{c.t}</button>
             ))}
           </div>
           <HintBtn h={h} />
@@ -992,7 +992,7 @@
               </div>
             ))}
           </div>
-          {h.level >= 2 && !done && <div className="flex flex-wrap gap-2 justify-center">{ideas.map(c => <RCard key={c.id} c={c} onClick={() => useIdea(c)} showKind noLabel style={{ fontSize: '1.2rem', minHeight: '2.4rem', padding: '.1rem .6rem' }} />)}</div>}
+          {h.level >= 2 && !done && <div className="flex flex-wrap gap-2 justify-center">{ideas.map(c => <RCard key={c.id} c={c} onClick={() => useIdea(c)} showKind noLabel style={{ fontSize: '1.2rem', minHeight: '2.4rem', minWidth: 0, padding: '.1rem .6rem' }} />)}</div>}
           {!done && (pc ? <div className="flex gap-3"><HintBtn h={h} />{doneBtn(check)}</div> : <KanaKeyboard onInput={edit} extra={<><HintBtn h={h} />{doneBtn(check)}</>} />)}
         </div>
       );
