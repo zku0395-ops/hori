@@ -97,7 +97,7 @@ sukiwake/tools/test_gas.js   コード.gs のテスト（node sukiwake/tools/tes
 | 絵 | ファイル名 |
 |---|---|
 | ペラリさん（ふつう・にこにこ・かんがえる）✅ 入れました | `perari.webp`・`perari_happy.webp`・`perari_think.webp` |
-| はじめの画面（テレビきょくと町） | `title.webp` |
+| はじめの画面（テレビきょくと町）✅ 入れました | `title.webp` |
 | スタジオの背景 | `studio.webp` |
 | お店（場所）の絵（13まい。町の地図の ボタンと、たなの 上に出します） | `place_1.webp` 〜 `place_13.webp`（番号は `data/sukiwake.js` の PLACES の id） |
 | もの（195こ。場所ごとに1まいに15こ描いてもらい、切り分けます） | `items/y01.webp` など（`data/sukiwake.js` の もの の id） |
