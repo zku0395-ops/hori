@@ -284,10 +284,12 @@
 
     // 入口ページ（Apps Script）から開いたとき、URLの # のあとに 記録の送り先と合言葉が ついてくる
     const REC_URL_RE = /^https:\/\/script\.google\.com\/(a\/macros\/[^/]+\/|macros\/)s\/[A-Za-z0-9_-]+\/(exec|dev)$/;
+    // 学校の アカウントの URL（…/a/macros/学校/s/… や …/a/学校/macros/s/…）は、…/macros/s/… の 形に そろえる
+    const normRec = (u) => String(u || '').trim().replace(/^(https:\/\/script\.google\.com\/)a\/(?:macros\/[^/]+|[^/]+\/macros)\/s\//, '$1macros/s/');
     (function applyLinkConfig() {
       if (!location.hash) return;
       const h = new URLSearchParams(location.hash.slice(1));
-      const rec = h.get('rec');
+      const rec = normRec(h.get('rec'));
       if (!rec) return;
       if (REC_URL_RE.test(rec)) {
         const st = loadState();
@@ -3399,7 +3401,7 @@
         else if (r.reason === 'offline') setMsg('インターネットにつながっていません。');
       };
       const save = () => {
-        const u = url.trim();
+        const u = normRec(url);
         if (!REC_URL_RE.test(u)) { setMsg('URLの形がちがいます。「https://script.google.com/macros/s/…/exec」の形のURLを入れてください。'); return; }
         if (!key.trim()) { setMsg('合言葉を入れてください。'); return; }
         app.update(s => ({ ...s, sync: { ...s.sync, url: u, key: key.trim(), lastError: null, lastSummary: null } }));

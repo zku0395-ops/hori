@@ -293,7 +293,8 @@ function webAppUrl_() {
   if (!url) {
     try { url = ScriptApp.getService().getUrl() || ''; } catch (e) { url = ''; }
   }
-  return url.replace(/\/a\/macros\/[^/]+\/s\//, '/macros/s/');
+  // 学校の アカウントの URL（/a/macros/学校/s/ や /a/学校/macros/s/）は /macros/s/ に そろえる
+  return url.replace(/\/a\/macros\/[^/]+\/s\//, '/macros/s/').replace(/\/a\/[^/]+\/macros\/s\//, '/macros/s/');
 }
 
 // 文字列は 長さを 切り、= + - @ で 始まるものは 式として 動かないように する
