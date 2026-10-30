@@ -67,13 +67,14 @@ let r = ctx.saveResult({ name: 'たろう', progress: prog, records: [
   rec('a2', { stage: '1', item: 'なす', result: '△', miss: 1, hint: 2, types: 'あわない カード', picks: 'そらを とぶ✖・つるつる' }),
   rec('a3', { stage: '2', item: 'なす', result: '△', miss: 1, types: 'だから→から', picks: 'つるつる・からです。（ちがう）' }),
   rec('a4', { stage: 'h1', item: 'ねこ', answer: '=SUM(A1)', written: 'ふわふわ' }),
+  rec('a5', { stage: 'c', item: 'いぬ', answer: 'ぼくは、いぬが すきです。そのりゆうは、かわいいからです。', written: 'x' }),
 ], time: Date.now() });
 ok(r.ok, 'saveResult が うごく');
-ok(sheets['きろく'].getLastRow() === 5, 'きろくが 4ぎょう ふえる');
+ok(sheets['きろく'].getLastRow() === 6, 'きろくが 5ぎょう ふえる');
 ok(sheets['きろく'].data[4][5] === "'=SUM(A1)", '式に ならないように する');
 ok(sheets['きろく'].data[4][2] === 'h1' && sheets['きろく'].data[4][11] === 'ふわふわ' && sheets['きろく'].data[2][10] === 'そらを とぶ✖・つるつる', 'ステージ・かいた ことば・えらんだ カード');
 ctx.saveResult({ name: 'たろう', progress: prog, records: [rec('a1'), rec('a2')], time: Date.now() });
-ok(sheets['きろく'].getLastRow() === 5, '同じ きろくは 二重に 書かない');
+ok(sheets['きろく'].getLastRow() === 6, '同じ きろくは 二重に 書かない');
 ok(JSON.parse(sheets['名簿'].data[1][1]).heart === 3, 'しんちょくを 名簿に 書く');
 ctx.saveResult({ name: 'たろう', progress: JSON.stringify({ t: 50, heart: 0 }), records: [] });
 ok(JSON.parse(sheets['名簿'].data[1][1]).heart === 3, '古い しんちょくでは 上書きしない');
@@ -83,10 +84,10 @@ ok(ctx.saveResult({ name: 'いない', progress: prog, records: [] }).ok === fal
 ok(ctx.getTeacherData('0000').ok === false, '暗証番号が ちがうと 見られない');
 const td = ctx.getTeacherData('1234');
 const t = td.students.find(s => s.name === 'たろう');
-ok(td.ok && t.count === 4 && t.ok === 2, '問題の数と まちがえずに できた 数');
+ok(td.ok && t.count === 5 && t.ok === 3, '問題の数と まちがえずに できた 数');
 ok(t.types['あわない カード'] === 1 && t.types['だから→から'] === 1 && td.classTypes['だから→から'] === 1, 'まちがいの しゅるい');
 ok(t.wrong['なす：そらを とぶ'] === 1 && Object.keys(t.wrong).length === 1 && td.classWrong['なす：そらを とぶ'] === 1, 'あわない カード（おわりの まちがいは 入れない）');
-ok(t.texts.length === 1 && t.texts[0][1] === 'h1' && t.texts[0][2] === 'ねこ', '書いた文（④⑤・はってん）');
+ok(t.texts.length === 2 && t.texts[0][1] === 'c' && t.texts[1][1] === 'h1' && t.texts[1][2] === 'ねこ', '書いた文（④⑤・はってん・⑥）');
 ok(t.stages['1'][0] === 2 && t.stages['2'][0] === 1, 'ステージごとの 結果');
 ok(sheets['まとめ'].data.length >= 2 && sheets['まとめ'].data[1][0] === 'たろう' && sheets['まとめ'].data.some(row => row[1] === 'はってん① なぜ'), 'まとめ シートが できる');
 
