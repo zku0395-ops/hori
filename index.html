@@ -382,10 +382,12 @@
 
     // 入口ページ（Apps Script）から開いたとき、URLの # のあとに 記録の送り先と合言葉が ついてくる
     const REC_URL_RE = /^https:\/\/script\.google\.com\/(a\/macros\/[^/]+\/|macros\/)s\/[A-Za-z0-9_-]+\/(exec|dev)$/;
+    // 学校の アカウントの URL（…/a/macros/学校/s/… や …/a/学校/macros/s/…）は、…/macros/s/… の 形に そろえる
+    const normRec = (u) => String(u || '').trim().replace(/^(https:\/\/script\.google\.com\/)a\/(?:macros\/[^/]+|[^/]+\/macros)\/s\//, '$1macros/s/');
     (function applyLinkConfig() {
       if (!location.hash) return;
       const h = new URLSearchParams(location.hash.slice(1));
-      const rec = h.get('rec');
+      const rec = normRec(h.get('rec'));
       if (!rec) return;
       if (REC_URL_RE.test(rec)) {
         const st = loadState();
@@ -716,7 +718,9 @@
         const pr = (async () => {
           const blob = await VoiceDB.get(key);
           if (blob) return URL.createObjectURL(blob);
-          const r = await this.ask({ tts: { text: t, role, voice: this.gvoice(role) } });
+          let r;
+          try { r = await this.ask({ tts: { text: t, role, voice: this.gvoice(role) } }); } catch (e) { throw new Error('net'); }
+          if (r && r.ok && !r.wav) throw new Error('old'); // Code.gs が まだ 古い（記録として 受け取られた）
           if (!r || !r.ok) {
             if (r && (r.reason === 'nokey' || r.reason === 'pause' || r.error === 'key')) this.off = true; // APIキーが ない・使いすぎ：この あいだは ブラウザの声
             throw new Error((r && (r.reason || r.error)) || 'voice');
@@ -2321,7 +2325,23 @@
         try { setStat(await TTS.ask({ ttsStatus: true })); } catch (e) { setStat({ ok: false, net: true }); }
       };
       useEffect(() => { load(); return () => { stopRef.current = true; }; }, []);
-      const test = (role) => { TTS.off = false; TTS.speak(role === 'model' ? 'おおきな かぶ。うんとこしょ、どっこいしょ。' : 'こんにちは。わしは ホーホーはかせ じゃ。いっしょに おんどくを しよう。', { role, pitch: role === 'hakase' ? 0.8 : 1 }); };
+      // ためす：Gemini の 声が できるまで 待って、うまく いかない ときは わけを 出す
+      const [tmsg, setTmsg] = useState('');
+      const test = async (role) => {
+        TTS.off = false;
+        const text = role === 'model' ? 'おおきな かぶ。うんとこしょ、どっこいしょ。' : 'こんにちは。わしは ホーホーはかせ じゃ。いっしょに おんどくを しよう。';
+        if (s.gemini === false || !linked) { setTmsg('ブラウザの声で読みます（Gemini は つかわない設定か、送り先が ありません）。'); TTS.speak(text, { role, pitch: role === 'hakase' ? 0.8 : 1 }); return; }
+        setTmsg('Gemini の声を つくっています…（はじめての文は 10びょうほど かかります）');
+        try {
+          await Promise.all(TTS.split(text).map(t => TTS.voiceUrl(t, role)));
+          setTmsg('✅ Gemini の声が できました。');
+        } catch (e) {
+          const m = String((e && e.message) || e);
+          setTmsg('⚠ Gemini の声に なりませんでした：' + (why[m] || m) + '（いまは ブラウザの声で読みます）');
+          load();
+        }
+        TTS.speak(text, { role, pitch: role === 'hakase' ? 0.8 : 1 });
+      };
       const runPrep = async () => {
         const list = prepList(); stopRef.current = false;
         let made = 0, fail = 0;
@@ -2331,6 +2351,7 @@
           const [role, t] = list[i];
           try {
             const r = await TTS.ask({ tts: { text: t, role, voice: TTS.gvoice(role), prep: true } });
+            if (r && r.ok && !('cached' in r)) { setPrep({ i, n: list.length, made, fail, stop: 'old' }); load(); return; }
             if (r && r.ok) { if (!r.cached) { made++; await sleep(7000); } } // 使える 回数を こえないように、1つ 作るごとに 7びょう 待つ
             else { fail++; if (r && (r.reason === 'nokey' || r.reason === 'pause' || r.error === 'key')) { setPrep({ i, n: list.length, made, fail, stop: r.reason || r.error }); load(); return; } }
           } catch (e) { fail++; }
@@ -2343,7 +2364,15 @@
           {GVOICES[role].map(([v, lb]) => <option key={v} value={v}>{lb}（{v}）</option>)}
         </select>
       );
-      const why = { nokey: 'APIキーが入っていません（README の手順で GEMINI_API_KEY を入れてください）', pause: '使いすぎのため、10分ほど休んでいます', key: '合言葉が合いません（入口ページから開き直してください）' };
+      const why = {
+        nokey: 'APIキーが入っていません（Apps Script の スクリプト プロパティに GEMINI_API_KEY を入れてください）',
+        pause: '使いすぎのため、10分ほど休んでいます',
+        key: '合言葉が合いません（入口ページの「▶ はじめる」から開き直してください）',
+        old: 'Apps Script の Code.gs が まだ古いままです（新しい Code.gs を貼り付けて、「デプロイを管理 → 鉛筆 → 新バージョン」でデプロイしてください）',
+        net: 'Apps Script に つながりませんでした',
+        error: 'Gemini で エラーが出ました（下の「さいごの エラー」を見てください）',
+        text: '文が 長すぎます',
+      };
       return (
         <div className="flex flex-col gap-2 w-full">
           <div className="flex gap-2 flex-wrap">
@@ -2354,10 +2383,12 @@
           {!linked && <div className="text-amber-700 font-bold">記録の送り先が まだ ありません。入口ページ（Apps Script）から「▶ はじめる」で開くと、Gemini の声が使えます。それまでは ブラウザの声で読みます。</div>}
           <div className="flex items-center gap-2 flex-wrap">はかせ：<Sel k="gHakase" role="hakase" /><Btn color="sky" size="sm" onClick={() => test('hakase')}>🔊 ためす</Btn></div>
           <div className="flex items-center gap-2 flex-wrap">おてほん：<Sel k="gModel" role="model" /><Btn color="sky" size="sm" onClick={() => test('model')}>🔊 ためす</Btn></div>
+          {tmsg && <div className={`font-bold ${tmsg.startsWith('✅') ? 'text-emerald-700' : tmsg.startsWith('⚠') ? 'text-amber-700' : 'text-slate-600'}`}>{tmsg}</div>}
           {linked && <div className="text-slate-600">
             {!stat || stat.loading ? 'ようすを 調べています…'
               : stat.net ? 'Apps Script に つながりませんでした。'
               : !stat.ok ? (why[stat.error] || 'ようすが 分かりませんでした。')
+              : stat.hasKey === undefined ? <span className="text-amber-700 font-bold">⚠ {why.old}</span>
               : <>
                   {stat.hasKey ? '✅ APIキー：あり' : '⚠ APIキー：なし（README の手順で入れてください）'}　きょう作った声：{stat.today}　ドライブにある声：{stat.files}
                   {stat.model && <>　モデル：{stat.model}</>}
@@ -2437,7 +2468,7 @@
         else if (r.reason === 'offline') setMsg('インターネットにつながっていません。');
       };
       const save = () => {
-        const u = url.trim();
+        const u = normRec(url);
         if (!REC_URL_RE.test(u)) { setMsg('URLの形がちがいます。「https://script.google.com/macros/s/…/exec」の形のURLを入れてください。'); return; }
         if (!key.trim()) { setMsg('合言葉を入れてください。'); return; }
         app.update(s => ({ ...s, sync: { ...s.sync, url: u, key: key.trim(), lastError: null, lastSummary: null } }));
