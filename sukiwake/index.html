@@ -46,6 +46,7 @@
     .rcard .kind { position: absolute; top: -.75rem; left: .5rem; white-space: nowrap; font-size: .8rem; background: #fff; border: 2px solid; border-radius: 99px; padding: 0 .45rem; line-height: 1.35; }
     .slot { display: inline-flex; align-items: center; justify-content: center; min-width: 5.5rem; min-height: 3.6rem; border: 3px dashed #14b8a6; border-radius: 14px; background: #f0fdfa; padding: 0 .5rem; }
     .sent { font-size: 2rem; font-weight: 700; line-height: 1.9; }
+    .keep { word-break: keep-all; overflow-wrap: anywhere; }
     .wsent .sent { font-size: 1.6rem; line-height: 1.6; }
     .kkey { width: 2.75rem; height: 2.75rem; font-size: 1.45rem; font-weight: 700; border-radius: 12px; border: 2px solid #94a3b8; background: #fff; border-bottom-width: 5px; }
     .kkey:active { transform: translateY(3px); border-bottom-width: 2px; }
@@ -89,7 +90,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.0.6';
+    const APP_VERSION = '1.0.7';
     const BASE = window.SUKI_BASE;
     const IMG = BASE + 'img/';
 
@@ -1055,6 +1056,9 @@
       );
     }
 
+    // 文が ながい ときは 字を すこし 小さく する（rem）
+    const sentSize = (s1, s2, base) => { const n = Math.max(String(s1 || '').length, String(s2 || '').length); return `${n > 34 ? base * 0.72 : n > 26 ? base * 0.85 : base}rem`; };
+
     // =====================================================================
     //  9. はっぴょう（テレビに うつる）
     // =====================================================================
@@ -1081,8 +1085,8 @@
                 <div className="flex-1 flex flex-col items-center gap-3">
                   <div className="bg-white/95 rounded-3xl p-3 border-4 border-amber-300"><ItemArt it={it} size={120} /></div>
                   <div className="bg-white/95 rounded-2xl px-5 py-3 border-4 border-teal-400 w-full">
-                    <div className="text-4xl font-bold leading-relaxed">{s1}</div>
-                    <div className="text-4xl font-bold leading-relaxed text-teal-800">{s2}</div>
+                    <div className="keep font-bold leading-relaxed" style={{ fontSize: sentSize(s1, s2, 2.25) }}>{s1}</div>
+                    <div className="keep font-bold leading-relaxed text-teal-800" style={{ fontSize: sentSize(s1, s2, 2.25) }}>{s2}</div>
                   </div>
                 </div>
               </div>
@@ -1358,7 +1362,7 @@
           <div className="flex-1 flex items-center gap-4 p-4">
             <div className="flex flex-col items-center shrink-0"><ItemArt it={it} size={big ? 220 : mid ? 140 : 110} /><div className="font-bold" style={{ fontSize: big ? 40 : mid ? 28 : 22 }}>{it.n}</div></div>
             <div className="flex-1 flex flex-col gap-2 font-bold" style={{ fontSize: big ? 42 : mid ? 27 : 21, lineHeight: 1.7 }}>
-              <div>{c.s1}</div><div style={{ color: '#0f766e' }}>{c.s2}</div>
+              <div className="keep">{c.s1}</div><div className="keep" style={{ color: '#0f766e' }}>{c.s2}</div>
             </div>
           </div>
           <div className="text-right px-4 pb-1 text-stone-500" style={{ fontSize: big ? 18 : 12 }}>{c.d}</div>
@@ -1523,6 +1527,82 @@
     };
     const stageLabel = (id) => STAGE[id] ? `${STAGE[id].no} ${STAGE[id].name}` : id;
 
+    // ---- はっぴょうかい（先生の パソコンを 教室の モニターに うつして、きょう できた しょうかいカードを 大きく 出す）----
+    function HappyoKai({ students, onClose, onReload }) {
+      const today = nowStr().slice(0, 10);
+      const list = students.map(st => {
+        const p = parseProgress(st.progress);
+        const cards = Object.entries(p.cards || {}).filter(([id, c]) => c && c.d === today && c.s2 && ITEM[id])
+          .map(([id, c]) => ({ it: ITEM[id], c }));
+        return { name: st.name, deco: p.deco || {}, cards };
+      });
+      const [who, setWho] = useState(null);
+      const [i, setI] = useState(0);
+      const [clap, setClap] = useState(0);
+      const kid = who && list.find(x => x.name === who);
+      const cur = kid && kid.cards[i];
+      const [mood, setMood] = useState('normal');
+      useEffect(() => {
+        if (!cur) return;
+        setMood('normal'); setClap(0);
+        Speech.say(`${kid.name}さんの ばんです。${cur.it.n}の しょうかいです。どうぞ！`);
+      }, [who, i]);
+      const big = () => { try { const el = document.documentElement; (el.requestFullscreen || el.webkitRequestFullscreen).call(el); } catch (e) {} };
+      const doClap = () => { Sound.clap(); Sound.fanfare(); setMood('happy'); setClap(c => c + 1); Speech.say(`はくしゅ！ ${kid.name}さん、すてきな しょうかい でした！`); };
+      return (
+        <div className="fixed inset-0 z-[60] bg-slate-900 flex flex-col p-3 gap-2" style={{ userSelect: 'none' }}>
+          <div className="flex items-center gap-2 text-white font-bold">
+            <span className="onair bg-red-600 rounded-lg px-3 py-0.5 text-xl">● オンエア</span>
+            <span className="text-2xl">すきの わけ テレビ ／ はっぴょうかい</span>
+            <span className="flex-1" />
+            <button onClick={onReload} className="rounded-xl bg-white/90 text-slate-800 px-3 py-1">🔄 さいしんに する</button>
+            <button onClick={big} className="rounded-xl bg-white/90 text-slate-800 px-3 py-1">⛶ 画面いっぱい</button>
+            <button onClick={() => { Speech.stop(); onClose(); }} className="rounded-xl bg-white text-slate-800 px-4 py-1">とじる</button>
+          </div>
+          {!kid && (
+            <div className="flex-1 bg-white rounded-3xl p-6 overflow-auto">
+              <div className="text-3xl font-bold mb-1">きょう（{today}）できた しょうかいカード</div>
+              <div className="text-base text-stone-500 mb-4">名前を押すと、その子の カードを 1まいずつ 大きく 出します。子どもの Chromebook で できたあと、「🔄 さいしんに する」を押すと 新しい カードが 出ます。</div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {list.map(x => (
+                  <button key={x.name} disabled={!x.cards.length} onClick={() => { Sound.tap(); setWho(x.name); setI(0); }}
+                    className={`btn3d rounded-3xl border-4 py-5 text-4xl font-bold ${x.cards.length ? 'bg-teal-50 border-teal-600' : 'bg-stone-100 border-stone-300 text-stone-400'}`}>
+                    {x.name}<div className="text-xl mt-1">{x.cards.length ? `📒 ${x.cards.length}まい` : 'まだ ありません'}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {kid && cur && (
+            <StudioScene deco={kid.deco} className="flex-1 rounded-3xl">
+              <div className="flex items-center gap-6 p-6 h-full">
+                <Pera size={220} mood={mood} acc={kid.deco.pera} className="shrink-0" />
+                <div className="flex-1 flex flex-col items-center gap-4">
+                  <div className="bg-white/95 rounded-full px-8 py-1 text-4xl font-bold border-4 border-pink-300">{kid.name}さんの しょうかい</div>
+                  <div className="bg-white/95 rounded-3xl p-3 border-4 border-amber-300"><ItemArt it={cur.it} size={190} /></div>
+                  <div className="bg-white/95 rounded-3xl px-8 py-4 border-4 border-teal-400 w-full">
+                    <div className="keep font-bold leading-relaxed" style={{ fontSize: sentSize(cur.c.s1, cur.c.s2, 3.6) }}>{cur.c.s1}</div>
+                    <div className="keep font-bold leading-relaxed text-teal-800" style={{ fontSize: sentSize(cur.c.s1, cur.c.s2, 3.6) }}>{cur.c.s2}</div>
+                  </div>
+                </div>
+              </div>
+              {clap > 0 && <div key={clap} className="absolute inset-0 flex items-center justify-center pointer-events-none"><div className="fly text-8xl">👏❤️👏</div></div>}
+            </StudioScene>
+          )}
+          {kid && (
+            <div className="flex gap-3 justify-center items-center">
+              <button onClick={() => { Speech.stop(); setWho(null); }} className="btn3d rounded-2xl border-2 border-slate-400 bg-white px-5 py-2 text-2xl font-bold">👥 名前に もどる</button>
+              <button disabled={i <= 0} onClick={() => setI(i - 1)} className="btn3d rounded-2xl border-2 border-slate-400 bg-white px-5 py-2 text-2xl font-bold disabled:opacity-40">◀ まえへ</button>
+              <span className="text-white text-2xl font-bold">{i + 1} / {kid.cards.length}</span>
+              <button disabled={i >= kid.cards.length - 1} onClick={() => setI(i + 1)} className="btn3d rounded-2xl border-2 border-slate-400 bg-white px-5 py-2 text-2xl font-bold disabled:opacity-40">つぎへ ▶</button>
+              <button onClick={() => Speech.say(`${cur.c.s1} ${cur.c.s2}`)} className="btn3d rounded-2xl border-2 border-slate-400 bg-white px-5 py-2 text-2xl font-bold">🔊 おてほん</button>
+              <button onClick={doClap} className="btn3d rounded-2xl border-2 border-red-500 bg-red-100 px-6 py-2 text-3xl font-bold">👏 はくしゅ</button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     function TeacherView({ data, pin, onClose, onChanged, onSettings }) {
       const [tab, setTab] = useState('class');
       const [sel, setSel] = useState(data.students[0] ? data.students[0].name : null);
@@ -1530,6 +1610,7 @@
       const [newPin, setNewPin] = useState('');
       const [msg, setMsg] = useState('');
       const [pending, setPending] = useState(api.pending());
+      const [kai, setKai] = useState(false);
       const student = data.students.find(x => x.name === sel);
       const prog = student ? parseProgress(student.progress) : null;
       const flash = (t) => { setMsg(t); setTimeout(() => setMsg(''), 3500); };
@@ -1583,10 +1664,12 @@
           <div className="max-w-6xl mx-auto p-4 text-base">
             <div className="flex items-center gap-3 mb-3">
               <div className="text-2xl font-bold flex-1">🔒 先生用画面 <span className="text-sm text-stone-500">ver {APP_VERSION}{data.demo ? '（おためしモード）' : ''}</span></div>
+              <button onClick={() => setKai(true)} className="btn3d bg-pink-100 border-2 border-pink-500 rounded-xl px-4 py-2 font-bold">📺 はっぴょうかい</button>
               <button onClick={onClose} className="btn3d bg-white border-2 border-stone-400 rounded-xl px-4 py-2 font-bold">とじる</button>
             </div>
             {data.isDefaultPin && <div className="bg-rose-100 border-2 border-rose-400 rounded-xl p-2 mb-2">暗証番号が はじめの「1234」のままです。「せってい」で変えてください。</div>}
-            {msg && <div className="fixed top-3 left-1/2 -translate-x-1/2 bg-teal-900 text-white rounded-xl px-4 py-2 z-50">{msg}</div>}
+            {msg && <div className="fixed top-3 left-1/2 -translate-x-1/2 bg-teal-900 text-white rounded-xl px-4 py-2 z-[70]">{msg}</div>}
+            {kai && <HappyoKai students={data.students} onClose={() => setKai(false)} onReload={async () => { await onChanged(); flash('さいしんに しました'); }} />}
             <div className="flex gap-2 mb-3 flex-wrap">
               {[['class', 'クラス全体'], ['child', '子どもごと'], ['texts', '書いた文'], ['settings', 'せってい'], ['data', 'データ']].map(([id, t]) => (
                 <button key={id} onClick={() => setTab(id)} className={`rounded-xl px-4 py-2 font-bold border-2 ${tab === id ? 'bg-teal-200 border-teal-600' : 'bg-white border-stone-300'}`}>{t}</button>
