@@ -6,4 +6,5 @@ window.SUKI_IMG = [
   'perari_think.webp',
   'title.webp',
   'studio.webp',
+  'place_1.webp',
 ];
