@@ -8,4 +8,5 @@ window.SUKI_IMG = [
   'studio.webp',
   'place_1.webp',
   'place_2.webp',
+  'place_3.webp',
 ];
