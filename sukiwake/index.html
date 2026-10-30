@@ -89,7 +89,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.0.5';
+    const APP_VERSION = '1.0.6';
     const BASE = window.SUKI_BASE;
     const IMG = BASE + 'img/';
 
@@ -1124,7 +1124,7 @@
       return (
         <div className="grid grid-cols-5 gap-3 w-full">
           {D.ITEMS.filter(i => i.p === pl.id).map(it => (
-            <button key={it.id} onClick={() => { Sound.tap(); onPick(it); }} className="btn3d relative rounded-2xl border-4 bg-white py-2 flex flex-col items-center font-bold text-lg leading-tight" style={{ borderColor: pl.color }}>
+            <button key={it.id} onClick={() => { Sound.tap(); onPick(it); }} className="btn3d relative rounded-2xl border-4 bg-white/95 py-2 flex flex-col items-center font-bold text-lg leading-tight shadow-lg" style={{ borderColor: pl.color }}>
               {progress.cards[it.id] && <span className="absolute right-1 top-0 text-2xl">⭐</span>}
               <ItemArt it={it} size={74} />
               <span className="px-1">{it.n}</span>
@@ -1169,7 +1169,7 @@
       };
       const Q = { order: QOrder, card1: QCard1, ending: QEnding, card2: QCard2, write: QWrite, all: QAll }[st.type];
       return (
-        <div className={`w-full max-w-5xl flex flex-col ${phase === 'q' ? 'gap-1.5 pt-1' : 'gap-3'} px-3 pb-0`}>
+        <div className={`w-full max-w-5xl flex flex-col ${phase === 'q' ? 'gap-1.5 pt-1' : 'gap-3'} px-3 pb-0 relative`} style={{ zIndex: 1 }}>
           <div className="flex items-center gap-2">
             <div className="text-xl font-bold bg-teal-700 text-white rounded-full px-4 py-1">{st.no} {st.name}</div>
             <div className="flex gap-1">{Array.from({ length: n }, (_, i) => <span key={i} className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-sm ${i < idx ? 'bg-pink-400 border-pink-600' : i === idx ? 'bg-yellow-200 border-yellow-500' : 'bg-white border-stone-300'}`}>{i < idx ? '❤' : ''}</span>)}</div>
@@ -1182,9 +1182,9 @@
           <MsgWin size={phase === 'q' ? 60 : 92} compact={phase === 'q'} acc={progress.deco.pera} />
           {phase === 'town' && <TownGrid progress={progress} onPick={pickPlace} />}
           {phase === 'shelf' && pl && <>
-            {IMG_OK.has(`place_${pl.id}.webp`)
-              ? <div className="flex items-center gap-3 text-2xl font-bold" style={{ color: pl.color }}><img src={`${IMG}place_${pl.id}.webp`} alt="" className="h-14 w-24 rounded-xl border-2 object-cover" style={{ borderColor: pl.color }} draggable={false} />{pl.name}</div>
-              : <div className="flex items-center gap-2 text-2xl font-bold" style={{ color: pl.color }}><span className="text-4xl">{pl.e}</span>{pl.name}</div>}
+            {/* たなの 画面は、その ばしょの 絵を 画面 いっぱいの 背景に する（もんだいの 画面は すっきりの まま） */}
+            {IMG_OK.has(`place_${pl.id}.webp`) && <img src={`${IMG}place_${pl.id}.webp`} alt="" className="fixed inset-0 w-full h-full object-cover pointer-events-none" style={{ zIndex: -1 }} draggable={false} />}
+            <div className="relative self-start flex items-center gap-2 text-2xl font-bold bg-white/95 rounded-2xl border-4 px-4 py-0.5" style={{ color: pl.color, borderColor: pl.color, zIndex: 1 }}><span className="text-3xl">{pl.e}</span>{pl.name}</div>
             <Shelf pl={pl} progress={progress} onPick={pickItem} />
           </>}
           {phase === 'q' && it && (
