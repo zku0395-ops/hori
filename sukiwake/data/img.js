@@ -7,4 +7,5 @@ window.SUKI_IMG = [
   'title.webp',
   'studio.webp',
   'place_1.webp',
+  'place_2.webp',
 ];
