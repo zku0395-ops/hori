@@ -10,4 +10,5 @@ window.SUKI_IMG = [
   'place_2.webp',
   'place_3.webp',
   'place_4.webp',
+  'place_5.webp',
 ];
