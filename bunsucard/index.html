@@ -11,7 +11,8 @@
   :root {
     --ink: #2e2622;      /* 区切りの 太い線 */
     --fill: #f29a4a;     /* ぬる ところ */
-    --thin: #a9b2ba;     /* マスの 細い線 */
+    --thin: #d6dbdf;     /* マスの 細い線（細く うすく） */
+    --thin-in: #f7c497;  /* オレンジの 中の 細い線 */
     --cut: #c9c2bb;      /* 切り取り線 */
     --back: #f6d3cb;     /* うら面 */
     --red: #d96349;      /* うら面の 字 */
@@ -126,7 +127,8 @@
   'use strict';
   var CARDS = window.BUNSU_CARDS;
   var BOX_W = 87.4, BOX_H = 58.2;   // 図の いちばん 大きい はば・たかさ（mm）
-  var LW_THIN = 0.3, LW_PIECE = 0.9, LW_OUT = 1.2;
+  var LW_THIN = 0.18, LW_PIECE = 0.9, LW_OUT = 1.2;
+  var clipNo = 0;
   var q = new URLSearchParams(location.search);
   var state = {
     set: q.get('set') || 'all',
@@ -156,9 +158,21 @@
       else s += '<polygon points="' + pts(pc.g) + '" fill="var(--fill)"/>';
     });
     // マスの 細い線
-    var i;
-    for (i = 1; i < c.w; i++) s += '<line x1="' + i * u + '" y1="0" x2="' + i * u + '" y2="' + H + '" stroke="var(--thin)" stroke-width="' + LW_THIN + '"/>';
-    for (i = 1; i < c.h; i++) s += '<line x1="0" y1="' + i * u + '" x2="' + W + '" y2="' + i * u + '" stroke="var(--thin)" stroke-width="' + LW_THIN + '"/>';
+    function lines(color) {
+      var t = '';
+      for (var j = 1; j < c.w; j++) t += '<line x1="' + j * u + '" y1="0" x2="' + j * u + '" y2="' + H + '" stroke="' + color + '" stroke-width="' + LW_THIN + '"/>';
+      for (j = 1; j < c.h; j++) t += '<line x1="0" y1="' + j * u + '" x2="' + W + '" y2="' + j * u + '" stroke="' + color + '" stroke-width="' + LW_THIN + '"/>';
+      return t;
+    }
+    s += lines('var(--thin)');
+    // オレンジの 中は、うすい オレンジの 線に する
+    c.p.forEach(function (pc) {
+      if (!pc.f) return;
+      var id = 'nuri' + (++clipNo);
+      s += '<clipPath id="' + id + '">' + (pc.r
+        ? '<rect x="' + pc.r[0] * u + '" y="' + pc.r[1] * u + '" width="' + (pc.r[2] - pc.r[0]) * u + '" height="' + (pc.r[3] - pc.r[1]) * u + '"/>'
+        : '<polygon points="' + pts(pc.g) + '"/>') + '</clipPath><g clip-path="url(#' + id + ')">' + lines('var(--thin-in)') + '</g>';
+    });
     // 区切った 形の まわりの 太い線
     c.p.forEach(function (pc) {
       if (pc.r) s += '<rect x="' + pc.r[0] * u + '" y="' + pc.r[1] * u + '" width="' + (pc.r[2] - pc.r[0]) * u + '" height="' + (pc.r[3] - pc.r[1]) * u + '" fill="none" stroke="var(--ink)" stroke-width="' + LW_PIECE + '" stroke-linejoin="round"/>';
