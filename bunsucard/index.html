@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ぶんすう さがし カード</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #2e2622;      /* 区切りの 太い線 */
+    --fill: #f29a4a;     /* ぬる ところ */
+    --thin: #a9b2ba;     /* マスの 細い線 */
+    --cut: #c9c2bb;      /* 切り取り線 */
+    --back: #f6d3cb;     /* うら面 */
+    --red: #d96349;      /* うら面の 字 */
+  }
+  @page { size: A4 portrait; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'BIZ UDPGothic', sans-serif;
+    background: #e9e4df;
+    color: var(--ink);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* ---- 画面の 上の ボタン（印刷しない） ---- */
+  .bar {
+    position: sticky; top: 0; z-index: 10;
+    background: #fff; border-bottom: 2px solid #ddd;
+    padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center;
+  }
+  .bar h1 { font-size: 20px; margin: 0 8px 0 0; }
+  .bar .grp { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .bar .lbl { font-size: 14px; color: #666; }
+  .btn {
+    font: inherit; font-size: 16px; font-weight: 700;
+    padding: 8px 14px; border-radius: 10px; border: 2px solid #c9c2bb;
+    background: #fff; color: var(--ink); cursor: pointer;
+    box-shadow: 0 3px 0 #c9c2bb;
+  }
+  .btn:active { transform: translateY(3px); box-shadow: none; }
+  .btn.on { background: var(--fill); border-color: #c46f24; color: #fff; box-shadow: 0 3px 0 #c46f24; }
+  .btn.print { background: #3b82c4; border-color: #2a5f91; color: #fff; box-shadow: 0 3px 0 #2a5f91; }
+  .bar a { font-size: 14px; }
+  .help { font-size: 13px; color: #555; padding: 6px 16px; background: #fffbe8; border-bottom: 1px solid #eee; }
+
+  /* ---- A4 の 紙 ---- */
+  .sheet {
+    width: 210mm; height: 297mm; margin: 12px auto; background: #fff;
+    padding: 8.5mm 5mm; display: grid;
+    grid-template-columns: 100mm 100mm; grid-template-rows: repeat(4, 70mm);
+    page-break-after: always; break-after: page; overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  }
+  .card { position: relative; width: 100mm; height: 70mm; }
+  .front { border: 0.3mm dashed var(--cut); margin: -0.15mm; }
+  .front .no { position: absolute; left: 2mm; top: 1.4mm; font-size: 7pt; color: #9a8f88; }
+  .front svg { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: block; }
+  .front .kaeta { display: none; }
+
+  .back {
+    background-color: var(--back);
+    border: 0.3mm dashed rgba(255,255,255,.9); margin: -0.15mm;
+    color: var(--red);
+  }
+  /* うら面の 絵（水玉と ピザの せんせい）は img/ura.jpg に まとめて あります（PDF が 小さく なります） */
+  .back .ura { position: absolute; left: 0; top: 0; width: 100mm; height: 70mm; display: block; }
+  .back .ttl { position: absolute; left: 0; right: 0; top: 8.3mm; text-align: center; font-weight: 700; font-size: 13pt; letter-spacing: .04em; }
+  .back .set { position: absolute; left: 0; right: 0; top: 57mm; text-align: center; font-size: 10pt; }
+  .back .q { position: absolute; font-weight: 700; font-size: 30pt; line-height: 1; }
+  .back .q1 { left: 8.5mm; top: 9mm; }
+  .back .q2 { left: 79mm; top: 50mm; }
+  .empty { }
+
+  /* ---- こたえの いちらん ---- */
+  .kotae { width: 210mm; margin: 12px auto; background: #fff; padding: 10mm 12mm; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+  .kotae h2 { font-size: 16pt; margin: 0 0 4mm; }
+  .kotae p { font-size: 10pt; margin: 0 0 4mm; }
+  .kotae .cols { display: flex; gap: 5mm; align-items: flex-start; }
+  .kotae table { border-collapse: collapse; flex: 1; font-size: 9pt; }
+  .kotae th, .kotae td { border: 0.2mm solid #bbb; padding: 0.55mm 1.5mm; text-align: left; white-space: nowrap; }
+  .kotae th { background: #f6efe8; }
+  .kotae td.x { color: #b33; }
+  .kotae tr.new td:first-child::after { content: ' ★'; color: var(--fill); }
+
+  @media screen {
+    body.mark .front .kaeta {
+      display: block; position: absolute; right: 2mm; top: 1.2mm; font-size: 7pt;
+      background: #ffe9a8; color: #7a5200; border-radius: 2mm; padding: 0 1.5mm;
+    }
+  }
+  @media print {
+    body { background: #fff; }
+    .bar, .help { display: none !important; }
+    .sheet { margin: 0; box-shadow: none; }
+    .kotae { margin: 0; box-shadow: none; page-break-after: always; break-after: page; }
+  }
+</style>
+</head>
+<body>
+<div class="bar">
+  <h1>ぶんすう さがし カード</h1>
+  <div class="grp"><span class="lbl">セット</span>
+    <button class="btn" data-set="all">ぜんぶ</button>
+    <button class="btn" data-set="A">A</button>
+    <button class="btn" data-set="B">B</button>
+    <button class="btn" data-set="C">C</button>
+  </div>
+  <div class="grp"><span class="lbl">うら面</span>
+    <button class="btn" data-ura="1">いっしょに いんさつ</button>
+    <button class="btn" data-ura="0">なし</button>
+  </div>
+  <div class="grp">
+    <button class="btn" id="bMark">直した カードに しるし</button>
+    <button class="btn" id="bKotae">こたえの いちらん</button>
+    <button class="btn print" onclick="window.print()">🖨 いんさつ</button>
+  </div>
+  <span class="grp" id="pdfs"><span class="lbl">できあがった PDF：</span></span>
+</div>
+<div class="help">
+  両面印刷のときは「長辺とじ」、倍率は 100%（実際のサイズ）、「背景のグラフィック」をオンにします。
+  太い線＝区切った形のまわり、細い線＝その中のマス です。
+</div>
+<div id="out"></div>
+
+<script src="cards.js"></script>
+<script>
+(function () {
+  'use strict';
+  var CARDS = window.BUNSU_CARDS;
+  var BOX_W = 87.4, BOX_H = 58.2;   // 図の いちばん 大きい はば・たかさ（mm）
+  var LW_THIN = 0.3, LW_PIECE = 0.9, LW_OUT = 1.2;
+  var q = new URLSearchParams(location.search);
+  var state = {
+    set: q.get('set') || 'all',
+    ura: q.get('ura') !== '0',
+    mark: q.get('mark') === '1',
+    kotae: q.get('kotae') === '1'
+  };
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function area(pc) {
+    if (pc.r) return (pc.r[2] - pc.r[0]) * (pc.r[3] - pc.r[1]);
+    var s = 0, g = pc.g;
+    for (var i = 0; i < g.length; i++) { var a = g[i], b = g[(i + 1) % g.length]; s += a[0] * b[1] - b[0] * a[1]; }
+    return Math.abs(s) / 2;
+  }
+  function gcd(a, b) { return b ? gcd(b, a % b) : a; }
+
+  // 1まいの カードの 図（SVG）
+  function figure(c) {
+    var u = Math.min(BOX_W / c.w, BOX_H / c.h);   // 1マスの 大きさ（mm）
+    var W = c.w * u, H = c.h * u, pad = LW_OUT;
+    var s = '<svg xmlns="http://www.w3.org/2000/svg" width="' + (W + pad * 2) + 'mm" height="' + (H + pad * 2) + 'mm" viewBox="' + (-pad) + ' ' + (-pad) + ' ' + (W + pad * 2) + ' ' + (H + pad * 2) + '">';
+    function pts(g) { return g.map(function (p) { return (p[0] * u) + ',' + (p[1] * u); }).join(' '); }
+    // ぬる ところ
+    c.p.forEach(function (pc) {
+      if (!pc.f) return;
+      if (pc.r) s += '<rect x="' + pc.r[0] * u + '" y="' + pc.r[1] * u + '" width="' + (pc.r[2] - pc.r[0]) * u + '" height="' + (pc.r[3] - pc.r[1]) * u + '" fill="var(--fill)"/>';
+      else s += '<polygon points="' + pts(pc.g) + '" fill="var(--fill)"/>';
+    });
+    // マスの 細い線
+    var i;
+    for (i = 1; i < c.w; i++) s += '<line x1="' + i * u + '" y1="0" x2="' + i * u + '" y2="' + H + '" stroke="var(--thin)" stroke-width="' + LW_THIN + '"/>';
+    for (i = 1; i < c.h; i++) s += '<line x1="0" y1="' + i * u + '" x2="' + W + '" y2="' + i * u + '" stroke="var(--thin)" stroke-width="' + LW_THIN + '"/>';
+    // 区切った 形の まわりの 太い線
+    c.p.forEach(function (pc) {
+      if (pc.r) s += '<rect x="' + pc.r[0] * u + '" y="' + pc.r[1] * u + '" width="' + (pc.r[2] - pc.r[0]) * u + '" height="' + (pc.r[3] - pc.r[1]) * u + '" fill="none" stroke="var(--ink)" stroke-width="' + LW_PIECE + '" stroke-linejoin="round"/>';
+      else s += '<polygon points="' + pts(pc.g) + '" fill="none" stroke="var(--ink)" stroke-width="' + LW_PIECE + '" stroke-linejoin="round"/>';
+    });
+    // いちばん 外の わく
+    s += '<rect x="0" y="0" width="' + W + '" height="' + H + '" fill="none" stroke="var(--ink)" stroke-width="' + LW_OUT + '"/>';
+    return s + '</svg>';
+  }
+
+  function front(c) {
+    return '<div class="card front"><div class="no">' + esc(c.id) + '</div>' +
+      (c.kaeta ? '<div class="kaeta" title="' + esc(c.kaeta) + '">なおした</div>' : '') + figure(c) + '</div>';
+  }
+  function back(set) {
+    return '<div class="card back"><img class="ura" src="img/ura.jpg" alt=""><div class="q q1">？</div><div class="ttl">ぶんすう カード</div>' +
+      '<div class="set">セット ' + set + '</div><div class="q q2">？</div></div>';
+  }
+
+  function answer(c) {
+    var as = c.p.map(area), n = c.p.length, k = c.p.filter(function (p) { return p.f; }).length;
+    var eq = as.every(function (a) { return Math.abs(a - as[0]) < 1e-9; });
+    if (!eq) return { eq: false, txt: '×（おなじ大きさでない）' };
+    var g = gcd(k, n), t = k + '/' + n;
+    if (g > 1) t += '（＝' + (k / g) + '/' + (n / g) + '）';
+    return { eq: true, txt: t };
+  }
+
+  function render() {
+    document.body.classList.toggle('mark', state.mark);
+    document.querySelectorAll('[data-set]').forEach(function (b) { b.classList.toggle('on', b.dataset.set === state.set); });
+    document.querySelectorAll('[data-ura]').forEach(function (b) { b.classList.toggle('on', (b.dataset.ura === '1') === state.ura); });
+    document.getElementById('bMark').classList.toggle('on', state.mark);
+    document.getElementById('bKotae').classList.toggle('on', state.kotae);
+
+    var sets = state.set === 'all' ? ['A', 'B', 'C'] : [state.set];
+    var html = '';
+    if (state.kotae) {
+      html += '<div class="kotae"><h2>ぶんすう さがし カード　こたえの いちらん</h2>' +
+        '<p>ぬった かず／ぜんぶの かず です。×は おなじ 大きさに わけていない カードで、分数で あらわせません。★は 2026年11月に 直した カードです。</p><div class="cols">';
+      sets.forEach(function (st) {
+        html += '<table><tr><th>カード</th><th>こたえ</th></tr>';
+        CARDS.filter(function (c) { return c.id.charAt(0) === st; }).forEach(function (c) {
+          var a = answer(c);
+          html += '<tr class="' + (c.kaeta ? 'new' : '') + '"><td>' + esc(c.id) + '</td><td class="' + (a.eq ? '' : 'x') + '">' + esc(a.txt) + '</td></tr>';
+        });
+        html += '</table>';
+      });
+      html += '</div></div>';
+    } else {
+      sets.forEach(function (st) {
+        var list = CARDS.filter(function (c) { return c.id.charAt(0) === st; });
+        for (var i = 0; i < list.length; i += 8) {
+          var page = list.slice(i, i + 8);
+          html += '<div class="sheet">' + page.map(front).join('') + '</div>';
+          if (state.ura) {
+            // 長辺とじの 両面印刷で 表と うらが 合うように、左右を 入れかえる
+            var cells = [];
+            for (var j = 0; j < 8; j++) {
+              var src = j + (j % 2 === 0 ? 1 : -1);
+              cells.push(src < page.length ? back(st) : '<div class="card empty"></div>');
+            }
+            html += '<div class="sheet">' + cells.join('') + '</div>';
+          }
+        }
+      });
+    }
+    document.getElementById('out').innerHTML = html;
+    var p = new URLSearchParams();
+    if (state.set !== 'all') p.set('set', state.set);
+    if (!state.ura) p.set('ura', '0');
+    if (state.mark) p.set('mark', '1');
+    if (state.kotae) p.set('kotae', '1');
+    history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : ''));
+    var imgs = Array.prototype.slice.call(document.images);
+    Promise.all([document.fonts ? document.fonts.ready : null].concat(imgs.map(function (im) { return im.decode ? im.decode().catch(function () {}) : null; })))
+      .then(function () { document.body.setAttribute('data-ready', '1'); });
+  }
+
+  document.querySelectorAll('[data-set]').forEach(function (b) { b.onclick = function () { state.set = b.dataset.set; render(); }; });
+  document.querySelectorAll('[data-ura]').forEach(function (b) { b.onclick = function () { state.ura = b.dataset.ura === '1'; render(); }; });
+  document.getElementById('bMark').onclick = function () { state.mark = !state.mark; render(); };
+  document.getElementById('bKotae').onclick = function () { state.kotae = !state.kotae; render(); };
+
+  // PDF を 作る プログラム（tools/make-pdf.js）が 使う ファイルの 名前
+  window.BUNSUCARD_FILES = [
+    { q: '', file: 'ぶんすうさがしカード_ぜんぶ.pdf' },
+    { q: 'set=A', file: 'ぶんすうさがしカード_セットA.pdf' },
+    { q: 'set=B', file: 'ぶんすうさがしカード_セットB.pdf' },
+    { q: 'set=C', file: 'ぶんすうさがしカード_セットC.pdf' },
+    { q: 'kotae=1', file: 'ぶんすうさがしカード_こたえ.pdf' }
+  ];
+  document.getElementById('pdfs').innerHTML += window.BUNSUCARD_FILES.map(function (f) {
+    return '<a href="pdf/' + encodeURIComponent(f.file) + '" target="_blank">' + esc(f.file.replace('ぶんすうさがしカード_', '').replace('.pdf', '')) + '</a>';
+  }).join('　');
+  render();
+})();
+</script>
+</body>
+</html>
