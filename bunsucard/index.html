@@ -99,6 +99,10 @@
 <body>
 <div class="bar">
   <h1>ぶんすう さがし カード</h1>
+  <div class="grp"><span class="lbl">さがす 分数</span>
+    <button class="btn" data-kind="4">1/4</button>
+    <button class="btn" data-kind="2">1/2</button>
+  </div>
   <div class="grp"><span class="lbl">セット</span>
     <button class="btn" data-set="all">ぜんぶ</button>
     <button class="btn" data-set="A">A</button>
@@ -122,15 +126,19 @@
 <div id="out"></div>
 
 <script src="cards.js"></script>
+<script src="cards2.js"></script>
 <script>
 (function () {
   'use strict';
-  var CARDS = window.BUNSU_CARDS;
+  // さがす 分数ごとの カード（4＝1/4、2＝1/2）
+  var DECKS = { '4': window.BUNSU_CARDS, '2': window.BUNSU_CARDS_2 };
+  var CARDS;
   var BOX_W = 87.4, BOX_H = 58.2;   // 図の いちばん 大きい はば・たかさ（mm）
   var LW_THIN = 0.18, LW_PIECE = 0.9, LW_OUT = 1.2;
   var clipNo = 0;
   var q = new URLSearchParams(location.search);
   var state = {
+    kind: q.get('kind') === '2' ? '2' : '4',
     set: q.get('set') || 'all',
     ura: q.get('ura') !== '0',
     kotae: q.get('kotae') === '1'
@@ -196,7 +204,7 @@
     var as = c.p.map(area), n = c.p.length, k = c.p.filter(function (p) { return p.f; }).length;
     var eq = as.every(function (a) { return Math.abs(a - as[0]) < 1e-9; });
     var fa = c.p.filter(function (p) { return p.f; }).map(area).reduce(function (a, b) { return a + b; }, 0);
-    var q4 = Math.abs(fa * 4 - c.w * c.h) < 1e-9;   // 全体の 1/4 の 大きさ
+    var q4 = Math.abs(fa * Number(state.kind) - c.w * c.h) < 1e-9;   // さがす 分数（1/4 か 1/2）の 大きさ
     if (!eq) return { eq: false, q4: q4, txt: '×（おなじ大きさでない）' };
     var g = gcd(k, n), t = k + '/' + n;
     if (g > 1) t += '（＝' + (k / g) + '/' + (n / g) + '）';
@@ -204,6 +212,8 @@
   }
 
   function render() {
+    CARDS = DECKS[state.kind];
+    document.querySelectorAll('[data-kind]').forEach(function (b) { b.classList.toggle('on', b.dataset.kind === state.kind); });
     document.querySelectorAll('[data-set]').forEach(function (b) { b.classList.toggle('on', b.dataset.set === state.set); });
     document.querySelectorAll('[data-ura]').forEach(function (b) { b.classList.toggle('on', (b.dataset.ura === '1') === state.ura); });
     document.getElementById('bKotae').classList.toggle('on', state.kotae);
@@ -211,8 +221,8 @@
     var sets = state.set === 'all' ? ['A', 'B', 'C'] : [state.set];
     var html = '';
     if (state.kotae) {
-      html += '<div class="kotae"><h2>ぶんすう さがし カード　こたえの いちらん</h2>' +
-        '<p>セットA・B・C は おなじ カードです（番号も おなじ）。×は おなじ 大きさに わけていない カードで、分数で あらわせません。★は オレンジが 全体の 1/4 の 大きさの カード（1セットに 5まい）です。</p><div class="cols">';
+      html += '<div class="kotae"><h2>ぶんすう さがし カード（1/' + state.kind + '）　こたえの いちらん</h2>' +
+        '<p>セットA・B・C は おなじ カードです（番号も おなじ）。×は おなじ 大きさに わけていない カードで、分数で あらわせません。★は オレンジが 全体の 1/' + state.kind + ' の 大きさの カード（1セットに 5まい）です。</p><div class="cols">';
       sets.forEach(function (st) {
         html += '<table><tr><th>カード</th><th>こたえ</th></tr>';
         CARDS.filter(function (c) { return c.id.charAt(0) === st; }).forEach(function (c) {
@@ -242,6 +252,7 @@
     }
     document.getElementById('out').innerHTML = html;
     var p = new URLSearchParams();
+    if (state.kind !== '4') p.set('kind', state.kind);
     if (state.set !== 'all') p.set('set', state.set);
     if (!state.ura) p.set('ura', '0');
     if (state.kotae) p.set('kotae', '1');
@@ -251,20 +262,25 @@
       .then(function () { document.body.setAttribute('data-ready', '1'); });
   }
 
+  document.querySelectorAll('[data-kind]').forEach(function (b) { b.onclick = function () { state.kind = b.dataset.kind; render(); }; });
   document.querySelectorAll('[data-set]').forEach(function (b) { b.onclick = function () { state.set = b.dataset.set; render(); }; });
   document.querySelectorAll('[data-ura]').forEach(function (b) { b.onclick = function () { state.ura = b.dataset.ura === '1'; render(); }; });
   document.getElementById('bKotae').onclick = function () { state.kotae = !state.kotae; render(); };
 
   // PDF を 作る プログラム（tools/make-pdf.js）が 使う ファイルの 名前
-  window.BUNSUCARD_FILES = [
-    { q: '', file: 'ぶんすうさがしカード_ぜんぶ.pdf' },
-    { q: 'set=A', file: 'ぶんすうさがしカード_セットA.pdf' },
-    { q: 'set=B', file: 'ぶんすうさがしカード_セットB.pdf' },
-    { q: 'set=C', file: 'ぶんすうさがしカード_セットC.pdf' },
-    { q: 'kotae=1', file: 'ぶんすうさがしカード_こたえ.pdf' }
-  ];
+  window.BUNSUCARD_FILES = [];
+  [['4', '4ぶんの1'], ['2', '2ぶんの1']].forEach(function (k) {
+    var kq = k[0] === '4' ? '' : 'kind=2&';
+    window.BUNSUCARD_FILES.push(
+      { kind: k[0], q: kq.replace(/&$/, ''), file: 'ぶんすうさがしカード_' + k[1] + '_ぜんぶ.pdf' },
+      { kind: k[0], q: kq + 'set=A', file: 'ぶんすうさがしカード_' + k[1] + '_セットA.pdf' },
+      { kind: k[0], q: kq + 'set=B', file: 'ぶんすうさがしカード_' + k[1] + '_セットB.pdf' },
+      { kind: k[0], q: kq + 'set=C', file: 'ぶんすうさがしカード_' + k[1] + '_セットC.pdf' },
+      { kind: k[0], q: kq + 'kotae=1', file: 'ぶんすうさがしカード_' + k[1] + '_こたえ.pdf' }
+    );
+  });
   document.getElementById('pdfs').innerHTML += window.BUNSUCARD_FILES.map(function (f) {
-    return '<a href="pdf/' + encodeURIComponent(f.file) + '" target="_blank">' + esc(f.file.replace('ぶんすうさがしカード_', '').replace('.pdf', '')) + '</a>';
+    return '<a href="pdf/' + encodeURIComponent(f.file) + '" target="_blank">' + esc(f.file.replace('ぶんすうさがしカード_', '').replace('ぶんの1_', '分の1 ').replace('.pdf', '')) + '</a>';
   }).join('　');
   render();
 })();
