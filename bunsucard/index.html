@@ -60,7 +60,6 @@
   .front { border: 0.3mm dashed var(--cut); margin: -0.15mm; }
   .front .no { position: absolute; left: 2mm; top: 1.4mm; font-size: 7pt; color: #9a8f88; }
   .front svg { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: block; }
-  .front .kaeta { display: none; }
 
   .back {
     background-color: var(--back);
@@ -85,14 +84,9 @@
   .kotae th, .kotae td { border: 0.2mm solid #bbb; padding: 0.55mm 1.5mm; text-align: left; white-space: nowrap; }
   .kotae th { background: #f6efe8; }
   .kotae td.x { color: #b33; }
+  .kotae tr.new td { background: #fff1e3; font-weight: 700; }
   .kotae tr.new td:first-child::after { content: ' ★'; color: var(--fill); }
 
-  @media screen {
-    body.mark .front .kaeta {
-      display: block; position: absolute; right: 2mm; top: 1.2mm; font-size: 7pt;
-      background: #ffe9a8; color: #7a5200; border-radius: 2mm; padding: 0 1.5mm;
-    }
-  }
   @media print {
     body { background: #fff; }
     .bar, .help { display: none !important; }
@@ -115,7 +109,6 @@
     <button class="btn" data-ura="0">なし</button>
   </div>
   <div class="grp">
-    <button class="btn" id="bMark">直した カードに しるし</button>
     <button class="btn" id="bKotae">こたえの いちらん</button>
     <button class="btn print" onclick="window.print()">🖨 いんさつ</button>
   </div>
@@ -138,7 +131,6 @@
   var state = {
     set: q.get('set') || 'all',
     ura: q.get('ura') !== '0',
-    mark: q.get('mark') === '1',
     kotae: q.get('kotae') === '1'
   };
 
@@ -179,7 +171,7 @@
 
   function front(c) {
     return '<div class="card front"><div class="no">' + esc(c.id) + '</div>' +
-      (c.kaeta ? '<div class="kaeta" title="' + esc(c.kaeta) + '">なおした</div>' : '') + figure(c) + '</div>';
+      figure(c) + '</div>';
   }
   function back(set) {
     return '<div class="card back"><img class="ura" src="img/ura.jpg" alt=""><div class="q q1">？</div><div class="ttl">ぶんすう カード</div>' +
@@ -189,29 +181,29 @@
   function answer(c) {
     var as = c.p.map(area), n = c.p.length, k = c.p.filter(function (p) { return p.f; }).length;
     var eq = as.every(function (a) { return Math.abs(a - as[0]) < 1e-9; });
-    if (!eq) return { eq: false, txt: '×（おなじ大きさでない）' };
+    var fa = c.p.filter(function (p) { return p.f; }).map(area).reduce(function (a, b) { return a + b; }, 0);
+    var q4 = Math.abs(fa * 4 - c.w * c.h) < 1e-9;   // 全体の 1/4 の 大きさ
+    if (!eq) return { eq: false, q4: q4, txt: '×（おなじ大きさでない）' };
     var g = gcd(k, n), t = k + '/' + n;
     if (g > 1) t += '（＝' + (k / g) + '/' + (n / g) + '）';
-    return { eq: true, txt: t };
+    return { eq: true, q4: q4, txt: t };
   }
 
   function render() {
-    document.body.classList.toggle('mark', state.mark);
     document.querySelectorAll('[data-set]').forEach(function (b) { b.classList.toggle('on', b.dataset.set === state.set); });
     document.querySelectorAll('[data-ura]').forEach(function (b) { b.classList.toggle('on', (b.dataset.ura === '1') === state.ura); });
-    document.getElementById('bMark').classList.toggle('on', state.mark);
     document.getElementById('bKotae').classList.toggle('on', state.kotae);
 
     var sets = state.set === 'all' ? ['A', 'B', 'C'] : [state.set];
     var html = '';
     if (state.kotae) {
       html += '<div class="kotae"><h2>ぶんすう さがし カード　こたえの いちらん</h2>' +
-        '<p>ぬった かず／ぜんぶの かず です。×は おなじ 大きさに わけていない カードで、分数で あらわせません。★は 2026年11月に 直した カードです。</p><div class="cols">';
+        '<p>セットA・B・C は おなじ カードです（番号も おなじ）。×は おなじ 大きさに わけていない カードで、分数で あらわせません。★は オレンジが 全体の 1/4 の 大きさの カード（1セットに 5まい）です。</p><div class="cols">';
       sets.forEach(function (st) {
         html += '<table><tr><th>カード</th><th>こたえ</th></tr>';
         CARDS.filter(function (c) { return c.id.charAt(0) === st; }).forEach(function (c) {
           var a = answer(c);
-          html += '<tr class="' + (c.kaeta ? 'new' : '') + '"><td>' + esc(c.id) + '</td><td class="' + (a.eq ? '' : 'x') + '">' + esc(a.txt) + '</td></tr>';
+          html += '<tr class="' + (a.q4 ? 'new' : '') + '"><td>' + esc(c.id) + '</td><td class="' + (a.eq ? '' : 'x') + '">' + esc(a.txt) + '</td></tr>';
         });
         html += '</table>';
       });
@@ -238,7 +230,6 @@
     var p = new URLSearchParams();
     if (state.set !== 'all') p.set('set', state.set);
     if (!state.ura) p.set('ura', '0');
-    if (state.mark) p.set('mark', '1');
     if (state.kotae) p.set('kotae', '1');
     history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : ''));
     var imgs = Array.prototype.slice.call(document.images);
@@ -248,7 +239,6 @@
 
   document.querySelectorAll('[data-set]').forEach(function (b) { b.onclick = function () { state.set = b.dataset.set; render(); }; });
   document.querySelectorAll('[data-ura]').forEach(function (b) { b.onclick = function () { state.ura = b.dataset.ura === '1'; render(); }; });
-  document.getElementById('bMark').onclick = function () { state.mark = !state.mark; render(); };
   document.getElementById('bKotae').onclick = function () { state.kotae = !state.kotae; render(); };
 
   // PDF を 作る プログラム（tools/make-pdf.js）が 使う ファイルの 名前
