@@ -102,6 +102,7 @@
   <div class="grp"><span class="lbl">さがす 分数</span>
     <button class="btn" data-kind="4">1/4</button>
     <button class="btn" data-kind="2">1/2</button>
+    <button class="btn" data-kind="8">1/8</button>
   </div>
   <div class="grp"><span class="lbl">セット</span>
     <button class="btn" data-set="all">ぜんぶ</button>
@@ -127,18 +128,19 @@
 
 <script src="cards.js"></script>
 <script src="cards2.js"></script>
+<script src="cards8.js"></script>
 <script>
 (function () {
   'use strict';
   // さがす 分数ごとの カード（4＝1/4、2＝1/2）
-  var DECKS = { '4': window.BUNSU_CARDS, '2': window.BUNSU_CARDS_2 };
+  var DECKS = { '4': window.BUNSU_CARDS, '2': window.BUNSU_CARDS_2, '8': window.BUNSU_CARDS_8 };
   var CARDS;
   var BOX_W = 87.4, BOX_H = 58.2;   // 図の いちばん 大きい はば・たかさ（mm）
   var LW_THIN = 0.18, LW_PIECE = 0.9, LW_OUT = 1.2;
   var clipNo = 0;
   var q = new URLSearchParams(location.search);
   var state = {
-    kind: q.get('kind') === '2' ? '2' : '4',
+    kind: ({ '2': '2', '8': '8' })[q.get('kind')] || '4',
     set: q.get('set') || 'all',
     ura: q.get('ura') !== '0',
     kotae: q.get('kotae') === '1'
@@ -207,7 +209,7 @@
     var as = c.p.map(area), n = c.p.length, k = c.p.filter(function (p) { return p.f; }).length;
     var eq = as.every(function (a) { return Math.abs(a - as[0]) < 1e-9; });
     var fa = c.p.filter(function (p) { return p.f; }).map(area).reduce(function (a, b) { return a + b; }, 0);
-    var q4 = Math.abs(fa * Number(state.kind) - c.w * c.h) < 1e-9;   // さがす 分数（1/4 か 1/2）の 大きさ
+    var q4 = Math.abs(fa * Number(state.kind) - c.w * c.h) < 1e-9;   // さがす 分数（1/4・1/2・1/8）の 大きさ
     if (!eq) return { eq: false, q4: q4, txt: '×（おなじ大きさでない）' };
     var g = gcd(k, n), t = k + '/' + n;
     if (g > 1) t += '（＝' + (k / g) + '/' + (n / g) + '）';
@@ -272,8 +274,8 @@
 
   // PDF を 作る プログラム（tools/make-pdf.js）が 使う ファイルの 名前
   window.BUNSUCARD_FILES = [];
-  [['4', '4ぶんの1'], ['2', '2ぶんの1']].forEach(function (k) {
-    var kq = k[0] === '4' ? '' : 'kind=2&';
+  [['4', '4ぶんの1'], ['2', '2ぶんの1'], ['8', '8ぶんの1']].forEach(function (k) {
+    var kq = k[0] === '4' ? '' : 'kind=' + k[0] + '&';
     window.BUNSUCARD_FILES.push(
       { kind: k[0], q: kq.replace(/&$/, ''), file: 'ぶんすうさがしカード_' + k[1] + '_ぜんぶ.pdf' },
       { kind: k[0], q: kq + 'set=A', file: 'ぶんすうさがしカード_' + k[1] + '_セットA.pdf' },
