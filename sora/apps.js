@@ -127,6 +127,7 @@ window.SORA = {
         { id: 'bunsu', name: 'ぶんすう・しょうすう', emoji: '🍰', apps: [
           { id: 'bunsumaster', emoji: '🍰', name: 'ぶんすうマスター', url: 'https://sites.google.com/view/bunsumasternew/%E3%83%9B%E3%83%BC%E3%83%A0' },
           { id: 'bunsumaster2', emoji: '🎂', name: '{分数|ぶんすう}マスター②', say: 'ぶんすうマスター に', url: 'https://sites.google.com/view/bunsumaste/%E3%83%9B%E3%83%BC%E3%83%A0' },
+          { id: 'bunsumasterninarou', emoji: '🍕', name: '{分数|ぶんすう}マスターに なろう', say: 'ぶんすうマスターに なろう', url: 'https://claude.ai/artifact/SphxMy4VW4MzgJx24wD8yZ' },
           { id: 'shousuhissan', emoji: '🔟', name: '{小数|しょうすう}の かけ{算|ざん}（ひっ{算|さん}）', url: 'https://sites.google.com/view/syousuunohissann/%E3%83%9B%E3%83%BC%E3%83%A0' },
         ] },
       ],
