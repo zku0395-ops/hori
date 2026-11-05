@@ -36,7 +36,7 @@ let fetchReply = () => ({ getResponseCode: () => 500, getContentText: () => 'x' 
 const ss = {
   getSheetByName: (n) => sheets[n] || null,
   insertSheet: (n) => (sheets[n] = makeSheet(n)),
-  toast: () => {},
+  toast: () => {}, getName: () => 'きろく', getUrl: () => 'https://docs.google.com/y', getId: () => 'ACTIVE',
 };
 const ctx = {
   SpreadsheetApp: { getActiveSpreadsheet: () => ss, getUi: () => ({ createMenu: () => ({ addItem() { return this; }, addToUi() {} }) }) },
@@ -59,14 +59,34 @@ const ctx = {
   },
   UrlFetchApp: { fetch: (url, o) => { fetchLog.push({ url, body: JSON.parse(o.payload), key: o.headers['x-goog-api-key'] }); return fetchReply(url); } },
   HtmlService: { createHtmlOutputFromFile: () => ({ setTitle() { return this; }, addMetaTag() { return this; }, setXFrameOptionsMode() { return this; } }), XFrameOptionsMode: {} },
-  console, Date, JSON, Math, Object, String, Number, Array,
+  console: { log() {}, warn() {}, error() {} }, Date, JSON, Math, Object, String, Number, Array,
 };
 vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'コード.gs'), 'utf8'), ctx);
 
+// スプレッドシートに ついて いない Apps Script（getActiveSpreadsheet が null）でも うごくか
+{
+  const ctx2 = { ...ctx, SS_CACHE_: undefined };
+  const props2 = {};
+  let created = 0;
+  ctx2.PropertiesService = { getScriptProperties: () => ({ getProperty: (k) => (k in props2 ? props2[k] : null), setProperty: (k, v) => { props2[k] = String(v); } }) };
+  const sheets2 = {};
+  const ss2 = { getSheetByName: (n) => sheets2[n] || null, insertSheet: (n) => (sheets2[n] = makeSheet(n)), toast: () => { throw new Error('Cannot call SpreadsheetApp.showNotification() from this context.'); }, getId: () => 'NEWID', getName: () => 'ものがたりの もり 記録', getUrl: () => 'https://docs.google.com/x' };
+  ctx2.SpreadsheetApp = { getActiveSpreadsheet: () => null, create: () => { created++; return ss2; }, openById: (id) => (id === 'NEWID' ? ss2 : null), getUi: ctx.SpreadsheetApp.getUi };
+  ctx2.console = { log() {} };
+  vm.createContext(ctx2);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'コード.gs'), 'utf8'), ctx2);
+  ctx2.setup();
+  globalThis.__standalone = { created, id: props2.SHEET_ID, ok: !!sheets2['名簿'] };
+  // 2かいめ（あたらしい 実行）は おぼえた スプレッドシートを 使う
+  vm.runInContext('SS_CACHE_ = null;', ctx2);
+  ctx2.getInitData();
+  globalThis.__standalone.created2 = created;
+}
 let bad = 0;
 const ok = (c, msg) => { console.log((c ? '✔ ' : '✖ ') + msg); if (!c) bad++; };
 
+ok(__standalone.ok && __standalone.created === 1 && __standalone.id === 'NEWID' && __standalone.created2 === 1, 'スプレッドシートに ついて いない Apps Script でも、記録の スプレッドシートを 作って つかう');
 // 1. シートの じゅんび
 ctx.setup();
 ok(['名簿', 'きろく', 'まとめ', 'せってい'].every(n => sheets[n]), '4つの シートが できる');

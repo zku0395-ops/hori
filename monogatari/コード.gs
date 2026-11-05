@@ -46,18 +46,46 @@ function onOpen() {
 
 function setup() {
   ensureSheets_();
-  SpreadsheetApp.getActiveSpreadsheet().toast('シートの準備ができました。「名簿」シートに子どもの名前を入れてください。');
+  const ss = ss_();
+  console.log('シートの準備ができました。記録の スプレッドシート：' + ss.getName() + '　' + ss.getUrl());
+  toast_('シートの準備ができました。「名簿」シートに子どもの名前を入れてください。');
 }
 
 function updateSummary() {
   writeSummary_(aggregate_(readLog_()), rosterNames_());
-  SpreadsheetApp.getActiveSpreadsheet().toast('まとめを更新しました。');
+  console.log('まとめを更新しました。');
+  toast_('まとめを更新しました。');
+}
+
+// スプレッドシートの 右下に おしらせを 出す（Apps Script だけで 作ったときは 出せないので、なにも しない）
+function toast_(msg) {
+  try { ss_().toast(msg); } catch (e) {}
 }
 
 // ---------------------------------------------------------------------
 // シートの準備
 // ---------------------------------------------------------------------
-function ss_() { return SpreadsheetApp.getActiveSpreadsheet(); }
+// 記録の スプレッドシート
+//   スプレッドシートの「拡張機能 → Apps Script」から 作ったときは、その スプレッドシートを 使う。
+//   Apps Script だけで 作ったとき（スプレッドシートに ついて いない）は、
+//   スクリプト プロパティ SHEET_ID の スプレッドシートを 使う。なければ 新しく 作って おぼえる。
+let SS_CACHE_ = null;
+function ss_() {
+  if (SS_CACHE_) return SS_CACHE_;
+  let ss = null;
+  try { ss = SpreadsheetApp.getActiveSpreadsheet(); } catch (e) { ss = null; }
+  if (!ss) {
+    const props = PropertiesService.getScriptProperties();
+    const id = props.getProperty('SHEET_ID');
+    if (id) { try { ss = SpreadsheetApp.openById(id); } catch (e) { ss = null; } }
+    if (!ss) {
+      ss = SpreadsheetApp.create('ものがたりの もり 記録');
+      props.setProperty('SHEET_ID', ss.getId());
+    }
+  }
+  SS_CACHE_ = ss;
+  return ss;
+}
 
 function ensureSheets_() {
   const ss = ss_();
