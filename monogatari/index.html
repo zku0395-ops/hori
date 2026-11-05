@@ -91,7 +91,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, useCallback } = React;
-    const APP_VERSION = '0.3.2';
+    const APP_VERSION = '0.4.0';
     const BASE = window.MONO_BASE;
     const IMG = BASE + 'img/';
 
@@ -283,7 +283,13 @@
       prepared.set(story.id, p);
       return p;
     }
-    const storyButtons = (story, idx) => (story.buttons && story.buttons.length ? story.buttons : idx < 3 ? ['itsu', 'doko', 'oto'] : D.CATS.map(c => c.id));
+    // はってん（先生が ひらく）：ボタンが 5つ そろって いない おはなしでも、ぶんしょうに ある しゅるいは ぜんぶ 出す
+    const storyButtons = (story, idx, hatten) => {
+      const base = story.buttons && story.buttons.length ? story.buttons : idx < 3 ? ['itsu', 'doko', 'oto'] : D.CATS.map(c => c.id);
+      if (!hatten) return base;
+      const P = prep(story);
+      return D.CATS.map(c => c.id).filter(id => base.includes(id) || P.spans.some(x => x.c === id));
+    };
     const catBtnOrder = (ids) => D.CATS.filter(c => ids.includes(c.id));
     // さがす ことばに あう タグ
     function findSpan(P, cat, text) {
@@ -297,8 +303,8 @@
     // =====================================================================
     //  4. しんちょく（進み具合）
     // =====================================================================
-    const FLAGS = ['unlockAll'];
-    const newProgress = () => ({ v: 1, t: 0, kakera: 0, cleared: {}, forest: [], resume: null, unlockAll: false });
+    const FLAGS = ['unlockAll', 'hatten'];
+    const newProgress = () => ({ v: 1, t: 0, kakera: 0, cleared: {}, forest: [], resume: null, unlockAll: false, hatten: false });
     function parseProgress(s) {
       let p = null;
       try { p = typeof s === 'string' ? (s ? JSON.parse(s) : null) : s; } catch (e) { p = null; }
@@ -749,9 +755,9 @@
     };
     const READ_MODE_KEY = 'monogatari_readmode';
 
-    function StoryScreen({ story, index, settings, startStep, onRecord, onKakera, onStep, onDone, onExit, onLock }) {
+    function StoryScreen({ story, index, settings, hatten, startStep, onRecord, onKakera, onStep, onDone, onExit, onLock }) {
       const P = useMemo(() => prep(story), [story]);
-      const btns = useMemo(() => catBtnOrder(storyButtons(story, index)), [story, index]);
+      const btns = useMemo(() => catBtnOrder(storyButtons(story, index, hatten)), [story, index, hatten]);
       const quizOn = settings.quiz && story.quiz && story.quiz.length > 0;
       const steps = STEPS.filter(s => s[0] < 3 || quizOn);
       const lastStep = quizOn ? 3 : 2;
@@ -1364,7 +1370,7 @@
                       return (
                         <tr key={x.name}>
                           <td className="border px-2 py-1 font-bold"><button className="underline" onClick={() => { setSel(x.name); setTab('child'); }}>{x.name}</button></td>
-                          <td className="border px-2 py-1">{currentIndex(p) + 1}. {D.STORIES[currentIndex(p)].title}{p.unlockAll ? '（全部開く）' : ''}</td>
+                          <td className="border px-2 py-1">{currentIndex(p) + 1}. {D.STORIES[currentIndex(p)].title}{p.unlockAll ? '（全部開く）' : ''}{p.hatten ? '（はってん）' : ''}</td>
                           <td className="border px-2 py-1 text-center">{clearedCount(p)} / {D.STORIES.length}</td>
                           <td className="border px-2 py-1 text-center">{p.kakera}</td>
                           {Object.values(CAT_NAMES).map(k => <Cell key={k} g={x.cats[k]} />)}
@@ -1396,6 +1402,9 @@
                       <div className="font-bold text-lg">よんだ おはなし {clearedCount(p)} / {D.STORIES.length}・ほしの かけら {p.kakera}・最後 {stu.last || '－'}</div>
                       <label className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 border-2">
                         <input type="checkbox" checked={!!p.unlockAll} onChange={e => flag(stu.name, 'unlockAll', e.target.checked)} className="w-6 h-6" /> ぜんぶの おはなしを開く
+                      </label>
+                      <label className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 border-2">
+                        <input type="checkbox" checked={!!p.hatten} onChange={e => flag(stu.name, 'hatten', e.target.checked)} className="w-6 h-6" /> はってん：1〜3話でも ① だれが いった・④ きもち を出す
                       </label>
                       <button onClick={() => clear(stu.name)} className="px-3 py-2 rounded-xl bg-rose-100 border-2 border-rose-300 font-bold">この子の記録を消す</button>
                     </div>
@@ -1616,7 +1625,7 @@
       else if (screen === 'home') body = <Home name={name} progress={progress} onRead={openStory} onList={() => setScreen('list')} onZukan={() => setScreen('zukan')} onQuit={() => { Speech.stop(); setScreen('names'); setName(''); }} onLock={lock} />;
       else if (screen === 'list') body = <StoryList progress={progress} onPick={(i) => openStory(i, progress.resume && progress.resume.story === D.STORIES[i].id ? progress.resume.step : 1)} onBack={() => setScreen('home')} />;
       else if (screen === 'zukan') body = <Zukan progress={progress} onBack={() => setScreen('home')} />;
-      else if (screen === 'story' && cur) body = <StoryScreen key={cur.index + '-' + cur.step} story={D.STORIES[cur.index]} index={cur.index} settings={settings} startStep={cur.step}
+      else if (screen === 'story' && cur) body = <StoryScreen key={cur.index + '-' + cur.step} story={D.STORIES[cur.index]} index={cur.index} settings={settings} hatten={!!progress.hatten} startStep={cur.step}
         onRecord={onRecord} onKakera={onKakera} onStep={onStep} onDone={onDone} onExit={() => setScreen('home')} onLock={lock} />;
       else if (screen === 'clear' && clearInfo) body = <ClearScreen {...clearInfo} onHome={() => setScreen('home')} onZukan={() => setScreen('zukan')} onAgain={() => openStory(D.STORIES.indexOf(clearInfo.story), 1)} />;
 

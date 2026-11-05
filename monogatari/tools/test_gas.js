@@ -119,6 +119,9 @@ ok(taro.misses.length === 1 && t.classCats['②いつ'][0] === 1, '先生用：�
 ok(sheets['まとめ'].data.length > 2, 'まとめシートを 作る');
 ctx.setFlag('1234', 'たろう', 'unlockAll', true);
 ok(JSON.parse(ctx.getStudent('たろう')).unlockAll === true, 'ぜんぶ ひらく');
+ctx.setFlag('1234', 'たろう', 'hatten', true);
+ok(JSON.parse(ctx.getStudent('たろう')).hatten === true && JSON.parse(ctx.getStudent('たろう')).unlockAll === true, 'はってんを ひらく');
+ok(ctx.setFlag('1234', 'たろう', 'xxx', true).ok === false, 'しらない フラグは だめ');
 // 古い 端末から 来ても 先生の フラグは のこる
 ctx.saveResult({ name: 'たろう', progress: JSON.stringify({ t: Date.now() - 100000, kakera: 5, unlockAll: false }), records: [] });
 const pt = JSON.parse(ctx.getStudent('たろう'));
