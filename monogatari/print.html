@@ -106,7 +106,7 @@
           ? '<span style="border-color:#b91c1c">' + st.people.map(function (p, i) { return p.e + ' ' + p.n + '＝' + (i === 0 ? 'こい あか' : 'うすい あか'); }).join('　') + '</span>' : '';
         return '<div class="sheet">' +
           '<div class="head">' +
-            '<div class="pic"><span>' + st.scene + '</span><img src="img/' + st.img + '.webp" alt="" style="display:none" onload="this.style.display=\'\';this.previousSibling.remove()" onerror="this.remove()"></div>' +
+            '<div class="pic"><span>' + st.scene + '</span><img src="img/' + st.img + '.webp" alt="" style="display:none"></div>' +
             '<div class="title"><h1>' + esc(st.id + '. ' + st.title) + '</h1><div class="legend">' + (lit.length ? '' : '<b style="padding:.6mm 0">ぬる いろ：</b>') + legend + who + '</div></div>' +
             '<div class="nameBox"><div>なまえ</div><div>　　　がつ　　　にち</div></div>' +
           '</div>' +
@@ -142,7 +142,13 @@
         var imgs = [].slice.call(document.images);
         Promise.all(imgs.map(function (im) { return im.complete ? 0 : new Promise(function (ok) { im.onload = im.onerror = ok; }); }))
           .then(function () { return document.fonts ? document.fonts.ready : 0; })
-          .then(function () { fit(); document.body.dataset.ready = '1'; });
+          .then(function () {
+            // さしえが よめたら 絵文字と いれかえる（ないときは 絵文字の まま）
+            imgs.forEach(function (im) {
+              if (im.naturalWidth > 0) { im.style.display = ''; if (im.previousSibling) im.previousSibling.remove(); } else im.remove();
+            });
+            fit(); document.body.dataset.ready = '1';
+          });
       }
 
       var sel = document.getElementById('story');
