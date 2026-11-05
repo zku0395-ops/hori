@@ -83,7 +83,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, useCallback } = React;
-    const APP_VERSION = '0.1.0';
+    const APP_VERSION = '0.2.0';
     const BASE = window.MONO_BASE;
     const IMG = BASE + 'img/';
 
@@ -1138,7 +1138,7 @@
         }
         setPrepState({ i: list.length, n: list.length, made, skip, done: true });
       };
-      const tabs = [['class', 'クラス全体'], ['child', '子どもごと'], ['set', 'せってい'], ['data', 'データ']];
+      const tabs = [['class', 'クラス全体'], ['child', '子どもごと'], ['print', 'プリント'], ['set', 'せってい'], ['data', 'データ']];
       return (
         <div className="fixed inset-0 bg-stone-100 z-40 overflow-y-auto text-stone-800" style={{ fontSize: 16 }}>
           <div className="sticky top-0 bg-indigo-900 text-white flex items-center gap-2 px-4 py-2 z-10">
@@ -1219,6 +1219,34 @@
                   <tbody>{stu.misses.map((m, i) => <tr key={i}>{m.map((v, j) => <td key={j} className="border px-2 py-1">{v}</td>)}</tr>)}</tbody>
                 </table>
                 {!stu.misses.length && <div className="text-stone-500 mt-1">まだ ありません。</div>}
+              </div>
+            )}
+
+            {tab === 'print' && (
+              <div className="max-w-4xl">
+                <div className="mb-3">おはなしの 文章を、B4よこ・たて書きで 印刷します。「いろなし」は、子どもが 自分で 色を ぬる ときに 使います（上に「ぬる いろ」の 見本が 出ます）。「いろつき」は、アプリと 同じ ところに 色が ついて います。</div>
+                <table className="bg-white border-collapse w-full">
+                  <thead><tr className="bg-amber-100">{['おはなし', '印刷用ページ（えらんで 印刷・PDFで 保存）', 'できている PDF'].map(h => <th key={h} className="border px-2 py-1">{h}</th>)}</tr></thead>
+                  <tbody>
+                    {[...D.STORIES.map(st => [String(st.id), `${st.id}. ${st.title}`, ('0' + st.id).slice(-2)]), ['all', 'ぜんぶの おはなし', 'ぜんぶ']].map(([sid, label, fn]) => (
+                      <tr key={sid}>
+                        <td className="border px-2 py-2 font-bold">{label}</td>
+                        <td className="border px-2 py-2">
+                          <a className="inline-block mr-2 px-3 py-2 rounded-xl bg-white border-2 font-bold" target="_blank" rel="noopener" href={`${BASE}print.html?s=${sid}&c=none`}>🖨 いろなし</a>
+                          <a className="inline-block px-3 py-2 rounded-xl bg-amber-100 border-2 border-amber-400 font-bold" target="_blank" rel="noopener" href={`${BASE}print.html?s=${sid}&c=app`}>🖨 いろつき</a>
+                        </td>
+                        <td className="border px-2 py-2">
+                          <a className="inline-block mr-2 underline" target="_blank" rel="noopener" href={`${BASE}pdf/${encodeURIComponent(`ものがたり_${fn}_いろなし.pdf`)}`}>📄 いろなし</a>
+                          <a className="inline-block underline" target="_blank" rel="noopener" href={`${BASE}pdf/${encodeURIComponent(`ものがたり_${fn}_いろつき.pdf`)}`}>📄 いろつき</a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="mt-3 text-sm text-stone-600">
+                  印刷用ページは 新しいタブで 開きます。上の チェックで 色を つける しゅるいを えらべます（①〜⑤の 好きな 組み合わせ）。
+                  「🖨 いんさつ ・ PDFで ほぞん」を押し、PDFに するときは 送信先を「PDFに保存」にします。用紙は「B4」・「横」、「背景のグラフィック」に チェックを 入れます。
+                </div>
               </div>
             )}
 
