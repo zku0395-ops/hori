@@ -91,7 +91,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, useCallback } = React;
-    const APP_VERSION = '0.3.0';
+    const APP_VERSION = '0.3.1';
     const BASE = window.MONO_BASE;
     const IMG = BASE + 'img/';
 
@@ -688,7 +688,7 @@
       return { ans, got, wrong, missed: ans - got, picks, answers };
     }
 
-    function StoryText({ story, P, reading, cursor, litCat, hintLine, hintNode, find, onLine, onSpan, fontScale }) {
+    function StoryText({ story, P, reading, cursor, litCat, hintLine, hintLines, hintNode, find, onLine, onSpan, fontScale }) {
       const box = useRef(null), refs = useRef([]);
       const [h, setH] = useState(400);
       const [w, setW] = useState(800);
@@ -719,7 +719,7 @@
         <div ref={box} className={`tate w-full h-full px-3 py-3 ${find && find.cat && !find.revealed ? 'finding' : ''}`} style={{ fontSize: fs }}>
           {P.lines.map((ns, i) => (
             <div key={i} ref={el => { refs.current[i] = el; }} onClick={() => onLine && onLine(i)}
-              className={`gyou ${reading === i ? 'reading' : cursor === i ? 'cursor' : ''} ${hintLine === i && reading !== i ? 'hintline' : ''}`}>
+              className={`gyou ${reading === i ? 'reading' : cursor === i ? 'cursor' : ''} ${(hintLine === i || (hintLines && hintLines.includes(i))) && reading !== i ? 'hintline' : ''}`}>
               {find && find.cat ? renderFindLine(ns, i, find, story) : renderNodes(ns, ctx, `l${i}`)}
             </div>
           ))}
@@ -766,6 +766,7 @@
       const [fcat, setFcat] = useState(null);
       const [sel, setSel] = useState({});       // しゅるいごとの えらんだ ことば
       const [revealed, setRevealed] = useState({}); // しゅるいごとに たしかめた か
+      const [tries, setTries] = useState({});       // しゅるいごとの やりなおしの かず（2かいめから こたえの ある 行を ひからせる）
       const [fly, setFly] = useState(0);
       // たしかめ
       const [qi, setQi] = useState(0);
@@ -829,7 +830,7 @@
             : `「${story.title}」の おはなしだよ。🔊 よんで を おしてね。ぎょうを さわると、その ぎょうだけ よむよ。`);
         }
         if (step === 2) {
-          setFcat(null); setSel({}); setRevealed({});
+          setFcat(null); setSel({}); setRevealed({}); setTries({});
           speak('したの ボタンを えらんでね。こたえが どこに かいて あるか、じぶんで さがして ぶんしょうを さわろう。');
         }
         if (step === 3) { setQi(0); askQ(0); }
@@ -880,7 +881,8 @@
         if (!fcat) return;
         const n = { ...revealed }; delete n[fcat];
         setRevealed(n); setSel({ ...sel, [fcat]: [] }); fStart.current = Date.now();
-        speak('もういちど さがしてみよう。' + FIND_ASK[fcat]);
+        setTries({ ...tries, [fcat]: (tries[fcat] || 0) + 1 });
+        speak('もういちど さがしてみよう。こたえは、ひかって いる ぎょうの なかに あるよ。' + FIND_ASK[fcat]);
       };
       const allChecked = btns.every(c => revealed[c.id]);
 
@@ -939,6 +941,13 @@
 
       const hintLine = step === 3 && hint >= 2 && target ? target.line : null;
       const hintNode = step === 3 && (hint >= 3 || solved) && target ? target.node : null;
+      // ② さがす の ヒント：やりなおしの とき、こたえの ある 行を ひからせる
+      const findHintLines = useMemo(() => {
+        if (step !== 2 || !fcat || revealed[fcat] || !(tries[fcat] > 0)) return null;
+        const out = [];
+        P.lines.forEach((ns, li) => { if (tokenize(ns, fcat).some(t => t.ans)) out.push(li); });
+        return out;
+      }, [step, fcat, revealed, tries, P]);
       const find = step === 2 && fcat ? { cat: fcat, sel: curSel, revealed: isRevealed, onTok: tapTok } : null;
       const BackBtn = () => step > 1 ? <Btn color="white" className="!px-3" onClick={() => goStep(step - 1)}>◀ もどる</Btn> : null;
 
@@ -973,7 +982,7 @@
             </div>
             <div className="paper flex-1 min-w-0 relative">
               <StoryText story={story} P={P} reading={reading} cursor={step === 1 && mode === 'line' && reading === null ? cursor : null}
-                litCat={null} hintLine={hintLine} hintNode={hintNode} find={find} fontScale={settings.font}
+                litCat={null} hintLine={hintLine} hintLines={findHintLines} hintNode={hintNode} find={find} fontScale={settings.font}
                 onLine={step === 2 ? null : (i) => { Sound.tap(); stopRead(); if (step === 1 && mode === 'line') readOne(i); else readLine(i); }}
                 onSpan={null} />
               {fly > 0 && <KakeraFly key={fly} n={1} />}
@@ -1261,7 +1270,7 @@
       'よみたい おはなしを えらんでね。', 'よんだ おはなしの ずかんだよ。', 'なまえを おしてね。',
       'ぜんぶの おはなしを よんだね。すきな おはなしを また よもう。',
       ...PRAISE,
-      ...Object.values(FIND_ASK), 'えらんだら「🔍 たしかめる」を おしてね。', 'もういちど さがしてみよう。', 'ぜんぶ みつけたね！ すごい！',
+      ...Object.values(FIND_ASK), 'えらんだら「🔍 たしかめる」を おしてね。', 'もういちど さがしてみよう。', 'こたえは、ひかって いる ぎょうの なかに あるよ。', 'ぜんぶ みつけたね！ すごい！',
       'したの ボタンを えらんでね。こたえが どこに かいて あるか、じぶんで さがして ぶんしょうを さわろう。',
       '1ぎょうずつ よむよ。「つぎの ぎょう」を おすと、つぎの ぎょうを よむよ。', 'さいごまで とおして よむよ。🔊 よんで を おしてね。',
       'さいごの ぎょうまで よんだね。「つぎへ」で ② さがす に すすもう。', 'まだ たしかめて いない ボタンが あるよ。ぜんぶ やってみよう。',
