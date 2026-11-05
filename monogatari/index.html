@@ -91,7 +91,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, useCallback } = React;
-    const APP_VERSION = '0.4.0';
+    const APP_VERSION = '0.5.0';
     const BASE = window.MONO_BASE;
     const IMG = BASE + 'img/';
 
@@ -754,6 +754,9 @@
       oto: 'オノマトペは どこかな。おとや ようすを あらわす ことばを さわって えらんでね。',
     };
     const READ_MODE_KEY = 'monogatari_readmode';
+    const VOICE_KEY = 'monogatari_voice_onoff';
+    // よみあげ OFF の ときに 1行を ひからせて おく じかん（もじの かず と よみあげの はやさ から）
+    const silentMs = (text, rate) => Math.round((900 + norm(text).length * 420) * 0.8 / (rate || 0.8));
 
     function StoryScreen({ story, index, settings, hatten, startStep, onRecord, onKakera, onStep, onDone, onExit, onLock }) {
       const P = useMemo(() => prep(story), [story]);
@@ -771,6 +774,9 @@
       const [mode, setMode] = useState(safeStore.get(READ_MODE_KEY) === 'line' ? 'line' : 'all');
       const [cursor, setCursor] = useState(0);
       const readTok = useRef(0);
+      const silentTimer = useRef(null);
+      // よみあげ ON／OFF（OFF でも、よむ ばしょの マーカーは うごく）。この たんまつに おぼえる
+      const [voiceOn, setVoiceOn] = useState(safeStore.get(VOICE_KEY) !== 'off');
       // さがす
       const [fcat, setFcat] = useState(null);
       const [sel, setSel] = useState({});       // しゅるいごとの えらんだ ことば
@@ -790,12 +796,22 @@
       const target = useMemo(() => q ? findSpan(P, q.c, q.find || q.a) : null, [q, P]);
 
       const speak = (t, m = 'normal') => { setMsg(t); setMood(m); Speech.sayVoice(t); };
-      const stopRead = () => { readTok.current++; Speech.stop(); setReading(null); };
+      const stopRead = () => { readTok.current++; Speech.stop(); clearTimeout(silentTimer.current); setReading(null); };
 
       // 1行 よむ（そのあと つぎへ すすむ ときは onEnd）
       const readLine = (i, onEnd) => {
         const tok = ++readTok.current;
         setReading(i);
+        clearTimeout(silentTimer.current);
+        if (!voiceOn) {
+          // こえは 出さずに、1行ぶんの じかん だけ マーカーを ひからせる
+          Speech.stop();
+          silentTimer.current = setTimeout(() => {
+            if (tok !== readTok.current) return;
+            if (onEnd) onEnd(); else setReading(null);
+          }, silentMs(P.speech[i], settings.rate));
+          return;
+        }
         Speech.prefetch(P.speech[i + 1]);
         Speech.sayVoice(P.speech[i], () => {
           if (tok !== readTok.current) return;
@@ -815,7 +831,18 @@
       const readOne = (i) => {
         const k = Math.max(0, Math.min(P.lines.length - 1, i));
         setCursor(k);
+        if (!voiceOn) {
+          // よみあげ OFF：つぎを おすまで その 行を ひからせて おく（じぶんの ペースで よめる）
+          readTok.current++; clearTimeout(silentTimer.current); Speech.stop(); setReading(k);
+          if (k === P.lines.length - 1) { setReadDone(true); setMsg('さいごの ぎょうまで よんだね。「つぎへ」で ② さがす に すすもう。'); setMood('smile'); }
+          return;
+        }
         readLine(k, () => { setReading(null); if (k === P.lines.length - 1) { setReadDone(true); setMsg('さいごの ぎょうまで よんだね。「つぎへ」で ② さがす に すすもう。'); setMood('smile'); } });
+      };
+      const toggleVoice = () => {
+        const v = !voiceOn;
+        stopRead(); setVoiceOn(v); safeStore.set(VOICE_KEY, v ? 'on' : 'off');
+        speak(v ? 'よみあげを するよ。' : 'よみあげは おやすみ。ひかって いる ぎょうを、こえに だして よんでみよう。');
       };
       const pickMode = (m) => {
         stopRead(); setMode(m); safeStore.set(READ_MODE_KEY, m);
@@ -861,7 +888,7 @@
         const cur = sel[fcat] || [];
         const on = cur.includes(key);
         setSel({ ...sel, [fcat]: on ? cur.filter(k => k !== key) : [...cur, key] });
-        if (!on) { Speech.stop(); Speech.sayVoice(tokText(t, true), null, true); }
+        if (!on && voiceOn) { Speech.stop(); Speech.sayVoice(tokText(t, true), null, true); }
       };
       const check = () => {
         if (!fcat || isRevealed) return;
@@ -1002,6 +1029,10 @@
           <div className="shrink-0 px-3 pb-3">
             {step === 1 && (
               <div className="flex items-center gap-3 bg-indigo-900/80 rounded-2xl p-3">
+                <button onClick={toggleVoice} aria-pressed={voiceOn}
+                  className={`btn3d rounded-2xl border-2 px-3 py-2 font-bold text-base leading-tight self-stretch ${voiceOn ? 'bg-sky-200 border-sky-500 text-sky-950' : 'bg-stone-200 border-stone-400 text-stone-700'}`}>
+                  <div className="text-2xl">{voiceOn ? '🔊' : '🔇'}</div>よみあげ<br />{voiceOn ? 'ON' : 'OFF'}
+                </button>
                 <div className="flex flex-col gap-1">
                   {[['all', '📖 ぜんぶ とおして'], ['line', '☝️ 1ぎょうずつ']].map(([m, l]) => (
                     <button key={m} onClick={() => pickMode(m)} className={`rounded-xl border-2 px-3 py-1 font-bold text-base ${mode === m ? 'bg-amber-300 border-amber-600 text-amber-950' : 'bg-indigo-800 border-indigo-600 text-indigo-100'}`}>{mode === m ? '● ' : '○ '}{l}</button>
@@ -1009,14 +1040,14 @@
                 </div>
                 {mode === 'all' ? (
                   <>
-                    <Btn color="amber" className="!text-2xl" onClick={() => { stopRead(); readFrom(0); }}>🔊 よんで</Btn>
+                    <Btn color="amber" className="!text-2xl" onClick={() => { stopRead(); readFrom(0); }}>{voiceOn ? '🔊 よんで' : '▶ スタート'}</Btn>
                     <Btn color="white" onClick={stopRead} disabled={reading === null}>⏹ とめる</Btn>
-                    <div className="flex-1 text-indigo-100 text-lg">ぎょうを さわると、その ぎょうだけ よむよ。</div>
+                    <div className="flex-1 text-indigo-100 text-lg">{voiceOn ? 'ぎょうを さわると、その ぎょうだけ よむよ。' : 'ひかる ぎょうを、こえに だして よもう。'}</div>
                   </>
                 ) : (
                   <>
                     <Btn color="white" disabled={cursor <= 0} onClick={() => { stopRead(); readOne(cursor - 1); }}>◀ まえの ぎょう</Btn>
-                    <Btn color="amber" className="!text-2xl" onClick={() => { stopRead(); readOne(cursor); }}>🔊 この ぎょう</Btn>
+                    <Btn color="amber" className="!text-2xl" onClick={() => { stopRead(); readOne(cursor); }}>{voiceOn ? '🔊 この ぎょう' : '👉 この ぎょう'}</Btn>
                     <Btn color="sky" className="!text-2xl" disabled={cursor >= P.lines.length - 1} glow={!readDone && reading === null && cursor < P.lines.length - 1}
                       onClick={() => { stopRead(); readOne(cursor + 1); }}>つぎの ぎょう ▶</Btn>
                     <div className="flex-1 text-indigo-100 text-lg">{cursor + 1} / {P.lines.length} ぎょう</div>
@@ -1283,6 +1314,7 @@
       'したの ボタンを えらんでね。こたえが どこに かいて あるか、じぶんで さがして ぶんしょうを さわろう。',
       '1ぎょうずつ よむよ。「つぎの ぎょう」を おすと、つぎの ぎょうを よむよ。', 'さいごまで とおして よむよ。🔊 よんで を おしてね。',
       'さいごの ぎょうまで よんだね。「つぎへ」で ② さがす に すすもう。', 'まだ たしかめて いない ボタンが あるよ。ぜんぶ やってみよう。',
+      'よみあげを するよ。', 'よみあげは おやすみ。ひかって いる ぎょうを、こえに だして よんでみよう。',
     ];
     function allVoiceTexts() {
       const out = new Set();
