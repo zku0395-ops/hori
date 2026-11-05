@@ -72,6 +72,7 @@ window.SORA = {
           { id: 'shiofuro', emoji: '🛁', name: '{詩|し}の {音読|おんどく}（おふろ だいすき）', say: 'しの おんどく おふろ だいすき', url: 'https://zku0395-ops.github.io/hori/shi/ofuro/' },
           { id: 'shiundoukai', emoji: '🏃', name: '{詩|し}の {音読|おんどく}（わくわく うんどうかい）', say: 'しの おんどく わくわく うんどうかい', url: 'https://zku0395-ops.github.io/hori/shi/undoukai/' },
           { id: 'shiyuki', emoji: '⛄', name: '{詩|し}の {音読|おんどく}（ゆきの ひ）', say: 'しの おんどく ゆきの ひ', url: 'https://zku0395-ops.github.io/hori/shi/yuki/' },
+          { id: 'monogatari', emoji: '🌸', name: 'ピカリせんせいの ものがたりの もり', say: 'ピカリせんせいの ものがたりの もり', url: 'https://script.google.com/macros/s/AKfycbxuT2z3PhAXIhhxaWGg2bL0UPpnr1R0AXROsUQ9NDSFOG6X0cbw9dasZhA1Azdta4V5Bw/exec' },
         ] },
       ],
     },
@@ -194,6 +195,7 @@ window.SORA = {
     { id: 'p-kanji2', emoji: '2️⃣', name: '漢字（2年）プリント', url: 'https://zku0395-ops.github.io/hori/kanjiprint/?g=2' },
     { id: 'p-kanji3', emoji: '3️⃣', name: '漢字（3年）プリント', url: 'https://zku0395-ops.github.io/hori/kanjiprint/?g=3' },
     { id: 'p-nazotoki', emoji: '🐶', name: '文の読解（いつ・だれが）プリント', url: 'https://zku0395-ops.github.io/hori/nazotokiprint/' },
+    { id: 'p-monogatari', emoji: '🌸', name: '物語の読み取り（ものがたりの もり）文章プリント', url: 'https://zku0395-ops.github.io/hori/monogatari/print.html' },
   ],
 
   // どの Chromebook でも はじめから「きょうの おすすめ」に 出す アプリの id（先生用画面で 変えると、その 台の 設定が 先に なります）
