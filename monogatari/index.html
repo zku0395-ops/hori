@@ -91,7 +91,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, useCallback } = React;
-    const APP_VERSION = '0.3.1';
+    const APP_VERSION = '0.3.2';
     const BASE = window.MONO_BASE;
     const IMG = BASE + 'img/';
 
@@ -642,6 +642,8 @@
       toks.forEach(t => { if (!t.space) t.pick = !!t.ans || !PUNCT_ONLY.test(D.plain(t.atoms)); });
       return toks;
     }
+    // ① だれが いった で、こたえ では ない ところの 登場人物の 名前は「ちがう」に しない（えらんでも まちがいに かぞえない）
+    const softName = (story, cat, t) => cat === 'dare' && !t.ans && !t.space && (story.people || []).some(p => D.plain(t.atoms).startsWith(p.n));
     const tokText = (t, yomi) => D.plain(t.atoms, yomi);
     const plainNodes = (ns, key) => ns.map((n, i) => n.t === 'text' ? n.s.split(/( )/).map((s, j) => s === ' ' ? <span key={`${key}-${i}-${j}`} className="sp" /> : s ? <span key={`${key}-${i}-${j}`}>{s}</span> : null)
       : n.t === 'ruby' ? <ruby key={`${key}-${i}`}>{n.b}<rt>{n.r}</rt></ruby> : <span key={`${key}-${i}`}>{plainNodes(n.kids, `${key}-${i}`)}</span>);
@@ -665,7 +667,8 @@
             const person = t.ans.c === 'dare' && t.ans.k === 's' && story.people ? story.people[(t.ans.n || 1) - 1] : null;
             if (person && /^「/.test(D.plain(t.ans.kids))) mark = <span className="badge">{person.e}</span>;
             if (on) cls += ' got';
-          } else if (on) cls += ' wrongpick';
+          } else if (on && softName(story, find.cat, t)) cls += ' picked';
+          else if (on) cls += ' wrongpick';
         } else if (on) cls += ' picked';
         return (
           <span key={ti}>
@@ -676,13 +679,13 @@
         );
       });
     }
-    function findResult(P, cat, sel) {
+    function findResult(P, cat, sel, story) {
       let ans = 0, got = 0, wrong = 0; const picks = [], answers = [];
       P.lines.forEach((ns, li) => tokenize(ns, cat).forEach((t, ti) => {
         if (t.space) return;
         const on = sel.includes(`${li}-${ti}`);
         if (t.ans) { ans++; answers.push(tokText(t, true)); if (on) got++; }
-        else if (on) wrong++;
+        else if (on && !softName(story, cat, t)) wrong++;
         if (on) picks.push(tokText(t, true));
       }));
       return { ans, got, wrong, missed: ans - got, picks, answers };
@@ -857,7 +860,7 @@
       const check = () => {
         if (!fcat || isRevealed) return;
         const c = CAT[fcat];
-        const r = findResult(P, fcat, curSel);
+        const r = findResult(P, fcat, curSel, story);
         setRevealed({ ...revealed, [fcat]: true });
         const ex = (story.explain && story.explain[fcat]) || '';
         let t;
