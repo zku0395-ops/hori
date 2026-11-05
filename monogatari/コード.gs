@@ -19,8 +19,8 @@ const SETTING_ROWS = [
 ];
 // オン・オフの 設定の ことば（オンの ことば、オフの ことば）
 const ONOFF = { quiz: ['する', 'しない'], sound: ['ならす', 'ならさない'], tts: ['つかう', 'つかわない'] };
-// 先生が 変える フラグ（全部開く）
-const FLAGS = ['unlockAll'];
+// 先生が 変える フラグ（全部開く・はってん）
+const FLAGS = ['unlockAll', 'hatten'];
 // きろくの「しゅるい」
 const CAT_NAMES = { dare: '①だれが いった', itsu: '②いつ', doko: '③どこ', kimochi: '④きもち', oto: '⑤オノマトペ' };
 
