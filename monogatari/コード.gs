@@ -47,13 +47,19 @@ function onOpen() {
 function setup() {
   ensureSheets_();
   const ss = ss_();
-  ss.toast('シートの準備ができました。「名簿」シートに子どもの名前を入れてください。');
   console.log('シートの準備ができました。記録の スプレッドシート：' + ss.getName() + '　' + ss.getUrl());
+  toast_('シートの準備ができました。「名簿」シートに子どもの名前を入れてください。');
 }
 
 function updateSummary() {
   writeSummary_(aggregate_(readLog_()), rosterNames_());
-  ss_().toast('まとめを更新しました。');
+  console.log('まとめを更新しました。');
+  toast_('まとめを更新しました。');
+}
+
+// スプレッドシートの 右下に おしらせを 出す（Apps Script だけで 作ったときは 出せないので、なにも しない）
+function toast_(msg) {
+  try { ss_().toast(msg); } catch (e) {}
 }
 
 // ---------------------------------------------------------------------

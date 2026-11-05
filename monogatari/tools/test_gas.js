@@ -71,7 +71,7 @@ vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'コード.gs'), 'utf
   let created = 0;
   ctx2.PropertiesService = { getScriptProperties: () => ({ getProperty: (k) => (k in props2 ? props2[k] : null), setProperty: (k, v) => { props2[k] = String(v); } }) };
   const sheets2 = {};
-  const ss2 = { getSheetByName: (n) => sheets2[n] || null, insertSheet: (n) => (sheets2[n] = makeSheet(n)), toast: () => {}, getId: () => 'NEWID', getName: () => 'ものがたりの もり 記録', getUrl: () => 'https://docs.google.com/x' };
+  const ss2 = { getSheetByName: (n) => sheets2[n] || null, insertSheet: (n) => (sheets2[n] = makeSheet(n)), toast: () => { throw new Error('Cannot call SpreadsheetApp.showNotification() from this context.'); }, getId: () => 'NEWID', getName: () => 'ものがたりの もり 記録', getUrl: () => 'https://docs.google.com/x' };
   ctx2.SpreadsheetApp = { getActiveSpreadsheet: () => null, create: () => { created++; return ss2; }, openById: (id) => (id === 'NEWID' ? ss2 : null), getUi: ctx.SpreadsheetApp.getUi };
   ctx2.console = { log() {} };
   vm.createContext(ctx2);
