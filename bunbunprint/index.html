@@ -32,6 +32,9 @@
     .row2 { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; }
     .row2 input[type=text] { font: inherit; font-size: 20px; padding: 8px 10px; border: 2px solid #a8a29e; border-radius: 10px; }
     .note { font-size: 14px; color: #57534e; }
+    .btn.pdfbtn { background: #dc2626; border-color: #991b1b; box-shadow: 0 5px 0 #991b1b; }
+    .pdfhelp { margin-top: 12px; border: 2px solid #dc2626; background: #fef2f2; border-radius: 14px; padding: 12px 16px; font-size: 16px; line-height: 1.7; }
+    .pdfhelp ol { margin: 6px 0; padding-left: 22px; }
     .count { font-size: 16px; font-weight: 700; color: #92400e; }
     .preview { overflow-x: auto; padding-bottom: 20px; }
     a.btn { display: inline-block; text-decoration: none; }
@@ -123,8 +126,27 @@
     <div class="panel">
       <h2>③ なまえ（入れなくても よい）</h2>
       <div class="row2"><input type="text" id="nen" placeholder="2" style="width:70px"> ねん　なまえ <input type="text" id="nm" placeholder="ひらがなで" style="width:240px"></div>
-      <div class="row2"><button class="btn big" id="print">🖨 いんさつ する</button><span class="count" id="count"></span></div>
-      <p class="note">PDF は <a href="https://github.com/zku0395-ops/hori/tree/main/bunbunprint/pdf" target="_blank" rel="noopener">pdf フォルダ（GitHub）</a> にも あります（なまえは 空いています）。</p>
+      <div class="row2"><button class="btn big" id="print">🖨 いんさつ する</button><button class="btn big pdfbtn" id="savepdf">📄 PDF で ほぞん</button><span class="count" id="count"></span></div>
+      <div class="pdfhelp" id="pdfhelp" hidden>
+        <b>PDF で ほぞん する てじゅん</b>
+        <ol>
+          <li>このあと 出る 印刷の 画面で、「送信先」（または「プリンタ」）を <b>「PDF として保存」</b>（パソコンでは「PDF に保存」）に します。</li>
+          <li>レイアウトが <b>よこ</b>、余白が <b>なし</b>、<b>背景のグラフィック</b> に チェックが 入って いるか たしかめます（「詳細設定」の 中に あります）。</li>
+          <li>「保存」を 押し、保存する ばしょ（Chromebook は「ダウンロード」や Google ドライブ）を えらびます。</li>
+        </ol>
+        <p class="note">ファイルの なまえは「<span id="pdfname"></span>」に なります。</p>
+        <button class="btn" id="pdfgo">わかった。印刷の 画面を ひらく</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>④ できあがった PDF（なまえは 空いて います）</h2>
+      <p>えらばなくても、ここから すぐ ダウンロード できます。</p>
+      <div class="opt">
+        <a class="btn small" href="pdf/ぶんづくりプリント_1_カラー.pdf" download="ぶんづくりプリント_1_カラー.pdf">🎨 カラー（25まい）</a>
+        <a class="btn small" href="pdf/ぶんづくりプリント_2_しろくろ.pdf" download="ぶんづくりプリント_2_しろくろ.pdf">⬛ しろくろ（25まい）</a>
+        <a class="btn small" href="pdf/ぶんづくりプリント_3_こたえ.pdf" download="ぶんづくりプリント_3_こたえ.pdf">🔴 こたえ（24まい）</a>
+      </div>
+      <p class="note">ダウンロード できない ときは、<a href="https://github.com/zku0395-ops/hori/tree/main/bunbunprint/pdf" target="_blank" rel="noopener">pdf フォルダ（GitHub）</a> から ファイルを えらび、「…」→「Download」を 押します。</p>
     </div>
   </div>
   <div class="preview" id="out"></div>
@@ -374,6 +396,26 @@
     document.getElementById('nen').oninput = (e) => { st.nen = e.target.value.slice(0, 3); render(); };
     document.getElementById('nm').oninput = (e) => { st.name = e.target.value.slice(0, 20); render(); };
     document.getElementById('print').onclick = () => window.print();
+    // PDF で ほぞん：印刷の 画面の「PDF として保存」を つかう。ファイルの なまえは ページの タイトルに なるので、なかみに あわせて かえる
+    const pdfName = () => {
+      const kind = { color: 'カラー', mono: 'しろくろ', key: 'こたえ' }[st.v];
+      const all = st.areas.length === M.SETS.length;
+      const ar = all ? 'ぜんぶ' : st.areas.length === 1 ? AREA[st.areas[0]].name.replace(/ /g, '') : st.areas.join('-');
+      return ['ぶんづくりプリント', kind, ar, st.name ? st.name.replace(/[\\/:*?"<>|]/g, '') : ''].filter(Boolean).join('_');
+    };
+    document.getElementById('savepdf').onclick = () => {
+      if (!st.areas.length) { alert('エリアを えらんで ください。'); return; }
+      document.getElementById('pdfname').textContent = pdfName() + '.pdf';
+      const box = document.getElementById('pdfhelp'); box.hidden = false; box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    };
+    document.getElementById('pdfgo').onclick = () => {
+      const t = document.title;
+      document.title = pdfName();
+      const back = () => { document.title = t; window.removeEventListener('afterprint', back); };
+      window.addEventListener('afterprint', back);
+      window.print();
+      setTimeout(back, 60000);
+    };
     if (qp.get('print') === '1') document.getElementById('controls').style.display = 'none';
     controls();
     render();
