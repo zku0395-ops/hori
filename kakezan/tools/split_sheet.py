@@ -3,13 +3,16 @@
 #   ・なまえは 上の だんの 左から じゅんに（.webp を つけずに）。kakezan/img/<なまえ>.webp に 書きます
 #   ・ふちから つながった 白い ところだけを とうめいに します（ふくの 白い ところは のこります）
 #   ・おなじ シートの 絵は、おなじ 大きさの わくに 足もとを そろえて おきます（ならべた ときに 大きさが そろう）
+#   ・--keep=なまえ,… を つけると、その 絵は くろい せんに かこまれた 白（白目 など）を けしません
 #   ・--each を つけると、1まいずつ ましかくの わくいっぱいに します（モンスター。小さい モンスターも 大きく 見える）
 import os, sys
 import numpy as np
 from PIL import Image
 
 EACH = '--each' in sys.argv  # 1たいずつ、ましかくの わくいっぱいに する（モンスター）
-args = [a for a in sys.argv[1:] if a != '--each']
+# --keep=なまえ,なまえ：かこまれた 白（白目 など）を けさない 絵
+KEEP = set(sum([a.split('=', 1)[1].split(',') for a in sys.argv[1:] if a.startswith('--keep=')], []))
+args = [a for a in sys.argv[1:] if a != '--each' and not a.startswith('--keep=')]
 src, cols, rows, names = args[0], int(args[1]), int(args[2]), args[3].split(',')
 preview = args[4] if len(args) > 4 else None
 out_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'img')
@@ -191,7 +194,7 @@ for k, name in enumerate(names):
     # （そうりょの ふくの 白は すこし きいろっぽいので のこる）
     mx = cell.max(axis=2)
     pure = (mn >= 240) & ((mx - mn) <= 8) & ~bg
-    bg = bg | enclosed_bg(pure, mn)
+    if name not in KEEP: bg = bg | enclosed_bg(pure, mn)
     alpha = np.where(bg, 0, 255).astype(np.int16)
     # はいけいの となりの うすい いろは すこし すかす（白い ふちを のこさない）
     near = np.zeros_like(bg)
