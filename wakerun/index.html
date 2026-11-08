@@ -79,7 +79,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.0.0';
+    const APP_VERSION = '1.1.0';
     const BASE = window.WAKE_BASE;
     const IMG = BASE + 'img/';
     let STAGES = [], SHAPES = [], DEN_YOMI = {}, NUM_YOMI = {}, TIERS = [], ITEM_CATS = [], FX = {}, LEVELS = [], HAS_IMG = new Set(), ALL_ITEMS = [];
@@ -983,6 +983,104 @@
     }
 
     // =====================================================================
+    //  9b. えらんで みよう（おちて こない がめんで 2つ・3つから えらぶ）
+    // =====================================================================
+    function makeChooseSet(round) {
+      const ts = shuffle([2, 2, 4, 4, 8, 8, 3, 3]);
+      const nCh = round >= 2 ? 3 : 2;
+      return ts.map(t => {
+        const shape = pickOne(SHAPES);
+        // 1/3 と 1/4 は まちがえやすいので、いっしょに だす ことを おおく する
+        let others = shuffle(FRACS.filter(n => n !== t));
+        if (t === 3) others = [4, ...others.filter(n => n !== 4)];
+        if (t === 4 && Math.random() < 0.5) others = [3, ...others.filter(n => n !== 3)];
+        const objs = [makeObj('target', t, { shape }), ...others.slice(0, nCh - 1).map(n => makeObj('other', n, { shape }))];
+        return { t, objs: shuffle(objs) };
+      });
+    }
+    function Choose({ st, round, startFound = 0, onRecord, onCoin, onSave, onFinish, onQuit }) {
+      const talk = useTalk();
+      const qs = useMemo(() => makeChooseSet(round), []);
+      const [qi, setQi] = useState(startFound);
+      const [gone, setGone] = useState([]); // まちがえて きえた もの
+      const [shake, setShake] = useState(null);
+      const [hint, setHint] = useState(0);
+      const [ok, setOk] = useState(false);
+      const miss = useRef({ miss: 0, wrongs: [], kinds: [], t0: Date.now() });
+      const perfect = useRef(true);
+      const q = qs[Math.min(qi, qs.length - 1)];
+      const t = q.t;
+      useEffect(() => {
+        setGone([]); setHint(0); setOk(false); setShake(null);
+        miss.current = { miss: 0, wrongs: [], kinds: [], t0: Date.now() };
+        talk.say(qi === startFound && qi === 0 ? `${st.intro} 1/${t} は どれかな？` : `1/${t} は どれかな？`);
+      }, [qi]);
+      const pick = (o) => {
+        if (ok || gone.includes(o.id)) return;
+        if (o.kind === 'target') {
+          Sound.got(); setOk(true);
+          const m = miss.current;
+          if (m.miss) perfect.current = false;
+          onRecord({ stage: st.id, round, target: fracStr(1, t), shape: o.shape.n, result: m.miss ? '△' : '○', miss: m.miss, hint,
+            wrongs: m.wrongs.join('・'), kinds: m.kinds.join('・'), secs: Math.round((Date.now() - m.t0) / 100) / 10, zukan: `${o.shape.id}_${o.n}` });
+          onCoin(1);
+          talk.say(`せいかい！ ${t}つに おなじ おおきさに わけた 1つぶん、1/${t} だね。`, { mood: 'happy' });
+        } else {
+          Sound.retry();
+          const m = miss.current;
+          m.miss++; m.wrongs.push(`${o.shape.n}:${o.label}`); m.kinds.push(KIND_NAME[o.kind] || 'ほかの ぶんすう');
+          setShake(o.id);
+          talk.say(wrongWords(o, t), { mood: 'think' });
+          setTimeout(() => { setGone(g => [...g, o.id]); setShake(null); }, 1800);
+          if (m.miss >= 2) setHint(h => Math.max(h, 3));
+        }
+      };
+      const next = () => {
+        Sound.tap();
+        const n = qi + 1;
+        if (n >= qs.length) { onFinish({ found: qs.length, perfect: perfect.current }); return; }
+        onSave({ found: n });
+        setQi(n);
+      };
+      const askHint = () => {
+        Sound.tap();
+        const lv = Math.min(3, hint + 1); setHint(lv);
+        if (lv === 1) talk.say(`1/${t} は、${t}つに おなじ おおきさに わけた 1つぶん だよ。いくつに わけて あるか みて みよう。`);
+        if (lv === 2) talk.say(`ばんごうで かぞえて みよう。${t}まで ある ものが 1/${t} だよ。`);
+        if (lv === 3) talk.say(`ひかって いる ものが 1/${t} だよ。`);
+      };
+      const size = q.objs.length === 2 ? 240 : 200;
+      return (
+        <div className="w-full max-w-5xl flex flex-col items-center gap-4 p-3">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 bg-white rounded-3xl px-6 py-1 border-4 border-amber-400 shadow-lg">
+              <Frac k={1} n={t} size={2.2} color="#b45309" />
+              <div className="flex flex-col"><span className="text-3xl font-bold">は どれ？</span><span className="text-base text-slate-600">（{fracYomi(1, t)}）</span></div>
+              <button onClick={() => talk.say(`1/${t} は どれかな？ ${t}つに おなじ おおきさに わけた 1つぶんだよ。`)} className="ml-1 text-2xl rounded-full bg-sky-100 border-2 border-sky-300 w-12 h-12">🔊</button>
+            </div>
+            <div className="bg-white/90 rounded-2xl px-3 py-2 text-center"><div className="text-sm font-bold text-slate-600">もんだい</div><div className="text-3xl font-bold"><span className="text-amber-600">{qi + 1}</span> / {qs.length}</div></div>
+          </div>
+          <div className="flex gap-8 items-center justify-center flex-wrap bg-slate-900/60 rounded-3xl p-6 min-h-[300px]">
+            {q.objs.map(o => gone.includes(o.id) ? <div key={o.id} style={{ width: size, height: size }} /> : (
+              <button key={o.id} onClick={() => pick(o)} className={`relative rounded-3xl ${shake === o.id ? 'shake' : ''} ${(hint >= 3 || ok) && o.kind === 'target' ? 'ring' : ''}`}
+                style={{ filter: shake === o.id ? 'drop-shadow(0 0 8px #fb7185)' : undefined, opacity: ok && o.kind !== 'target' ? .35 : 1 }}>
+                <ShapeSvg o={o} size={size} nums={hint >= 2} />
+                {shake === o.id && <div className="pop absolute left-1/2 -translate-x-1/2 -bottom-12 bg-white rounded-xl px-3 py-1 text-xl font-bold whitespace-nowrap border-2 border-rose-300 shadow"><Rich text={`${o.label} だよ`} fsize={0.8} /></div>}
+                {ok && o.kind === 'target' && <div className="pop absolute left-1/2 -translate-x-1/2 -top-14 bg-amber-300 rounded-xl px-3 py-1 font-bold border-2 border-white shadow"><Frac k={1} n={t} size={1.4} /></div>}
+              </button>
+            ))}
+          </div>
+          <div className="w-full"><TalkBar size={90} dark /></div>
+          <div className="flex gap-4">
+            {ok && <Btn onClick={next} color="#16a34a" light="#dcfce7" className="text-3xl px-10">{qi + 1 < qs.length ? 'つぎへ ▶' : 'おわり ✔'}</Btn>}
+            {!ok && <button onClick={askHint} className={`btn3d rounded-2xl border-4 border-amber-500 bg-amber-100 px-5 py-2 text-2xl font-bold ${miss.current.miss >= 1 && hint < 3 ? 'glow' : ''}`}>💡 ヒント{hint ? ` ${hint}` : ''}</button>}
+            <Btn onClick={() => { talk.stop(); onQuit({ found: qi }); }} color="#64748b" light="#f1f5f9" className="text-xl">🏠 やめる</Btn>
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
     // 10. けっか
     // =====================================================================
     function ResultScreen({ view, progress, onAgain, onHome, onNext }) {
@@ -991,18 +1089,20 @@
       const r = progress.rounds[st.id] || 0;
       useEffect(() => {
         if (result.stageClear) { Sound.big(); talk.say(`ステージ クリア！ ${st.name}が ぜんぶ おわったよ。すごいね！`, { mood: 'happy' }); }
-        else { Sound.fanfare(); talk.say(`パトロール かんりょう！ ${result.found}こ みつけたね。ボーナスの コインも どうぞ。`, { mood: 'happy' }); }
+        else if (st.kind === 'hunt') { Sound.fanfare(); talk.say(`パトロール かんりょう！ ${result.found}こ みつけたね。ボーナスの コインも どうぞ。`, { mood: 'happy' }); }
+        else { Sound.fanfare(); talk.say(`よく できたね！ ボーナスの コインも どうぞ。`, { mood: 'happy' }); }
       }, []);
       return (
         <SpaceBg equip={progress.equip} className="w-full flex-1 flex flex-col items-center" style={{ minHeight: 'calc(100vh - 64px)' }}>
           <div className="flex flex-col items-center gap-4 p-6">
-            <div className="text-5xl font-bold text-white tshadow pop">{result.stageClear ? '🏆 ステージ クリア！' : '🎉 パトロール かんりょう！'}</div>
+            <div className="text-5xl font-bold text-white tshadow pop">{result.stageClear ? '🏆 ステージ クリア！' : st.kind === 'hunt' ? '🎉 パトロール かんりょう！' : '🎉 よく できました！'}</div>
             <Wakerun equip={progress.equip} size={180} mood="happy" className="floaty" />
             <div className="bg-white rounded-3xl p-5 flex flex-col items-center gap-2 text-2xl font-bold min-w-[320px]">
-              <div>{st.icon} {st.kind === 'intro' ? st.name : <Rich text={st.name} />}</div>
+              <div>{st.icon} <Rich text={st.name} /></div>
+              {st.kind === 'choose' && <div>こたえた もんだい：<span className="text-amber-600 text-4xl">{result.found}</span>もん</div>}
               {st.kind === 'hunt' && <div>みつけた かず：<span className="text-amber-600 text-4xl">{result.found}</span>こ</div>}
               <div>もらった コイン：🪙 <span className="text-amber-600 text-4xl">{result.coins}</span>まい</div>
-              {result.perfect && st.kind === 'hunt' && <div className="text-emerald-600">✨ ノーミス！ まちがえずに みつけたよ</div>}
+              {result.perfect && st.kind !== 'intro' && <div className="text-emerald-600">✨ ノーミス！ まちがえずに みつけたよ</div>}
               <div>このステージ：<Stars n={r} of={st.rounds} size="text-3xl" /></div>
             </div>
             <div className="w-full max-w-3xl"><TalkBar size={70} /></div>
@@ -1099,7 +1199,7 @@
         return (
           <button key={st.id} onClick={() => { Sound.tap(); if (open) onStart(st, cur); else talk.say(st.hatten ? 'はってんは せんせいが ひらいて くれるよ。' : 'まえの ステージを クリアすると ひらくよ。', { mood: 'think' }); }}
             className={`btn3d rounded-3xl border-4 p-3 flex flex-col items-center text-center ${open ? 'bg-white' : 'bg-slate-300 opacity-70'} ${st.hatten ? 'border-fuchsia-500' : 'border-sky-500'}`}>
-            <div className="text-sm font-bold text-slate-500">{st.hatten ? 'はってん' : `ステージ ${i}`}</div>
+            <div className="text-sm font-bold text-slate-500">{st.hatten ? 'はってん' : `ステージ ${st.no || i}`}</div>
             <div className="text-5xl">{open ? st.icon : '🔒'}</div>
             <div className="text-xl font-bold leading-snug mt-1"><Rich text={st.name} fsize={0.75} /></div>
             <div className="text-sm text-slate-600 mt-1"><Rich text={st.sub} fsize={0.65} /></div>
@@ -1326,7 +1426,7 @@
     const pct = (a, b) => b ? `${Math.round((a / b) * 100)}%` : '－';
     const topOf = (m, n = 5) => Object.entries(m || {}).sort((a, b) => b[1] - a[1]).slice(0, n);
     const FRAC_KEYS = ['1/2', '1/4', '1/8', '1/3'];
-    const stageLabel = (id) => { const st = STAGES.find(s => s.id === id); if (!st) return id; const i = mainStages().indexOf(st); return `${st.hatten ? 'はってん' : 'ステージ' + i} ${st.name}`; };
+    const stageLabel = (id) => { const st = STAGES.find(s => s.id === id); if (!st) return id; const i = mainStages().indexOf(st); return `${st.hatten ? 'はってん' : 'ステージ' + (st.no || i)} ${st.name}`; };
 
     function TeacherView({ data, pin, onClose, onChanged, onSettings }) {
       const [tab, setTab] = useState('class');
@@ -1617,6 +1717,7 @@
         records.current = []; roundCoins.current = 0;
         const part = resume && progRef.current.part && progRef.current.part.st === st.id ? progRef.current.part : null;
         if (st.kind === 'intro') { setView({ v: 'deau', st, key: uid() }); return; }
+        if (st.kind === 'choose') { setView({ v: 'choose', st, round: part ? part.round : roundOf(st), found: part ? part.found : 0, key: uid() }); return; }
         setView({ v: 'hunt', st, round: part ? part.round : roundOf(st), found: part ? part.found : 0, ti: part ? part.ti || 0 : 0, key: uid() });
       };
 
@@ -1640,7 +1741,7 @@
         const had = isCleared(p, st);
         p.rounds = { ...p.rounds, [st.id]: Math.min(st.rounds, (p.rounds[st.id] || 0) + 1) };
         p.plays = { ...p.plays, [st.id]: (p.plays[st.id] || 0) + 1 };
-        if (result.perfect && st.kind === 'hunt') p.perfect = (p.perfect || 0) + 1;
+        if (result.perfect && st.kind !== 'intro') p.perfect = (p.perfect || 0) + 1;
         const stageClear = !had && isCleared(p, st);
         p = persist(p);
         let next = null;
@@ -1710,6 +1811,10 @@
       } else if (view.v === 'deau') {
         body = <div className="min-h-screen flex flex-col">{bar()}<SpaceBg equip={progress.equip} dim={0.5} className="flex-1 flex justify-center" style={{ minHeight: 'calc(100vh - 64px)' }}>
           <div className="flex justify-center"><Deau key={view.key} onFinish={() => finish(view.st, { found: 0, perfect: false })} onQuit={() => { talkApi.stop(); setView({ v: 'home' }); }} /></div></SpaceBg></div>;
+      } else if (view.v === 'choose') {
+        body = <div className="min-h-screen flex flex-col relative"><CoinFly fx={coinFx} />{bar()}<SpaceBg equip={progress.equip} dim={0.5} className="flex-1 flex justify-center" style={{ minHeight: 'calc(100vh - 64px)' }}>
+          <div className="flex justify-center"><Choose key={view.key} st={view.st} round={view.round} startFound={view.found} onRecord={onRecord} onCoin={onCoin}
+            onSave={onSave(view.st, view.round)} onFinish={(r) => finish(view.st, r)} onQuit={quit(view.st, view.round)} /></div></SpaceBg></div>;
       } else if (view.v === 'hunt') {
         body = <div className="min-h-screen flex flex-col relative"><CoinFly fx={coinFx} />{bar()}
           <Hunt key={view.key} st={view.st} round={view.round} count={settings.count} startFound={view.found} startTi={view.ti} settings={settings} equip={progress.equip}
