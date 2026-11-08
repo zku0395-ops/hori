@@ -191,6 +191,9 @@
     'hero_yusha_1.webp', 'hero_yusha_2.webp', 'hero_yusha_3.webp', 'hero_mahou_1.webp', 'hero_mahou_2.webp', 'hero_mahou_3.webp',
     'hero_shonin_1.webp', 'hero_shonin_2.webp', 'hero_shonin_3.webp', 'hero_soryo_1.webp', 'hero_soryo_2.webp', 'hero_soryo_3.webp',
     'kakeru_normal.webp', 'kakeru_happy.webp', 'kakeru_think.webp',
+    // モンスター（シートC）
+    'monster_kusadango.webp', 'monster_korotento.webp', 'monster_donmogura.webp', 'monster_nebokinoko.webp', 'monster_kodamarisu.webp',
+    'monster_fukuroad.webp', 'monster_pukagaeru.webp', 'monster_awasakana.webp', 'monster_zabun.webp', 'monster_komorin.webp',
   ];
 
   // ChatGPT の まちの 絵（town）の うえで 押す ばしょ。絵は よこ 960 × たて 640 と して かぞえる
