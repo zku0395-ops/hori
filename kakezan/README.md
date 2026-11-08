@@ -94,7 +94,7 @@ kakezan/
 ├── コード.gs         Apps Script（シートの準備・記録の受け取り・先生用の集計・ドライブの絵）
 ├── data/data.js      場所・モンスター・しょくぎょう・おみせ・しゅぎょう・お話・プリントの問題（GitHub Pages から読みこみます）
 ├── e_chatgpt.md      ChatGPT で作る絵の注文書（ファイル名と、ChatGPT にわたす文）
-├── img/              ChatGPT で作った絵（しゅじんこう12まい〈シートA〉・カケルさま3まい〈シートB〉・モンスター10たい〈シートC〉）
+├── img/              ChatGPT で作った絵（しゅじんこう12まい〈シートA〉・カケルさま3まい〈シートB〉・モンスター20たい〈シートC・D〉）
 ├── tools/check.js    ひっ算の しくみと データの 点検（node kakezan/tools/check.js）
 ├── tools/split_sheet.py まとめて作った絵（シートA〜E）を1まいずつに切り分けて、白い背景を とうめいにする道具（モンスターは --each で1たいずつ大きく）
 └── tools/test_gas.js コード.gs のテスト（node kakezan/tools/test_gas.js）

@@ -194,6 +194,9 @@
     // モンスター（シートC）
     'monster_kusadango.webp', 'monster_korotento.webp', 'monster_donmogura.webp', 'monster_nebokinoko.webp', 'monster_kodamarisu.webp',
     'monster_fukuroad.webp', 'monster_pukagaeru.webp', 'monster_awasakana.webp', 'monster_zabun.webp', 'monster_komorin.webp',
+    // モンスター（シートD）
+    'monster_iwakoro.webp', 'monster_gansekigolem.webp', 'monster_sabosan.webp', 'monster_sunahebi.webp', 'monster_sasoking.webp',
+    'monster_yukidarun.webp', 'monster_kooripen.webp', 'monster_icewolf.webp', 'monster_hinoko.webp', 'monster_honotokage.webp',
   ];
 
   // ChatGPT の まちの 絵（town）の うえで 押す ばしょ。絵は よこ 960 × たて 640 と して かぞえる
