@@ -85,7 +85,7 @@ ChatGPT にわたす文（例）：
 | ファイル名 | 形 |
 |---|---|
 | `piece_pizza.webp` | ピザ（入れました） |
-| `piece_sand.webp` | サンドイッチ（正方形の食パン） |
+| `piece_sand.webp` | サンドイッチ（正方形の食パン。入れました） |
 | `piece_ufoR.webp` | まるい ユーフォー（ふちだけにライト） |
 | `piece_ufoS.webp` | しかくい ユーフォー（ふちだけにライト） |
 

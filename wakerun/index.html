@@ -261,6 +261,8 @@
     }
 
     const LIT = '#fde047', UNLIT = '#cbd5e1';
+    // かたちの 絵を おく ばしょ（ふちからの すきま）
+    const PIMG_BOX = { pizza: 1, sand: 3, ufoR: 1, ufoS: 2 };
     // かたちの 絵（o：makeObj で つくった もの。nums：ばんごうを だす）
     const ShapeSvg = React.memo(function ShapeSvg({ o, nums = false, size = 120, numsOn = null }) {
       const sid = o.id.replace(/[^a-z0-9]/gi, '');
@@ -280,11 +282,11 @@
           {/* したじ */}
           {kind === 'pizza' && !pimg && <circle cx="50" cy="50" r="49" fill="#c2410c" stroke="#fff" strokeWidth="1.2" />}
           {kind === 'pizza' && !pimg && <circle cx="50" cy="50" r="47" fill="#ea9a3e" />}
-          {pimg && <image href={IMG + pimg} x="1" y="1" width="98" height="98" preserveAspectRatio="none" />}
+          {pimg && <image href={IMG + pimg} x={PIMG_BOX[kind]} y={PIMG_BOX[kind]} width={100 - 2 * PIMG_BOX[kind]} height={100 - 2 * PIMG_BOX[kind]} preserveAspectRatio="none" />}
           {kind === 'circle' && <circle cx="50" cy="50" r={R0 + 1.5} fill="#fff" />}
           {kind === 'ufoR' && <><circle cx="50" cy="50" r="49" fill="#475569" stroke="#e2e8f0" strokeWidth="1.2" /><circle cx="50" cy="50" r="46.5" fill="#64748b" /></>}
           {kind === 'square' && <rect x={SQ0 - 1.5} y={SQ0 - 1.5} width={SQ + 3} height={SQ + 3} fill="#fff" />}
-          {kind === 'sand' && <><rect x="3" y="3" width="94" height="94" rx="14" fill="#16a34a" stroke="#fff" strokeWidth="1.2" /><rect x="5" y="5" width="90" height="90" rx="12" fill="#c2843f" /></>}
+          {kind === 'sand' && !pimg && <><rect x="3" y="3" width="94" height="94" rx="14" fill="#16a34a" stroke="#fff" strokeWidth="1.2" /><rect x="5" y="5" width="90" height="90" rx="12" fill="#c2843f" /></>}
           {kind === 'ufoS' && <><rect x="2" y="2" width="96" height="96" rx="12" fill="#475569" stroke="#e2e8f0" strokeWidth="1.2" /><rect x="5" y="5" width="90" height="90" rx="10" fill="#64748b" /></>}
           <g clipPath={clip}>
             {/* ピース */}
@@ -292,7 +294,7 @@
             {kind === 'pizza' && !pimg && o.tops && o.tops.map((t, i) => t.k === 'p'
               ? <g key={i}><circle cx={t.x} cy={t.y} r="4.6" fill="#dc2626" /><circle cx={t.x - 1.2} cy={t.y - 1.2} r="1.2" fill="#fca5a5" /></g>
               : <rect key={i} x={t.x - 3} y={t.y - 1} width="6" height="2.2" rx="1" fill="#16a34a" transform={`rotate(${t.r} ${t.x} ${t.y})`} />)}
-            {kind === 'sand' && <g opacity=".35">{[[30, 30], [60, 40], [40, 70], [72, 70], [20, 55]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="1.6" fill="#d97706" />)}</g>}
+            {kind === 'sand' && !pimg && <g opacity=".35">{[[30, 30], [60, 40], [40, 70], [72, 70], [20, 55]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="1.6" fill="#d97706" />)}</g>}
             {/* ひかる ところ・ひからない ところ（もようの ある かたち） */}
             {textured && !o.plain && part.map((p, i) => <path key={'o' + i} d={p.d} fill={isLit(i) ? (pimg ? 'rgba(253,224,71,.3)' : 'rgba(253,224,71,.6)') : (pimg ? 'rgba(15,23,42,.62)' : 'rgba(30,41,59,.55)')} />)}
             {kind === 'ufoS' && [[14, 14], [86, 14], [14, 86], [86, 86]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="2.2" fill="#e2e8f0" opacity=".9" />)}
@@ -301,7 +303,7 @@
             {/* ひかって いる ところの ふち */}
             {part.map((p, i) => isLit(i) ? <path key={'g' + i} className="litpulse" d={p.d} fill="none" stroke="#fffbeb" strokeWidth="3.2" strokeLinejoin="round" /> : null)}
           </g>
-          {kind === 'sand' && <rect x={SQ0} y={SQ0} width={SQ} height={SQ} rx="9" fill="none" stroke="#a16207" strokeWidth="2.5" />}
+          {kind === 'sand' && !pimg && <rect x={SQ0} y={SQ0} width={SQ} height={SQ} rx="9" fill="none" stroke="#a16207" strokeWidth="2.5" />}
           {kind === 'ufoR' && Array.from({ length: 12 }, (_, i) => { const [x, y] = pt(i * 30 + 15, 47.6); return <circle key={i} cx={x} cy={y} r="1.5" fill={['#f472b6', '#fde047', '#38bdf8'][i % 3]} />; })}
           {kind === 'ufoS' && Array.from({ length: 8 }, (_, i) => { const t = 22 + (i % 4) * 18.7; const top = i < 4; return <circle key={i} cx={t} cy={top ? 3.6 : 96.4} r="1.3" fill={['#f472b6', '#fde047', '#38bdf8'][i % 3]} />; })}
           {/* ばんごう（ヒント） */}
