@@ -85,12 +85,12 @@ wakerun/
 ├── コード.gs         Apps Script（シートの準備・記録の受け取り・先生用の集計）
 ├── data/data.js      ステージ・形・おみせの品物・レベルのデータ（GitHub Pages から読みこみます）
 ├── e_chatgpt.md      ChatGPT で作る絵の注文書
-├── img/              ChatGPT で作った絵（いまは ワケルンの ふつう・うれしい・かんがえる、すがた12まい、はいけい bg_home・bg_moon・bg_sunset・bg_sea・bg_forest・bg_ice・bg_candy・bg_volcano・bg_galaxy・bg_rainbow・bg_gem・bg_castle）
+├── img/              ChatGPT で作った絵（ワケルン3まい・すがた12まい・はいけい13まい。ぜんぶ そろっています）
 ├── tools/test_gas.js コード.gs のテスト（node wakerun/tools/test_gas.js）
 └── tools/check.js    データと形の点検（ひとしく分けた形のピースが同じ大きさか など）
 ```
 
-- 絵がそろうまでは、ワケルン・はいけい・すがたは自作の SVG と絵文字で出します。
+- ワケルン・すがた・はいけいは ChatGPT の絵です。絵がない ときは、自作の SVG と絵文字で出します。
 - 絵を `img/` に置いたら、`data/data.js` の `IMAGES` にファイル名を足します（くわしくは `e_chatgpt.md`）。
 
 ## 公開の手順
@@ -179,7 +179,6 @@ wakerun/
 
 ## これから相談して決めること
 
-- ChatGPT の絵（ワケルン・すがた・はいけい）がそろったら、アプリに組みこむ。
 - ワケルンの声を Gemini-TTS にするか（いまはブラウザの声のまま。様子を見て決める）。
 - 2/4・2/8 などの「2つ分」を、はってんでどこまで あつかうか（いまは「まちがいの形」として出すだけ）。
 - プリント（1/2・1/4・1/8・1/3 に色をぬる）を作るか。
