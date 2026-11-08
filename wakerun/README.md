@@ -85,7 +85,7 @@ wakerun/
 ├── コード.gs         Apps Script（シートの準備・記録の受け取り・先生用の集計）
 ├── data/data.js      ステージ・形・おみせの品物・レベルのデータ（GitHub Pages から読みこみます）
 ├── e_chatgpt.md      ChatGPT で作る絵の注文書
-├── img/              ChatGPT で作った絵（いまは ワケルンの ふつう・うれしい・かんがえる、すがた12まい、はいけい bg_home）
+├── img/              ChatGPT で作った絵（いまは ワケルンの ふつう・うれしい・かんがえる、すがた12まい、はいけい bg_home・bg_moon）
 ├── tools/test_gas.js コード.gs のテスト（node wakerun/tools/test_gas.js）
 └── tools/check.js    データと形の点検（ひとしく分けた形のピースが同じ大きさか など）
 ```
