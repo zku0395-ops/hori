@@ -78,7 +78,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.1.0';
+    const APP_VERSION = '1.2.0';
     const BASE = window.KAKE_BASE;
     const IMG = BASE + 'img/';
     let D = {}, PLACES = [], MONSTERS = [], JOBS = [], FORMS = [], SHOPS = [], SHUGYO = [], ALL_ITEMS = [];
@@ -743,8 +743,8 @@
     // =====================================================================
     const TalkCtx = createContext(null);
     const useTalk = () => useContext(TalkCtx);
-    function Face({ who, hero, size = 56 }) {
-      if (who === 'kakeru') return <Kakeru size={size} mood="happy" />;
+    function Face({ who, mood, size = 56 }) {
+      if (who === 'kakeru') return <Kakeru size={size} mood={mood || 'normal'} />;
       if (who === 'maou') return <MaouPic size={size} />;
       if (who && who.job) return <HeroPic job={who.job} form={who.form} size={size} />;
       if (who && who.emoji) return <MonsterPic m={who} size={size} />;
@@ -756,7 +756,7 @@
       const name = t.who === 'kakeru' ? 'カケルさま' : t.who === 'maou' ? 'まおう' : t.who && t.who.name ? t.who.name : '';
       return (
         <div className={`rpgwin flex items-start gap-3 p-3 ${className}`}>
-          <div className="shrink-0" onClick={() => t.repeat()}><Face who={t.who} size={small ? 44 : 60} /></div>
+          <div className="shrink-0" onClick={() => t.repeat()}><Face who={t.who} mood={t.mood} size={small ? 44 : 60} /></div>
           <div className="flex-1 min-w-0">
             {name && <div className="text-sm text-amber-300 font-bold">{name}</div>}
             <div className={`${small ? 'text-lg' : 'text-xl'} leading-relaxed font-bold`}>{t.text}</div>
@@ -1544,15 +1544,15 @@
         s.miss++; s.kinds.push(kind); s.inputs.push(`${ROW_NAME[st.row]}${st.memo ? 'メモ' : PLACE_NAME[st.place]}:${v}→${st.val}`);
         const m = miss + 1;
         setMiss(m); setBad([...bad, v]); setShake(x => x + 1);
-        if (m >= 3) { setHint(3); s.hint = Math.max(s.hint, 3); talk.say(`${missText(kind, st)} ひかって いる かずを おしてね。`, { who: 'kakeru' }); }
-        else talk.say(missText(kind, st), { who: 'kakeru' });
+        if (m >= 3) { setHint(3); s.hint = Math.max(s.hint, 3); talk.say(`${missText(kind, st)} ひかって いる かずを おしてね。`, { who: 'kakeru', mood: 'think' }); }
+        else talk.say(missText(kind, st), { who: 'kakeru', mood: 'think' });
       };
       const moreHint = () => {
         const n = Math.min(3, hint + 1);
         setHint(n); stats.current.hint = Math.max(stats.current.hint, n);
-        if (n === 1) talk.say(hintText(st), { who: 'kakeru' });
-        else if (n === 2) talk.say(hintCalc(st).join('。'), { who: 'kakeru' });
-        else talk.say('ひかって いる かずを おしてね。', { who: 'kakeru' });
+        if (n === 1) talk.say(hintText(st), { who: 'kakeru', mood: 'think' });
+        else if (n === 2) talk.say(hintCalc(st).join('。'), { who: 'kakeru', mood: 'think' });
+        else talk.say('ひかって いる かずを おしてね。', { who: 'kakeru', mood: 'think' });
       };
       const done = i >= h.steps.length;
       return (
@@ -1755,7 +1755,7 @@
         const kind = mode === 'mato' ? 'くくの まちがい' : c === q.x ? 'くりあがりの たしわすれ' : Math.abs(c - q.ans) === 10 ? 'くらいの まちがい' : 'たし算の まちがい';
         st.current.miss++; st.current.kinds.push(kind); st.current.inputs.push(`${c}→${q.ans}`);
         setBad([...bad, c]);
-        talk.say(mode === 'mato' ? `${q.a}の だんを となえて みよう。${q.a} × ${q.b} は？` : kind === 'くりあがりの たしわすれ' ? `${q.c} を たすのを わすれて いるよ。` : `${q.x} から ${q.c} かぞえて みよう。`, { who: 'kakeru' });
+        talk.say(mode === 'mato' ? `${q.a}の だんを となえて みよう。${q.a} × ${q.b} は？` : kind === 'くりあがりの たしわすれ' ? `${q.c} を たすのを わすれて いるよ。` : `${q.x} から ${q.c} かぞえて みよう。`, { who: 'kakeru', mood: 'think' });
       };
       const glow = bad.length >= 2 ? q.ans : null;
       return (
@@ -2167,10 +2167,10 @@
         const run = (text, opts = {}) => new Promise(resolve => {
           const id = ++sayId.current;
           lastSay.current = { text, opts };
-          setTalk({ text, who: opts.who || 'kakeru' });
+          setTalk({ text, who: opts.who || 'kakeru', mood: opts.mood });
           Speech.say(text, () => { if (sayId.current === id) resolve(); else resolve(); }, pitchOf(opts.who));
         });
-        const show = (text, opts = {}) => { ++sayId.current; Speech.stop(); lastSay.current = { text, opts }; setTalk({ text, who: opts.who || 'kakeru' }); };
+        const show = (text, opts = {}) => { ++sayId.current; Speech.stop(); lastSay.current = { text, opts }; setTalk({ text, who: opts.who || 'kakeru', mood: opts.mood }); };
         return { say: run, show, repeat: () => lastSay.current && run(lastSay.current.text, lastSay.current.opts), stop: () => Speech.stop() };
       }, []);
       const talkCtx = { ...talkApi, ...talk };

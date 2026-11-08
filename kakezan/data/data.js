@@ -190,6 +190,7 @@
   const IMAGES = [
     'hero_yusha_1.webp', 'hero_yusha_2.webp', 'hero_yusha_3.webp', 'hero_mahou_1.webp', 'hero_mahou_2.webp', 'hero_mahou_3.webp',
     'hero_shonin_1.webp', 'hero_shonin_2.webp', 'hero_shonin_3.webp', 'hero_soryo_1.webp', 'hero_soryo_2.webp', 'hero_soryo_3.webp',
+    'kakeru_normal.webp', 'kakeru_happy.webp', 'kakeru_think.webp',
   ];
 
   // ChatGPT の まちの 絵（town）の うえで 押す ばしょ。絵は よこ 960 × たて 640 と して かぞえる
