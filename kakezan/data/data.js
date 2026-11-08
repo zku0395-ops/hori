@@ -200,7 +200,8 @@
     // モンスター（シートE）
     'monster_volka.webp', 'monster_numaghost.webp', 'monster_wanida.webp', 'monster_numanuma.webp', 'monster_kagekishi.webp',
     'monster_yamimadoshi.webp', 'monster_barabara.webp', 'monster_kaminarigumo.webp', 'monster_sorawashi.webp', 'monster_tenkuryu.webp',
-    // ばしょの はいけい（シートG）
+    // ばしょの はいけい（シートF・G）
+    'bg_p0.webp', 'bg_p1.webp', 'bg_p2.webp', 'bg_p3.webp',
     'bg_p4.webp', 'bg_p5.webp', 'bg_p6.webp', 'bg_p7.webp',
   ];
 
