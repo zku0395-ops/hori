@@ -78,7 +78,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.0.0';
+    const APP_VERSION = '1.1.0';
     const BASE = window.KAKE_BASE;
     const IMG = BASE + 'img/';
     let D = {}, PLACES = [], MONSTERS = [], JOBS = [], FORMS = [], SHOPS = [], SHUGYO = [], ALL_ITEMS = [];
@@ -926,6 +926,9 @@
       [[300, 250], [640, 250], [760, 330]].forEach(p => t.push(p));
       return t;
     })();
+    // まちの 絵の うえで 押す ところ：[TOWN_SPOTS の なまえ, いく ところ, かんばん, 絵文字]
+    const TOWN_PLACES = [['castle', 'castle', 'おしろ', '🏰'], ['guild', 'guild', 'ギルド', '📜'], ['buki', 'shop:buki', 'ぶきや', '⚔️'], ['bougu', 'shop:bougu', 'ぼうぐや', '🛡️'],
+      ['dougu', 'shop:dougu', 'どうぐや', '🧪'], ['inn', 'inn', 'やどや', '🛏️'], ['house', 'house', 'じぶんの いえ', '🏠'], ['shugyo', 'shugyo', 'しゅぎょうの ば', '🥋'], ['gate', 'map', 'もん（そとへ）', '🚪']];
     const shopOpen = (p, s) => !s.open || !!p.unlockAll || placeCleared(p, PLACE[s.open]);
 
     function Town({ p, onGo, onContinue }) {
@@ -940,12 +943,41 @@
       const sat = 0.35 + 0.65 * g / 9;
       const S = Object.fromEntries(SHOPS.map(s => [s.id, s]));
       const part = p.part && PLACE[p.part.place] ? p.part : null;
+      const light = { filter: `saturate(${sat}) brightness(${0.86 + 0.14 * g / 9})` };
+      const townImg = Img.url('town');
+      const T = D.TOWN_SPOTS;
+      // ChatGPT の まちの 絵が ある とき：絵の うえに 押す ばしょと かんばんを かさねる
+      const imgTown = townImg && (
+        <>
+          <img src={townImg} alt="" draggable="false" className="absolute inset-0 w-full h-full rounded-2xl" style={{ objectFit: 'cover', ...light }} />
+          <svg viewBox="0 0 960 640" className="absolute inset-0 w-full h-full">
+            {TOWN_PLACES.map(([id, go2, label, emoji]) => {
+              const [x, y, w, h] = T[id], locked = go2 === 'shop:bougu' ? !shopOpen(p, S.bougu) : go2 === 'shop:dougu' ? !shopOpen(p, S.dougu) : false;
+              const sw = 56 + label.replace(/ /g, '').length * 18, sy = Math.max(2, y - 34);
+              return (
+                <g key={id} className="bldg" onClick={() => go(go2)}>
+                  <rect x={x} y={y} width={w} height={h} fill="#fff" fillOpacity="0.001" />
+                  {id === 'house' && <ellipse cx={x + w / 2} cy={y + h / 2} rx={w / 2 + 24} ry={h / 2 + 14} fill="none" stroke="#fff" strokeWidth="5" />}
+                  <rect x={x + w / 2 - sw / 2} y={sy} width={sw} height="30" rx="10" fill={locked ? '#cbd5e1' : '#fffbeb'} fillOpacity=".93" stroke="#78350f" strokeWidth="3" />
+                  <text x={x + w / 2} y={sy + 21} textAnchor="middle" fontSize="18" fontWeight="bold" fill="#3f2a14">{locked ? '🔒 ' : emoji + ' '}{label}</text>
+                </g>
+              );
+            })}
+            {mainPlaces().map((pl, i) => {
+              const [fx, fy, fr] = T.fountain, a = (i / 9) * Math.PI * 2 - Math.PI / 2, x = fx + Math.cos(a) * fr, y = fy + Math.sin(a) * fr, on = placeCleared(p, pl);
+              return <path key={pl.id} d={`M${x} ${y - 9} l7 9 l-7 9 l-7 -9 z`} fill={on ? pl.gemColor : '#9ca3af'} stroke="#fff" strokeWidth="2" className={on ? 'twinkle' : ''} />;
+            })}
+            {g >= 9 && <text x={T.fountain[0] - 25} y={T.fountain[1] - T.fountain[2] - 14} fontSize="34" className="twinkle">🎉</text>}
+          </svg>
+        </>
+      );
+      const heroAt = townImg ? T.hero : [446, 392];
       return (
         <div className="flex-1 flex flex-col items-center gap-2 p-2" style={{ background: '#2f7d32' }}>
-          <div className="w-full max-w-5xl relative">
-            <svg viewBox="0 0 960 600" className="w-full rounded-2xl" style={{ filter: `saturate(${sat}) brightness(${0.86 + 0.14 * g / 9})`, background: '#79c05a' }}>
+          <div className="w-full relative" style={{ aspectRatio: '3 / 2', maxWidth: 'min(64rem, calc((100vh - 260px) * 1.5))' }}>
+            {imgTown || <svg viewBox="0 -20 960 640" className="absolute inset-0 w-full h-full rounded-2xl" style={{ ...light, background: '#79c05a' }}>
               <defs><pattern id="grass" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill="#79c05a" /><rect x="4" y="6" width="3" height="3" fill="#6aae4c" /><rect x="15" y="16" width="3" height="3" fill="#8bd06a" /></pattern></defs>
-              <rect width="960" height="600" fill="url(#grass)" />
+              <rect y="-20" width="960" height="640" fill="url(#grass)" />
               {/* みち */}
               <rect x="450" y="190" width="60" height="410" fill="#cdbb8b" />
               <rect x="110" y="305" width="740" height="50" fill="#cdbb8b" />
@@ -998,8 +1030,8 @@
               <text x="380" y="300" fontSize="30">{g >= 6 ? '👵' : '😟'}</text>
               <text x="600" y="380" fontSize="26">{g >= 1 ? '🐕' : ''}</text>
               {g >= 9 && <text x="455" y="270" fontSize="34" className="twinkle">🎉</text>}
-            </svg>
-            <div className="absolute flex items-end" style={{ left: '46.5%', top: '62%', transform: 'translate(-50%,-50%)' }}>
+            </svg>}
+            <div className="absolute flex items-end pointer-events-none" style={{ left: `${heroAt[0] / 9.6}%`, top: `${heroAt[1] / 6.4}%`, transform: 'translate(-50%,-50%)' }}>
               {p.hero && <div className="bob"><HeroPic job={p.hero.job} form={p.hero.form} size={44} /></div>}
               {party.map(c => <div key={c.id} className="bob -ml-3"><HeroPic job={c.job} form={c.form} size={36} /></div>)}
             </div>
@@ -1021,18 +1053,36 @@
     // =====================================================================
     const MAP_POS = { p9: [120, 130], town: [150, 470], p0: [300, 530], p1: [420, 420], p2: [580, 500], p3: [650, 360], p4: [830, 470], p5: [890, 290], p6: [740, 170], p7: [560, 220], p8: [380, 120] };
     const CHAIN = ['p9', 'town', 'p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8'];
+    // ちずの ざひょう：ChatGPT の 絵が ある ときは data.js の MAP_SPOTS（たて 0〜667）、ない ときは 自作の ちず（たて -23〜644）
+    const mapImgOn = () => Img.has('worldmap');
+    const mapPos = (id) => mapImgOn() ? D.MAP_SPOTS[id] : MAP_POS[id];
+    // id から id へ あるく ときの とちゅうの まがりかど
+    function mapVia(a, b) {
+      if (!mapImgOn()) return [];
+      const v = D.MAP_VIA || {};
+      if (v[a + '>' + b]) return v[a + '>' + b];
+      if (v[b + '>' + a]) return [...v[b + '>' + a]].reverse();
+      return [];
+    }
     function WorldMap({ p, onEnter, onTown, onMoved }) {
       const talk = useTalk();
-      const [pos, setPos] = useState(MAP_POS[p.mapAt] || MAP_POS.town);
+      const imgMap = Img.url('worldmap');
+      const yOff = imgMap ? 0 : 23;
+      const [pos, setPos] = useState(mapPos(p.mapAt in MAP_POS ? p.mapAt : 'town'));
       const [moving, setMoving] = useState(false);
       const party = partyOf(p);
       useEffect(() => { talk.say('いきたい ばしょを おしてね。なかまと いっしょに あるいて いくよ。', { who: 'kakeru' }); }, []);
+      // ちずの 絵が あとから とどいたら、なかまの いちを 絵に あわせる
+      useEffect(() => { if (!moving) setPos(mapPos(p.mapAt in MAP_POS ? p.mapAt : 'town')); }, [!!imgMap]);
       const walkTo = (target) => {
         if (moving) return;
         const from = CHAIN.indexOf(p.mapAt in MAP_POS ? p.mapAt : 'town'), to = CHAIN.indexOf(target);
         const route = [];
-        if (from === to) route.push(MAP_POS[target]);
-        else for (let i = from; ; i += Math.sign(to - from)) { route.push(MAP_POS[CHAIN[i]]); if (i === to) break; }
+        if (from === to) route.push(mapPos(target));
+        else for (let i = from; ; i += Math.sign(to - from)) {
+          if (i !== from) route.push(...mapVia(CHAIN[i - Math.sign(to - from)], CHAIN[i]));
+          route.push(mapPos(CHAIN[i])); if (i === to) break;
+        }
         const done = () => { setMoving(false); onMoved(target); if (target === 'town') onTown(); else onEnter(PLACE[target]); };
         if (route.length < 2) { done(); return; }
         setMoving(true);
@@ -1059,8 +1109,28 @@
       const R = (id, el) => { const [x, y] = MAP_POS[id]; return <g transform={`translate(${x} ${y})`}>{el}</g>; };
       return (
         <div className="flex-1 flex flex-col items-center gap-2 p-2" style={{ background: '#1d4f91' }}>
-          <div className="w-full max-w-5xl relative" style={{ aspectRatio: '1000 / 620' }}>
-            <svg viewBox="0 0 1000 620" className="absolute inset-0 w-full h-full rounded-2xl" style={{ background: '#3b82c4' }}>
+          <div className="w-full relative" style={{ aspectRatio: '3 / 2', maxWidth: 'min(64rem, calc((100vh - 190px) * 1.5))' }}>
+            {imgMap ? <>
+              <img src={imgMap} alt="" draggable="false" className="absolute inset-0 w-full h-full rounded-2xl" style={{ objectFit: 'cover' }} />
+              <svg viewBox="0 0 1000 667" className="absolute inset-0 w-full h-full">
+                {CHAIN.map(id => {
+                  const [x, y] = D.MAP_SPOTS[id];
+                  const pl = PLACE[id], open = id === 'town' || placeOpen(p, pl), done = pl && placeCleared(p, pl);
+                  return (
+                    <g key={id} transform={`translate(${x} ${y})`} className="bldg" onClick={() => tap(id)}>
+                      <circle r="40" fill={open ? '#fff' : '#334155'} fillOpacity={open ? 0.12 : 0.45} stroke={done ? '#f59e0b' : open ? '#fff' : '#94a3b8'} strokeWidth={done ? 7 : 4} strokeDasharray={open ? 'none' : '8 6'} />
+                      {!open && <text y="12" textAnchor="middle" fontSize="32">🔒</text>}
+                      {done && <path d="M28 -44 l9 11 l-9 11 l-9 -11 z" fill={pl.gemColor} stroke="#fff" strokeWidth="2" />}
+                      <rect x="-80" y="44" width="160" height={pl ? 44 : 28} rx="10" fill={open ? '#fffbeb' : '#e2e8f0'} fillOpacity=".93" stroke="#78350f" strokeWidth="3" />
+                      {pl ? <><text y="62" textAnchor="middle" fontSize="14" fontWeight="bold" fill="#92400e">{pl.lv}</text>
+                        <text y="81" textAnchor="middle" fontSize="16" fontWeight="bold" fill="#3f2a14">{pl.name}</text></>
+                        : <text y="64" textAnchor="middle" fontSize="17" fontWeight="bold" fill="#3f2a14">はじまりの まち</text>}
+                    </g>
+                  );
+                })}
+              </svg>
+            </> :
+            <svg viewBox="0 -23 1000 667" className="absolute inset-0 w-full h-full rounded-2xl" style={{ background: '#3b82c4' }}>
               <path d="M60 300 q-20 -180 160 -220 q200 -40 420 -10 q300 20 330 180 q30 160 -20 280 q-60 90 -400 70 q-300 20 -420 -40 q-90 -60 -70 -260 z" fill="#7cc36a" stroke="#e7d9a8" strokeWidth="10" />
               {R('p0', <g><ellipse rx="90" ry="50" fill="#a3e635" opacity=".6" /><text x="-70" y="-18" fontSize="22">🌼</text><text x="50" y="30" fontSize="22">🌿</text></g>)}
               {R('p1', <g>{[[-70, -30], [-40, 30], [60, -30], [70, 20], [-80, 20], [20, -55]].map(([x, y], i) => <Tree key={i} x={x} y={y} r={20} />)}</g>)}
@@ -1093,8 +1163,8 @@
                   </g>
                 );
               })}
-            </svg>
-            <div className="absolute flex items-end pointer-events-none" style={{ left: `${pos[0] / 10}%`, top: `${pos[1] / 6.2}%`, transform: 'translate(-50%, -95%)' }}>
+            </svg>}
+            <div className="absolute flex items-end pointer-events-none" style={{ left: `${pos[0] / 10}%`, top: `${(pos[1] + yOff) / 6.67}%`, transform: 'translate(-50%, -95%)' }}>
               {p.hero && <div className={moving ? 'bob' : ''}><HeroPic job={p.hero.job} form={p.hero.form} size={46} /></div>}
               {party.map(c => <div key={c.id} className={`-ml-4 ${moving ? 'bob' : ''}`}><HeroPic job={c.job} form={c.form} size={38} /></div>)}
             </div>
@@ -1840,6 +1910,7 @@
       ['カケルさま（3まい）', ['kakeru_normal', 'kakeru_happy', 'kakeru_think']],
       ['モンスター（30たい）', MONSTERS.map(m => `monster_${m.id}`)],
       ['ばしょの はいけい（10まい）', PLACES.map(pl => `bg_${pl.id}`)],
+      ['まちと ワールドマップ（2まい。この2まいは Claude に送って、押す ばしょを あわせて もらいます）', ['town', 'worldmap']],
     ];
 
     function TeacherView({ data, pin, onClose, onChanged, onSettings }) {

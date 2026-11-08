@@ -189,5 +189,18 @@
   // GitHub の img/ に おいた 絵（ファイル名）
   const IMAGES = [];
 
-  window.KAKE_DATA = { POOL, PLACES, MONSTERS, JOBS, FORMS, TIERS, SHOPS, SHUGYO, WAZA_AT, RANKS, REWARD, STORY, IMAGES };
+  // ChatGPT の まちの 絵（town）の うえで 押す ばしょ。絵は よこ 960 × たて 640 と して かぞえる
+  // [x, y, はば, たかさ]（ひだりうえが 0, 0）。絵が とどいたら、絵に あわせて なおす
+  const TOWN_SPOTS = {
+    castle: [300, 50, 360, 170], guild: [110, 140, 170, 120], buki: [650, 120, 150, 110], bougu: [796, 210, 140, 100],
+    dougu: [670, 410, 150, 100], inn: [780, 510, 150, 100], house: [340, 480, 140, 100], shugyo: [90, 395, 230, 125], gate: [410, 570, 140, 70],
+    fountain: [480, 350, 58], // ふんすいの まんなかと、ほうせきを ならべる はんけい
+    hero: [446, 392],         // しゅじんこうと なかまが たつ ところ
+  };
+  // ChatGPT の ワールドマップの 絵（worldmap）の うえの ばしょ。絵は よこ 1000 × たて 667 と して かぞえる
+  const MAP_SPOTS = { p9: [120, 153], town: [150, 493], p0: [300, 553], p1: [420, 443], p2: [580, 523], p3: [650, 383], p4: [830, 493], p5: [890, 313], p6: [740, 193], p7: [560, 243], p8: [380, 143] };
+  // なかまが あるく みちの とちゅうの まがりかど（'town>p0' は まち から そうげん へ。かえりは ぎゃくに たどる）
+  const MAP_VIA = {};
+
+  window.KAKE_DATA = { POOL, PLACES, MONSTERS, JOBS, FORMS, TIERS, SHOPS, SHUGYO, WAZA_AT, RANKS, REWARD, STORY, IMAGES, TOWN_SPOTS, MAP_SPOTS, MAP_VIA };
 })();
