@@ -79,7 +79,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.1.0';
+    const APP_VERSION = '1.2.0';
     const BASE = window.WAKE_BASE;
     const IMG = BASE + 'img/';
     let STAGES = [], SHAPES = [], DEN_YOMI = {}, NUM_YOMI = {}, TIERS = [], ITEM_CATS = [], FX = {}, LEVELS = [], HAS_IMG = new Set(), ALL_ITEMS = [];
@@ -268,6 +268,8 @@
       const isLit = (i) => lit.includes(i);
       const kind = shape.id;
       const textured = kind === 'pizza' || kind === 'sand';
+      // ChatGPT の 絵（まるごとの かたち）が あれば、その うえに わける せんと ひかる ところを かく
+      const pimg = HAS_IMG.has(`piece_${kind}.webp`) ? `piece_${kind}.webp` : '';
       const line = { pizza: '#7c2d12', sand: '#92400e', circle: '#334155', square: '#334155', ufoR: '#1e293b', ufoS: '#1e293b' }[kind];
       const plainFill = (i) => o.plain ? '#bae6fd' : isLit(i) ? LIT : (kind === 'ufoR' || kind === 'ufoS' ? '#94a3b8' : UNLIT);
       const clip = kind === 'sand' || kind === 'ufoS' ? `url(#c${sid})` : undefined;
@@ -276,8 +278,9 @@
         <svg viewBox="0 0 100 100" width={size} height={size} style={{ display: 'block', overflow: 'visible' }}>
           <defs><clipPath id={`c${sid}`}><rect x={SQ0} y={SQ0} width={SQ} height={SQ} rx="9" /></clipPath></defs>
           {/* したじ */}
-          {kind === 'pizza' && <circle cx="50" cy="50" r="49" fill="#c2410c" stroke="#fff" strokeWidth="1.2" />}
-          {kind === 'pizza' && <circle cx="50" cy="50" r="47" fill="#ea9a3e" />}
+          {kind === 'pizza' && !pimg && <circle cx="50" cy="50" r="49" fill="#c2410c" stroke="#fff" strokeWidth="1.2" />}
+          {kind === 'pizza' && !pimg && <circle cx="50" cy="50" r="47" fill="#ea9a3e" />}
+          {pimg && <image href={IMG + pimg} x="1" y="1" width="98" height="98" preserveAspectRatio="none" />}
           {kind === 'circle' && <circle cx="50" cy="50" r={R0 + 1.5} fill="#fff" />}
           {kind === 'ufoR' && <><circle cx="50" cy="50" r="49" fill="#475569" stroke="#e2e8f0" strokeWidth="1.2" /><circle cx="50" cy="50" r="46.5" fill="#64748b" /></>}
           {kind === 'square' && <rect x={SQ0 - 1.5} y={SQ0 - 1.5} width={SQ + 3} height={SQ + 3} fill="#fff" />}
@@ -285,13 +288,13 @@
           {kind === 'ufoS' && <><rect x="2" y="2" width="96" height="96" rx="12" fill="#475569" stroke="#e2e8f0" strokeWidth="1.2" /><rect x="5" y="5" width="90" height="90" rx="10" fill="#64748b" /></>}
           <g clipPath={clip}>
             {/* ピース */}
-            {part.map((p, i) => <path key={i} d={p.d} fill={kind === 'pizza' ? '#fcd34d' : kind === 'sand' ? '#fef3c7' : plainFill(i)} />)}
-            {kind === 'pizza' && o.tops && o.tops.map((t, i) => t.k === 'p'
+            {!pimg && part.map((p, i) => <path key={i} d={p.d} fill={kind === 'pizza' ? '#fcd34d' : kind === 'sand' ? '#fef3c7' : plainFill(i)} />)}
+            {kind === 'pizza' && !pimg && o.tops && o.tops.map((t, i) => t.k === 'p'
               ? <g key={i}><circle cx={t.x} cy={t.y} r="4.6" fill="#dc2626" /><circle cx={t.x - 1.2} cy={t.y - 1.2} r="1.2" fill="#fca5a5" /></g>
               : <rect key={i} x={t.x - 3} y={t.y - 1} width="6" height="2.2" rx="1" fill="#16a34a" transform={`rotate(${t.r} ${t.x} ${t.y})`} />)}
             {kind === 'sand' && <g opacity=".35">{[[30, 30], [60, 40], [40, 70], [72, 70], [20, 55]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="1.6" fill="#d97706" />)}</g>}
             {/* ひかる ところ・ひからない ところ（もようの ある かたち） */}
-            {textured && !o.plain && part.map((p, i) => <path key={'o' + i} d={p.d} fill={isLit(i) ? 'rgba(253,224,71,.6)' : 'rgba(30,41,59,.55)'} />)}
+            {textured && !o.plain && part.map((p, i) => <path key={'o' + i} d={p.d} fill={isLit(i) ? (pimg ? 'rgba(253,224,71,.3)' : 'rgba(253,224,71,.6)') : (pimg ? 'rgba(15,23,42,.62)' : 'rgba(30,41,59,.55)')} />)}
             {kind === 'ufoS' && [[14, 14], [86, 14], [14, 86], [86, 86]].map(([x, y], i) => <circle key={i} cx={x} cy={y} r="2.2" fill="#e2e8f0" opacity=".9" />)}
             {/* わける せん */}
             {part.map((p, i) => <path key={'l' + i} d={p.d} fill="none" stroke={line} strokeWidth="1.8" strokeLinejoin="round" />)}
