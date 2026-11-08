@@ -1228,8 +1228,10 @@
     // 12. おみせ
     // =====================================================================
     function ItemPic({ it, size = 56 }) {
-      if (it.slot === 'body') return <span className="inline-block"><Wakerun equip={{ body: it.id }} size={size * 0.8} /></span>;
-      if (it.slot === 'form') return <span className="inline-block"><Wakerun equip={{ form: it.id }} size={size * 0.8} /></span>;
+      // 絵が ある ときは 正方形なので すこし 大きく する
+      const big = HAS_IMG.has('wakerun_normal.webp') ? 1.3 : 0.8;
+      if (it.slot === 'body') return <span className="inline-block"><Wakerun equip={{ body: it.id }} size={size * big} /></span>;
+      if (it.slot === 'form') return <span className="inline-block"><Wakerun equip={{ form: it.id }} size={size * big} /></span>;
       if (it.slot === 'bg') return <span className="inline-block rounded-xl overflow-hidden" style={{ width: size * 1.5, height: size }}><SpaceBg equip={{ bg: it.id }} className="w-full h-full" /></span>;
       return <span style={{ fontSize: size, lineHeight: 1 }}>{it.e}</span>;
     }
