@@ -1,0 +1,2354 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ケンジャの カケルさまの ひっさん クエスト</title>
+
+  <script crossorigin="anonymous" src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+  <script crossorigin="anonymous" src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'BIZ UDPGothic', sans-serif; background: #14213d; margin: 0; color: #1e293b;
+      -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+    .btn3d { border-bottom-width: 6px; transition: transform .08s, border-bottom-width .08s; }
+    .btn3d:active:not(:disabled) { transform: translateY(4px); border-bottom-width: 2px; }
+    .rpgwin { background: rgba(15,23,42,.92); border: 4px solid #fff; border-radius: 14px; box-shadow: 0 0 0 3px #1e293b, 0 6px 16px rgba(0,0,0,.4); color: #fff; }
+    .pop { animation: pop .45s cubic-bezier(.17,.89,.32,1.28) both; }
+    @keyframes pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .floaty { animation: floaty 3s ease-in-out infinite; }
+    @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    .bob { animation: bob 1.4s ease-in-out infinite; }
+    @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+    .shake { animation: shake .4s 2; }
+    @keyframes shake { 0%,100% { transform: translateX(0); } 25%,75% { transform: translateX(-7px); } 50% { transform: translateX(7px); } }
+    .hit { animation: hit .5s; }
+    @keyframes hit { 0%,100% { transform: translateX(0); filter: none; } 20% { transform: translateX(14px); filter: brightness(2.2); } 40% { transform: translateX(-10px); } 60% { transform: translateX(6px); filter: brightness(1.8); } }
+    .defeat { animation: defeat 1s ease-in forwards; }
+    @keyframes defeat { 0% { opacity: 1; transform: scale(1); filter: brightness(1); } 40% { filter: brightness(3); } 100% { opacity: 0; transform: scale(.6) translateY(30px); filter: brightness(3); } }
+    .fxfly { animation: fxfly .8s ease-out forwards; }
+    @keyframes fxfly { 0% { transform: translate(-160px, 80px) scale(.5) rotate(-30deg); opacity: 0; } 30% { opacity: 1; } 70% { transform: translate(0, 0) scale(1.6) rotate(10deg); opacity: 1; } 100% { transform: translate(0, 0) scale(2.2); opacity: 0; } }
+    .glow { animation: glow 1.1s ease-in-out infinite; }
+    @keyframes glow { 0%,100% { box-shadow: 0 0 0 0 rgba(250,204,21,.95); } 50% { box-shadow: 0 0 0 10px rgba(250,204,21,0); } }
+    .cellglow { animation: cellglow 1s ease-in-out infinite; }
+    @keyframes cellglow { 0%,100% { box-shadow: inset 0 0 0 4px #f59e0b, 0 0 0 0 rgba(245,158,11,.8); } 50% { box-shadow: inset 0 0 0 4px #f59e0b, 0 0 0 8px rgba(245,158,11,0); } }
+    .opglow { box-shadow: inset 0 0 0 4px #ec4899 !important; }
+    .ghost { color: rgba(37,99,235,.35); }
+    .bump { animation: bump .5s; }
+    @keyframes bump { 0%,100% { transform: scale(1); } 40% { transform: scale(1.3); } }
+    .goldfly { animation: goldfly 1.1s ease-out forwards; }
+    @keyframes goldfly { 0% { transform: translateY(0) scale(.6); opacity: 0; } 20% { opacity: 1; transform: translateY(-10px) scale(1.2); } 100% { transform: translateY(-70px) scale(1); opacity: 0; } }
+    .banner { animation: banner 2s ease-in-out forwards; }
+    @keyframes banner { 0% { transform: translate(-50%,-50%) scale(.3); opacity: 0; } 15% { transform: translate(-50%,-50%) scale(1.1); opacity: 1; } 25%,80% { transform: translate(-50%,-50%) scale(1); opacity: 1; } 100% { transform: translate(-50%,-50%) scale(.9); opacity: 0; } }
+    .twinkle { animation: twinkle 1.6s ease-in-out infinite; }
+    @keyframes twinkle { 0%,100% { opacity: .4; } 50% { opacity: 1; } }
+    svg .twinkle, svg .bob { transform-box: fill-box; transform-origin: center; }
+    .tshadow { text-shadow: 0 2px 4px rgba(0,0,0,.6); }
+    .title { text-shadow: 3px 3px 0 #7c2d12, -2px 2px 0 #7c2d12, 2px -2px 0 #7c2d12, -2px -2px 0 #7c2d12, 0 5px 12px rgba(0,0,0,.6); }
+    .cross { background-image: linear-gradient(to top right, transparent calc(50% - 1.5px), #64748b 50%, transparent calc(50% + 1.5px)), linear-gradient(to top left, transparent calc(50% - 1.5px), #64748b 50%, transparent calc(50% + 1.5px)); }
+    .pixel { image-rendering: pixelated; }
+    .bldg { cursor: pointer; transition: filter .15s; }
+    .bldg:hover, .bldg:active { filter: brightness(1.15) drop-shadow(0 0 6px #fde047); }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div style="padding:60px;text-align:center;font-size:28px;color:#fde68a;font-weight:bold;">じゅんび ちゅう…</div>
+  </div>
+
+  <!-- データと絵は GitHub Pages から読みこみます（このファイルを短くするため） -->
+  <script>
+    (function () {
+      var h = location.hostname;
+      var local = location.protocol === 'file:' || /github\.io$/.test(h) || h === 'localhost' || h === '127.0.0.1';
+      window.KAKE_BASE = local ? '' : 'https://zku0395-ops.github.io/hori/kakezan/';
+      var V = '1';
+      window.KAKE_READY = new Promise(function (ok, ng) {
+        var s = document.createElement('script');
+        s.src = window.KAKE_BASE + 'data/data.js?v=' + V;
+        s.onload = ok; s.onerror = function () { ng(new Error('data/data.js')); };
+        document.head.appendChild(s);
+      });
+    })();
+  </script>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
+    const APP_VERSION = '1.0.0';
+    const BASE = window.KAKE_BASE;
+    const IMG = BASE + 'img/';
+    let D = {}, PLACES = [], MONSTERS = [], JOBS = [], FORMS = [], SHOPS = [], SHUGYO = [], ALL_ITEMS = [];
+    const ITEM = {}, MON = {}, PLACE = {}, JOB = {};
+
+    // =====================================================================
+    //  1. 小さな道具
+    // =====================================================================
+    const shuffle = (a) => { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+    const pickOne = (a) => a[Math.floor(Math.random() * a.length)];
+    const rnd = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+    const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    const pad = (n) => String(n).padStart(2, '0');
+    const nowStr = () => { const d = new Date(); return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+    const today = () => nowStr().slice(0, 10);
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+    const safeStore = {
+      get(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
+      set(k, v) { try { window.localStorage.setItem(k, v); } catch (e) {} },
+      del(k) { try { window.localStorage.removeItem(k); } catch (e) {} },
+    };
+    const downloadText = (name, text, type) => {
+      const blob = new Blob([text], { type: type || 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = name; document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
+    };
+
+    // =====================================================================
+    //  2. こえ と おと
+    // =====================================================================
+    // よみあげ用：記号を ことばに する
+    const speakText = (t) => String(t).replace(/×/g, ' かける ').replace(/＋|\+/g, ' たす ').replace(/＝/g, ' は ').replace(/✕/g, 'ばつ');
+    const Speech = {
+      rate: 0.8, pitch: 1.0, voice: null,
+      ok: typeof window !== 'undefined' && 'speechSynthesis' in window,
+      pickVoice() {
+        if (!this.ok) return;
+        const vs = window.speechSynthesis.getVoices().filter(v => (v.lang || '').toLowerCase().replace('_', '-').startsWith('ja'));
+        this.voice = vs.find(v => /google/i.test(v.name)) || vs[0] || null;
+      },
+      say(text, onEnd, pitch) {
+        if (!this.ok || !text) { if (onEnd) setTimeout(onEnd, 200); return; }
+        try {
+          window.speechSynthesis.cancel();
+          const t = speakText(text);
+          const u = new SpeechSynthesisUtterance(t);
+          u.lang = 'ja-JP'; if (this.voice) u.voice = this.voice;
+          u.rate = this.rate; u.pitch = pitch || this.pitch;
+          let done = false;
+          const end = () => { if (!done) { done = true; onEnd && onEnd(); } };
+          u.onend = end; u.onerror = end;
+          // 声が出ない端末でも先へ進めるように、長さに合わせて待つ
+          setTimeout(end, 1500 + t.length * 260 / this.rate);
+          // Chrome は cancel の すぐ あとの speak を おとすことが あるので すこし まつ
+          setTimeout(() => window.speechSynthesis.speak(u), 60);
+        } catch (e) { if (onEnd) setTimeout(onEnd, 200); }
+      },
+      stop() { try { this.ok && window.speechSynthesis.cancel(); } catch (e) {} },
+    };
+    if (Speech.ok) { Speech.pickVoice(); window.speechSynthesis.onvoiceschanged = () => Speech.pickVoice(); }
+
+    const Sound = {
+      on: true, ctx: null,
+      get() {
+        if (!this.ctx) { const C = window.AudioContext || window.webkitAudioContext; if (C) this.ctx = new C(); }
+        if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+        return this.ctx;
+      },
+      tone(freq, at, dur, type = 'triangle', vol = 0.16) {
+        const c = this.get(); if (!c || !this.on) return;
+        const o = c.createOscillator(), g = c.createGain(), t = c.currentTime + at;
+        o.type = type; o.frequency.value = freq;
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.05);
+      },
+      // このアプリのための オリジナルの おと
+      tap() { this.tone(700, 0, .06, 'square', .05); },
+      ok() { this.tone(880, 0, .08, 'square', .06); this.tone(1175, .07, .12, 'square', .06); },
+      retry() { this.tone(330, 0, .14, 'sine', .06); this.tone(294, .12, .2, 'sine', .06); }, // まちがえたとき（小さな音）
+      hit() { this.tone(180, 0, .12, 'sawtooth', .08); this.tone(120, .06, .2, 'square', .07); [1200, 1500].forEach((f, i) => this.tone(f, .1 + i * .05, .1, 'square', .04)); },
+      appear() { [392, 330, 262, 196].forEach((f, i) => this.tone(f, i * .08, .14, 'square', .06)); },
+      win() { [[523, 0], [659, .12], [784, .24], [1046, .36]].forEach(([f, t]) => this.tone(f, t, .2, 'square', .07)); [523, 659, 784].forEach(f => this.tone(f, .6, .8, 'triangle', .1)); },
+      big() { // レベルアップ・ほうせき
+        [[523, 0], [523, .15], [523, .3], [659, .45], [784, .75], [659, 1.0], [784, 1.15]].forEach(([f, t]) => this.tone(f, t, .2, 'square', .07));
+        [523, 659, 784, 1046].forEach(f => this.tone(f, 1.35, 1.1, 'triangle', .12));
+      },
+      coin() { this.tone(988, 0, .08, 'square', .05); this.tone(1319, .08, .22, 'square', .05); },
+      buy() { [784, 988, 1175, 1568].forEach((f, i) => this.tone(f, i * .07, .18, 'square', .05)); },
+      walk() { this.tone(220, 0, .05, 'square', .03); },
+    };
+
+    // =====================================================================
+    //  3. 絵（GitHub の img/ ＋ ドライブの「ひっさんクエスト え」。ないときは 自作の SVG と 絵文字）
+    // =====================================================================
+    const HAS_GAS = typeof google !== 'undefined' && google.script && google.script.run;
+    const gas = (fn, ...args) => new Promise((resolve, reject) => {
+      google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
+    });
+    const baseName = (f) => String(f).replace(/\.[a-z0-9]+$/i, '');
+    const ImgDB = {
+      db: null,
+      open() {
+        if (this.db) return Promise.resolve(this.db);
+        return new Promise((ok) => {
+          try {
+            const r = indexedDB.open('kakezan_img', 1);
+            r.onupgradeneeded = () => { r.result.createObjectStore('img', { keyPath: 'name' }); };
+            r.onsuccess = () => { this.db = r.result; ok(this.db); };
+            r.onerror = () => ok(null);
+          } catch (e) { ok(null); }
+        });
+      },
+      async all() {
+        const db = await this.open(); if (!db) return [];
+        return new Promise(ok => { try { const q = db.transaction('img').objectStore('img').getAll(); q.onsuccess = () => ok(q.result || []); q.onerror = () => ok([]); } catch (e) { ok([]); } });
+      },
+      async put(rec) {
+        const db = await this.open(); if (!db) return;
+        return new Promise(ok => { try { const tx = db.transaction('img', 'readwrite'); tx.objectStore('img').put(rec); tx.oncomplete = ok; tx.onerror = ok; } catch (e) { ok(); } });
+      },
+      async del(name) {
+        const db = await this.open(); if (!db) return;
+        return new Promise(ok => { try { const tx = db.transaction('img', 'readwrite'); tx.objectStore('img').delete(name); tx.oncomplete = ok; tx.onerror = ok; } catch (e) { ok(); } });
+      },
+    };
+    const Img = {
+      gh: {}, drive: {}, meta: {}, subs: new Set(), ver: 0,
+      status: { checked: false, count: 0, loading: 0, error: '', names: [] },
+      url(base) { return this.drive[base] || this.gh[base] || null; },
+      has(base) { return !!this.url(base); },
+      notify() { this.ver++; this.subs.forEach(f => f(this.ver)); },
+      setGitHub(list) { (list || []).forEach(f => { this.gh[baseName(f)] = IMG + f; }); },
+      // 端末に 保存して ある ドライブの 絵を すぐ つかう
+      async loadCache() {
+        const recs = await ImgDB.all();
+        recs.forEach(r => { if (r.blob) { this.drive[r.name] = URL.createObjectURL(r.blob); this.meta[r.name] = r.t; } });
+        if (recs.length) this.notify();
+      },
+      // ドライブの フォルダを 見て、あたらしい 絵・かわった 絵だけ よみこむ
+      async syncDrive() {
+        if (!HAS_GAS) return;
+        let list;
+        try { list = await gas('getImageList'); } catch (e) { this.status = { ...this.status, error: String(e && e.message || e) }; this.notify(); return; }
+        if (!list || !list.ok) { this.status = { ...this.status, checked: true, error: (list && list.reason) || '' }; this.notify(); return; }
+        const want = {};
+        list.files.forEach(f => { want[baseName(f.name)] = f; });
+        // ドライブから けされた 絵は 端末からも けす
+        for (const n of Object.keys(this.meta)) if (!want[n]) { await ImgDB.del(n); delete this.meta[n]; delete this.drive[n]; }
+        const todo = Object.keys(want).filter(n => this.meta[n] !== want[n].t);
+        this.status = { checked: true, count: Object.keys(want).length, loading: todo.length, error: '', names: Object.keys(want).sort(), folder: list.folder };
+        this.notify();
+        for (const n of todo) {
+          try {
+            const r = await gas('getImage', want[n].id);
+            if (r && r.ok) {
+              const bin = atob(r.b64); const u8 = new Uint8Array(bin.length);
+              for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+              const blob = new Blob([u8], { type: r.mime || 'image/png' });
+              await ImgDB.put({ name: n, t: want[n].t, blob });
+              if (this.drive[n]) URL.revokeObjectURL(this.drive[n]);
+              this.drive[n] = URL.createObjectURL(blob); this.meta[n] = want[n].t;
+            }
+          } catch (e) { this.status.error = String(e && e.message || e); }
+          this.status = { ...this.status, loading: this.status.loading - 1 };
+          this.notify();
+        }
+      },
+    };
+
+    // =====================================================================
+    //  4. ひっ算の しくみ（もんだいを つくる・1マスずつの てじゅん・まちがいの しゅるい）
+    // =====================================================================
+    const digits = (n) => String(n).split('').reverse().map(Number); // 1の位が [0]
+    const PLACE_NAME = ['1の位', '10の位', '100の位', '1000の位', '10000の位'];
+    const TWO_DIGIT_SPECS = ['t10', 'tn', 't1x', 'x22a', 'x22', 'm2', 'h32'];
+
+    // a × b の もんだいの しゅるいを しらべる
+    function classify(a, b) {
+      const A = digits(a), B = digits(b);
+      if (A.length === 1 && B.length === 1) return 'k';
+      if (B.length === 1) {
+        if (A.length === 3) return 'h31';
+        const p0 = A[0] * b, c = Math.floor(p0 / 10), p1 = A[1] * b + c;
+        if (c > 0 && p1 % 10 === 0) return 'z0';
+        if (p1 >= 10) return 'd3';
+        return c > 0 ? 'c1' : 'n0';
+      }
+      if (A.length === 3) return 'h32';
+      if (b === 10) return 't10';
+      if (b % 10 === 0) return 'tn';
+      if (b > 10 && b < 20) return 't1x';
+      const noCarry = B.every(d => A.every(x => x * d < 10));
+      return noCarry ? 'x22a' : 'x22';
+    }
+    function randFor(spec) {
+      for (let i = 0; i < 400; i++) {
+        let a, b;
+        if (spec === 'k') { a = rnd(2, 9); b = rnd(2, 9); }
+        else if (['n0', 'c1', 'd3', 'z0'].includes(spec)) { a = rnd(11, 99); b = rnd(2, 9); if (a % 10 === 0) continue; }
+        else if (spec === 't10') { a = rnd(12, 98); b = 10; if (a % 10 === 0) continue; }
+        else if (spec === 'tn') { a = rnd(12, 49); b = rnd(2, 9) * 10; if (a % 10 === 0) continue; }
+        else if (spec === 't1x') { a = rnd(12, 69); b = rnd(11, 19); if (a % 10 === 0) continue; }
+        else if (spec === 'x22a') { a = rnd(11, 44); b = rnd(12, 44); if (a % 10 === 0 || b % 10 === 0) continue; }
+        else if (spec === 'x22') { a = rnd(12, 98); b = rnd(21, 98); if (a % 10 === 0 || b % 10 === 0) continue; }
+        else if (spec === 'h31') { a = rnd(101, 499); b = rnd(2, 6); if (a % 10 === 0) continue; }
+        else if (spec === 'h32') { a = rnd(101, 399); b = rnd(12, 39); if (a % 10 === 0 || b % 10 === 0) continue; }
+        else return null;
+        if (classify(a, b) === spec) return [a, b];
+      }
+      return [23, 3];
+    }
+    // しゅるいに あう もんだいを 1つ つくる（先生の プリントの もんだいを ときどき まぜる）
+    function makeProblem(spec, used) {
+      if (spec === 'm1') spec = pickOne(['c1', 'd3', 'z0']);
+      if (spec === 'm2') spec = pickOne(['tn', 't1x', 'x22', 'x22']);
+      const key = (p) => p[0] + 'x' + p[1];
+      const pool = ((D.POOL || {})[spec] || []).filter(p => !used.has(key(p)));
+      let p = null;
+      if (pool.length && Math.random() < 0.5) p = pickOne(pool);
+      for (let i = 0; !p && i < 20; i++) { const q = randFor(spec); if (!used.has(key(q)) || i === 19) p = q; }
+      used.add(key(p));
+      return p;
+    }
+    const problemCount = (spec, s) => TWO_DIGIT_SPECS.includes(spec) ? (Number(s.count2) || 3) : (Number(s.count) || 5);
+    function makeSet(spec, n) { const used = new Set(); return Array.from({ length: n }, () => makeProblem(spec, used)); }
+
+    // a × b の ひっ算を 1マスずつの てじゅんに する
+    // rows：'ans'（かける かずが 1けた）または 'p1'・'p2'・'sum'
+    function buildHissan(a, b) {
+      const A = digits(a), B = digits(b);
+      const steps = [];
+      const vals = {}; // `${row}:${place}` → 正しい かず（メモは `${row}m:${place}`）
+      const add = (s) => { steps.push(s); vals[(s.memo ? s.row + 'm' : s.row) + ':' + s.place] = s.val; };
+      const mulRow = (row, d, bPlace, shift) => {
+        let carry = 0; const out = [];
+        for (let i = 0; i < A.length; i++) {
+          const prod = A[i] * d, tot = prod + carry, place = i + shift, last = i === A.length - 1;
+          add({ kind: 'mul', row, place, val: tot % 10, aPlace: i, bPlace, x: A[i], y: d, prod, carry, tot });
+          out[place] = tot % 10;
+          carry = Math.floor(tot / 10);
+          if (carry > 0 && !last) add({ kind: 'memo', row, memo: true, place: place + 1, val: carry, tot, from: place });
+          if (carry > 0 && last) { add({ kind: 'mulhi', row, place: place + 1, val: carry, tot, from: place }); out[place + 1] = carry; }
+        }
+        return out;
+      };
+      const two = B.length === 2;
+      if (!two) {
+        mulRow('ans', B[0], 0, 0);
+      } else {
+        const p1 = mulRow('p1', B[0], 0, 0);
+        add({ kind: 'zero', row: 'p2', place: 0, val: 0 });
+        const p2 = mulRow('p2', B[1], 1, 1);
+        const top = Math.max(p1.length, p2.length);
+        let carry = 0;
+        for (let pl = 0; pl < top; pl++) {
+          const x = p1[pl] || 0, y = pl === 0 ? 0 : (p2[pl] || 0), s = x + y + carry, last = pl === top - 1;
+          add({ kind: 'add', row: 'sum', place: pl, val: s % 10, x, y, carry, tot: s, has1: p1[pl] !== undefined, has2: p2[pl] !== undefined || pl === 0 });
+          carry = Math.floor(s / 10);
+          if (carry > 0 && !last) add({ kind: 'addmemo', row: 'sum', memo: true, place: pl + 1, val: carry, tot: s, from: pl });
+          if (carry > 0 && last) add({ kind: 'addhi', row: 'sum', place: pl + 1, val: carry, tot: s, from: pl });
+        }
+      }
+      const width = Math.max(...steps.map(s => s.place)) + 1;
+      return { a, b, A, B, two, steps, vals, width: Math.max(width, A.length, B.length), answer: a * b, spec: classify(a, b) };
+    }
+
+    // まちがいの しゅるい
+    const KINDS = ['くくの まちがい', 'くりあがりの たしわすれ', 'くらいの まちがい', 'くりあがりの メモ', '0の かきわすれ', 'たし算の まちがい', 'たし算の くりあがり わすれ'];
+    function mistakeKind(st, v) {
+      if (st.kind === 'mul') {
+        if (st.carry > 0 && v === st.prod % 10) return 'くりあがりの たしわすれ';
+        if (st.tot >= 10 && v === Math.floor(st.tot / 10)) return 'くらいの まちがい';
+        return 'くくの まちがい';
+      }
+      if (st.kind === 'memo' || st.kind === 'mulhi') return 'くりあがりの メモ';
+      if (st.kind === 'zero') return '0の かきわすれ';
+      if (st.kind === 'add') return st.carry > 0 && v === (st.x + st.y) % 10 ? 'たし算の くりあがり わすれ' : 'たし算の まちがい';
+      return 'たし算の くりあがり わすれ'; // addmemo・addhi
+    }
+    // その マスで いう こと（よみあげ）
+    function stepPrompt(st) {
+      const pn = PLACE_NAME[st.place];
+      switch (st.kind) {
+        case 'mul': return `${st.x} × ${st.y}${st.carry ? `、メモの ${st.carry} を たす` : ''}。${pn}に かこう`;
+        case 'memo': return 'くりあがりを となりの うえに メモしよう';
+        case 'mulhi': return `のこりの かずを ${pn}に かこう`;
+        case 'zero': return '✕の マスには なにを かくかな';
+        case 'add': return `${st.x} ＋ ${st.y}${st.carry ? `、メモの ${st.carry} も たす` : ''}。${pn}に かこう`;
+        case 'addmemo': return 'たし算の くりあがりを メモしよう';
+        case 'addhi': return `のこりの かずを ${pn}に かこう`;
+        default: return '';
+      }
+    }
+    // ヒント①（ことば）
+    function hintText(st) {
+      const pn = PLACE_NAME[st.place];
+      switch (st.kind) {
+        case 'mul': return `${st.x} × ${st.y} を けいさんしよう。${st.carry ? `そのあと メモの ${st.carry} を たすよ。` : ''}${st.tot >= 10 ? 'こたえの 1の位の かずだけ かくよ。' : ''}`;
+        case 'memo': return 'さっきの こたえの 10の位の かずを、となりの マスの うえに ちいさく メモするよ。';
+        case 'mulhi': return `さっきの こたえの 10の位の かずを、ひだりの ${pn}に かくよ。`;
+        case 'zero': return '2だんめは 10の位の かけ算だよ。1の位の ✕の マスには 0 を かくよ。';
+        case 'add': return `${st.x} ＋ ${st.y} を けいさんしよう。${st.carry ? `メモの ${st.carry} も たすよ。` : ''}`;
+        case 'addmemo': return 'たし算の こたえの 10の位の かずを、となりの うえに メモするよ。';
+        case 'addhi': return `たし算の こたえの 10の位の かずを、ひだりの ${pn}に かくよ。`;
+        default: return '';
+      }
+    }
+    // ヒント②（しき）
+    function hintCalc(st) {
+      switch (st.kind) {
+        case 'mul': return [`${st.x} × ${st.y} ＝ ${st.prod}`].concat(st.carry ? [`${st.prod} ＋ ${st.carry} ＝ ${st.tot}`] : []);
+        case 'memo': case 'mulhi': case 'addmemo': case 'addhi': return [`${st.tot} の 10の位は ${Math.floor(st.tot / 10)}`];
+        case 'zero': return ['✕の マスは 0'];
+        case 'add': return [`${st.x} ＋ ${st.y} ＝ ${st.x + st.y}`].concat(st.carry ? [`${st.x + st.y} ＋ ${st.carry} ＝ ${st.tot}`] : []);
+        default: return [];
+      }
+    }
+    // まちがえた ときの こえかけ
+    function missText(kind, st) {
+      switch (kind) {
+        case 'くりあがりの たしわすれ': return `おしい！ メモの ${st.carry} を たすのを わすれて いるよ。`;
+        case 'くらいの まちがい': return 'ここには こたえの 1の位の かずだけ かくよ。10の位は メモに しよう。';
+        case 'くくの まちがい': return `${st.x} × ${st.y} を もういちど となえて みよう。`;
+        case 'くりあがりの メモ': return 'うえの こたえの 10の位の かずを かくよ。';
+        case '0の かきわすれ': return '2だんめは 10の位の かけ算。1の位には 0 を かこう。';
+        case 'たし算の くりあがり わすれ': return st.kind === 'add' ? `メモの ${st.carry} も たそう。` : 'たし算の こたえの 10の位の かずを かくよ。';
+        default: return `${st.x} ＋ ${st.y} を もういちど かぞえて みよう。`;
+      }
+    }
+    // ヒント②で ひからせる マス
+    function operandCells(st) {
+      if (st.kind === 'mul') return [`a:${st.aPlace}`, `b:${st.bPlace}`].concat(st.carry ? [`${st.row}m:${st.place}`] : []);
+      if (st.kind === 'add') return [`p1:${st.place}`, `p2:${st.place}`].concat(st.carry ? [`summ:${st.place}`] : []);
+      if (st.kind === 'zero') return ['b:1'];
+      return [`${st.row}:${st.from}`];
+    }
+
+    // しゅぎょう：くくの まと・くりあがりの いし の えらぶ こたえ
+    function choicesFor(ans, cands) {
+      const set = new Set([ans]);
+      shuffle(cands).forEach(c => { if (set.size < 4 && c > 0 && c !== ans && c < 200) set.add(c); });
+      for (let d = 1; set.size < 4; d++) { if (ans + d > 0) set.add(ans + d); if (set.size < 4 && ans - d > 0) set.add(ans - d); }
+      return shuffle([...set]);
+    }
+    function makeMato() {
+      const a = rnd(2, 9), b = rnd(2, 9), ans = a * b;
+      const rev = ans >= 10 ? Number(String(ans).split('').reverse().join('')) : 0;
+      return { a, b, ans, q: `${a} × ${b}`, choices: choicesFor(ans, [a * (b + 1), a * (b - 1), (a + 1) * b, (a - 1) * b, rev, ans + 1, ans - 1]) };
+    }
+    function makeIshi() {
+      const x = rnd(2, 9) * rnd(2, 9), c = rnd(1, 8), ans = x + c;
+      return { x, c, ans, q: `${x} ＋ ${c}`, choices: choicesFor(ans, [x, ans - 10, ans + 10, ans + 1, ans - 1, x + c - 1]) };
+    }
+
+    // =====================================================================
+    //  5. すすみぐあい（レベル・なかま・ばしょ）
+    // =====================================================================
+    const newProgress = () => ({
+      t: 0, hero: null, exp: 0, gold: 0, earned: 0, total: 0, beaten: {}, comps: [], items: [], equip: { buki: null, bougu: null, dougu: null },
+      zukan: {}, shu: {}, waza: [], nigate: [], part: null, story: {}, mapAt: 'town', day: { d: '', n: 0, exp: 0, gold: 0 },
+    });
+    const parseProgress = (s) => {
+      let o = {}; try { o = typeof s === 'string' ? JSON.parse(s || '{}') || {} : (s || {}); } catch (e) { o = {}; }
+      const p = { ...newProgress(), ...o };
+      p.equip = { ...newProgress().equip, ...(o.equip || {}) };
+      p.story = { ...(o.story || {}) }; p.beaten = { ...(o.beaten || {}) }; p.zukan = { ...(o.zukan || {}) }; p.shu = { ...(o.shu || {}) };
+      return p;
+    };
+    const mainPlaces = () => PLACES.filter(x => !x.hatten);
+    const beatenN = (p, pl, bi) => p.beaten[pl.id + ':' + bi] || 0;
+    const placeCleared = (p, pl) => beatenN(p, pl, 2) > 0;
+    const placeOpen = (p, pl) => {
+      if (pl.hatten) return !!p.hatten;
+      const ms = mainPlaces(), i = ms.indexOf(pl);
+      return i <= 0 || !!p.unlockAll || placeCleared(p, ms[i - 1]);
+    };
+    const battleOpen = (p, pl, bi) => placeOpen(p, pl) && (bi === 0 || !!p.unlockAll || beatenN(p, pl, bi - 1) > 0 || beatenN(p, pl, bi) > 0);
+    const gemsOf = (p) => mainPlaces().filter(pl => placeCleared(p, pl)).length;
+    const needExp = (lv) => 20 + 10 * lv;
+    function levelOf(exp) {
+      let lv = 1, e = exp || 0;
+      while (e >= needExp(lv) && lv < 99) { e -= needExp(lv); lv++; }
+      return { lv, cur: e, need: needExp(lv) };
+    }
+    function rankOf(lv, job) {
+      const r = [...D.RANKS].reverse().find(x => lv >= x.lv) || D.RANKS[0];
+      return r.full ? r.n : `${r.n} ${(JOB[job] || JOBS[0]).name}`;
+    }
+    // なかま：じぶんで えらばなかった しょくぎょうの 3にん × すがた3 ＝ 9にん。ばしょを クリアする たびに 1にん
+    const COMP_NAMES = { yusha: ['ソウタ', 'ヒカリ', 'ジン'], mahou: ['ルナ', 'ミルク', 'セイ'], shonin: ['マルコ', 'チャチャ', 'ギン'], soryo: ['ノエル', 'ハル', 'リン'] };
+    function compOrder(hero) {
+      const jobs = JOBS.map(j => j.id).filter(j => !hero || j !== hero.job);
+      const out = [];
+      [1, 2, 3].forEach((f, k) => jobs.forEach((j, i) => out.push({ job: j, form: ((f + i + k) % 3) + 1 })));
+      return out.map(c => ({ ...c, id: c.job + '_' + c.form, name: COMP_NAMES[c.job][c.form - 1] }));
+    }
+    const compById = (hero, id) => compOrder(hero).find(c => c.id === id);
+    const partyOf = (p) => p.comps.slice(-3).map(id => compById(p.hero, id)).filter(Boolean);
+    const COMP_LINES = {
+      memo: 'くりあがりを メモ しよう！ わすれないでね。',
+      mulhi: 'のこりの かずを ひだりに かこう！',
+      zero: '2だんめの ✕の マス、なにを かくか おぼえてる？',
+      add: 'さいごは たし算だよ。1だんめと 2だんめを たそう！',
+    };
+    const placeLabel = (pl) => `${pl.lv} ${pl.name}`;
+    const BATTLE_NAMES = ['ざこ ①', 'ざこ ②', 'ぬし'];
+
+    // =====================================================================
+    //  6. データの ほぞん（スプレッドシート／おためしモード）
+    // =====================================================================
+    const LOG_HEADER = ['日時', 'なまえ', 'ばしょ', 'たたかい', 'もんだい', 'こたえ', 'けっか', 'まちがい', 'ヒント', 'まちがいの しゅるい', 'まちがえて いれた かず', 'びょう', 'ID'];
+    const DEFAULT_SETTINGS = { rate: 0.8, font: 1, count: 5, count2: 3, kakashi: 10, hint: true, yomi: true, sound: true };
+
+    // まとめ（先生用）— コード.gs の aggregate_ と おなじ しくみ
+    const emptyStu = () => ({ count: 0, ok: 0, miss: 0, hint: 0, last: '', places: {}, kinds: {}, wrongs: [] });
+    function aggregate(rows) {
+      const students = {}, classKinds = {}, classPlaces = {};
+      rows.forEach(r => {
+        const name = String(r[1] || '').trim(); if (!name) return;
+        const pl = String(r[2]), ok = r[6] === '○' ? 1 : 0, miss = Number(r[7]) || 0, hint = Number(r[8]) || 0;
+        const s = students[name] || (students[name] = emptyStu());
+        const day = String(r[0]).slice(0, 10);
+        if (day > s.last) s.last = day;
+        s.count++; s.ok += ok; s.miss += miss; s.hint += hint ? 1 : 0;
+        const g = s.places[pl] || (s.places[pl] = [0, 0, 0]); g[0]++; g[1] += ok; g[2] += miss;
+        const c = classPlaces[pl] || (classPlaces[pl] = [0, 0, 0]); c[0]++; c[1] += ok; c[2] += miss;
+        String(r[9] || '').split('・').forEach(k => { if (k) { s.kinds[k] = (s.kinds[k] || 0) + 1; classKinds[k] = (classKinds[k] || 0) + 1; } });
+        if (miss > 0) { s.wrongs.push([String(r[0]).slice(0, 16), pl, String(r[3]), String(r[4]), String(r[10] || ''), String(r[9] || '')]); if (s.wrongs.length > 15) s.wrongs.shift(); }
+      });
+      return { students, classKinds, classPlaces };
+    }
+
+    const Local = {
+      key: 'kakezan_local_v1', mem: null,
+      data() {
+        if (this.mem) return this.mem;
+        let d = null; try { d = JSON.parse(safeStore.get(this.key)); } catch (e) {}
+        this.mem = d || { roster: ['たろう', 'はなこ', 'ゆうき'], progress: {}, log: [], pin: '1234', settings: { ...DEFAULT_SETTINGS } };
+        return this.mem;
+      },
+      save() { safeStore.set(this.key, JSON.stringify(this.mem)); },
+    };
+
+    const PENDING_KEY = 'kakezan_pending_v1';
+    const COPY_KEY = (name) => 'kakezan_copy_' + name;
+    const recRow = (stamp, name, r) => [stamp, name, r.place, r.battle, r.prob, r.ans, r.result, r.miss, r.hint, r.kinds, r.inputs, r.secs, r.id];
+    const api = {
+      async init() {
+        if (HAS_GAS) return gas('getInitData');
+        const d = Local.data();
+        return { students: d.roster, settings: { ...DEFAULT_SETTINGS, ...d.settings }, demo: true };
+      },
+      async student(name) {
+        if (HAS_GAS) return gas('getStudent', name);
+        return Local.data().progress[name] || '';
+      },
+      async sendOne(p) {
+        if (HAS_GAS) return gas('saveResult', p);
+        const d = Local.data();
+        const old = parseProgress(d.progress[p.name]);
+        const neu = parseProgress(p.progress);
+        if (neu.t >= old.t) {
+          if ((old.flagT || 0) > (neu.t || 0)) { neu.unlockAll = !!old.unlockAll; neu.hatten = !!old.hatten; neu.range = old.range; neu.hero = old.hero; neu.flagT = old.flagT; }
+          d.progress[p.name] = JSON.stringify(neu);
+        }
+        const ids = new Set(d.log.map(r => r[12]));
+        p.records.forEach(r => { if (!ids.has(r.id)) d.log.push(recRow(p.stamp, p.name, r)); });
+        Local.save();
+        return { ok: true };
+      },
+      // とどかなかった きろくは たまっておき、つぎの ときに おくりなおす
+      readQueue() { try { return JSON.parse(safeStore.get(PENDING_KEY)) || []; } catch (e) { return []; } },
+      async save(payload) {
+        const queue = api.readQueue().filter(q => !(q.name === payload.name && !q.records.length));
+        queue.push({ ...payload, qid: uid() });
+        safeStore.set(PENDING_KEY, JSON.stringify(queue));
+        return api.flush();
+      },
+      pending() { return api.readQueue().length; },
+      flushing: false,
+      async flush() {
+        if (api.flushing) return;
+        api.flushing = true;
+        try {
+          for (let q = api.readQueue()[0]; q; q = api.readQueue()[0]) {
+            await api.sendOne(q);
+            safeStore.set(PENDING_KEY, JSON.stringify(api.readQueue().filter(x => x.qid !== q.qid)));
+          }
+        } catch (e) { console.warn('きろくを おくれませんでした。あとで おくりなおします。', e); }
+        finally { api.flushing = false; }
+      },
+      async teacher(pin) {
+        if (HAS_GAS) return gas('getTeacherData', pin);
+        const d = Local.data();
+        if (String(pin) !== String(d.pin)) return { ok: false };
+        const agg = aggregate(d.log);
+        return {
+          ok: true, isDefaultPin: d.pin === '1234', demo: true, settings: { ...DEFAULT_SETTINGS, ...d.settings },
+          students: d.roster.map(n => ({ ...emptyStu(), ...(agg.students[n] || {}), name: n, progress: d.progress[n] || '' })),
+          classKinds: agg.classKinds, classPlaces: agg.classPlaces,
+        };
+      },
+      async setFlag(pin, name, key, val) {
+        if (HAS_GAS) return gas('setFlag', pin, name, key, val);
+        const d = Local.data(); const p = parseProgress(d.progress[name]);
+        if (key === 'range') p.range = val === '' || val == null ? null : Number(val);
+        else if (key === 'remake') p.hero = null;
+        else p[key] = !!val;
+        p.t = Date.now(); p.flagT = Date.now();
+        d.progress[name] = JSON.stringify(p); Local.save(); return { ok: true, progress: d.progress[name] };
+      },
+      async addGold(pin, name, delta) {
+        if (HAS_GAS) return gas('addGold', pin, name, delta);
+        const d = Local.data(); const p = parseProgress(d.progress[name]); p.gold = Math.max(0, (p.gold || 0) + delta); p.t = Date.now();
+        d.progress[name] = JSON.stringify(p); Local.save(); return { ok: true, progress: d.progress[name] };
+      },
+      async saveSettings(pin, s) {
+        if (HAS_GAS) return gas('saveSettings', pin, s);
+        const d = Local.data(); const { newPin, ...rest } = s;
+        d.settings = { ...d.settings, ...rest }; if (newPin) d.pin = newPin; Local.save(); return { ok: true };
+      },
+      async logRows(pin) {
+        if (HAS_GAS) return gas('getLogRows', pin);
+        return { ok: true, rows: [LOG_HEADER, ...Local.data().log] };
+      },
+      async backup(pin) {
+        if (HAS_GAS) return gas('getBackup', pin);
+        const d = Local.data(); return { ok: true, data: { app: 'kakezan', roster: d.roster.map(n => [n, d.progress[n] || '']), settings: d.settings } };
+      },
+      async restore(pin, data) {
+        if (HAS_GAS) return gas('restoreBackup', pin, data);
+        const d = Local.data(); (data.roster || []).forEach(([n, p]) => { if (!d.roster.includes(n)) d.roster.push(n); d.progress[n] = p; }); Local.save(); return { ok: true };
+      },
+      async clear(pin, name) {
+        if (HAS_GAS) return gas('clearRecords', pin, name);
+        const d = Local.data();
+        d.log = d.log.filter(r => name && r[1] !== name);
+        (name ? [name] : d.roster).forEach(n => { delete d.progress[n]; safeStore.del(COPY_KEY(n)); });
+        Local.save(); return { ok: true };
+      },
+    };
+
+    // =====================================================================
+    //  7. 人物・モンスター・ばしょの 絵（ChatGPT の 絵が ある ときは その 絵を つかう）
+    // =====================================================================
+    function useImgVer() {
+      const [v, setV] = useState(Img.ver);
+      useEffect(() => { Img.subs.add(setV); return () => Img.subs.delete(setV); }, []);
+      return v;
+    }
+    // 絵が あれば <img>、なければ fallback
+    function Pic({ name, fallback, className = '', style = {}, alt = '' }) {
+      const u = Img.url(name);
+      if (u) return <img src={u} alt={alt} draggable="false" className={className} style={{ objectFit: 'contain', ...style }} />;
+      return fallback || null;
+    }
+
+    // しゅじんこう・なかま（自作の SVG）
+    function HeroSVG({ job, form, size = 100 }) {
+      const J = JOB[job] || JOBS[0], F = FORMS.find(f => f.id === form) || FORMS[0];
+      const c = J.color, skin = F.skin, hc = F.hairColor;
+      return (
+        <svg viewBox="0 -18 100 138" width={size} height={size * 1.38} style={{ overflow: 'visible' }}>
+          <ellipse cx="50" cy="114" rx="26" ry="5" fill="rgba(0,0,0,.25)" />
+          {job === 'yusha' && <path d="M30 60 L70 60 L78 106 L22 106 Z" fill="#dc2626" />}
+          <rect x="38" y="90" width="9" height="20" rx="3" fill="#374151" /><rect x="53" y="90" width="9" height="20" rx="3" fill="#374151" />
+          <rect x="36" y="104" width="12" height="8" rx="3" fill="#78350f" /><rect x="52" y="104" width="12" height="8" rx="3" fill="#78350f" />
+          {job === 'yusha' && <g><rect x="32" y="60" width="36" height="34" rx="8" fill={c} /><path d="M38 63 h24 v13 q-12 9 -24 0 z" fill="#e5e7eb" /><rect x="32" y="84" width="36" height="5" fill="#92400e" /></g>}
+          {job === 'mahou' && <g><path d="M35 60 h30 l9 46 h-48 z" fill={c} /><circle cx="44" cy="80" r="2.5" fill="#fde047" /><circle cx="57" cy="92" r="2" fill="#fde047" /><circle cx="52" cy="72" r="1.6" fill="#fde047" /></g>}
+          {job === 'shonin' && <g><rect x="32" y="60" width="36" height="34" rx="8" fill="#fde68a" /><path d="M32 66 q0 -6 8 -6 h4 v34 h-12 z M68 66 q0 -6 -8 -6 h-4 v34 h12 z" fill={c} /><rect x="32" y="84" width="36" height="5" fill="#7c2d12" /><circle cx="76" cy="88" r="10" fill="#a16207" /><path d="M70 80 q6 -6 12 0" stroke="#713f12" strokeWidth="3" fill="none" /></g>}
+          {job === 'soryo' && <g><path d="M35 60 h30 l7 46 h-44 z" fill="#f8fafc" stroke="#d97706" strokeWidth="2" /><rect x="47" y="60" width="6" height="46" fill={c} /><circle cx="50" cy="72" r="4" fill="#fde047" stroke={c} /></g>}
+          <circle cx="28" cy="74" r="6" fill={skin} /><circle cx="72" cy="74" r="6" fill={skin} />
+          {job === 'yusha' && <g><rect x="72" y="40" width="5" height="34" rx="2" fill="#cbd5e1" transform="rotate(20 74 72)" /><rect x="66" y="68" width="16" height="4" rx="2" fill="#a16207" transform="rotate(20 74 70)" /></g>}
+          {job === 'mahou' && <g><rect x="21" y="40" width="4" height="60" rx="2" fill="#92400e" /><path d="M23 30 l3 7 l7 1 l-5 5 l1 7 l-6 -3 l-6 3 l1 -7 l-5 -5 l7 -1 z" fill="#facc15" /></g>}
+          {job === 'shonin' && <g><rect x="16" y="66" width="16" height="12" rx="2" fill="#78350f" /><circle cx="20" cy="70" r="1.6" fill="#fde68a" /><circle cx="24" cy="74" r="1.6" fill="#fde68a" /><circle cx="28" cy="70" r="1.6" fill="#fde68a" /></g>}
+          {job === 'soryo' && <g><rect x="21" y="44" width="4" height="56" rx="2" fill="#b45309" /><circle cx="23" cy="40" r="7" fill="none" stroke="#facc15" strokeWidth="3" /><circle cx="23" cy="40" r="2.5" fill="#fde047" /></g>}
+          {F.hair === 'long' && <path d="M25 40 q0 -26 25 -26 q25 0 25 26 v32 h-10 v-22 h-30 v22 h-10 z" fill={hc} />}
+          {F.hair === 'tail' && <ellipse cx="78" cy="46" rx="8" ry="15" fill={hc} transform="rotate(25 78 46)" />}
+          <circle cx="50" cy="42" r="24" fill={skin} />
+          {F.hair === 'short' && <path d="M26 40 q-2 -26 24 -27 q26 1 24 27 l-6 -9 l-5 7 l-6 -9 l-6 8 l-6 -8 l-6 9 l-5 -7 z" fill={hc} />}
+          {F.hair === 'long' && <path d="M26 42 q-2 -28 24 -28 q26 0 24 28 q-10 -14 -24 -14 q-14 0 -24 14 z" fill={hc} />}
+          {F.hair === 'tail' && <path d="M26 40 q0 -26 24 -26 q24 0 24 26 q-14 -6 -22 -16 q-10 12 -26 16 z" fill={hc} />}
+          <ellipse cx="41" cy="46" rx="3.2" ry="4.2" fill="#1f2937" /><ellipse cx="59" cy="46" rx="3.2" ry="4.2" fill="#1f2937" />
+          <circle cx="42" cy="44.5" r="1.2" fill="#fff" /><circle cx="60" cy="44.5" r="1.2" fill="#fff" />
+          <circle cx="35" cy="53" r="3.5" fill="#fca5a5" opacity=".6" /><circle cx="65" cy="53" r="3.5" fill="#fca5a5" opacity=".6" />
+          <path d="M44 55 q6 5 12 0" stroke="#7c2d12" strokeWidth="2" fill="none" strokeLinecap="round" />
+          {job === 'yusha' && <g><rect x="27" y="25" width="46" height="6" rx="3" fill="#facc15" /><circle cx="50" cy="28" r="4" fill="#ef4444" stroke="#fff" /></g>}
+          {job === 'mahou' && <g><path d="M18 30 q32 -12 64 0 q-10 6 -32 6 q-22 0 -32 -6 z" fill="#4c1d95" /><path d="M30 28 L52 -14 L70 28 z" fill={c} /><circle cx="52" cy="-14" r="4" fill="#fde047" /><rect x="31" y="22" width="38" height="5" fill="#fde047" /></g>}
+          {job === 'shonin' && <g><path d="M25 32 q25 -20 50 0 v6 q-25 -8 -50 0 z" fill={c} /><circle cx="76" cy="34" r="4" fill={c} /><path d="M78 34 l8 6 l-6 3 z" fill={c} /></g>}
+          {job === 'soryo' && <path d="M24 44 q-2 -32 26 -32 q28 0 26 32 q-2 -18 -26 -20 q-24 2 -26 20 z" fill="#f8fafc" stroke="#d97706" strokeWidth="2" />}
+        </svg>
+      );
+    }
+    function HeroPic({ job, form, size = 100, className = '' }) {
+      useImgVer();
+      return <Pic name={`hero_${job}_${form}`} className={className} style={{ width: size, height: size * 1.25 }}
+        fallback={<div className={className} style={{ width: size, height: size * 1.25, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}><HeroSVG job={job} form={form} size={size * 0.9} /></div>} />;
+    }
+
+    // ケンジャの カケルさま（自作の SVG）
+    function KakeruSVG({ mood = 'normal', size = 120 }) {
+      return (
+        <svg viewBox="0 -24 100 144" width={size} height={size * 1.44} style={{ overflow: 'visible' }}>
+          <ellipse cx="50" cy="114" rx="30" ry="5" fill="rgba(0,0,0,.25)" />
+          <rect x="80" y="18" width="5" height="94" rx="2" fill="#92400e" />
+          <circle cx="82" cy="14" r="9" fill="#fde047" className="twinkle" /><circle cx="82" cy="14" r="5" fill="#fff" opacity=".8" />
+          <path d="M28 58 h44 l10 54 h-64 z" fill="#1e3a8a" /><path d="M46 58 h8 v54 h-8 z" fill="#fbbf24" />
+          <circle cx="24" cy="76" r="7" fill="#fcd9b6" /><circle cx="78" cy="70" r="7" fill="#fcd9b6" />
+          <circle cx="50" cy="40" r="22" fill="#fcd9b6" />
+          <path d="M28 46 q22 50 44 0 q-4 10 -22 10 q-18 0 -22 -10 z" fill="#f8fafc" stroke="#cbd5e1" />
+          <path d="M34 50 q16 8 32 0 q-4 6 -16 7 q-12 -1 -16 -7 z" fill="#f1f5f9" />
+          {mood === 'happy' ? <g stroke="#1f2937" strokeWidth="2.5" fill="none" strokeLinecap="round"><path d="M37 40 q4 -5 8 0" /><path d="M55 40 q4 -5 8 0" /></g>
+            : mood === 'think' ? <g><path d="M37 40 h8" stroke="#1f2937" strokeWidth="2.5" strokeLinecap="round" /><circle cx="59" cy="40" r="3" fill="#1f2937" /></g>
+            : <g><circle cx="41" cy="40" r="3" fill="#1f2937" /><circle cx="59" cy="40" r="3" fill="#1f2937" /></g>}
+          <path d="M34 33 q6 -5 12 -1 M54 32 q6 -4 12 1" stroke="#f8fafc" strokeWidth="4" fill="none" strokeLinecap="round" />
+          <ellipse cx="50" cy="47" rx="4" ry="3" fill="#f0b48a" />
+          {mood === 'happy' && <path d="M44 55 q6 5 12 0" stroke="#7c2d12" strokeWidth="2" fill="#ef4444" />}
+          <path d="M18 26 q32 -12 64 0 q-8 7 -32 7 q-24 0 -32 -7 z" fill="#1e40af" />
+          <path d="M30 24 L48 -22 L72 24 z" fill="#1e3a8a" />
+          <path d="M48 -22 q8 -2 10 8" stroke="#1e3a8a" strokeWidth="6" fill="none" strokeLinecap="round" />
+          <text x="50" y="14" textAnchor="middle" fontSize="18" fontWeight="bold" fill="#fde047">×</text>
+          <circle cx="40" cy="2" r="1.8" fill="#fde047" /><circle cx="60" cy="8" r="1.5" fill="#fde047" />
+        </svg>
+      );
+    }
+    function Kakeru({ mood = 'normal', size = 120, className = '' }) {
+      useImgVer();
+      const name = Img.has('kakeru_' + mood) ? 'kakeru_' + mood : 'kakeru_normal';
+      return <Pic name={name} className={className} style={{ width: size, height: size * 1.3 }}
+        fallback={<div className={className} style={{ width: size, height: size * 1.3, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}><KakeruSVG mood={mood} size={size * 0.85} /></div>} />;
+    }
+    function MonsterPic({ m, size = 160, className = '' }) {
+      useImgVer();
+      if (!m) return null;
+      return <Pic name={`monster_${m.id}`} className={className} style={{ width: size, height: size }}
+        fallback={<div className={className} style={{ width: size, height: size, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: `radial-gradient(circle at 50% 45%, ${m.color} 0%, ${m.color}cc 45%, transparent 70%)`, fontSize: size * 0.58, lineHeight: 1 }}>
+          <span style={{ filter: 'drop-shadow(0 4px 6px rgba(0,0,0,.35))' }}>{m.emoji}</span></div>} />;
+    }
+    function MaouPic({ size = 140 }) {
+      return <MonsterPic m={MON.barabara} size={size} />;
+    }
+    // ばしょの はいけい
+    function PlaceBg({ pl, children, className = '', style = {}, dim = 0 }) {
+      useImgVer();
+      const u = pl && Img.url('bg_' + pl.id);
+      const bg = u ? { backgroundImage: `url(${u})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+        : { background: pl ? `linear-gradient(${pl.sky[0]} 0%, ${pl.sky[1]} 62%, ${pl.ground} 62%, ${pl.ground} 100%)` : '#14213d' };
+      return (
+        <div className={`relative overflow-hidden ${className}`} style={{ ...bg, ...style }}>
+          {!u && pl && pl.deco.map((e, i) => <div key={i} className="absolute select-none" style={{ left: `${8 + i * 33}%`, top: `${48 + (i % 2) * 8}%`, fontSize: 46, opacity: .55 }}>{e}</div>)}
+          {dim > 0 && <div className="absolute inset-0" style={{ background: `rgba(15,23,42,${dim})` }} />}
+          <div className="relative h-full">{children}</div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    //  8. はなす（メッセージの まど）
+    // =====================================================================
+    const TalkCtx = createContext(null);
+    const useTalk = () => useContext(TalkCtx);
+    function Face({ who, hero, size = 56 }) {
+      if (who === 'kakeru') return <Kakeru size={size} mood="happy" />;
+      if (who === 'maou') return <MaouPic size={size} />;
+      if (who && who.job) return <HeroPic job={who.job} form={who.form} size={size} />;
+      if (who && who.emoji) return <MonsterPic m={who} size={size} />;
+      return <Kakeru size={size} />;
+    }
+    function MessageWindow({ className = '', small }) {
+      const t = useTalk();
+      if (!t.text) return null;
+      const name = t.who === 'kakeru' ? 'カケルさま' : t.who === 'maou' ? 'まおう' : t.who && t.who.name ? t.who.name : '';
+      return (
+        <div className={`rpgwin flex items-start gap-3 p-3 ${className}`}>
+          <div className="shrink-0" onClick={() => t.repeat()}><Face who={t.who} size={small ? 44 : 60} /></div>
+          <div className="flex-1 min-w-0">
+            {name && <div className="text-sm text-amber-300 font-bold">{name}</div>}
+            <div className={`${small ? 'text-lg' : 'text-xl'} leading-relaxed font-bold`}>{t.text}</div>
+          </div>
+          <button onClick={() => t.repeat()} className="shrink-0 rounded-xl bg-white/15 px-2 py-1 text-xl">🔊</button>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    //  9. はじめの がめん（なまえ・おはなし・キャラクターづくり）
+    // =====================================================================
+    function TitleBg({ children }) {
+      return (
+        <div className="min-h-screen w-full relative overflow-hidden" style={{ background: 'linear-gradient(#60a5fa 0%, #93c5fd 45%, #86efac 70%, #4ade80 100%)' }}>
+          <svg className="absolute inset-0 w-full h-full" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid slice">
+            <g fill="#fff" opacity=".85"><ellipse cx="160" cy="90" rx="70" ry="22" /><ellipse cx="200" cy="76" rx="44" ry="22" /><ellipse cx="780" cy="120" rx="80" ry="24" /><ellipse cx="820" cy="102" rx="46" ry="22" /></g>
+            <g fill="#a8a29e"><rect x="420" y="250" width="160" height="120" /><rect x="400" y="210" width="44" height="160" /><rect x="556" y="210" width="44" height="160" /><rect x="476" y="180" width="48" height="190" /></g>
+            <g fill="#3b82f6"><path d="M396 210 l26 -40 l26 40 z" /><path d="M552 210 l26 -40 l26 40 z" /><path d="M472 180 l28 -50 l28 50 z" /></g>
+            <rect x="486" y="310" width="28" height="60" rx="14" fill="#78350f" />
+            <path d="M0 420 q250 -60 500 0 t500 0 v180 h-1000 z" fill="#22c55e" /><path d="M0 480 q300 -40 600 10 t400 -10 v120 h-1000 z" fill="#16a34a" />
+          </svg>
+          <div className="relative">{children}</div>
+        </div>
+      );
+    }
+    function LoginScreen({ students, onSelect, onTeacher, demo }) {
+      return (
+        <TitleBg>
+          <div className="min-h-screen flex flex-col items-center gap-4 p-6">
+            <div className="text-center mt-2">
+              <div className="text-2xl font-bold text-white tshadow">ケンジャの カケルさまの</div>
+              <div className="text-6xl font-bold text-amber-300 title">ひっさん クエスト</div>
+            </div>
+            <div className="flex items-end gap-2"><Kakeru size={120} mood="happy" className="floaty" /></div>
+            <div className="rpgwin p-5 w-full max-w-3xl">
+              <div className="text-2xl font-bold text-center mb-3">じぶんの なまえを おしてね</div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {students.map(n => <button key={n} onClick={() => { Sound.tap(); onSelect(n); }}
+                  className="btn3d rounded-2xl border-4 border-amber-500 bg-amber-50 text-slate-800 py-4 text-3xl font-bold">{n}</button>)}
+              </div>
+              {!students.length && <div className="text-xl text-center text-rose-300">名簿に名前がありません。スプレッドシートの「名簿」シートに入れてください。</div>}
+            </div>
+            {demo && <div className="text-white text-sm tshadow">おためしモード（記録はこの端末だけに保存されます。暗証番号 1234）</div>}
+            <button onClick={onTeacher} className="text-white underline text-base tshadow">🔒 せんせい用</button>
+          </div>
+        </TitleBg>
+      );
+    }
+
+    // おはなし（はじまり・おわり）
+    function StoryScreen({ pages, onDone, doneLabel = 'つぎへ' }) {
+      const talk = useTalk();
+      const [i, setI] = useState(0);
+      const pg = pages[i];
+      useEffect(() => { talk.say(pg.text, { who: pg.who }); }, [i]);
+      return (
+        <TitleBg>
+          <div className="min-h-screen flex flex-col items-center justify-center gap-6 p-6">
+            <div className="flex items-end gap-10" style={{ minHeight: 220 }}>
+              {pg.who === 'maou' ? <div className="pop" key={i}><MaouPic size={200} /></div> : <div className="pop" key={i}><Kakeru size={170} mood="normal" /></div>}
+            </div>
+            <MessageWindow className="w-full max-w-3xl" />
+            <div className="flex gap-3">
+              {i > 0 && <button onClick={() => setI(i - 1)} className="btn3d rounded-2xl border-4 border-slate-400 bg-white px-6 py-3 text-2xl font-bold">◀ もどる</button>}
+              <button onClick={() => { Sound.tap(); if (i < pages.length - 1) setI(i + 1); else onDone(); }}
+                className="btn3d rounded-2xl border-4 border-amber-600 bg-amber-300 px-8 py-3 text-2xl font-bold">{i < pages.length - 1 ? 'つぎへ ▶' : doneLabel}</button>
+            </div>
+          </div>
+        </TitleBg>
+      );
+    }
+
+    // キャラクターづくり（しょくぎょう → すがた → なまえ）
+    function CreateHero({ name, onDone }) {
+      const talk = useTalk();
+      const [step, setStep] = useState(0);
+      const [ji, setJi] = useState(0);
+      const [form, setForm] = useState(1);
+      const J = JOBS[ji];
+      useEffect(() => {
+        if (step === 0) talk.say(`${J.name}。${J.attack}`, { who: 'kakeru' });
+      }, [ji, step]);
+      useEffect(() => {
+        if (step === 0) talk.say('まずは しょくぎょうを えらぼう。◀ ▶ で かえられるよ。', { who: 'kakeru' });
+        if (step === 1) talk.say('つぎは すがたを えらぼう。', { who: 'kakeru' });
+        if (step === 2) talk.say(`${name}さんは ${J.name}だね。これで いいかな？`, { who: 'kakeru' });
+      }, [step]);
+      const arrow = (fn, label) => <button onClick={() => { Sound.tap(); fn(); }} className="btn3d rounded-2xl border-4 border-sky-600 bg-sky-300 w-20 h-20 text-4xl font-bold">{label}</button>;
+      return (
+        <TitleBg>
+          <div className="min-h-screen flex flex-col items-center gap-4 p-4">
+            <div className="rpgwin px-6 py-2 text-2xl font-bold mt-2">{['① しょくぎょうを えらぶ', '② すがたを えらぶ', '③ これで いい？'][step]}</div>
+            <div className="flex items-center gap-6">
+              {step < 2 && arrow(() => step === 0 ? setJi((ji + JOBS.length - 1) % JOBS.length) : setForm(((form + 1) % 3) + 1), '◀')}
+              <div className="rpgwin p-4 flex flex-col items-center" style={{ width: 300 }}>
+                <div key={J.id + form} className="pop"><HeroPic job={J.id} form={form} size={200} /></div>
+                <div className="text-3xl font-bold mt-1">{J.emoji} {J.name}</div>
+                {step >= 1 && <div className="text-lg">{FORMS[form - 1].name}</div>}
+                {step === 2 && <div className="text-2xl text-amber-300 font-bold mt-1">なまえ：{name}</div>}
+              </div>
+              {step < 2 && arrow(() => step === 0 ? setJi((ji + 1) % JOBS.length) : setForm((form % 3) + 1), '▶')}
+            </div>
+            {step === 0 && <div className="flex gap-2">{JOBS.map((j, i) => <div key={j.id} className={`w-4 h-4 rounded-full ${i === ji ? 'bg-amber-400' : 'bg-white/60'}`} />)}</div>}
+            <MessageWindow className="w-full max-w-3xl" small />
+            <div className="flex gap-3">
+              {step > 0 && <button onClick={() => setStep(step - 1)} className="btn3d rounded-2xl border-4 border-slate-400 bg-white px-6 py-3 text-2xl font-bold">◀ もどる</button>}
+              <button onClick={() => { Sound.ok(); if (step < 2) setStep(step + 1); else onDone({ job: J.id, form }); }}
+                className="btn3d rounded-2xl border-4 border-amber-600 bg-amber-300 px-8 py-3 text-2xl font-bold">{step < 2 ? 'これに する ▶' : 'はい！ ぼうけんに でる'}</button>
+            </div>
+          </div>
+        </TitleBg>
+      );
+    }
+
+    // =====================================================================
+    // 10. うえの バー
+    // =====================================================================
+    function TopBar({ name, p, bump, onTown, onLogout, onTeacher, soundOn, onSound }) {
+      const L = levelOf(p.exp);
+      return (
+        <div className="w-full flex items-center gap-2 px-3 py-2 bg-slate-900 text-white" style={{ height: 64 }}>
+          {onTown && <button onClick={onTown} className="btn3d rounded-xl border-2 border-amber-300 bg-amber-700 px-3 py-1 text-lg font-bold">🏘️ まち</button>}
+          {p.hero && <div className="w-10 h-12 overflow-hidden"><HeroPic job={p.hero.job} form={p.hero.form} size={40} /></div>}
+          <div className="text-xl font-bold">{name}</div>
+          <div className="text-sm rounded-full bg-indigo-600 px-2 py-0.5">Lv.{L.lv}</div>
+          <div className="hidden sm:block w-24 h-3 bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-sky-400" style={{ width: `${(L.cur / L.need) * 100}%` }} /></div>
+          <div className="flex-1" />
+          <div key={bump} className="bump text-2xl font-bold rounded-full bg-amber-400 text-slate-900 px-4 py-0.5">💰 {p.gold}</div>
+          <button onClick={onSound} className="text-2xl px-1">{soundOn ? '🔔' : '🔕'}</button>
+          <button onClick={onTeacher} className="text-xl px-1">🔒</button>
+          <button onClick={onLogout} className="rounded-xl border-2 border-slate-500 px-2 py-1 text-base">おわる</button>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 11. はじまりの まち（うえから みた まち）
+    // =====================================================================
+    function Bldg({ x, y, w, h, roof, label, emoji, onClick, lit, locked, wall = '#efe4c8', sign = true }) {
+      const rh = h * 0.62;
+      const sw = 56 + label.replace(/ /g, '').length * 18; // かんばんの はば
+      return (
+        <g className="bldg" onClick={onClick}>
+          <rect x={x + 4} y={y + 6} width={w} height={h} fill="rgba(0,0,0,.18)" rx="4" />
+          <rect x={x} y={y} width={w} height={rh} fill={roof} rx="4" stroke="rgba(0,0,0,.25)" strokeWidth="2" />
+          <line x1={x + 6} y1={y + rh / 2} x2={x + w - 6} y2={y + rh / 2} stroke="rgba(0,0,0,.28)" strokeWidth="4" />
+          {Array.from({ length: Math.floor(w / 16) }).map((_, i) => <line key={i} x1={x + 8 + i * 16} y1={y + 4} x2={x + 8 + i * 16} y2={y + rh - 4} stroke="rgba(255,255,255,.12)" strokeWidth="2" />)}
+          <rect x={x} y={y + rh} width={w} height={h - rh} fill={wall} stroke="rgba(0,0,0,.25)" strokeWidth="2" />
+          <rect x={x + w / 2 - 9} y={y + h - 22} width="18" height="22" fill="#7c4a1e" rx="2" />
+          <rect x={x + 10} y={y + rh + 6} width="14" height="12" fill={lit ? '#fde047' : '#94a3b8'} />
+          <rect x={x + w - 24} y={y + rh + 6} width="14" height="12" fill={lit ? '#fde047' : '#94a3b8'} />
+          {sign && <g>
+            <rect x={x + w / 2 - sw / 2} y={y - 34} width={sw} height="30" rx="10" fill={locked ? '#cbd5e1' : '#fffbeb'} stroke="#78350f" strokeWidth="3" />
+            <text x={x + w / 2} y={y - 13} textAnchor="middle" fontSize="18" fontWeight="bold" fill="#3f2a14">{locked ? '🔒 ' : emoji + ' '}{label}</text>
+          </g>}
+        </g>
+      );
+    }
+    function Tree({ x, y, r = 22 }) {
+      return <g><circle cx={x + 3} cy={y + 4} r={r} fill="rgba(0,0,0,.18)" /><circle cx={x} cy={y} r={r} fill="#2f7d32" /><circle cx={x - r * .25} cy={y - r * .25} r={r * .6} fill="#43a047" /></g>;
+    }
+    const TOWN_TREES = (() => {
+      const t = [];
+      for (let x = 20; x <= 940; x += 44) { t.push([x, 22]); if (x < 410 || x > 550) t.push([x, 582]); }
+      for (let y = 66; y <= 540; y += 44) { t.push([20, y]); t.push([940, y]); }
+      [[300, 250], [640, 250], [760, 330]].forEach(p => t.push(p));
+      return t;
+    })();
+    const shopOpen = (p, s) => !s.open || !!p.unlockAll || placeCleared(p, PLACE[s.open]);
+
+    function Town({ p, onGo, onContinue }) {
+      const talk = useTalk();
+      const g = gemsOf(p);
+      const party = partyOf(p);
+      useEffect(() => {
+        if (!p.day || p.day.d !== today()) talk.say(`よく きたな。きょうも ひっ算の ぼうけんに でかけよう。そとへ でるには、したの もんを とおるのじゃ。`, { who: 'kakeru' });
+        else talk.say('まちの たてものを おすと、なかに はいれるよ。', { who: 'kakeru' });
+      }, []);
+      const go = (where) => { Sound.tap(); onGo(where); };
+      const sat = 0.35 + 0.65 * g / 9;
+      const S = Object.fromEntries(SHOPS.map(s => [s.id, s]));
+      const part = p.part && PLACE[p.part.place] ? p.part : null;
+      return (
+        <div className="flex-1 flex flex-col items-center gap-2 p-2" style={{ background: '#2f7d32' }}>
+          <div className="w-full max-w-5xl relative">
+            <svg viewBox="0 0 960 600" className="w-full rounded-2xl" style={{ filter: `saturate(${sat}) brightness(${0.86 + 0.14 * g / 9})`, background: '#79c05a' }}>
+              <defs><pattern id="grass" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill="#79c05a" /><rect x="4" y="6" width="3" height="3" fill="#6aae4c" /><rect x="15" y="16" width="3" height="3" fill="#8bd06a" /></pattern></defs>
+              <rect width="960" height="600" fill="url(#grass)" />
+              {/* みち */}
+              <rect x="450" y="190" width="60" height="410" fill="#cdbb8b" />
+              <rect x="110" y="305" width="740" height="50" fill="#cdbb8b" />
+              <circle cx="480" cy="330" r="78" fill="#d8c79a" stroke="#b8a473" strokeWidth="4" />
+              {TOWN_TREES.map(([x, y], i) => <Tree key={i} x={x} y={y} />)}
+              {/* おしろ */}
+              <g className="bldg" onClick={() => go('castle')}>
+                <rect x="300" y="38" width="360" height="160" fill="#4fa3e0" rx="10" />
+                <rect x="322" y="52" width="316" height="128" fill="#d9cba3" stroke="#9c8a5f" strokeWidth="4" />
+                <rect x="380" y="64" width="200" height="100" fill="#8ea8c8" stroke="#5b7392" strokeWidth="4" />
+                <line x1="388" y1="114" x2="572" y2="114" stroke="#5b7392" strokeWidth="5" />
+                {[[340, 70], [620, 70], [340, 162], [620, 162]].map(([cx, cy], i) => <g key={i}><circle cx={cx} cy={cy} r="20" fill="#bcae86" stroke="#8b7b52" strokeWidth="3" /><circle cx={cx} cy={cy} r="10" fill="#5b7392" /></g>)}
+                <rect x="458" y="180" width="44" height="22" fill="#8b5a2b" />
+                <rect x="410" y="12" width="140" height="30" rx="10" fill="#fffbeb" stroke="#78350f" strokeWidth="3" />
+                <text x="480" y="33" textAnchor="middle" fontSize="18" fontWeight="bold" fill="#3f2a14">🏰 おしろ</text>
+              </g>
+              {/* ふんすいと ほうせき */}
+              <circle cx="480" cy="330" r="40" fill="#a8a29e" stroke="#78716c" strokeWidth="4" />
+              <circle cx="480" cy="330" r="30" fill="#60a5fa" />
+              <circle cx="480" cy="330" r="8" fill="#e0f2fe" className="twinkle" />
+              {mainPlaces().map((pl, i) => {
+                const a = (i / 9) * Math.PI * 2 - Math.PI / 2, x = 480 + Math.cos(a) * 58, y = 330 + Math.sin(a) * 58, on = placeCleared(p, pl);
+                return <path key={pl.id} d={`M${x} ${y - 9} l7 9 l-7 9 l-7 -9 z`} fill={on ? pl.gemColor : '#9ca3af'} stroke="#fff" strokeWidth="2" className={on ? 'twinkle' : ''} />;
+              })}
+              {/* たてもの */}
+              <Bldg x={120} y={130} w={150} h={100} roof="#b45309" label="ギルド" emoji="📜" lit={g > 0} onClick={() => go('guild')} />
+              <Bldg x={660} y={110} w={130} h={90} roof="#64748b" label="ぶきや" emoji="⚔️" lit={g > 1} onClick={() => go('shop:buki')} />
+              <Bldg x={806} y={200} w={120} h={86} roof="#0f766e" label="ぼうぐや" emoji="🛡️" lit={g > 2} locked={!shopOpen(p, S.bougu)} onClick={() => go('shop:bougu')} />
+              <Bldg x={680} y={400} w={130} h={86} roof="#7e22ce" label="どうぐや" emoji="🧪" lit={g > 3} locked={!shopOpen(p, S.dougu)} onClick={() => go('shop:dougu')} />
+              <Bldg x={790} y={500} w={130} h={78} roof="#be123c" label="やどや" emoji="🛏️" lit={g > 4} onClick={() => go('inn')} />
+              {/* しゅぎょうの ば */}
+              <g className="bldg" onClick={() => go('shugyo')}>
+                <rect x="96" y="384" width="220" height="110" fill="#d6b98c" stroke="#8b6b3e" strokeWidth="4" strokeDasharray="10 6" rx="6" />
+                <text x="140" y="450" fontSize="40">🎯</text><text x="196" y="460" fontSize="40">🪨</text><text x="250" y="448" fontSize="40">🌾</text>
+                <rect x="117" y="350" width="180" height="30" rx="10" fill="#fffbeb" stroke="#78350f" strokeWidth="3" />
+                <text x="207" y="371" textAnchor="middle" fontSize="17" fontWeight="bold" fill="#3f2a14">🥋 しゅぎょうの ば</text>
+              </g>
+              {/* じぶんの いえ */}
+              <ellipse cx="410" cy="500" rx="86" ry="62" fill="none" stroke="#fff" strokeWidth="5" />
+              <Bldg x={350} y={470} w={120} h={70} roof="#dc2626" label="じぶんの いえ" emoji="🏠" lit onClick={() => go('house')} />
+              {/* もん */}
+              <g className="bldg" onClick={() => go('map')}>
+                <rect x="428" y="560" width="22" height="40" fill="#8b7b52" /><rect x="510" y="560" width="22" height="40" fill="#8b7b52" />
+                <rect x="420" y="552" width="120" height="14" fill="#a16207" />
+                <rect x="545" y="548" width="150" height="30" rx="10" fill="#fef3c7" stroke="#b45309" strokeWidth="3" />
+                <text x="620" y="569" textAnchor="middle" fontSize="17" fontWeight="bold" fill="#7c2d12">🚪 もん（そとへ）</text>
+              </g>
+              {/* まちの ひと */}
+              <text x="560" y="300" fontSize="30">{g >= 3 ? '🧑‍🌾' : '😟'}</text>
+              <text x="380" y="300" fontSize="30">{g >= 6 ? '👵' : '😟'}</text>
+              <text x="600" y="380" fontSize="26">{g >= 1 ? '🐕' : ''}</text>
+              {g >= 9 && <text x="455" y="270" fontSize="34" className="twinkle">🎉</text>}
+            </svg>
+            <div className="absolute flex items-end" style={{ left: '46.5%', top: '62%', transform: 'translate(-50%,-50%)' }}>
+              {p.hero && <div className="bob"><HeroPic job={p.hero.job} form={p.hero.form} size={44} /></div>}
+              {party.map(c => <div key={c.id} className="bob -ml-3"><HeroPic job={c.job} form={c.form} size={36} /></div>)}
+            </div>
+          </div>
+          <div className="w-full max-w-5xl grid grid-cols-3 sm:grid-cols-5 gap-2">
+            {part && <button onClick={() => { Sound.tap(); onContinue(); }} className="btn3d glow col-span-3 sm:col-span-5 rounded-2xl border-4 border-rose-700 bg-rose-400 text-white py-3 text-2xl font-bold">▶ つづきから（{PLACE[part.place].name}）</button>}
+            {[['map', '🚪 そとへ でる', 'bg-amber-300 border-amber-600'], ['guild', '📜 ギルド', 'bg-orange-100 border-orange-500'], ['shugyo', '🥋 しゅぎょう', 'bg-yellow-100 border-yellow-600'],
+              ['house', '🏠 いえ', 'bg-rose-100 border-rose-500'], ['shop:buki', '⚔️ ぶきや', 'bg-slate-100 border-slate-500'], ['shop:bougu', '🛡️ ぼうぐや', 'bg-teal-100 border-teal-600'],
+              ['shop:dougu', '🧪 どうぐや', 'bg-purple-100 border-purple-500'], ['inn', '🛏️ やどや', 'bg-pink-100 border-pink-500'], ['castle', '🏰 おしろ', 'bg-sky-100 border-sky-500']].map(([k, t, c]) =>
+              <button key={k} onClick={() => go(k)} className={`btn3d rounded-2xl border-4 ${c} py-2 text-xl font-bold`}>{t}</button>)}
+          </div>
+          <MessageWindow className="w-full max-w-5xl" small />
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 12. ワールドマップ
+    // =====================================================================
+    const MAP_POS = { p9: [120, 130], town: [150, 470], p0: [300, 530], p1: [420, 420], p2: [580, 500], p3: [650, 360], p4: [830, 470], p5: [890, 290], p6: [740, 170], p7: [560, 220], p8: [380, 120] };
+    const CHAIN = ['p9', 'town', 'p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8'];
+    function WorldMap({ p, onEnter, onTown, onMoved }) {
+      const talk = useTalk();
+      const [pos, setPos] = useState(MAP_POS[p.mapAt] || MAP_POS.town);
+      const [moving, setMoving] = useState(false);
+      const party = partyOf(p);
+      useEffect(() => { talk.say('いきたい ばしょを おしてね。なかまと いっしょに あるいて いくよ。', { who: 'kakeru' }); }, []);
+      const walkTo = (target) => {
+        if (moving) return;
+        const from = CHAIN.indexOf(p.mapAt in MAP_POS ? p.mapAt : 'town'), to = CHAIN.indexOf(target);
+        const route = [];
+        if (from === to) route.push(MAP_POS[target]);
+        else for (let i = from; ; i += Math.sign(to - from)) { route.push(MAP_POS[CHAIN[i]]); if (i === to) break; }
+        const done = () => { setMoving(false); onMoved(target); if (target === 'town') onTown(); else onEnter(PLACE[target]); };
+        if (route.length < 2) { done(); return; }
+        setMoving(true);
+        const segs = route.slice(1).map((q, i) => ({ a: route[i], b: q, len: Math.hypot(q[0] - route[i][0], q[1] - route[i][1]) }));
+        const total = segs.reduce((s, x) => s + x.len, 0), dur = Math.min(4200, Math.max(700, total * 3.2));
+        const t0 = performance.now(); let lastStep = 0;
+        const tick = (now) => {
+          const k = Math.min(1, (now - t0) / dur); let d = k * total;
+          for (const s of segs) { if (d <= s.len || s === segs[segs.length - 1]) { const r = s.len ? Math.min(1, d / s.len) : 1; setPos([s.a[0] + (s.b[0] - s.a[0]) * r, s.a[1] + (s.b[1] - s.a[1]) * r]); break; } d -= s.len; }
+          if (now - lastStep > 260) { Sound.walk(); lastStep = now; }
+          if (k < 1) requestAnimationFrame(tick); else setTimeout(done, 250);
+        };
+        requestAnimationFrame(tick);
+      };
+      const tap = (id) => {
+        if (id !== 'town' && !placeOpen(p, PLACE[id])) {
+          Sound.retry();
+          talk.say(PLACE[id].hatten ? 'そらの しまは、せんせいが ひらいて くれると いけるよ。' : 'まえの ばしょの ぬしを たおすと いけるよ。', { who: 'kakeru' });
+          return;
+        }
+        Sound.tap(); walkTo(id);
+      };
+      const road = CHAIN.slice(1).map(id => MAP_POS[id].join(',')).join(' ');
+      const R = (id, el) => { const [x, y] = MAP_POS[id]; return <g transform={`translate(${x} ${y})`}>{el}</g>; };
+      return (
+        <div className="flex-1 flex flex-col items-center gap-2 p-2" style={{ background: '#1d4f91' }}>
+          <div className="w-full max-w-5xl relative" style={{ aspectRatio: '1000 / 620' }}>
+            <svg viewBox="0 0 1000 620" className="absolute inset-0 w-full h-full rounded-2xl" style={{ background: '#3b82c4' }}>
+              <path d="M60 300 q-20 -180 160 -220 q200 -40 420 -10 q300 20 330 180 q30 160 -20 280 q-60 90 -400 70 q-300 20 -420 -40 q-90 -60 -70 -260 z" fill="#7cc36a" stroke="#e7d9a8" strokeWidth="10" />
+              {R('p0', <g><ellipse rx="90" ry="50" fill="#a3e635" opacity=".6" /><text x="-70" y="-18" fontSize="22">🌼</text><text x="50" y="30" fontSize="22">🌿</text></g>)}
+              {R('p1', <g>{[[-70, -30], [-40, 30], [60, -30], [70, 20], [-80, 20], [20, -55]].map(([x, y], i) => <Tree key={i} x={x} y={y} r={20} />)}</g>)}
+              {R('p2', <ellipse cx="10" cy="10" rx="90" ry="50" fill="#38bdf8" stroke="#bae6fd" strokeWidth="5" />)}
+              {R('p3', <g><path d="M-90 40 l50 -90 l40 60 l40 -80 l60 110 z" fill="#a8a29e" stroke="#78716c" strokeWidth="4" /></g>)}
+              {R('p4', <ellipse rx="95" ry="58" fill="#fcd34d" opacity=".85" />)}
+              {R('p5', <g><ellipse rx="85" ry="60" fill="#e0f2fe" /><text x="-60" y="-20" fontSize="24">❄️</text><text x="40" y="40" fontSize="24">❄️</text></g>)}
+              {R('p6', <g><path d="M-80 50 l80 -120 l80 120 z" fill="#b91c1c" /><path d="M-18 -42 l18 -28 l18 28 z" fill="#f97316" /></g>)}
+              {R('p7', <ellipse rx="95" ry="55" fill="#6d28d9" opacity=".7" />)}
+              {R('p8', <g><ellipse rx="100" ry="58" fill="#334155" /><text x="-60" y="-10" fontSize="22">⚡</text></g>)}
+              <polyline points={road} fill="none" stroke="#e7d9a8" strokeWidth="16" strokeLinejoin="round" strokeLinecap="round" />
+              <polyline points={road} fill="none" stroke="#b08d57" strokeWidth="4" strokeDasharray="10 10" />
+              <line x1={MAP_POS.town[0]} y1={MAP_POS.town[1]} x2={MAP_POS.p9[0]} y2={MAP_POS.p9[1]} stroke="#fff" strokeWidth="5" strokeDasharray="6 12" opacity={p.hatten ? .9 : .3} />
+              {R('p9', <g opacity={p.hatten ? 1 : .45}><ellipse rx="80" ry="34" fill="#f8fafc" /><ellipse cx="-40" cy="-14" rx="40" ry="24" fill="#fff" /><ellipse cx="40" cy="-10" rx="44" ry="26" fill="#fff" /></g>)}
+              {CHAIN.map(id => {
+                const [x, y] = MAP_POS[id];
+                if (id === 'town') return <g key={id} transform={`translate(${x} ${y})`} className="bldg" onClick={() => tap('town')}>
+                  <circle r="40" fill="#fef3c7" stroke="#b45309" strokeWidth="5" /><text y="14" textAnchor="middle" fontSize="38">🏘️</text>
+                  <rect x="-58" y="44" width="116" height="28" rx="10" fill="#fffbeb" stroke="#78350f" strokeWidth="3" /><text y="64" textAnchor="middle" fontSize="17" fontWeight="bold" fill="#3f2a14">はじまりの まち</text></g>;
+                const pl = PLACE[id], open = placeOpen(p, pl), done = placeCleared(p, pl);
+                return (
+                  <g key={id} transform={`translate(${x} ${y})`} className="bldg" onClick={() => tap(id)}>
+                    <circle r="36" fill={open ? '#fff' : '#cbd5e1'} stroke={done ? '#f59e0b' : open ? '#1e3a8a' : '#64748b'} strokeWidth={done ? 8 : 5} />
+                    <text y="13" textAnchor="middle" fontSize="36" opacity={open ? 1 : .5}>{pl.icon}</text>
+                    {!open && <text x="20" y="-14" fontSize="24">🔒</text>}
+                    {done && <path d="M24 -40 l8 10 l-8 10 l-8 -10 z" fill={pl.gemColor} stroke="#fff" strokeWidth="2" />}
+                    <rect x="-80" y="40" width="160" height="44" rx="10" fill={open ? '#fffbeb' : '#e2e8f0'} stroke="#78350f" strokeWidth="3" />
+                    <text y="58" textAnchor="middle" fontSize="14" fontWeight="bold" fill="#92400e">{pl.lv}</text>
+                    <text y="77" textAnchor="middle" fontSize="16" fontWeight="bold" fill="#3f2a14">{pl.name}</text>
+                  </g>
+                );
+              })}
+            </svg>
+            <div className="absolute flex items-end pointer-events-none" style={{ left: `${pos[0] / 10}%`, top: `${pos[1] / 6.2}%`, transform: 'translate(-50%, -95%)' }}>
+              {p.hero && <div className={moving ? 'bob' : ''}><HeroPic job={p.hero.job} form={p.hero.form} size={46} /></div>}
+              {party.map(c => <div key={c.id} className={`-ml-4 ${moving ? 'bob' : ''}`}><HeroPic job={c.job} form={c.form} size={38} /></div>)}
+            </div>
+          </div>
+          <MessageWindow className="w-full max-w-5xl" small />
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 13. ばしょ（たたかいを えらぶ）
+    // =====================================================================
+    function PlaceScreen({ p, pl, onBattle, onMap, onDemo }) {
+      const talk = useTalk();
+      useEffect(() => { talk.say(`${pl.name}。${pl.intro}`, { who: 'kakeru' }); }, [pl.id]);
+      const mons = MONSTERS.filter(m => m.place === pl.id);
+      const part = p.part && p.part.place === pl.id ? p.part : null;
+      return (
+        <PlaceBg pl={pl} className="flex-1" style={{ minHeight: 'calc(100vh - 64px)' }}>
+          <div className="flex flex-col items-center gap-3 p-3">
+            <div className="rpgwin px-6 py-2 text-center"><div className="text-amber-300 font-bold">{pl.lv}　{pl.sub}</div><div className="text-3xl font-bold">{pl.icon} {pl.name}</div></div>
+            <div className="flex flex-wrap justify-center gap-3">
+              {mons.map((m, bi) => {
+                const open = battleOpen(p, pl, bi), n = beatenN(p, pl, bi), resume = part && part.bi === bi;
+                return (
+                  <button key={m.id} disabled={!open} onClick={() => { Sound.tap(); onBattle(pl, bi, !!resume); }}
+                    className={`btn3d rounded-3xl border-4 p-3 flex flex-col items-center ${m.boss ? 'border-rose-600 bg-rose-50' : 'border-amber-600 bg-amber-50'} ${!open ? 'opacity-50' : ''} ${resume ? 'glow' : ''}`} style={{ width: m.boss ? 240 : 200 }}>
+                    <div className="text-lg font-bold">{BATTLE_NAMES[bi]}{m.boss ? ' 👑' : ''}</div>
+                    <div style={{ filter: open ? 'none' : 'brightness(0)' }}><MonsterPic m={m} size={m.boss ? 150 : 120} /></div>
+                    <div className="text-xl font-bold">{open ? m.name : '？？？'}</div>
+                    <div className="text-base">{!open ? '🔒 まだ いけない' : resume ? '▶ つづきから' : n ? `✅ たおした（${n}かい）` : '⚔️ たたかう'}</div>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => { Sound.tap(); onDemo(pl); }} className="btn3d rounded-2xl border-4 border-sky-600 bg-sky-100 px-5 py-2 text-xl font-bold">📖 おてほんを みる</button>
+              <button onClick={() => { Sound.tap(); onMap(); }} className="btn3d rounded-2xl border-4 border-emerald-700 bg-emerald-100 px-5 py-2 text-xl font-bold">🗺️ ちずに もどる</button>
+            </div>
+            <MessageWindow className="w-full max-w-4xl" small />
+          </div>
+        </PlaceBg>
+      );
+    }
+
+    // =====================================================================
+    // 14. おみせ・いえ・やどや・おしろ・ギルド
+    // =====================================================================
+    function ShopScreen({ p, shop, onBuy, onEquip }) {
+      const talk = useTalk();
+      const open = shopOpen(p, shop);
+      useEffect(() => { talk.say(open ? shop.hello : `${PLACE[shop.open].name}の ぬしを たおすと、おみせが ひらくよ。`, { who: open ? { name: shop.name, emoji: shop.keeper, color: '#fde68a' } : 'kakeru' }); }, [shop.id]);
+      return (
+        <div className="flex-1 p-3 flex flex-col items-center gap-3" style={{ background: 'linear-gradient(#78350f, #451a03)' }}>
+          <div className="rpgwin px-6 py-2 text-3xl font-bold">{shop.icon} {shop.name}</div>
+          {!open ? <div className="text-white text-2xl p-8">🔒 まだ しまって いるよ</div> :
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 w-full max-w-5xl">
+              {shop.items.map(it => {
+                const have = p.items.includes(it.id), on = p.equip[shop.id] === it.id, tier = D.TIERS.find(t => t.id === it.t);
+                return (
+                  <div key={it.id} className="bg-amber-50 rounded-2xl border-4 p-2 flex flex-col items-center gap-1" style={{ borderColor: tier.color }}>
+                    <div className="text-xs font-bold text-white rounded-full px-2" style={{ background: tier.color }}>{tier.name}</div>
+                    <div style={{ fontSize: 56, lineHeight: 1.1 }}>{it.e}</div>
+                    <div className="font-bold text-center text-base leading-tight" style={{ minHeight: 40 }}>{it.n}</div>
+                    {!have ? <button disabled={p.gold < it.p} onClick={() => { Sound.buy(); onBuy(shop, it); talk.say(`${it.n}を かった！ そうび したよ。`, { who: { name: shop.name, emoji: shop.keeper, color: '#fde68a' } }); }}
+                      className={`btn3d w-full rounded-xl border-2 py-1 text-lg font-bold ${p.gold < it.p ? 'bg-slate-200 border-slate-300 text-slate-400' : 'bg-amber-300 border-amber-600'}`}>💰 {it.p}</button>
+                      : <button onClick={() => { Sound.tap(); onEquip(shop.id, on ? null : it.id); }} className={`btn3d w-full rounded-xl border-2 py-1 text-lg font-bold ${on ? 'bg-emerald-300 border-emerald-600' : 'bg-white border-slate-400'}`}>{on ? '✅ そうびちゅう' : 'そうびする'}</button>}
+                  </div>
+                );
+              })}
+            </div>}
+          <MessageWindow className="w-full max-w-5xl" small />
+        </div>
+      );
+    }
+
+    function HouseScreen({ p, name, onEquip, onForm }) {
+      const talk = useTalk();
+      const [tab, setTab] = useState('status');
+      const L = levelOf(p.exp);
+      useEffect(() => { talk.say('おかえり。ここでは じぶんの つよさや、なかま、ずかんが みられるよ。', { who: 'kakeru' }); }, []);
+      const comps = p.comps.map(id => compById(p.hero, id)).filter(Boolean);
+      const seen = MONSTERS.filter(m => p.zukan[m.id]).length;
+      return (
+        <div className="flex-1 p-3 flex flex-col items-center gap-3" style={{ background: 'linear-gradient(#fde68a, #f59e0b)' }}>
+          <div className="flex gap-2 flex-wrap justify-center">
+            {[['status', '🧑 つよさ'], ['nakama', '🤝 なかま'], ['zukan', '📕 モンスターずかん'], ['shu', '🥋 しゅぎょう'], ['kigae', '👕 すがた']].map(([k, t]) =>
+              <button key={k} onClick={() => { Sound.tap(); setTab(k); }} className={`btn3d rounded-2xl border-4 px-4 py-2 text-xl font-bold ${tab === k ? 'bg-amber-300 border-amber-700' : 'bg-white border-amber-500'}`}>{t}</button>)}
+          </div>
+          {tab === 'status' && (
+            <div className="rpgwin p-4 flex flex-wrap gap-6 items-center w-full max-w-4xl">
+              <HeroPic job={p.hero.job} form={p.hero.form} size={170} />
+              <div className="flex-1 min-w-[260px] text-xl flex flex-col gap-1">
+                <div className="text-3xl font-bold">{name}</div>
+                <div className="text-amber-300 font-bold">{rankOf(L.lv, p.hero.job)}</div>
+                <div>レベル：<b className="text-2xl">{L.lv}</b></div>
+                <div className="flex items-center gap-2">けいけんち：<div className="w-48 h-4 bg-slate-700 rounded-full overflow-hidden"><div className="h-full bg-sky-400" style={{ width: `${(L.cur / L.need) * 100}%` }} /></div> <span className="text-base">あと {L.need - L.cur}</span></div>
+                <div>ゴールド：💰 {p.gold}</div>
+                <div>ほうせき：{mainPlaces().map(pl => <span key={pl.id} style={{ color: placeCleared(p, pl) ? pl.gemColor : '#475569' }}>◆</span>)}</div>
+                <div>といた ひっ算：{p.total || 0} もん</div>
+                <div className="mt-2 font-bold">そうび</div>
+                <div className="flex gap-2 flex-wrap">
+                  {SHOPS.map(s => { const it = ITEM[p.equip[s.id]]; return <div key={s.id} className="bg-white/10 rounded-xl px-3 py-1">{s.icon} {it ? `${it.e} ${it.n}` : 'なし'}</div>; })}
+                </div>
+                {p.waza.length > 0 && <div>わざ：{p.waza.map(w => <span key={w} className="mr-2 text-amber-200 font-bold">✨{w}</span>)}</div>}
+              </div>
+            </div>
+          )}
+          {tab === 'nakama' && (
+            <div className="rpgwin p-4 w-full max-w-4xl">
+              <div className="text-xl mb-2">なかま：{comps.length} / 9 にん（たたかいには さいきんの 3にんが いっしょに でるよ）</div>
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+                {compOrder(p.hero).map(c => { const have = p.comps.includes(c.id); return (
+                  <div key={c.id} className="bg-white/10 rounded-2xl p-2 flex flex-col items-center">
+                    <div style={{ filter: have ? 'none' : 'brightness(0) opacity(.5)' }}><HeroPic job={c.job} form={c.form} size={80} /></div>
+                    <div className="font-bold">{have ? c.name : '？？？'}</div><div className="text-sm">{have ? JOB[c.job].name : ''}</div>
+                  </div>); })}
+              </div>
+            </div>
+          )}
+          {tab === 'zukan' && (
+            <div className="rpgwin p-4 w-full max-w-5xl">
+              <div className="text-xl mb-2">あつめた モンスター：{seen} / {MONSTERS.length}</div>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                {MONSTERS.map(m => { const n = p.zukan[m.id] || 0; return (
+                  <div key={m.id} className="bg-white/10 rounded-2xl p-2 flex flex-col items-center text-center">
+                    <div style={{ filter: n ? 'none' : 'brightness(0) opacity(.4)' }}><MonsterPic m={m} size={72} /></div>
+                    <div className="font-bold text-sm leading-tight">{n ? m.name : '？？？'}</div>
+                    <div className="text-xs">{n ? `${PLACE[m.place].name}・${n}かい` : PLACE[m.place].name}</div>
+                  </div>); })}
+              </div>
+            </div>
+          )}
+          {tab === 'shu' && (
+            <div className="rpgwin p-4 w-full max-w-3xl flex flex-col gap-2">
+              {SHUGYO.map(s => { const n = p.shu[s.id] || 0; return (
+                <div key={s.id} className="flex items-center gap-3 text-xl bg-white/10 rounded-2xl p-2">
+                  <span className="text-4xl">{s.icon}</span><span className="font-bold w-48">{s.name}</span>
+                  <span className="text-amber-300">{'★'.repeat(Math.min(n, 10))}{n > 10 ? `＋${n - 10}` : ''}{!n && 'まだ'}</span>
+                  <span className="ml-auto text-base">{p.waza.includes(s.waza) ? `✨わざ「${s.waza}」` : `あと ${Math.max(0, D.WAZA_AT - n)}かいで わざ`}</span>
+                </div>); })}
+            </div>
+          )}
+          {tab === 'kigae' && (
+            <div className="rpgwin p-4 w-full max-w-3xl">
+              <div className="text-xl mb-2">すがたを かえられるよ（しょくぎょうは かわらないよ）</div>
+              <div className="flex gap-3 justify-center">
+                {FORMS.map(f => <button key={f.id} onClick={() => { Sound.ok(); onForm(f.id); }} className={`btn3d rounded-2xl border-4 p-2 ${p.hero.form === f.id ? 'border-amber-400 bg-amber-100' : 'border-slate-400 bg-white'}`}><HeroPic job={p.hero.job} form={f.id} size={110} /></button>)}
+              </div>
+            </div>
+          )}
+          <MessageWindow className="w-full max-w-4xl" small />
+        </div>
+      );
+    }
+
+    function InnScreen({ p, onRest }) {
+      const talk = useTalk();
+      const td = p.day && p.day.d === today() ? p.day : { n: 0, exp: 0, gold: 0 };
+      const inn = { name: 'やどやの おかみさん', emoji: '👩‍🍳', color: '#fecdd3' };
+      useEffect(() => { talk.say(td.n ? `おつかれさま。きょうは ${td.n}もんも といたんだね。すごいよ！` : 'いらっしゃい。つかれたら やすんで いってね。', { who: inn }); }, []);
+      return (
+        <div className="flex-1 p-4 flex flex-col items-center gap-4" style={{ background: 'linear-gradient(#fecdd3, #be123c)' }}>
+          <div className="rpgwin px-6 py-2 text-3xl font-bold">🛏️ やどや</div>
+          <div className="rpgwin p-5 text-2xl flex flex-col gap-2 w-full max-w-xl">
+            <div className="font-bold text-amber-300">きょうの がんばり</div>
+            <div>といた ひっ算：<b>{td.n}</b> もん</div>
+            <div>もらった けいけんち：<b>{td.exp}</b></div>
+            <div>もらった ゴールド：💰 <b>{td.gold}</b></div>
+            <div className="text-base text-slate-300">きろくは じどうで ほぞん されて いるよ。</div>
+          </div>
+          <button onClick={() => { Sound.ok(); onRest(); }} className="btn3d rounded-2xl border-4 border-indigo-700 bg-indigo-200 px-8 py-3 text-2xl font-bold">🌙 やすむ（きょうは おわる）</button>
+          <MessageWindow className="w-full max-w-3xl" small />
+        </div>
+      );
+    }
+
+    function CastleScreen({ p, onStory }) {
+      const talk = useTalk();
+      const g = gemsOf(p);
+      useEffect(() => { talk.say(g >= 9 ? 'ほうせきが ぜんぶ もどった！ まちに かけ算の ちからが もどったぞ。' : `とりもどした ほうせきは ${g}こ。のこりは ${9 - g}こじゃ。`, { who: 'kakeru' }); }, []);
+      return (
+        <div className="flex-1 p-4 flex flex-col items-center gap-4" style={{ background: 'linear-gradient(#bfdbfe, #1e3a8a)' }}>
+          <div className="rpgwin px-6 py-2 text-3xl font-bold">🏰 ほうせきの へや</div>
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 w-full max-w-4xl">
+            {PLACES.map(pl => { const on = placeCleared(p, pl); return (
+              <div key={pl.id} className="rpgwin p-2 flex flex-col items-center text-center">
+                <div style={{ fontSize: 50, color: on ? pl.gemColor : '#475569', filter: on ? `drop-shadow(0 0 10px ${pl.gemColor})` : 'none' }} className={on ? 'twinkle' : ''}>◆</div>
+                <div className="text-sm">{pl.gem}</div><div className="text-xs text-slate-300">{pl.name}</div>
+              </div>); })}
+          </div>
+          <div className="flex gap-3 flex-wrap justify-center">
+            <button onClick={() => onStory('opening')} className="btn3d rounded-2xl border-4 border-amber-600 bg-amber-200 px-5 py-2 text-xl font-bold">📜 はじまりの おはなし</button>
+            {p.story.end && <button onClick={() => onStory('ending')} className="btn3d rounded-2xl border-4 border-pink-600 bg-pink-200 px-5 py-2 text-xl font-bold">🎉 おわりの おはなし</button>}
+          </div>
+          <MessageWindow className="w-full max-w-3xl" small />
+        </div>
+      );
+    }
+
+    function GuildScreen({ p, onDemo }) {
+      const talk = useTalk();
+      useEffect(() => { talk.say('ここは ギルドじゃ。ひっ算の おてほんを みせて あげよう。みたい ばしょを えらんでおくれ。', { who: 'kakeru' }); }, []);
+      return (
+        <div className="flex-1 p-4 flex flex-col items-center gap-3" style={{ background: 'linear-gradient(#fed7aa, #9a3412)' }}>
+          <div className="flex items-end gap-4"><Kakeru size={130} mood="happy" /><div className="rpgwin px-6 py-2 text-3xl font-bold">📜 ギルド</div></div>
+          <div className="rpgwin p-4 text-xl w-full max-w-4xl leading-relaxed">
+            <div className="font-bold text-amber-300 mb-1">ひっ算の やくそく</div>
+            <div>① みぎ（1の位）から じゅんばんに けいさんする。</div>
+            <div>② <span className="bg-yellow-300 text-slate-900 px-1 rounded">きいろ</span>は 1の位の かけ算、<span className="bg-green-400 text-slate-900 px-1 rounded">みどり</span>は 10の位の かけ算。</div>
+            <div>③ くりあがりは、となりの うえに <span className="text-rose-400 font-bold">ちいさく メモ</span>して、あとで たす。</div>
+            <div>④ 2だんめの 1の位（✕の マス）には 0 を かく。さいごに たし算。</div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 w-full max-w-4xl">
+            {PLACES.filter(pl => placeOpen(p, pl)).map(pl => <button key={pl.id} onClick={() => { Sound.tap(); onDemo(pl); }} className="btn3d rounded-2xl border-4 border-orange-600 bg-orange-50 p-2 text-lg font-bold">{pl.icon} {pl.lv}<div className="text-sm font-normal">{pl.sub}</div></button>)}
+          </div>
+          <MessageWindow className="w-full max-w-4xl" small />
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 15. ひっ算の ばん（マス・すうじボタン・ヒント）
+    // =====================================================================
+    const keyOf = (s) => (s.memo ? s.row + 'm' : s.row) + ':' + s.place;
+    const ROW_NAME = { ans: '', p1: '1だんめ ', p2: '2だんめ ', sum: 'たし算 ' };
+
+    function Board({ h, vals, cur, ops = [], ghost, S = 62 }) {
+      const W = h.width;
+      const cols = W + 1;
+      const targets = new Set(h.steps.map(keyOf));
+      const rows = [{ t: 'a' }, { t: 'b' }, { t: 'line' }];
+      if (!h.two) rows.push({ t: 'memo', r: 'ans' }, { t: 'res', r: 'ans' });
+      else rows.push({ t: 'memo', r: 'p1' }, { t: 'res', r: 'p1' }, { t: 'memo', r: 'p2' }, { t: 'res', r: 'p2' }, { t: 'line' }, { t: 'memo', r: 'sum' }, { t: 'res', r: 'sum' });
+      const curKey = cur ? keyOf(cur) : null;
+      const RES_BG = { ans: '#fef9c3', p1: '#fef9c3', p2: '#dcfce7', sum: '#ffffff' };
+      const cell = (content, style, cls = '') => <div className={`flex items-center justify-center font-bold ${cls}`} style={{ width: S, ...style }}>{content}</div>;
+      return (
+        <div className="inline-flex flex-col bg-white rounded-2xl p-3 shadow-inner border-4 border-slate-300">
+          {rows.map((row, ri) => {
+            if (row.t === 'line') return <div key={ri} style={{ height: 5, background: '#1e293b', margin: '4px 0', width: S * cols }} />;
+            const out = [];
+            for (let c = 0; c < cols; c++) {
+              const pl = W - c; // c=0 は きごうの れつ
+              if (row.t === 'a' || row.t === 'b') {
+                const D2 = row.t === 'a' ? h.A : h.B;
+                if (c === 0) { out.push(cell(row.t === 'b' ? '×' : '', { height: S, fontSize: S * 0.6 }, 'text-slate-700')); continue; }
+                const d = D2[pl];
+                const k = `${row.t}:${pl}`;
+                const bg = row.t === 'b' && d !== undefined ? (pl === 0 ? '#fde047' : '#4ade80') : 'transparent';
+                out.push(cell(d !== undefined ? d : '', { height: S, fontSize: S * 0.62, background: bg, borderRadius: 8 }, `text-slate-800 ${ops.includes(k) ? 'opglow' : ''}`));
+                continue;
+              }
+              if (c === 0) { out.push(<div key={c} style={{ width: S }} />); continue; }
+              if (row.t === 'memo') {
+                const k = `${row.r}m:${pl}`;
+                if (!targets.has(k)) { out.push(<div key={c} style={{ width: S, height: S * 0.46 }} />); continue; }
+                const v = vals[k], isCur = curKey === k;
+                // メモの わくは、メモを かく ときに はじめて だす（くりあがりが あるか を さきに みせない）
+                if (v === undefined && !isCur) { out.push(<div key={c} style={{ width: S, height: S * 0.46 }} />); continue; }
+                out.push(<div key={c} style={{ width: S, height: S * 0.46 }} className="flex items-center justify-center">
+                  <div className={`flex items-center justify-center rounded-md font-bold ${isCur ? 'cellglow bg-amber-50' : ''} ${ops.includes(k) ? 'opglow' : ''}`}
+                    style={{ width: S * 0.52, height: S * 0.42, border: '2px dashed #fda4af', color: '#e11d48', fontSize: S * 0.34 }}>
+                    {v !== undefined ? v : isCur && ghost ? <span className="ghost">{ghost}</span> : ''}</div></div>);
+                continue;
+              }
+              const k = `${row.r}:${pl}`;
+              if (!targets.has(k)) { out.push(<div key={c} style={{ width: S, height: S }} />); continue; }
+              const v = vals[k], isCur = curKey === k, isCross = row.r === 'p2' && pl === 0;
+              out.push(<div key={c} style={{ width: S, height: S, padding: 2 }}>
+                <div className={`w-full h-full flex items-center justify-center rounded-lg font-bold ${isCross ? 'cross' : ''} ${isCur ? 'cellglow' : ''} ${ops.includes(k) ? 'opglow' : ''}`}
+                  style={{ background: isCross ? undefined : RES_BG[row.r], border: '2px solid #94a3b8', fontSize: S * 0.62, color: isCross ? '#e11d48' : '#1e3a8a', backgroundColor: isCross ? '#f8fafc' : undefined }}>
+                  {v !== undefined ? v : isCur && ghost !== undefined && ghost !== null ? <span className="ghost">{ghost}</span> : ''}</div></div>);
+            }
+            return <div key={ri} className="flex">{out.map((x, i) => <React.Fragment key={i}>{x}</React.Fragment>)}</div>;
+          })}
+        </div>
+      );
+    }
+
+    function NumPad({ onPress, bad = [], glow = null, disabled, extra = null }) {
+      return (
+        <div className="numpad grid grid-cols-3 gap-2">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 'h', 0].map(d => {
+            if (d === 'h') return <div key="h" className="flex">{extra}</div>;
+            const off = bad.includes(d);
+            return <button key={d} disabled={disabled || off} onClick={() => onPress(d)}
+              className={`btn3d rounded-2xl border-4 font-bold ${off ? 'bg-slate-200 border-slate-300 text-slate-300' : glow === d ? 'bg-amber-300 border-amber-600 glow' : 'bg-white border-sky-500 text-slate-800'}`}
+              style={{ width: 74, height: 62, fontSize: 36 }}>{off ? '✕' : d}</button>;
+          })}
+        </div>
+      );
+    }
+
+    function StepExpr({ st, hint }) {
+      if (!st) return null;
+      const big = 'text-3xl font-bold';
+      const y = <span className="px-1 rounded" style={{ background: st.row === 'p2' ? '#4ade80' : '#fde047' }}>{st.y}</span>;
+      let main;
+      if (st.kind === 'mul') main = <span className={big}>{st.x} × {y}{st.carry ? <> ＋ <span className="text-rose-600">{st.carry}</span></> : null} ＝ ？</span>;
+      else if (st.kind === 'add') main = <span className={big}>{st.x} ＋ {st.y}{st.carry ? <> ＋ <span className="text-rose-600">{st.carry}</span></> : null} ＝ ？</span>;
+      else if (st.kind === 'memo' || st.kind === 'addmemo') main = <span className="text-3xl font-bold text-rose-600">✏️ くりあがりを メモ</span>;
+      else if (st.kind === 'zero') main = <span className="text-3xl font-bold">✕の マスは なに？</span>;
+      else main = <span className="text-3xl font-bold">⬅️ のこりを {PLACE_NAME[st.place]}に</span>;
+      return (
+        <div className="bg-sky-50 border-4 border-sky-300 rounded-2xl px-3 py-2 text-center w-full">
+          <div className="text-sm text-sky-700 font-bold">{ROW_NAME[st.row]}{st.memo ? 'メモ' : PLACE_NAME[st.place]}</div>
+          <div>{main}</div>
+          {hint >= 1 && <div className="text-lg text-slate-700 mt-1">💡 {hintText(st)}</div>}
+          {hint >= 2 && <div className="text-2xl font-bold text-indigo-700">{hintCalc(st).map((l, i) => <div key={i}>{l}</div>)}</div>}
+        </div>
+      );
+    }
+
+    // 1もんを とく（たたかい・しゅぎょう・おてほん で つかう）
+    function Solver({ a, b, settings, onSolved, demo, party = [], S }) {
+      const talk = useTalk();
+      const h = useMemo(() => buildHissan(a, b), [a, b]);
+      const [i, setI] = useState(0);
+      const [vals, setVals] = useState({});
+      const [miss, setMiss] = useState(0);
+      const [bad, setBad] = useState([]);
+      const [hint, setHint] = useState(0);
+      const [shake, setShake] = useState(0);
+      const stats = useRef({ miss: 0, hint: 0, kinds: [], inputs: [], t0: Date.now() });
+      const usedLines = useRef(new Set());
+      const st = h.steps[i];
+      const hintOn = settings.hint !== false;
+      const sayStep = (s) => {
+        const ck = s.kind === 'addmemo' ? 'memo' : s.kind === 'addhi' ? 'mulhi' : s.kind;
+        if (party.length && COMP_LINES[ck] && !usedLines.current.has(ck) && Math.random() < 0.8) {
+          usedLines.current.add(ck);
+          talk.say(COMP_LINES[ck], { who: pickOne(party) }); return;
+        }
+        if (settings.yomi === false) talk.show(stepPrompt(s), { who: 'kakeru' }); else talk.say(stepPrompt(s), { who: 'kakeru' });
+      };
+      useEffect(() => { if (!demo && st) sayStep(st); }, [i]);
+      // おてほん：カケルさまが 1マスずつ といて みせる
+      useEffect(() => {
+        if (!demo) return;
+        let alive = true;
+        (async () => {
+          await sleep(500);
+          for (let k = 0; k < h.steps.length && alive; k++) {
+            const s = h.steps[k];
+            setI(k); setHint(2);
+            const where = s.memo ? 'メモに' : `${PLACE_NAME[s.place]}に`;
+            await talk.say(`${hintText(s)} ${hintCalc(s).join('。')}。${where} ${s.val} を かくよ。`, { who: 'kakeru' });
+            if (!alive) return;
+            Sound.tap(); setVals(v => ({ ...v, [keyOf(s)]: s.val }));
+            await sleep(600);
+          }
+          if (!alive) return;
+          setI(h.steps.length); setHint(0); Sound.ok();
+          await talk.say(`できあがり！ こたえは ${a * b} じゃ。`, { who: 'kakeru', mood: 'happy' });
+        })();
+        return () => { alive = false; };
+      }, [demo, a, b]);
+      const press = (v) => {
+        if (demo || !st || bad.includes(v)) return;
+        if (v === st.val) {
+          Sound.tap();
+          setVals(x => ({ ...x, [keyOf(st)]: v }));
+          setMiss(0); setBad([]); setHint(0);
+          if (i + 1 >= h.steps.length) {
+            setI(i + 1); Sound.ok();
+            const s = stats.current;
+            const rec = { prob: `${a}×${b}`, ans: a * b, result: s.miss ? '△' : '○', miss: s.miss, hint: s.hint, kinds: [...new Set(s.kinds)].join('・'),
+              inputs: s.inputs.join('・'), secs: Math.round((Date.now() - s.t0) / 1000), a, b };
+            setTimeout(() => onSolved && onSolved(rec), 900);
+          } else setI(i + 1);
+          return;
+        }
+        Sound.retry();
+        const kind = mistakeKind(st, v);
+        const s = stats.current;
+        s.miss++; s.kinds.push(kind); s.inputs.push(`${ROW_NAME[st.row]}${st.memo ? 'メモ' : PLACE_NAME[st.place]}:${v}→${st.val}`);
+        const m = miss + 1;
+        setMiss(m); setBad([...bad, v]); setShake(x => x + 1);
+        if (m >= 3) { setHint(3); s.hint = Math.max(s.hint, 3); talk.say(`${missText(kind, st)} ひかって いる かずを おしてね。`, { who: 'kakeru' }); }
+        else talk.say(missText(kind, st), { who: 'kakeru' });
+      };
+      const moreHint = () => {
+        const n = Math.min(3, hint + 1);
+        setHint(n); stats.current.hint = Math.max(stats.current.hint, n);
+        if (n === 1) talk.say(hintText(st), { who: 'kakeru' });
+        else if (n === 2) talk.say(hintCalc(st).join('。'), { who: 'kakeru' });
+        else talk.say('ひかって いる かずを おしてね。', { who: 'kakeru' });
+      };
+      const done = i >= h.steps.length;
+      return (
+        <div className="flex flex-wrap items-start justify-center gap-3">
+          <div key={shake} className={shake ? 'shake' : ''}>
+            <Board h={h} vals={vals} cur={done ? null : st} ops={hint >= 2 && st ? operandCells(st) : []} ghost={hint >= 3 && st ? st.val : null} S={S || (h.two ? 52 : 64)} />
+          </div>
+          <div className="flex flex-col items-center gap-2" style={{ width: 330 }}>
+            {done ? <div className="pop text-3xl font-bold text-emerald-600 bg-emerald-50 border-4 border-emerald-400 rounded-2xl px-4 py-3 text-center">⭐ できた！<br />{a} × {b} ＝ {a * b}</div>
+              : <StepExpr st={st} hint={hint} />}
+            {!demo && !done && (
+              <NumPad onPress={press} bad={bad} glow={hint >= 3 ? st.val : null}
+                extra={hintOn ? <button onClick={moreHint} disabled={hint >= 3} className={`btn3d rounded-2xl border-4 border-amber-500 bg-amber-100 font-bold text-lg leading-tight ${miss >= 2 && hint < 3 ? 'glow' : ''}`} style={{ width: 74, height: 62 }}>💡ヒント<div className="text-xs">{hint}/3</div></button> : null} />
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 16. たたかい
+    // =====================================================================
+    function PartyRow({ p, size = 70, attack }) {
+      const party = partyOf(p);
+      const pet = ITEM[p.equip.dougu];
+      return (
+        <div className="flex items-end gap-1">
+          {p.hero && <div className={attack ? 'pop' : 'bob'}><HeroPic job={p.hero.job} form={p.hero.form} size={size} /></div>}
+          {party.map(c => <div key={c.id} className="bob"><HeroPic job={c.job} form={c.form} size={size * 0.82} /></div>)}
+          {pet && <div style={{ fontSize: size * 0.45 }} className="bob">{pet.e}</div>}
+        </div>
+      );
+    }
+    function Hearts({ n, left }) {
+      return <div className="flex gap-1 justify-center">{Array.from({ length: n }).map((_, i) => <span key={i} style={{ fontSize: 26, filter: i < left ? 'none' : 'grayscale(1) opacity(.35)' }}>❤️</span>)}</div>;
+    }
+
+    // ばめん（ひだり）と ひっ算（みぎ）
+    function FightLayout({ scene, children }) {
+      return (
+        <div className="flex-1 flex flex-col lg:flex-row" style={{ minHeight: 'calc(100vh - 64px)' }}>
+          <div className="lg:w-[40%] shrink-0" style={{ minHeight: 300 }}>{scene}</div>
+          <div className="flex-1 bg-slate-100 p-2 flex flex-col items-center gap-2 overflow-auto">{children}</div>
+        </div>
+      );
+    }
+
+    function Battle({ p, pl, bi, resume, settings, name, onProblem, onWin, onQuit }) {
+      const talk = useTalk();
+      const m = MONSTERS.filter(x => x.place === pl.id)[bi];
+      const spec = pl.battles[bi];
+      const [probs] = useState(() => {
+        const part = resume && p.part && p.part.place === pl.id && p.part.bi === bi ? p.part : null;
+        const n = part ? part.n : problemCount(spec, settings);
+        return { list: makeSet(spec, n), start: part ? part.solved : 0, n };
+      });
+      const [k, setK] = useState(probs.start);
+      const [phase, setPhase] = useState('appear');
+      const [fx, setFx] = useState(null);
+      const job = JOB[p.hero.job];
+      const party = partyOf(p);
+      useEffect(() => {
+        Sound.appear();
+        talk.say(`${m.name}が あらわれた！`, { who: m });
+        const t = setTimeout(() => setPhase('solve'), 1800);
+        return () => clearTimeout(t);
+      }, []);
+      const solved = (rec) => {
+        onProblem({ ...rec, place: placeLabel(pl), battle: BATTLE_NAMES[bi] }, { place: pl.id, bi, solved: k + 1, n: probs.n });
+        const weapon = ITEM[p.equip.buki];
+        const waza = p.waza.length && Math.random() < 0.4 ? SHUGYO.find(s => s.waza === pickOne(p.waza)) : null;
+        setFx({ e: waza ? waza.wazaFx : weapon ? weapon.e : job.fx, waza: waza ? waza.waza : null, key: uid() });
+        setPhase('attack'); Sound.hit();
+        talk.say(waza ? `${name}の わざ「${waza.waza}」！` : `${name}の こうげき！ ${job.attack}`, { who: { name, job: p.hero.job, form: p.hero.form } });
+        setTimeout(() => {
+          setFx(null);
+          if (k + 1 >= probs.n) {
+            setPhase('win'); Sound.win();
+            talk.say(`${m.name}を たおした！`, { who: 'kakeru', mood: 'happy' });
+            setTimeout(() => onWin(pl, bi), 2200);
+          } else { setK(k + 1); setPhase('solve'); }
+        }, 1400);
+      };
+      const left = probs.n - k - (phase === 'attack' || phase === 'win' ? 1 : 0);
+      const scene = (
+        <PlaceBg pl={pl} className="h-full" style={{ minHeight: 300 }}>
+          <div className="h-full flex flex-col items-center justify-between p-3 gap-2" style={{ minHeight: 300 }}>
+            <div className="rpgwin px-4 py-1 text-center"><div className="text-lg font-bold">{m.name}{m.boss ? ' 👑' : ''}</div><Hearts n={probs.n} left={left} /></div>
+            <div className="relative">
+              <div key={phase === 'attack' && fx ? 'm' + fx.key : 'm'} className={phase === 'attack' ? 'hit' : phase === 'win' ? 'defeat' : phase === 'appear' ? 'pop' : 'floaty'}>
+                <MonsterPic m={m} size={m.boss ? 200 : 170} />
+              </div>
+              {fx && <div key={fx.key} className="absolute inset-0 flex items-center justify-center pointer-events-none"><div className="fxfly" style={{ fontSize: 90 }}>{fx.e}</div></div>}
+              {fx && fx.waza && <div className="absolute left-1/2 top-0 -translate-x-1/2 rpgwin px-3 py-1 text-xl font-bold text-amber-300 whitespace-nowrap pop">✨{fx.waza}✨</div>}
+            </div>
+            <PartyRow p={p} size={64} attack={phase === 'attack'} />
+            <MessageWindow className="w-full" small />
+          </div>
+        </PlaceBg>
+      );
+      return (
+        <FightLayout scene={scene}>
+          <div className="w-full flex items-center justify-between">
+            <div className="text-xl font-bold">{pl.icon} {pl.name}　{BATTLE_NAMES[bi]}　<span className="text-sky-700">もんだい {Math.min(k + 1, probs.n)} / {probs.n}</span></div>
+            <button onClick={() => { talk.stop(); onQuit(); }} className="rounded-xl border-2 border-slate-400 bg-white px-3 py-1 text-lg font-bold">🏃 にげる（あとで つづき）</button>
+          </div>
+          {phase === 'appear' ? <div className="text-3xl font-bold mt-20 pop">⚔️ {m.name}が あらわれた！</div>
+            : phase === 'win' ? <div className="text-4xl font-bold mt-20 pop text-amber-600">🎉 {m.name}を たおした！</div>
+            : <Solver key={k} a={probs.list[k][0]} b={probs.list[k][1]} settings={settings} party={party} onSolved={phase === 'solve' ? solved : null} />}
+        </FightLayout>
+      );
+    }
+
+    // おてほん（カケルさまが といて みせる）
+    function DemoScreen({ pl, onBack }) {
+      const [n, setN] = useState(0);
+      const pr = useMemo(() => {
+        const spec = pl.battles[pl.battles.length - 1] === 'm2' ? 'x22' : pl.battles[0] === 'm1' ? 'c1' : pl.battles[n % 3 === 2 ? 2 : 0];
+        const pool = (D.POOL[spec] || []);
+        return pool.length ? pool[n % pool.length] : randFor(spec);
+      }, [pl.id, n]);
+      const scene = (
+        <PlaceBg pl={pl} className="h-full" dim={0.2}>
+          <div className="h-full flex flex-col items-center justify-end p-3 gap-2" style={{ minHeight: 300 }}>
+            <Kakeru size={170} mood="normal" className="floaty" />
+            <MessageWindow className="w-full" small />
+          </div>
+        </PlaceBg>
+      );
+      return (
+        <FightLayout scene={scene}>
+          <div className="w-full flex items-center justify-between">
+            <div className="text-xl font-bold">📖 おてほん：{pl.lv} {pl.sub}</div>
+            <div className="flex gap-2">
+              <button onClick={() => setN(n + 1)} className="btn3d rounded-xl border-4 border-sky-500 bg-sky-100 px-3 py-1 text-lg font-bold">🔁 ほかの もんだい</button>
+              <button onClick={onBack} className="btn3d rounded-xl border-4 border-slate-400 bg-white px-3 py-1 text-lg font-bold">もどる</button>
+            </div>
+          </div>
+          <Solver key={n} a={pr[0]} b={pr[1]} settings={{}} demo />
+        </FightLayout>
+      );
+    }
+
+    // =====================================================================
+    // 17. しゅぎょうの ば
+    // =====================================================================
+    function rangeSpecs(p) {
+      const ms = mainPlaces();
+      const max = p.range != null && p.range !== '' ? Number(p.range) : ms.reduce((mx, pl, i) => placeCleared(p, pl) ? i : mx, -1);
+      const specs = new Set();
+      ms.slice(0, max + 1).forEach(pl => pl.battles.forEach(s => { if (!/^m/.test(s)) specs.add(s); }));
+      if (!specs.size) specs.add('k');
+      return [...specs];
+    }
+    function ShugyoMenu({ p, onStart }) {
+      const talk = useTalk();
+      useEffect(() => { talk.say('しゅぎょうの ばへ ようこそ。なんども しゅぎょうすると、わざを おぼえるぞ。', { who: 'kakeru' }); }, []);
+      return (
+        <div className="flex-1 p-4 flex flex-col items-center gap-3" style={{ background: 'linear-gradient(#fef3c7, #a16207)' }}>
+          <div className="rpgwin px-6 py-2 text-3xl font-bold">🥋 しゅぎょうの ば</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-4xl">
+            {SHUGYO.map(s => { const n = p.shu[s.id] || 0; return (
+              <button key={s.id} onClick={() => { Sound.tap(); onStart(s); }} className="btn3d rounded-3xl border-4 border-amber-700 bg-amber-50 p-3 flex items-center gap-3 text-left">
+                <span style={{ fontSize: 64 }}>{s.icon}</span>
+                <span className="flex-1"><span className="block text-2xl font-bold">{s.name}</span><span className="block text-lg">{s.sub}</span>
+                  <span className="block text-amber-600">{n ? '★'.repeat(Math.min(n, 10)) : 'まだ'}{n > 10 ? `＋${n - 10}` : ''}</span>
+                  <span className="block text-sm">{p.waza.includes(s.waza) ? `✨わざ「${s.waza}」を おぼえた` : `あと ${Math.max(0, D.WAZA_AT - n)}かいで わざ「${s.waza}」`}</span></span>
+              </button>); })}
+          </div>
+          <MessageWindow className="w-full max-w-4xl" small />
+        </div>
+      );
+    }
+
+    // くくの まと・くりあがりの いし（4つから えらぶ）
+    function ChoiceDrill({ mode, count = 10, onProblem, onFinish, onQuit }) {
+      const talk = useTalk();
+      const S = SHUGYO.find(s => s.id === mode);
+      const [k, setK] = useState(0);
+      const [q, setQ] = useState(() => mode === 'mato' ? makeMato() : makeIshi());
+      const [bad, setBad] = useState([]);
+      const [hit, setHit] = useState(null);
+      const st = useRef({ miss: 0, kinds: [], inputs: [], t0: Date.now() });
+      useEffect(() => { talk.say(q.q + (mode === 'mato' ? ' の こたえの まとを ねらおう' : ' の こたえの いしを わろう'), { who: 'kakeru' }); }, [q]);
+      const pick = (c) => {
+        if (hit !== null || bad.includes(c)) return;
+        if (c === q.ans) {
+          Sound.hit(); setHit(c);
+          const s = st.current;
+          onProblem({ prob: q.q.replace(/ /g, ''), ans: q.ans, result: s.miss ? '△' : '○', miss: s.miss, hint: s.miss >= 2 ? 3 : 0, kinds: [...new Set(s.kinds)].join('・'), inputs: s.inputs.join('・'),
+            secs: Math.round((Date.now() - s.t0) / 1000), place: 'しゅぎょう', battle: S.name });
+          setTimeout(() => {
+            if (k + 1 >= count) { onFinish(); return; }
+            st.current = { miss: 0, kinds: [], inputs: [], t0: Date.now() };
+            setK(k + 1); setBad([]); setHit(null); setQ(mode === 'mato' ? makeMato() : makeIshi());
+          }, 1000);
+          return;
+        }
+        Sound.retry();
+        const kind = mode === 'mato' ? 'くくの まちがい' : c === q.x ? 'くりあがりの たしわすれ' : Math.abs(c - q.ans) === 10 ? 'くらいの まちがい' : 'たし算の まちがい';
+        st.current.miss++; st.current.kinds.push(kind); st.current.inputs.push(`${c}→${q.ans}`);
+        setBad([...bad, c]);
+        talk.say(mode === 'mato' ? `${q.a}の だんを となえて みよう。${q.a} × ${q.b} は？` : kind === 'くりあがりの たしわすれ' ? `${q.c} を たすのを わすれて いるよ。` : `${q.x} から ${q.c} かぞえて みよう。`, { who: 'kakeru' });
+      };
+      const glow = bad.length >= 2 ? q.ans : null;
+      return (
+        <div className="flex-1 p-3 flex flex-col items-center gap-3" style={{ background: mode === 'mato' ? 'linear-gradient(#bbf7d0, #15803d)' : 'linear-gradient(#e7e5e4, #57534e)' }}>
+          <div className="w-full max-w-4xl flex items-center justify-between">
+            <div className="rpgwin px-4 py-1 text-2xl font-bold">{S.icon} {S.name}　{k + 1} / {count}</div>
+            <button onClick={onQuit} className="rounded-xl border-2 border-slate-400 bg-white px-3 py-1 text-lg font-bold">やめる</button>
+          </div>
+          <div className="bg-white rounded-3xl border-4 border-slate-700 px-10 py-3 text-6xl font-bold">{q.q} ＝ ？</div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {q.choices.map(c => {
+              const off = bad.includes(c), isHit = hit === c;
+              return (
+                <button key={c} disabled={off} onClick={() => pick(c)} className={`relative flex items-center justify-center ${glow === c ? 'glow' : ''} ${isHit ? 'hit' : ''}`}
+                  style={{ width: 150, height: 150, borderRadius: mode === 'mato' ? '50%' : '42% 58% 50% 50% / 50% 45% 55% 50%', opacity: off ? 0.25 : 1,
+                    background: mode === 'mato' ? 'radial-gradient(circle, #fff 0 18%, #ef4444 18% 36%, #fff 36% 54%, #ef4444 54% 72%, #fff 72%)' : 'radial-gradient(circle at 35% 30%, #d6d3d1, #78716c)',
+                    border: '5px solid #1f2937' }}>
+                  <span className="bg-white rounded-xl px-2 text-5xl font-bold border-2 border-slate-700">{c}</span>
+                  {isHit && <span className="absolute text-7xl pop">{mode === 'mato' ? '🏹' : '💥'}</span>}
+                </button>
+              );
+            })}
+          </div>
+          <MessageWindow className="w-full max-w-4xl" small />
+        </div>
+      );
+    }
+
+    // かかし れんぞく・にがての どうじょう（ひっ算）
+    function ShuBoard({ mode, probs, settings, p, onProblem, onFinish, onQuit }) {
+      const talk = useTalk();
+      const S = SHUGYO.find(s => s.id === mode);
+      const [k, setK] = useState(0);
+      const [hitKey, setHitKey] = useState(0);
+      useEffect(() => { talk.say(mode === 'dojo' ? 'まえに まちがえた かたちの もんだいだよ。ゆっくり やろう。' : 'かかしに むかって、ひっ算を つづけて とこう！', { who: 'kakeru' }); }, []);
+      const solved = (rec) => {
+        onProblem({ ...rec, place: 'しゅぎょう', battle: S.name });
+        Sound.hit(); setHitKey(x => x + 1);
+        setTimeout(() => { if (k + 1 >= probs.length) onFinish(); else setK(k + 1); }, 900);
+      };
+      const scene = (
+        <div className="h-full flex flex-col items-center justify-between p-3 gap-2" style={{ minHeight: 300, background: 'linear-gradient(#fef3c7, #d6b98c)' }}>
+          <div className="rpgwin px-4 py-1 text-xl font-bold">{S.icon} {S.name}　{k + 1} / {probs.length}</div>
+          <div key={hitKey} className={hitKey ? 'hit' : ''} style={{ fontSize: 130 }}>{mode === 'dojo' ? '🥋' : '🌾'}</div>
+          <div className="w-64 h-4 bg-white rounded-full overflow-hidden border-2 border-slate-600"><div className="h-full bg-emerald-500" style={{ width: `${(k / probs.length) * 100}%` }} /></div>
+          <PartyRow p={p} size={56} />
+          <MessageWindow className="w-full" small />
+        </div>
+      );
+      return (
+        <FightLayout scene={scene}>
+          <div className="w-full flex justify-end"><button onClick={onQuit} className="rounded-xl border-2 border-slate-400 bg-white px-3 py-1 text-lg font-bold">やめる</button></div>
+          <Solver key={k} a={probs[k][0]} b={probs[k][1]} settings={settings} party={partyOf(p)} onSolved={solved} />
+        </FightLayout>
+      );
+    }
+
+    // =====================================================================
+    // 18. けっか・おしらせ
+    // =====================================================================
+    function ResultScreen({ r, onNext, onPlace, onTown }) {
+      const talk = useTalk();
+      useEffect(() => { talk.say(`${r.m.name}を たおした！ ${r.gold}ゴールドと、けいけんち ${r.exp}を てに いれた。`, { who: 'kakeru', mood: 'happy' }); }, []);
+      return (
+        <PlaceBg pl={r.pl} className="flex-1" dim={0.35} style={{ minHeight: 'calc(100vh - 64px)' }}>
+          <div className="flex flex-col items-center gap-4 p-4">
+            <div className="rpgwin px-8 py-3 text-4xl font-bold text-amber-300 pop">🎉 しょうり！</div>
+            <div className="rpgwin p-5 flex items-center gap-6">
+              <MonsterPic m={r.m} size={130} />
+              <div className="text-2xl flex flex-col gap-2">
+                <div>{r.m.name}を たおした！</div>
+                <div>💰 ゴールド ＋{r.gold}</div>
+                <div>✨ けいけんち ＋{r.exp}</div>
+                {r.perfect && <div className="text-amber-300">🌟 ノーミス！</div>}
+                {r.newZukan && <div className="text-sky-300">📕 ずかんに のった！</div>}
+              </div>
+            </div>
+            <div className="flex gap-3 flex-wrap justify-center">
+              {onNext && <button onClick={onNext} className="btn3d glow rounded-2xl border-4 border-rose-700 bg-rose-400 text-white px-6 py-3 text-2xl font-bold">⚔️ つぎの たたかいへ</button>}
+              <button onClick={onPlace} className="btn3d rounded-2xl border-4 border-amber-600 bg-amber-200 px-6 py-3 text-2xl font-bold">{r.pl.icon} {r.pl.name}へ</button>
+              <button onClick={onTown} className="btn3d rounded-2xl border-4 border-emerald-700 bg-emerald-100 px-6 py-3 text-2xl font-bold">🏘️ まちへ かえる</button>
+            </div>
+            <MessageWindow className="w-full max-w-3xl" small />
+          </div>
+        </PlaceBg>
+      );
+    }
+    function ShuResult({ s, gain, onAgain, onBack }) {
+      const talk = useTalk();
+      useEffect(() => { talk.say(`しゅぎょう かんりょう！ ${s.name}の ほしが ふえたぞ。`, { who: 'kakeru', mood: 'happy' }); }, []);
+      return (
+        <div className="flex-1 p-4 flex flex-col items-center gap-4" style={{ background: 'linear-gradient(#fef3c7, #a16207)' }}>
+          <div className="rpgwin px-8 py-3 text-4xl font-bold text-amber-300 pop">{s.icon} しゅぎょう かんりょう！</div>
+          <div className="rpgwin p-5 text-2xl flex flex-col gap-2"><div>★ ほしが 1つ ふえた！</div><div>💰 ゴールド ＋{gain.gold}</div><div>✨ けいけんち ＋{gain.exp}</div></div>
+          <div className="flex gap-3">
+            <button onClick={onAgain} className="btn3d rounded-2xl border-4 border-rose-700 bg-rose-300 px-6 py-3 text-2xl font-bold">🔁 もういちど</button>
+            <button onClick={onBack} className="btn3d rounded-2xl border-4 border-amber-700 bg-amber-200 px-6 py-3 text-2xl font-bold">🥋 しゅぎょうの ばへ</button>
+          </div>
+          <MessageWindow className="w-full max-w-3xl" small />
+        </div>
+      );
+    }
+    function Modal({ m, p, onClose }) {
+      useEffect(() => {
+        Sound.big();
+        const t = m.t === 'gem' ? `${m.pl.gem}を とりもどした！ まちに かけ算の ちからが ひとつ もどったぞ。` + (m.shop ? `${m.shop.name}が ひらいた！` : '')
+          : m.t === 'comp' ? `${m.c.name}が なかまに なった！` : m.t === 'level' ? `レベルが ${m.lv}に あがった！` : m.t === 'waza' ? `わざ「${m.s.waza}」を おぼえた！` : '';
+        Speech.say(t, null, 1.0);
+      }, []);
+      return (
+        <div className="fixed inset-0 bg-black/60 z-40 flex items-center justify-center p-4" onClick={onClose}>
+          <div className="rpgwin p-6 flex flex-col items-center gap-3 pop max-w-xl text-center" onClick={e => e.stopPropagation()}>
+            {m.t === 'gem' && <><div style={{ fontSize: 110, color: m.pl.gemColor, filter: `drop-shadow(0 0 20px ${m.pl.gemColor})` }} className="twinkle">◆</div>
+              <div className="text-3xl font-bold">{m.pl.gem}を とりもどした！</div><div className="text-xl">まちに かけ算の ちからが ひとつ もどった。</div>
+              {m.shop && <div className="text-xl text-amber-300">{m.shop.icon} {m.shop.name}が ひらいた！</div>}</>}
+            {m.t === 'comp' && <><HeroPic job={m.c.job} form={m.c.form} size={160} /><div className="text-3xl font-bold">{m.c.name}（{JOB[m.c.job].name}）が<br />なかまに なった！</div></>}
+            {m.t === 'level' && <><div className="text-6xl">🆙</div><div className="text-4xl font-bold text-amber-300">レベル {m.lv}！</div><div className="text-2xl">{rankOf(m.lv, p.hero.job)}</div></>}
+            {m.t === 'waza' && <><div style={{ fontSize: 90 }}>{m.s.wazaFx}</div><div className="text-3xl font-bold">わざ「{m.s.waza}」を おぼえた！</div><div className="text-lg">たたかいで ときどき つかうよ。</div></>}
+            <button onClick={onClose} className="btn3d rounded-2xl border-4 border-amber-600 bg-amber-300 text-slate-900 px-8 py-2 text-2xl font-bold">やったね！</button>
+          </div>
+        </div>
+      );
+    }
+
+    function PinPad({ onSubmit, onClose, error }) {
+      const [v, setV] = useState('');
+      const press = (d) => { const n = (v + d).slice(0, 4); setV(n); if (n.length === 4) { onSubmit(n); setTimeout(() => setV(''), 300); } };
+      return (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-3xl p-6 w-80 flex flex-col items-center gap-3">
+            <div className="text-2xl font-bold">🔒 せんせい用</div>
+            <div className="text-base">暗証番号（4けた）を入れてください</div>
+            <div className="flex gap-2">{[0, 1, 2, 3].map(i => <div key={i} className="w-10 h-12 border-2 rounded-lg flex items-center justify-center text-2xl">{v[i] ? '●' : ''}</div>)}</div>
+            {error > 0 && <div className="text-rose-600 font-bold">番号がちがいます</div>}
+            <div className="grid grid-cols-3 gap-2">
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].map((d, i) => d === '' ? <div key={i} /> :
+                <button key={i} onClick={() => d === '⌫' ? setV(v.slice(0, -1)) : press(d)} className="btn3d w-16 h-14 rounded-xl bg-slate-100 border-2 border-slate-300 text-2xl font-bold">{d}</button>)}
+            </div>
+            <button onClick={onClose} className="text-lg underline mt-1">とじる</button>
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 19. 先生用画面
+    // =====================================================================
+    const pct = (a, b) => b ? `${Math.round((a / b) * 100)}%` : '－';
+    const topOf = (m, n = 5) => Object.entries(m || {}).sort((a, b) => b[1] - a[1]).slice(0, n);
+    const NEED_IMAGES = () => [
+      ['しゅじんこう・なかま（12まい）', JOBS.flatMap(j => FORMS.map(f => `hero_${j.id}_${f.id}`))],
+      ['カケルさま（3まい）', ['kakeru_normal', 'kakeru_happy', 'kakeru_think']],
+      ['モンスター（30たい）', MONSTERS.map(m => `monster_${m.id}`)],
+      ['ばしょの はいけい（10まい）', PLACES.map(pl => `bg_${pl.id}`)],
+    ];
+
+    function TeacherView({ data, pin, onClose, onChanged, onSettings }) {
+      useImgVer();
+      const [tab, setTab] = useState('class');
+      const [sel, setSel] = useState(data.students[0] ? data.students[0].name : null);
+      const [s, setS] = useState({ ...DEFAULT_SETTINGS, ...data.settings });
+      const [newPin, setNewPin] = useState('');
+      const [msg, setMsg] = useState('');
+      const [pending, setPending] = useState(api.pending());
+      const student = data.students.find(x => x.name === sel);
+      const prog = student ? parseProgress(student.progress) : null;
+      const flash = (t) => { setMsg(t); setTimeout(() => setMsg(''), 3500); };
+      const act = async (fn, okText) => {
+        try { const r = await fn(); if (r && r.ok === false) flash('うまく いきませんでした'); else { flash(okText); onChanged(); } }
+        catch (e) { flash('うまく いきませんでした：' + e.message); }
+      };
+      const saveSettings = async () => {
+        if (newPin && !/^\d{4}$/.test(newPin)) { flash('暗証番号は4けたの数字にしてください'); return; }
+        await act(() => api.saveSettings(pin, { ...s, newPin: newPin || '' }), '設定を保存しました');
+        onSettings(s); setNewPin('');
+      };
+      const csv = async () => {
+        const r = await api.logRows(pin);
+        if (!r || !r.ok) { flash('うまく いきませんでした'); return; }
+        const text = '﻿' + r.rows.map(row => row.map(v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+        downloadText(`ひっさんクエスト_きろく_${nowStr().slice(0, 10).replace(/\//g, '')}.csv`, text, 'text/csv');
+        flash('CSVを書き出しました（ダウンロードフォルダ）');
+      };
+      const backup = async () => {
+        const r = await api.backup(pin);
+        if (!r || !r.ok) { flash('うまく いきませんでした'); return; }
+        downloadText(`ひっさんクエスト_バックアップ_${nowStr().slice(0, 10).replace(/\//g, '')}.json`, JSON.stringify(r.data), 'application/json');
+        flash('バックアップを保存しました（ダウンロードフォルダ）');
+      };
+      const restore = (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        const rd = new FileReader();
+        rd.onload = async () => {
+          let d = null; try { d = JSON.parse(rd.result); } catch (err) {}
+          if (!d || d.app !== 'kakezan') { flash('このアプリのバックアップではありません'); return; }
+          if (!confirm('バックアップから、子どもの進み具合・ゴールドを元にもどします。よろしいですか？')) return;
+          await act(() => api.restore(pin, d), 'バックアップから元にもどしました');
+        };
+        rd.readAsText(f);
+      };
+      const opt = (key, list) => list.map(([v, t]) =>
+        <button key={String(v)} onClick={() => setS({ ...s, [key]: v })} className={`ml-2 mt-1 rounded-lg px-3 py-1 border-2 ${s[key] === v ? 'bg-sky-200 border-sky-500' : 'bg-white'}`}>{t}</button>);
+      const cleared = (p) => mainPlaces().filter(pl => placeCleared(p, pl)).length;
+      const Bars = ({ m, k = 6 }) => <>{topOf(m, 7).map(([x, n]) => <div key={x} className="flex items-center gap-2 mb-1"><span className="w-52">{x}</span><div className="h-5 bg-rose-300 rounded" style={{ width: `${Math.min(100, n * k)}%` }} /><span>{n}回</span></div>)}
+        {!Object.keys(m || {}).length && <div className="text-slate-500">まだ ありません</div>}</>;
+
+      return (
+        <div className="fixed inset-0 bg-slate-50 z-50 overflow-auto">
+          <div className="max-w-6xl mx-auto p-4 text-base">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="text-2xl font-bold flex-1">🔒 先生用画面 <span className="text-sm text-slate-500">ver {APP_VERSION}{data.demo ? '（おためしモード）' : ''}</span></div>
+              <button onClick={onClose} className="btn3d bg-white border-2 border-slate-400 rounded-xl px-4 py-2 font-bold">とじる</button>
+            </div>
+            {data.isDefaultPin && <div className="bg-rose-100 border-2 border-rose-400 rounded-xl p-2 mb-2">暗証番号が はじめの「1234」のままです。「せってい」で変えてください。</div>}
+            {msg && <div className="fixed top-3 left-1/2 -translate-x-1/2 bg-sky-700 text-white rounded-xl px-4 py-2 z-50">{msg}</div>}
+            <div className="flex gap-2 mb-3 flex-wrap">
+              {[['class', 'クラス全体'], ['child', '子どもごと'], ['settings', 'せってい'], ['data', 'データ'], ['img', '絵']].map(([id, t]) => (
+                <button key={id} onClick={() => setTab(id)} className={`rounded-xl px-4 py-2 font-bold border-2 ${tab === id ? 'bg-sky-200 border-sky-500' : 'bg-white border-slate-300'}`}>{t}</button>
+              ))}
+            </div>
+
+            {tab === 'class' && (
+              <div className="flex flex-col gap-4">
+                <table className="w-full bg-white rounded-xl overflow-hidden text-left">
+                  <thead className="bg-sky-100"><tr><th className="p-2">なまえ</th><th>しょくぎょう</th><th>Lv</th><th>ほうせき</th><th>といた数</th><th>まちがえずに</th><th>ヒント</th><th>ゴールド</th><th>さいご</th><th>よくある まちがい</th></tr></thead>
+                  <tbody>
+                    {data.students.map(st => {
+                      const p = parseProgress(st.progress);
+                      return (
+                        <tr key={st.name} className="border-t cursor-pointer hover:bg-sky-50" onClick={() => { setSel(st.name); setTab('child'); }}>
+                          <td className="p-2 font-bold">{st.name}</td>
+                          <td>{p.hero ? JOB[p.hero.job].name : '－'}</td>
+                          <td>{levelOf(p.exp).lv}</td>
+                          <td>{cleared(p)} / 9{p.hatten ? '＋はってん' : ''}</td>
+                          <td>{st.count}</td>
+                          <td>{pct(st.ok, st.count)}</td>
+                          <td>{st.hint}</td>
+                          <td>💰 {p.gold}</td>
+                          <td>{st.last || '－'}</td>
+                          <td className="text-sm">{topOf(st.kinds, 2).map(([k, n]) => `${k}（${n}）`).join('、') || '－'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                <div className="text-sm text-slate-500">といた数：ひっ算（しゅぎょうの まと・いし をふくむ）の問題数。まちがえずに：1回もまちがえずに とけた割合。行を押すと、その子の画面に移ります。</div>
+                <div className="grid md:grid-cols-2 gap-3">
+                  <div className="bg-white rounded-xl p-3">
+                    <div className="font-bold mb-2">クラス全体の ばしょごとの結果</div>
+                    <table className="w-full text-left"><thead className="bg-slate-100"><tr><th className="p-1">ばしょ</th><th>といた数</th><th>まちがえずに</th><th>まちがい</th></tr></thead>
+                      <tbody>{[...PLACES.map(placeLabel), 'しゅぎょう'].map(k => { const f = (data.classPlaces || {})[k] || [0, 0, 0]; return <tr key={k} className="border-t"><td className="p-1">{k}</td><td>{f[0]}</td><td>{pct(f[1], f[0])}</td><td>{f[2]}</td></tr>; })}</tbody></table>
+                  </div>
+                  <div className="bg-white rounded-xl p-3">
+                    <div className="font-bold mb-2">クラス全体の まちがいの しゅるい</div>
+                    <Bars m={data.classKinds} k={3} />
+                    <div className="text-sm text-slate-500 mt-2">くりあがりの たしわすれ：メモの数を足していない。くらいの まちがい：10の位の数を書いた（1の位だけ書くところ）。0の かきわすれ：2だんめの ✕のマスに0を書かなかった。</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {tab === 'child' && (
+              <div className="flex flex-col gap-3">
+                <div className="flex gap-2 flex-wrap">
+                  {data.students.map(st => <button key={st.name} onClick={() => setSel(st.name)} className={`rounded-xl px-4 py-2 font-bold border-2 ${sel === st.name ? 'bg-sky-200 border-sky-500' : 'bg-white border-slate-300'}`}>{st.name}</button>)}
+                </div>
+                {student && prog && (
+                  <div className="grid md:grid-cols-2 gap-3">
+                    <div className="bg-white rounded-xl p-3">
+                      <div className="font-bold text-xl mb-1">{student.name}　{prog.hero ? `${JOB[prog.hero.job].name}（すがた${prog.hero.form}）` : '（まだ しゅじんこうを つくっていません）'}</div>
+                      <div>レベル：{levelOf(prog.exp).lv}　ほうせき：{cleared(prog)} / 9　なかま：{prog.comps.length}人　ずかん：{Object.keys(prog.zukan).length} / {MONSTERS.length}</div>
+                      <div>ゴールド：💰 {prog.gold}（これまでに {prog.earned}）　品物：{prog.items.length} / {ALL_ITEMS.length}　わざ：{prog.waza.join('・') || 'なし'}</div>
+                      <div>といた数：{student.count}　まちがえずに：{pct(student.ok, student.count)}　まちがい：{student.miss}回　ヒントを使った問題：{student.hint}　さいご：{student.last || '－'}</div>
+                      <div className="mt-2 font-bold">ばしょごとの結果</div>
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-100"><tr><th className="p-1">ばしょ</th><th>たおした</th><th>といた数</th><th>まちがえずに</th><th>まちがい</th></tr></thead>
+                        <tbody>
+                          {[...PLACES, null].map(pl => {
+                            const k = pl ? placeLabel(pl) : 'しゅぎょう';
+                            const g = student.places[k] || [0, 0, 0], r = g[0] ? g[1] / g[0] : 1;
+                            return <tr key={k} className={`border-t ${g[0] && r < 0.6 ? 'bg-rose-50' : g[0] && r < 0.8 ? 'bg-amber-50' : ''}`}><td className="p-1">{k}{pl && placeCleared(prog, pl) ? ' ◆' : ''}</td>
+                              <td>{pl ? [0, 1, 2].map(bi => beatenN(prog, pl, bi) ? '●' : '○').join('') : `★${Object.values(prog.shu).reduce((a, b) => a + b, 0)}`}</td><td>{g[0] || '－'}</td><td>{pct(g[1], g[0])}</td><td>{g[2]}</td></tr>;
+                          })}
+                        </tbody>
+                      </table>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button onClick={() => act(() => api.setFlag(pin, student.name, 'unlockAll', !prog.unlockAll), prog.unlockAll ? 'ばしょの開放をやめました' : 'すべてのばしょを開きました')} className="rounded-xl px-3 py-2 border-2 bg-white font-bold">{prog.unlockAll ? '🔓 全部開く：オン' : '🔒 全部開く：オフ'}</button>
+                        <button onClick={() => act(() => api.setFlag(pin, student.name, 'hatten', !prog.hatten), prog.hatten ? 'はってんを閉じました' : 'はってん（そらの しま）を開きました')} className="rounded-xl px-3 py-2 border-2 bg-white font-bold">{prog.hatten ? '☁️ はってん：開いている' : '☁️ はってん：閉じている'}</button>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2 items-center">
+                        <span className="font-bold">しゅぎょうの はんい：</span>
+                        <select value={prog.range == null ? '' : String(prog.range)} onChange={e => act(() => api.setFlag(pin, student.name, 'range', e.target.value), 'しゅぎょうの はんいを変えました')} className="border-2 rounded-lg px-2 py-1">
+                          <option value="">じどう（クリアした ばしょまで）</option>
+                          {mainPlaces().map((pl, i) => <option key={pl.id} value={i}>{placeLabel(pl)} まで</option>)}
+                        </select>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2 items-center">
+                        <span className="font-bold">ゴールド：</span>
+                        {[-50, -10, 10, 50, 100].map(dv => <button key={dv} onClick={() => act(() => api.addGold(pin, student.name, dv), `ゴールドを ${dv > 0 ? '+' : ''}${dv} しました`)} className="rounded-lg px-3 py-1 border-2 bg-white font-bold">{dv > 0 ? '+' : ''}{dv}</button>)}
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button onClick={() => { if (confirm(`${student.name} さんの しゅじんこう（しょくぎょう・すがた）を作り直せるようにします。レベル・ゴールド・なかまは そのままです。よろしいですか？`)) act(() => api.setFlag(pin, student.name, 'remake', true), 'つぎに開いたとき、しゅじんこうを作り直します'); }} className="rounded-xl px-3 py-2 border-2 bg-white font-bold">🔁 しゅじんこうを作り直す</button>
+                        <button onClick={() => { if (confirm(`${student.name} さんの記録・進み具合・ゴールド・集めたものを、すべて消します。元にはもどせません。よろしいですか？`)) act(() => api.clear(pin, student.name), `${student.name} さんの記録を消しました`); }} className="rounded-xl px-3 py-2 border-2 border-rose-400 bg-rose-50 font-bold">🗑 この子の記録を消す</button>
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-xl p-3 flex flex-col gap-3">
+                      <div><div className="font-bold mb-1">まちがいの しゅるい（どこで つまずいているか）</div><Bars m={student.kinds} /></div>
+                      <div>
+                        <div className="font-bold mb-1">さいきん まちがえた 問題</div>
+                        <table className="w-full text-left text-sm"><thead className="bg-slate-100"><tr><th className="p-1">日時</th><th>ばしょ</th><th>問題</th><th>まちがえて いれた数（→正しい数）</th><th>しゅるい</th></tr></thead>
+                          <tbody>{[...student.wrongs].reverse().map((w, i) => <tr key={i} className="border-t align-top"><td className="p-1 whitespace-nowrap">{String(w[0]).slice(5)}</td><td>{w[1]}<br /><span className="text-slate-500">{w[2]}</span></td><td className="font-bold text-lg">{w[3]}</td><td>{String(w[4]).split('・').map((x, j) => <div key={j}>{x}</div>)}</td><td>{w[5]}</td></tr>)}</tbody></table>
+                        {!student.wrongs.length && <div className="text-slate-500">まだ ありません</div>}
+                        <div className="text-sm text-slate-500 mt-1">例：「1だんめ 10の位:5→8」は、1だんめの10の位に 8 を書くところで 5 を押したことです。</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {tab === 'settings' && (
+              <div className="bg-white rounded-xl p-4 flex flex-col gap-3 max-w-3xl">
+                <label className="flex items-center gap-3">よみあげの はやさ：<input type="range" min="0.5" max="1.2" step="0.05" value={s.rate} onChange={e => setS({ ...s, rate: Number(e.target.value) })} /> {s.rate}倍
+                  <button className="border rounded px-2" onClick={() => { Speech.rate = s.rate; Speech.say('わしは ケンジャの カケル。いっしょに ひっ算の ぼうけんに でよう。'); }}>ためす</button></label>
+                <div>もじの おおきさ：{opt('font', [[0.9, 'ちいさめ'], [1, 'ふつう'], [1.15, 'おおきめ'], [1.3, 'とても おおきい']])}</div>
+                <div>1回の たたかいの 問題数（かける数が 1けた）：{opt('count', [[3, '3もん'], [5, '5もん']])}</div>
+                <div>1回の たたかいの 問題数（かける数が 2けた）：{opt('count2', [[2, '2もん'], [3, '3もん'], [5, '5もん']])}</div>
+                <div>かかし れんぞくの 問題数：{opt('kakashi', [[5, '5もん'], [10, '10もん']])}</div>
+                <div>ヒントボタン：{opt('hint', [[true, 'だす'], [false, 'ださない']])} <span className="text-sm text-slate-500">（ださないときも、3回まちがえると答えのマスがうすく出ます）</span></div>
+                <div>1マスごとの よみあげ：{opt('yomi', [[true, 'する'], [false, 'しない']])} <span className="text-sm text-slate-500">（しないときは、文字だけ出します）</span></div>
+                <div>こうかおん：{opt('sound', [[true, 'ならす'], [false, 'ならさない']])}</div>
+                <div className="text-sm text-slate-500">時間制限はありません。まちがえても、主人公はやられません。</div>
+                <label>暗証番号を変える（4けた）：<input value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))} className="border-2 rounded px-2 py-1 w-24 ml-2" inputMode="numeric" placeholder="----" /></label>
+                <div><button onClick={saveSettings} className="btn3d rounded-xl px-6 py-2 border-2 border-emerald-500 bg-emerald-100 font-bold text-xl">保存する</button>
+                  <span className="text-sm text-slate-500 ml-2">（全員の画面に反映されます。子どもの画面は開き直すと変わります）</span></div>
+              </div>
+            )}
+
+            {tab === 'data' && (
+              <div className="bg-white rounded-xl p-4 flex flex-col gap-3 max-w-2xl">
+                <div>この端末に たまっている、まだ送れていない記録：<b>{pending}</b> 件
+                  <button onClick={async () => { await api.flush(); setPending(api.pending()); flash(api.pending() ? 'まだ送れていません。ネットのつながりを確かめてください' : '送りました'); onChanged(); }} className="ml-2 rounded-xl px-3 py-1 border-2 bg-white font-bold">📤 スプレッドシートへ送る</button></div>
+                <div><button onClick={csv} className="rounded-xl px-3 py-2 border-2 bg-white font-bold">📄 記録をCSVで書き出す</button>
+                  <div className="text-sm text-slate-500">ダウンロードできないときは、スプレッドシートの「きろく」シートを開き、ファイル → ダウンロード → CSV を選んでください。</div></div>
+                <div className="flex gap-2 flex-wrap items-center">
+                  <button onClick={backup} className="rounded-xl px-3 py-2 border-2 bg-white font-bold">💾 バックアップを保存</button>
+                  <label className="rounded-xl px-3 py-2 border-2 bg-white font-bold cursor-pointer">📂 バックアップから元にもどす<input type="file" accept=".json" className="hidden" onChange={restore} /></label>
+                </div>
+                <div><button onClick={() => { if (confirm('全員の記録・進み具合・ゴールド・集めたものを、すべて消します。元にはもどせません。よろしいですか？') && confirm('ほんとうに全員の記録を消しますか？')) act(() => api.clear(pin, ''), '全員の記録を消しました'); }} className="rounded-xl px-3 py-2 border-2 border-rose-400 bg-rose-50 font-bold">🗑 全員の記録を消す</button></div>
+              </div>
+            )}
+
+            {tab === 'img' && (
+              <div className="bg-white rounded-xl p-4 flex flex-col gap-3">
+                <div className="text-base leading-relaxed">
+                  ChatGPT で作った絵は、Google ドライブの「<b>ひっさんクエスト え</b>」フォルダに、下の名前で入れてください（例：<code>monster_kusadango.png</code>）。<br />
+                  アプリを開くと自動で読みこみ、この端末にも保存します。絵のないところは、自作の絵と絵文字で出ます。
+                </div>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div>ドライブ：{HAS_GAS ? (Img.status.checked ? `${Img.status.count}まい みつかりました${Img.status.loading > 0 ? `（よみこみ中 のこり ${Img.status.loading}）` : ''}` : 'たしかめ中…') : 'おためしモードでは使えません'}</div>
+                  {Img.status.error && <div className="text-rose-600">エラー：{Img.status.error}</div>}
+                  {HAS_GAS && <button onClick={() => { Img.syncDrive(); flash('ドライブの絵を たしかめています'); }} className="rounded-xl px-3 py-1 border-2 bg-white font-bold">🔄 ドライブの絵を よみこみなおす</button>}
+                </div>
+                {NEED_IMAGES().map(([title, names]) => (
+                  <div key={title}>
+                    <div className="font-bold">{title}：{names.filter(n => Img.has(n)).length} / {names.length}</div>
+                    <div className="flex flex-wrap gap-1 mt-1">{names.map(n => <span key={n} className={`text-sm rounded px-2 py-0.5 border ${Img.drive[n] ? 'bg-emerald-100 border-emerald-400' : Img.gh[n] ? 'bg-sky-100 border-sky-400' : 'bg-slate-50 border-slate-300 text-slate-500'}`}>{Img.has(n) ? '✓ ' : ''}{n}</span>)}</div>
+                  </div>
+                ))}
+                <div className="text-sm text-slate-500">緑：ドライブの絵　青：GitHub の絵　灰色：まだ ない（自作の絵で出ます）。ファイルの形は PNG・JPEG・WebP のどれでもかまいません。</div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    // 20. アプリ ぜんたい
+    // =====================================================================
+    function App() {
+      useImgVer();
+      const [boot, setBoot] = useState(null);
+      const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+      const [name, setName] = useState(null);
+      const [progress, setProgress] = useState(newProgress());
+      const [view, setView] = useState({ v: 'login' });
+      const [pin, setPin] = useState(null);
+      const [pinOpen, setPinOpen] = useState(false);
+      const [pinError, setPinError] = useState(0);
+      const [teacher, setTeacher] = useState(null);
+      const [talk, setTalk] = useState({ text: '', who: 'kakeru' });
+      const [bump, setBump] = useState(0);
+      const [soundOn, setSoundOn] = useState(true);
+      const [busy, setBusy] = useState(false);
+      const [modals, setModals] = useState([]);
+      const lastSay = useRef(null);
+      const sayId = useRef(0);
+      const records = useRef([]);
+      const gain = useRef({ gold: 0, exp: 0, miss: 0 });
+      const lvAtStart = useRef(1);
+      const progRef = useRef(progress);
+      progRef.current = progress;
+      const R = D.REWARD;
+
+      const talkApi = useMemo(() => {
+        const pitchOf = (who) => who === 'maou' ? 0.6 : who && who.job ? 1.3 : who && who.emoji ? 1.1 : 0.9;
+        const run = (text, opts = {}) => new Promise(resolve => {
+          const id = ++sayId.current;
+          lastSay.current = { text, opts };
+          setTalk({ text, who: opts.who || 'kakeru' });
+          Speech.say(text, () => { if (sayId.current === id) resolve(); else resolve(); }, pitchOf(opts.who));
+        });
+        const show = (text, opts = {}) => { ++sayId.current; Speech.stop(); lastSay.current = { text, opts }; setTalk({ text, who: opts.who || 'kakeru' }); };
+        return { say: run, show, repeat: () => lastSay.current && run(lastSay.current.text, lastSay.current.opts), stop: () => Speech.stop() };
+      }, []);
+      const talkCtx = { ...talkApi, ...talk };
+
+      const applySettings = (s) => {
+        const v = { ...DEFAULT_SETTINGS, ...s };
+        ['sound', 'hint', 'yomi'].forEach(k => { v[k] = v[k] !== false && v[k] !== 'false'; });
+        ['count', 'count2', 'kakashi'].forEach(k => { v[k] = Number(v[k]); if (isNaN(v[k]) || !v[k]) v[k] = DEFAULT_SETTINGS[k]; });
+        setSettings(v);
+        Speech.rate = Number(v.rate) || 0.8;
+        Sound.on = v.sound; setSoundOn(Sound.on);
+        document.documentElement.style.fontSize = `${16 * (Number(v.font) || 1)}px`;
+      };
+
+      useEffect(() => {
+        api.init().then(d => { applySettings(d.settings || {}); setBoot(d); api.flush(); })
+          .catch(e => setBoot({ error: String(e && e.message || e) }));
+        Img.loadCache().then(() => Img.syncDrive());
+        const on = () => api.flush();
+        window.addEventListener('online', on);
+        return () => window.removeEventListener('online', on);
+      }, []);
+
+      // しんちょくを ほぞんする（この たんまつ ＋ スプレッドシート）
+      const persist = (p) => {
+        p = { ...p, t: Date.now() };
+        progRef.current = p;
+        setProgress(p);
+        const json = JSON.stringify(p);
+        safeStore.set(COPY_KEY(name), json);
+        const recs = records.current; records.current = [];
+        api.save({ name, progress: json, records: recs, stamp: nowStr(), time: Date.now() });
+        return p;
+      };
+      const go = (v) => { talkApi.stop(); setView(v); };
+
+      const login = async (n) => {
+        Sound.get();
+        setBusy(true);
+        let server = '';
+        try { server = await api.student(n); } catch (e) {}
+        const a = parseProgress(server), b = parseProgress(safeStore.get(COPY_KEY(n)));
+        // あたらしい ほうを つかう。先生が変えた ところ（全部開く・はってん・はんい）は スプレッドシートの ほうを つかう
+        let p = b.t > a.t ? b : a;
+        if ((a.flagT || 0) > (p.flagT || 0)) p = { ...p, unlockAll: !!a.unlockAll, hatten: !!a.hatten, range: a.range, hero: a.hero, flagT: a.flagT };
+        progRef.current = p;
+        setProgress(p); setName(n); setBusy(false);
+        if (!p.story.op) setView({ v: 'story', kind: 'opening' });
+        else if (!p.hero) setView({ v: 'create' });
+        else setView({ v: 'town' });
+      };
+      const logout = () => { talkApi.stop(); setName(null); setView({ v: 'login' }); setTalk({ text: '' }); };
+
+      const addDay = (p, g, e) => {
+        const d = p.day && p.day.d === today() ? p.day : { d: today(), n: 0, exp: 0, gold: 0 };
+        return { ...d, n: d.n + 1, exp: d.exp + e, gold: d.gold + g };
+      };
+      // 1もん とけた
+      const onProblem = (rec, part) => {
+        records.current.push({ ...rec, id: uid() });
+        const shu = rec.place === 'しゅぎょう';
+        const g = shu ? R.shuGold : R.gold, e = shu ? R.shuExp : R.exp;
+        gain.current.gold += g; gain.current.exp += e; gain.current.miss += rec.miss;
+        let p = progRef.current;
+        let nigate = p.nigate || [];
+        if (rec.a) {
+          nigate = nigate.filter(x => !(x[0] === rec.a && x[1] === rec.b));
+          if (rec.miss > 0) nigate = [...nigate, [rec.a, rec.b]].slice(-20);
+        }
+        p = { ...p, gold: p.gold + g, earned: p.earned + g, exp: p.exp + e, total: (p.total || 0) + 1, day: addDay(p, g, e), nigate, part: part || p.part };
+        setBump(x => x + 1); Sound.coin();
+        persist(p);
+      };
+      const levelModal = (p, list) => { const lv = levelOf(p.exp).lv; if (lv > lvAtStart.current) list.push({ t: 'level', lv }); };
+
+      const startBattle = (pl, bi, resume) => {
+        records.current = []; gain.current = { gold: 0, exp: 0, miss: 0 };
+        lvAtStart.current = levelOf(progRef.current.exp).lv;
+        go({ v: 'battle', pl, bi, resume, key: uid() });
+      };
+      const winBattle = (pl, bi) => {
+        let p = { ...progRef.current, part: null };
+        const m = MONSTERS.filter(x => x.place === pl.id)[bi];
+        const first = bi === 2 && !placeCleared(p, pl);
+        const bonus = bi === 2 ? R.bossBonus : R.zakoBonus;
+        p.gold += bonus; p.earned += bonus;
+        p.beaten = { ...p.beaten, [pl.id + ':' + bi]: beatenN(p, pl, bi) + 1 };
+        const newZukan = !p.zukan[m.id];
+        p.zukan = { ...p.zukan, [m.id]: (p.zukan[m.id] || 0) + 1 };
+        const list = [];
+        if (first) {
+          list.push({ t: 'gem', pl, shop: SHOPS.find(s => s.open === pl.id) });
+          const next = compOrder(p.hero).find(c => !p.comps.includes(c.id));
+          if (next && !pl.hatten) { p.comps = [...p.comps, next.id]; list.push({ t: 'comp', c: next }); }
+        }
+        levelModal(p, list);
+        if (first && pl.id === 'p8' && !p.story.end) { p.story = { ...p.story, end: true }; list.push({ t: 'ending' }); }
+        p = persist(p);
+        setModals(list);
+        go({ v: 'result', r: { pl, m, bi, gold: gain.current.gold + bonus, exp: gain.current.exp, perfect: gain.current.miss === 0, newZukan } });
+      };
+
+      const startShu = (s) => {
+        records.current = []; gain.current = { gold: 0, exp: 0, miss: 0 };
+        lvAtStart.current = levelOf(progRef.current.exp).lv;
+        if (s.id === 'mato' || s.id === 'ishi') { go({ v: 'drill', s, key: uid() }); return; }
+        const specs = rangeSpecs(progRef.current);
+        const used = new Set();
+        let probs;
+        if (s.id === 'kakashi') probs = Array.from({ length: settings.kakashi }, () => makeProblem(pickOne(specs), used));
+        else {
+          const ng = [...(progRef.current.nigate || [])].reverse().slice(0, 5);
+          probs = ng.map(x => { used.add(x[0] + 'x' + x[1]); return x; });
+          const like = ng.length ? ng.map(x => classify(x[0], x[1])) : specs;
+          while (probs.length < 5) probs.push(makeProblem(pickOne(like), used));
+          if (!ng.length) talkApi.say('まだ にがては ないようじゃ。いろいろな もんだいで しゅぎょうしよう。', { who: 'kakeru' });
+        }
+        go({ v: 'shuboard', s, probs, key: uid() });
+      };
+      const finishShu = (s) => {
+        let p = { ...progRef.current };
+        p.shu = { ...p.shu, [s.id]: (p.shu[s.id] || 0) + 1 };
+        p.gold += R.shuBonus; p.earned += R.shuBonus; p.exp += R.shuBonus;
+        gain.current.gold += R.shuBonus; gain.current.exp += R.shuBonus;
+        const list = [];
+        if (p.shu[s.id] >= D.WAZA_AT && !p.waza.includes(s.waza)) { p.waza = [...p.waza, s.waza]; list.push({ t: 'waza', s }); }
+        levelModal(p, list);
+        persist(p);
+        setModals(list);
+        go({ v: 'shuresult', s, gain: { ...gain.current } });
+      };
+      const quitTo = (v) => { persist({ ...progRef.current }); go(v); };
+
+      const buy = (shop, it) => {
+        const p = progRef.current;
+        if (p.gold < it.p || p.items.includes(it.id)) return;
+        persist({ ...p, gold: p.gold - it.p, items: [...p.items, it.id], equip: { ...p.equip, [shop.id]: it.id } });
+      };
+      const equip = (slot, id) => persist({ ...progRef.current, equip: { ...progRef.current.equip, [slot]: id } });
+
+      const openTeacher = () => { setPinError(0); setPinOpen(true); };
+      const submitPin = async (v) => {
+        try {
+          await api.flush();
+          const d = await api.teacher(v);
+          if (!d || !d.ok) { setPinError(e => e + 1); return; }
+          setPin(v); setTeacher(d); setPinOpen(false);
+        } catch (e) { setPinError(e => e + 1); }
+      };
+      const reloadTeacher = async () => {
+        await api.flush();
+        const d = await api.teacher(pin);
+        if (d && d.ok) {
+          setTeacher(d);
+          if (name) {
+            const me = d.students.find(x => x.name === name);
+            if (me) {
+              const q = me.progress ? parseProgress(me.progress) : { ...newProgress(), t: Date.now() };
+              if (!me.progress || q.t >= (progRef.current.t || 0)) { progRef.current = q; setProgress(q); safeStore.set(COPY_KEY(name), JSON.stringify(q)); }
+            }
+          }
+        }
+      };
+      const closeModal = () => setModals(ms => ms.slice(1));
+      useEffect(() => {
+        if (modals[0] && modals[0].t === 'ending') { setModals(ms => ms.slice(1)); go({ v: 'story', kind: 'ending' }); }
+      }, [modals]);
+
+      if (!boot) return <div className="p-16 text-center text-3xl font-bold text-amber-100">じゅんび ちゅう…</div>;
+      if (boot.error) return <div className="p-10 text-2xl text-white">ひらけませんでした。ページを よみこみなおして ください。<div className="text-base text-slate-300 mt-2">{boot.error}</div></div>;
+
+      const p = progress;
+      const bar = (town = true) => (
+        <TopBar name={name} p={p} bump={bump} onTown={town ? () => go({ v: 'town' }) : null}
+          onLogout={logout} onTeacher={openTeacher} soundOn={soundOn} onSound={() => { Sound.on = !Sound.on; setSoundOn(Sound.on); }} />
+      );
+      const wrap = (inner, town = true) => <div className="min-h-screen flex flex-col">{bar(town)}{inner}</div>;
+      const v = view.v;
+
+      let body = null;
+      if (!name || v === 'login') {
+        body = <LoginScreen students={boot.students || []} onSelect={login} onTeacher={openTeacher} demo={boot.demo} />;
+      } else if (v === 'story') {
+        body = <StoryScreen key={view.kind} pages={D.STORY[view.kind]} doneLabel={view.kind === 'opening' && !p.hero ? 'ぼうけんの じゅんびを する ▶' : 'まちへ もどる'}
+          onDone={() => { if (view.kind === 'opening' && !p.story.op) persist({ ...progRef.current, story: { ...progRef.current.story, op: true } }); go(progRef.current.hero ? { v: 'town' } : { v: 'create' }); }} />;
+      } else if (v === 'create' || !p.hero) {
+        body = <CreateHero name={name} onDone={(hero) => { persist({ ...progRef.current, hero }); go({ v: 'town' }); }} />;
+      } else if (v === 'town') {
+        body = wrap(<Town p={p} onGo={(w) => {
+          if (w.startsWith('shop:')) go({ v: 'shop', shop: SHOPS.find(s => s.id === w.slice(5)) });
+          else go({ v: w });
+        }} onContinue={() => startBattle(PLACE[p.part.place], p.part.bi, true)} />, false);
+      } else if (v === 'map') {
+        body = wrap(<WorldMap p={p} onEnter={(pl) => go({ v: 'place', pl })} onTown={() => go({ v: 'town' })} onMoved={(id) => persist({ ...progRef.current, mapAt: id })} />);
+      } else if (v === 'place') {
+        body = wrap(<PlaceScreen p={p} pl={view.pl} onBattle={startBattle} onMap={() => go({ v: 'map' })} onDemo={(pl) => go({ v: 'demo', pl, back: { v: 'place', pl } })} />);
+      } else if (v === 'battle') {
+        body = wrap(<Battle key={view.key} p={p} pl={view.pl} bi={view.bi} resume={view.resume} settings={settings} name={name}
+          onProblem={onProblem} onWin={winBattle} onQuit={() => quitTo({ v: 'place', pl: view.pl })} />);
+      } else if (v === 'result') {
+        const r = view.r;
+        const nextOk = r.bi < 2 && battleOpen(p, r.pl, r.bi + 1);
+        body = wrap(<ResultScreen r={r} onNext={nextOk ? () => startBattle(r.pl, r.bi + 1, false) : null} onPlace={() => go({ v: 'place', pl: r.pl })} onTown={() => go({ v: 'town' })} />);
+      } else if (v === 'demo') {
+        body = wrap(<DemoScreen pl={view.pl} onBack={() => go(view.back)} />);
+      } else if (v === 'shop') {
+        body = wrap(<ShopScreen p={p} shop={view.shop} onBuy={buy} onEquip={equip} />);
+      } else if (v === 'house') {
+        body = wrap(<HouseScreen p={p} name={name} onEquip={equip} onForm={(f) => persist({ ...progRef.current, hero: { ...progRef.current.hero, form: f } })} />);
+      } else if (v === 'inn') {
+        body = wrap(<InnScreen p={p} onRest={logout} />);
+      } else if (v === 'castle') {
+        body = wrap(<CastleScreen p={p} onStory={(kind) => go({ v: 'story', kind })} />);
+      } else if (v === 'guild') {
+        body = wrap(<GuildScreen p={p} onDemo={(pl) => go({ v: 'demo', pl, back: { v: 'guild' } })} />);
+      } else if (v === 'shugyo') {
+        body = wrap(<ShugyoMenu p={p} onStart={startShu} />);
+      } else if (v === 'drill') {
+        body = wrap(<ChoiceDrill key={view.key} mode={view.s.id} count={10} onProblem={(rec) => onProblem(rec, null)} onFinish={() => finishShu(view.s)} onQuit={() => quitTo({ v: 'shugyo' })} />);
+      } else if (v === 'shuboard') {
+        body = wrap(<ShuBoard key={view.key} mode={view.s.id} probs={view.probs} settings={settings} p={p} onProblem={(rec) => onProblem(rec, null)} onFinish={() => finishShu(view.s)} onQuit={() => quitTo({ v: 'shugyo' })} />);
+      } else if (v === 'shuresult') {
+        body = wrap(<ShuResult s={view.s} gain={view.gain} onAgain={() => startShu(view.s)} onBack={() => go({ v: 'shugyo' })} />);
+      }
+
+      return (
+        <TalkCtx.Provider value={talkCtx}>
+          {body}
+          {modals[0] && modals[0].t !== 'ending' && <Modal key={modals.length} m={modals[0]} p={p} onClose={closeModal} />}
+          {busy && <div className="fixed inset-0 bg-white/60 z-40 flex items-center justify-center text-3xl font-bold">よみこみ ちゅう…</div>}
+          {pinOpen && <PinPad onSubmit={submitPin} onClose={() => setPinOpen(false)} error={pinError} />}
+          {teacher && <TeacherView data={teacher} pin={pin} onClose={() => setTeacher(null)} onChanged={reloadTeacher} onSettings={applySettings} />}
+        </TalkCtx.Provider>
+      );
+    }
+
+    window.KAKE_READY.then(() => {
+      D = window.KAKE_DATA;
+      PLACES = D.PLACES; MONSTERS = D.MONSTERS; JOBS = D.JOBS; FORMS = D.FORMS; SHOPS = D.SHOPS; SHUGYO = D.SHUGYO;
+      ALL_ITEMS = SHOPS.flatMap(s => s.items.map(it => ({ ...it, slot: s.id })));
+      ALL_ITEMS.forEach(it => { ITEM[it.id] = it; });
+      MONSTERS.forEach(m => { MON[m.id] = m; });
+      PLACES.forEach(pl => { PLACE[pl.id] = pl; });
+      JOBS.forEach(j => { JOB[j.id] = j; });
+      Img.setGitHub(D.IMAGES);
+      ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    }).catch(e => {
+      document.getElementById('root').innerHTML = '<div style="padding:40px;font-size:24px;line-height:1.8;color:#fff">データを よみこめませんでした。<br>ネットに つながって いるか たしかめて、ページを よみこみなおして ください。<div style="font-size:14px;color:#aaa">' + e.message + '</div></div>';
+    });
+  </script>
+</body>
+</html>
