@@ -133,7 +133,7 @@
   ];
 
   // ChatGPT の 絵が ある ファイル（img/ に おいたら ここに たす）
-  const IMAGES = ['piece_pizza.webp', 'piece_sand.webp', 'piece_ufoR.webp', 'bg_home.webp', 'bg_legend.webp', 'bg_castle.webp', 'bg_gem.webp', 'bg_rainbow.webp', 'bg_galaxy.webp', 'bg_volcano.webp', 'bg_candy.webp', 'bg_ice.webp', 'bg_forest.webp', 'bg_sea.webp', 'bg_moon.webp', 'bg_sunset.webp', 'wakerun_normal.webp', 'wakerun_happy.webp', 'wakerun_think.webp',
+  const IMAGES = ['piece_pizza.webp', 'piece_sand.webp', 'piece_ufoR.webp', 'piece_ufoS.webp', 'bg_home.webp', 'bg_legend.webp', 'bg_castle.webp', 'bg_gem.webp', 'bg_rainbow.webp', 'bg_galaxy.webp', 'bg_volcano.webp', 'bg_candy.webp', 'bg_ice.webp', 'bg_forest.webp', 'bg_sea.webp', 'bg_moon.webp', 'bg_sunset.webp', 'wakerun_normal.webp', 'wakerun_happy.webp', 'wakerun_think.webp',
     'form_cat.webp', 'form_rabbit.webp', 'form_bear.webp', 'form_penguin.webp', 'form_frog.webp', 'form_unicorn.webp', 'form_dragon.webp', 'form_lion.webp', 'form_alien.webp', 'form_eagle.webp', 'form_tiger.webp', 'form_star.webp'];
 
   window.WAKE_DATA = { STAGES, SHAPES, DEN_YOMI, NUM_YOMI, TIERS, ITEM_CATS, FX, DEFAULT_EQUIP, LEVELS, IMAGES };
