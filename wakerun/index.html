@@ -589,9 +589,12 @@
       const img = form ? `form_${form}.webp` : `wakerun_${mood}.webp`;
       const useImg = HAS_IMG.has(img) || (!form && HAS_IMG.has('wakerun_normal.webp'));
       const imgSrc = HAS_IMG.has(img) ? img : 'wakerun_normal.webp';
-      const h = size * 148 / 120;
+      // 絵は 正方形、SVG は たてながの はこ
+      const h = useImg ? size : size * 148 / 120;
       const put = (e, x, y, s, z = 3, extra = {}) => <span className={extra.cls || ''} style={{ position: 'absolute', left: `${x}%`, top: `${y}%`, transform: 'translate(-50%,-50%)', fontSize: size * s, lineHeight: 1, zIndex: z, ...(extra.style || {}) }}>{e}</span>;
-      const ACC_POS = { face: [50, 37, 0.3], neck: [50, 58, 0.2], hand: [84, 72, 0.22], back: [16, 64, 0.3], aura: [50, 50, 0.9] };
+      const ACC_POS = useImg
+        ? { face: [50, 41, 0.32], neck: [50, 59, 0.2], hand: [81, 75, 0.22], back: [18, 66, 0.3], aura: [50, 50, 0.9] }
+        : { face: [50, 37, 0.3], neck: [50, 58, 0.2], hand: [84, 72, 0.22], back: [16, 64, 0.3], aura: [50, 50, 0.9] };
       return (
         <div className={`relative inline-block ${className}`} style={{ width: size, height: h }} onClick={onClick}>
           {acc && acc.v === 'aura' && <span className="spin" style={{ position: 'absolute', inset: '-8%', zIndex: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.18 }}>
@@ -602,7 +605,7 @@
               ? <img src={IMG + imgSrc} alt="ワケルン" draggable="false" style={{ width: '100%', height: '100%', objectFit: 'contain', filter: body ? (BODY_FILTER[body] || '') : '' }} className={body === 'rainbow' ? 'rainbowbg' : ''} />
               : <RobotSvg body={body} form={form} mood={mood} gid={gid} />}
           </div>
-          {hat && put(hat.e, 50, form === 'rabbit' || form === 'unicorn' ? 0 : 6, 0.36, 4)}
+          {hat && put(hat.e, 50, useImg ? 12 : form === 'rabbit' || form === 'unicorn' ? 0 : 6, 0.36, 4)}
           {acc && acc.v !== 'back' && acc.v !== 'aura' && put(acc.e, ...(ACC_POS[acc.v] || ACC_POS.neck), 5)}
         </div>
       );

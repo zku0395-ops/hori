@@ -133,7 +133,7 @@
   ];
 
   // ChatGPT の 絵が ある ファイル（img/ に おいたら ここに たす）
-  const IMAGES = [];
+  const IMAGES = ['wakerun_normal.webp'];
 
   window.WAKE_DATA = { STAGES, SHAPES, DEN_YOMI, NUM_YOMI, TIERS, ITEM_CATS, FX, DEFAULT_EQUIP, LEVELS, IMAGES };
 })();
