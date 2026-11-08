@@ -240,7 +240,7 @@
           const per = Math.ceil(n / r), w = per * cw() + (per - 1) * gap;
           const rows = []; for (let i = 0; i < n; i += per) rows.push(q.bank.slice(i, i + per));
           const hh = rows.reduce((s2, row) => s2 + Math.max(...row.map(c => cardH(c.t, ffOf(c)))) + 6.2 + 3, 0);
-          if (w <= 58 && hh + PAD * 2 <= lowH) { rowsOf = rows; cardsW = w; break; }
+          if (w <= 46 && hh + PAD * 2 <= lowH) { rowsOf = rows; cardsW = w; break; }
         }
         if (!rowsOf) f -= .1;
       }
@@ -265,8 +265,8 @@
       const Aw = W - 5 - Bw - 3, ansH = lowH - PAD * 2 - 1;
       const words = q.cards;
       const maxL = Math.max(...words.map(c => len(c.t)));
-      const colGap = 4, boxGap = 2.4;
-      let cell = Math.min(11, (ansH - 1) / (maxL + .3));
+      const colGap = 3, boxGap = 2.2;
+      let cell = Math.min(14, (ansH - 1) / (maxL + .3)); // 1もじの ますは 1.4cm まで（先生の ご希望で 大きく した）
       const layout = () => {
         const out = []; let col = 0, y = 0;
         words.forEach(c => {
@@ -278,7 +278,7 @@
       };
       let lay = layout();
       const boxesW = Aw - LBL - PAD * 2;
-      while (lay.cols * (cell + 2 + colGap) - colGap > boxesW && cell > 5.5) { cell -= .2; lay = layout(); }
+      while (lay.cols * (cell + 2 + colGap) - colGap > boxesW && cell > 7) { cell -= .2; lay = layout(); }
       h += `<div class="ans" style="right:${2.5 + Bw + 3}mm;left:2.5mm;top:${lowTop}mm;height:${lowH}mm">`;
       h += `<div class="vtag" style="background:#b45309">ぶんを かこう</div>`;
       const bw = cell + 2;
