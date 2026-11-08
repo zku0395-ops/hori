@@ -79,7 +79,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.2.0';
+    const APP_VERSION = '1.2.1';
     const BASE = window.WAKE_BASE;
     const IMG = BASE + 'img/';
     let STAGES = [], SHAPES = [], DEN_YOMI = {}, NUM_YOMI = {}, TIERS = [], ITEM_CATS = [], FX = {}, LEVELS = [], HAS_IMG = new Set(), ALL_ITEMS = [];
@@ -110,7 +110,9 @@
     const fracStr = (k, n) => `${k}/${n}`;
     const fracYomi = (k, n) => `${DEN_YOMI[n] || n}ぶんの ${NUM_YOMI[k] || k}`;
     // 「1/2」を「にぶんの いち」と よむ
-    const speakText = (t) => String(t).replace(/(\d)\/(\d)/g, (m, k, n) => fracYomi(Number(k), Number(n)));
+    // よみあげ では 漢字で よませる（ひらがなの「はちぶん」を「わちぶん」と よむ ことが あるため）
+    const KANSUJI = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+    const speakText = (t) => String(t).replace(/(\d)\/(\d)/g, (m, k, n) => `${KANSUJI[n]}分の${KANSUJI[k]}`);
 
     // =====================================================================
     //  2. こえ と おと
