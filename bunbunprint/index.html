@@ -138,6 +138,15 @@
         <button class="btn" id="pdfgo">わかった。印刷の 画面を ひらく</button>
       </div>
     </div>
+    <div class="pdfhelp" id="noprint" hidden style="border-color:#b45309;background:#fffbeb">
+      <b>⚠ 印刷の 画面が ひらきませんでした</b>
+      <ol>
+        <li id="npframe">この ページは、ほかの ページ（Googleサイトなど）の わくの 中に 入って いるため、印刷の 画面が ひらけません。<br>
+          <a class="btn" id="nptab" href="#" target="_blank" rel="noopener">↗ あたらしい タブで ひらいて 印刷する</a>（えらんだ ものと 名前は そのまま。ひらくと 印刷の 画面が 出ます）</li>
+        <li>キーボードの <b>Ctrl ＋ P</b> を 押しても、印刷の 画面が ひらきます。</li>
+        <li>それでも ひらかない ときは、学校の 設定で 印刷が 止められて いる かも しれません。下の「④ できあがった PDF」から ダウンロード して ください（名前は 空いて います）。</li>
+      </ol>
+    </div>
     <div class="panel">
       <h2>④ できあがった PDF（なまえは 空いて います）</h2>
       <p>えらばなくても、ここから すぐ ダウンロード できます。</p>
@@ -231,7 +240,7 @@
           const per = Math.ceil(n / r), w = per * cw() + (per - 1) * gap;
           const rows = []; for (let i = 0; i < n; i += per) rows.push(q.bank.slice(i, i + per));
           const hh = rows.reduce((s2, row) => s2 + Math.max(...row.map(c => cardH(c.t, ffOf(c)))) + 6.2 + 3, 0);
-          if (w <= 58 && hh + PAD * 2 <= lowH) { rowsOf = rows; cardsW = w; break; }
+          if (w <= 46 && hh + PAD * 2 <= lowH) { rowsOf = rows; cardsW = w; break; }
         }
         if (!rowsOf) f -= .1;
       }
@@ -256,8 +265,8 @@
       const Aw = W - 5 - Bw - 3, ansH = lowH - PAD * 2 - 1;
       const words = q.cards;
       const maxL = Math.max(...words.map(c => len(c.t)));
-      const colGap = 4, boxGap = 2.4;
-      let cell = Math.min(11, (ansH - 1) / (maxL + .3));
+      const colGap = 3, boxGap = 2.2;
+      let cell = Math.min(14, (ansH - 1) / (maxL + .3)); // 1もじの ますは 1.4cm まで（先生の ご希望で 大きく した）
       const layout = () => {
         const out = []; let col = 0, y = 0;
         words.forEach(c => {
@@ -269,7 +278,7 @@
       };
       let lay = layout();
       const boxesW = Aw - LBL - PAD * 2;
-      while (lay.cols * (cell + 2 + colGap) - colGap > boxesW && cell > 5.5) { cell -= .2; lay = layout(); }
+      while (lay.cols * (cell + 2 + colGap) - colGap > boxesW && cell > 7) { cell -= .2; lay = layout(); }
       h += `<div class="ans" style="right:${2.5 + Bw + 3}mm;left:2.5mm;top:${lowTop}mm;height:${lowH}mm">`;
       h += `<div class="vtag" style="background:#b45309">ぶんを かこう</div>`;
       const bw = cell + 2;
@@ -353,7 +362,7 @@
       v: qp.get('v') || 'color',
       rei: qp.has('rei') ? qp.get('rei') === '1' : true,
       areas: qp.get('areas') ? qp.get('areas').split(',').map(Number) : M.SETS.map(s => s[0]),
-      nen: '', name: '',
+      nen: (qp.get('nen') || '').slice(0, 3), name: (qp.get('name') || '').slice(0, 20),
     };
     const QS = {}; M.SETS.forEach(([aid, ids]) => { QS[aid] = ids.map(id => makeQ(id, aid)); });
     window.BUNBUNPRINT_Q = QS;
@@ -395,7 +404,35 @@
     document.getElementById('allOff').onclick = () => { st.areas = []; controls(); render(); };
     document.getElementById('nen').oninput = (e) => { st.nen = e.target.value.slice(0, 3); render(); };
     document.getElementById('nm').oninput = (e) => { st.name = e.target.value.slice(0, 20); render(); };
-    document.getElementById('print').onclick = () => window.print();
+    // 印刷の 画面を ひらく。ひらかなかった ときは（Googleサイトの わくの 中など）、かわりの やりかたを 出す
+    let printed = false;
+    window.addEventListener('beforeprint', () => { printed = true; });
+    const inFrame = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
+    const selfUrl = () => {
+      const u = new URL(location.href.split('#')[0]);
+      u.search = '';
+      const set = { v: st.v, rei: st.rei ? '1' : '0', areas: st.areas.join(','), nen: st.nen, name: st.name, auto: '1' };
+      Object.entries(set).forEach(([k, v2]) => { if (v2) u.searchParams.set(k, v2); });
+      return u.toString();
+    };
+    function openPrint(title) {
+      const t = document.title;
+      if (title) document.title = title;
+      const back = () => { document.title = t; window.removeEventListener('afterprint', back); };
+      window.addEventListener('afterprint', back);
+      printed = false;
+      document.getElementById('noprint').hidden = true;
+      try { window.print(); } catch (e) {}
+      setTimeout(() => {
+        if (printed) return;
+        back();
+        const box = document.getElementById('noprint');
+        document.getElementById('npframe').hidden = !inFrame;
+        document.getElementById('nptab').href = selfUrl();
+        box.hidden = false; box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 1500);
+    }
+    document.getElementById('print').onclick = () => openPrint('');
     // PDF で ほぞん：印刷の 画面の「PDF として保存」を つかう。ファイルの なまえは ページの タイトルに なるので、なかみに あわせて かえる
     const pdfName = () => {
       const kind = { color: 'カラー', mono: 'しろくろ', key: 'こたえ' }[st.v];
@@ -409,16 +446,15 @@
       const box = document.getElementById('pdfhelp'); box.hidden = false; box.scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
     document.getElementById('pdfgo').onclick = () => {
-      const t = document.title;
-      document.title = pdfName();
-      const back = () => { document.title = t; window.removeEventListener('afterprint', back); };
-      window.addEventListener('afterprint', back);
-      window.print();
-      setTimeout(back, 60000);
+      openPrint(pdfName());
     };
     if (qp.get('print') === '1') document.getElementById('controls').style.display = 'none';
     controls();
     render();
+    if (qp.get('auto') === '1') {
+      const go = () => { if (document.body.dataset.ready === '1') openPrint(pdfName()); else setTimeout(go, 200); };
+      setTimeout(go, 300);
+    }
   })();
   </script>
 </body>
