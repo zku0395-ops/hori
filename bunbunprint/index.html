@@ -73,7 +73,9 @@
     .chk { width: 5mm; height: 5mm; border: .4mm solid #57534e; border-radius: .8mm; margin-bottom: 1.2mm; position: relative; background: #fff; }
     .chk .mk { position: absolute; left: -.6mm; top: -2.4mm; font-size: 6mm; line-height: 1; color: #dc2626; font-weight: 700; }
     .card { writing-mode: vertical-rl; font-weight: 700; border: .45mm solid #57534e; border-radius: 1.6mm; background: #fff; display: flex; align-items: center; justify-content: flex-start; padding-top: 1.4mm; line-height: 1; letter-spacing: .3mm; white-space: nowrap; }
-    .ans { position: absolute; left: 2.5mm; right: 2.5mm; }
+    .ans { position: absolute; border: .45mm dashed #fdba74; border-radius: 3mm; background: #fffdfa; }
+    .vtag .sub { display: block; font-size: 2.9mm; margin-right: .6mm; text-combine-upright: none; }
+    .vtag { position: absolute; right: 1mm; top: 2mm; writing-mode: vertical-rl; text-orientation: upright; font-size: 3.4mm; font-weight: 700; color: #fff; border-radius: 1.5mm; padding: 2mm .7mm; line-height: 1.15; letter-spacing: .3mm; }
     .box { position: absolute; border: .45mm solid #57534e; border-radius: 1.4mm; background: #fff; }
     .box .cell { position: absolute; left: 0; right: 0; border-top: .25mm dashed #d6d3d1; }
     .box .w { position: absolute; left: 0; right: 0; top: 0; bottom: 0; writing-mode: vertical-rl; display: flex; align-items: center; justify-content: flex-start; font-weight: 700; line-height: 1; white-space: nowrap; }
@@ -193,35 +195,47 @@
       h += `<div class="pic" style="right:14mm"><img src="${file}" alt="" data-emo="${esc(q.b.e)}"></div>`;
       h += `<div class="info">つかう ことばは<br><span class="big">${q.cards.length}</span> こ</div>`;
       h += `<div class="sensei">せんせい<div class="maru"></div></div>`;
-      // えらぶ ことば
-      const n = q.bank.length, innerW = W - 5 - 6;
-      let f = 5.2;
-      const cw = () => f + 4.2, gap = 2.2;
-      while (n * cw() + (n - 1) * gap > innerW && f > 3.4) f -= .1;
-      const maxCardH = 36;
-      const cardH = (t) => Math.min(maxCardH, len(t) * f * 1.06 + 3.2);
-      const bankH = Math.max(...q.bank.map(c => cardH(c.t))) + 6.2 + 7;
-      const bankTop = 47;
-      h += `<div class="bank" style="top:${bankTop}mm;height:${bankH}mm">`;
-      h += `<div class="tag" style="right:2mm;top:-2.6mm;background:#7c3aed">えらぶ ことば（つかったら □に ✓）</div>`;
-      const totalW = n * cw() + (n - 1) * gap;
-      let cx = innerW - (innerW - totalW) / 2; // みぎから
-      q.bank.forEach(c => {
-        const ff = Math.min(f, (maxCardH - 3.2) / (len(c.t) * 1.06));
-        const t = tg(c.g);
-        cx -= cw();
-        const mk = mode && c.use ? '<span class="mk">✓</span>' : '';
-        h += `<div class="cardw" style="left:${cx + 3}mm;top:5mm;width:${cw()}mm"><div class="chk">${mk}</div>`;
-        h += `<div class="card" style="width:${cw() - (small(c.g) ? 1.2 : 0)}mm;height:${cardH(c.t)}mm;font-size:${small(c.g) ? ff * .92 : ff}mm;background:${t.bg};border-color:${t.bd}">${esc(flat(c.t))}</div></div>`;
-        cx -= gap;
+      // したの ところ：みぎに「えらぶ ことば」、その ひだりに「ぶんを かこう」（どちらも みぎはしに たてがきの みだし）
+      const lowTop = 47, lowH = H - lowTop - 3 - (mode === 'key' && q.alts.length ? 11 : 0);
+      const LBL = 7, LBLB = 11, PAD = 3;
+      // えらぶ ことば：カードを なんだんに するか きめる（はばが 60mm より ひろく ならない ように）
+      const n = q.bank.length, gap = 2.2, maxCardH = 30;
+      let f = 5, rowsOf = null, cardsW = 0;
+      const cw = () => f + 4.2;
+      const cardH = (t, ff) => Math.min(maxCardH, len(t) * ff * 1.06 + 3.2);
+      const ffOf = (c) => Math.min(f, (maxCardH - 3.2) / (len(c.t) * 1.06));
+      for (let tries = 0; tries < 40 && !rowsOf; tries++) {
+        for (let r = 1; r <= 4; r++) {
+          const per = Math.ceil(n / r), w = per * cw() + (per - 1) * gap;
+          const rows = []; for (let i = 0; i < n; i += per) rows.push(q.bank.slice(i, i + per));
+          const hh = rows.reduce((s2, row) => s2 + Math.max(...row.map(c => cardH(c.t, ffOf(c)))) + 6.2 + 3, 0);
+          if (w <= 58 && hh + PAD * 2 <= lowH) { rowsOf = rows; cardsW = w; break; }
+        }
+        if (!rowsOf) f -= .1;
+      }
+      const Bw = cardsW + PAD * 2 + LBLB;
+      h += `<div class="bank" style="left:auto;right:2.5mm;top:${lowTop}mm;width:${Bw}mm;height:${lowH}mm">`;
+      h += `<div class="vtag" style="background:#7c3aed">えらぶ ことば<span class="sub">つかったら □に ✓</span></div>`;
+      let cy = PAD;
+      rowsOf.forEach(row => {
+        let cx = LBLB + PAD; // みぎから
+        const rh = Math.max(...row.map(c => cardH(c.t, ffOf(c))));
+        row.forEach(c => {
+          const ff = ffOf(c), t = tg(c.g);
+          const mk = mode && c.use ? '<span class="mk">✓</span>' : '';
+          h += `<div class="cardw" style="right:${cx}mm;top:${cy}mm;width:${cw()}mm"><div class="chk">${mk}</div>`;
+          h += `<div class="card" style="width:${cw() - (small(c.g) ? 1.2 : 0)}mm;height:${cardH(c.t, ff)}mm;font-size:${small(c.g) ? ff * .92 : ff}mm;background:${t.bg};border-color:${t.bd}">${esc(flat(c.t))}</div></div>`;
+          cx += cw() + gap;
+        });
+        cy += rh + 6.2 + 3;
       });
       h += `</div>`;
       // ぶんを かく わく（ことばの かずだけ。うえから したへ、みぎから ひだりへ）
-      const ansTop = bankTop + bankH + 6, ansH = H - ansTop - (mode === 'key' && q.alts.length ? 12 : 4);
+      const Aw = W - 5 - Bw - 3, ansH = lowH - PAD * 2 - 1;
       const words = q.cards;
       const maxL = Math.max(...words.map(c => len(c.t)));
       const colGap = 4, boxGap = 2.4;
-      let cell = Math.min(11, (ansH - 3) / (maxL + .3));
+      let cell = Math.min(11, (ansH - 1) / (maxL + .3));
       const layout = () => {
         const out = []; let col = 0, y = 0;
         words.forEach(c => {
@@ -232,17 +246,18 @@
         return { out, cols: col + 1 };
       };
       let lay = layout();
-      while (lay.cols * (cell + 2 + colGap) > W - 10 && cell > 6) { cell -= .2; lay = layout(); }
-      h += `<div class="ans" style="top:${ansTop}mm;height:${ansH}mm">`;
-      h += `<div class="tag" style="right:2mm;top:-4.4mm;background:#b45309">ぶんを かこう</div>`;
+      const boxesW = Aw - LBL - PAD * 2;
+      while (lay.cols * (cell + 2 + colGap) - colGap > boxesW && cell > 5.5) { cell -= .2; lay = layout(); }
+      h += `<div class="ans" style="right:${2.5 + Bw + 3}mm;left:2.5mm;top:${lowTop}mm;height:${lowH}mm">`;
+      h += `<div class="vtag" style="background:#b45309">ぶんを かこう</div>`;
       const bw = cell + 2;
       const usedW = lay.cols * bw + (lay.cols - 1) * colGap;
-      const right0 = (W - 5 - usedW) / 2;
+      const right0 = LBL + PAD + Math.max(0, (boxesW - usedW) / 2);
       lay.out.forEach(({ c, col, y, L }) => {
         const t = tg(c.g);
         const sm = small(c.g), w = sm ? bw * .86 : bw;
         const xr = right0 + col * (bw + colGap) + (bw - w) / 2;
-        h += `<div class="box" style="right:${xr}mm;top:${y + 2}mm;width:${w}mm;height:${L}mm;border-color:${t.bd};background:${color ? t.bg + '80' : '#fff'}">`;
+        h += `<div class="box" style="right:${xr}mm;top:${y + PAD}mm;width:${w}mm;height:${L}mm;border-color:${t.bd};background:${color ? t.bg + '80' : '#fff'}">`;
         const cs = (L - 1) / len(c.t);
         for (let k = 1; k < len(c.t); k++) h += `<div class="cell" style="top:${.5 + k * cs}mm"></div>`;
         if (mode) h += `<div class="w ${mode}" style="font-size:${Math.min(cs * .78, w * .7)}mm;padding-top:${cs * .12}mm;letter-spacing:${cs * .22}mm">${esc(flat(c.t))}</div>`;
@@ -299,7 +314,7 @@
       h += `<div class="steps"><h3>📝 やりかた</h3><ol>
         <li><span class="n">1</span><div>えを みよう。<small>だれが、なにを して いるかな？</small></div></li>
         <li><span class="n">2</span><div>つかう ことばを えらんで、□に ✓ を つけよう。<small>つかわない ことばも あるよ。「つかう ことばは ○こ」を みよう。</small></div></li>
-        <li><span class="n">3</span><div>✓を つけた ことばを、わくに かこう。<small>みぎの わくから、うえから じゅんに かくよ。わくの ながさが ヒント！</small></div></li>
+        <li><span class="n">3</span><div>✓を つけた ことばを、ひだりの「ぶんを かこう」の わくに かこう。<small>みぎの わくから、うえから じゅんに かくよ。わくの ながさが ヒント！</small></div></li>
         <li><span class="n">4</span><div>こえに だして よもう。<small>「いぬが はしる。」いみが わかるかな？</small></div></li>
         <li><span class="n">5</span><div>「できたかな？」に ○を つけよう。</div></li>
       </ol>
