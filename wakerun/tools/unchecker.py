@@ -1,14 +1,15 @@
 # ChatGPT の絵で、背景に「市松もよう」が描かれて しまった ときに、もようを 透明に する道具
-# つかいかた：python3 wakerun/tools/unchecker.py もとの絵 できた絵.png 見本.png
+# つかいかた：python3 wakerun/tools/unchecker.py もとの絵 できた絵.png 見本.png [いちばん くらい 灰色（はじめは 180）]
 # まわりから つながって いる 白と灰色の ところだけを 透明に します（ロボットの 白い ところは のこります）。
 import sys
 from PIL import Image, ImageFilter
 from collections import deque
 src, dst, prev = sys.argv[1], sys.argv[2], sys.argv[3]
+LOW = int(sys.argv[4]) if len(sys.argv) > 4 else 180
 im = Image.open(src).convert('RGB'); W, H = im.size; px = im.load()
 def bgish(p):
     r, g, b = p; mx, mn = max(p), min(p)
-    return mx - mn <= 6 and mn >= 198
+    return mx - mn <= 8 and mn >= LOW
 seen = bytearray(W * H); q = deque()
 for x in range(W):
     for y in (0, H - 1): q.append((x, y))
