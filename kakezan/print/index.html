@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>カケルさまの ひっさん プリント</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    @page { size: A4 portrait; margin: 0; }
+    * { box-sizing: border-box; }
+    html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { margin: 0; background: #e2e8f0; font-family: 'BIZ UDPGothic', sans-serif; color: #1f2937; }
+    ruby rt { font-size: .5em; }
+
+    /* ---- 先生が えらぶ ところ（印刷しない） ---- */
+    .controls { max-width: 210mm; margin: 0 auto; padding: 16px; }
+    .panel { background: #fff; border-radius: 18px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 2px 0 #cbd5e1; }
+    .panel h1 { font-size: 26px; margin: 0; display: flex; align-items: center; gap: 10px; }
+    .panel h2 { font-size: 18px; margin: 0 0 10px; }
+    .panel p { margin: 6px 0; line-height: 1.6; }
+    .btns { display: flex; flex-wrap: wrap; gap: 8px; }
+    .btn { font: inherit; font-size: 17px; font-weight: 700; border: 2px solid #1e40af; background: #fff; color: #1e40af; border-radius: 14px; padding: 10px 14px; cursor: pointer; box-shadow: 0 4px 0 #1e40af; position: relative; }
+    .btn:active { top: 4px; box-shadow: 0 0 0 #1e40af; }
+    .btn.big { font-size: 22px; padding: 14px 26px; background: #16a34a; border-color: #166534; color: #fff; box-shadow: 0 5px 0 #166534; }
+    .btn.small { font-size: 14px; padding: 6px 10px; box-shadow: 0 3px 0 #1e40af; }
+    .btn.on { background: #dbeafe; }
+    a.btn { display: inline-block; text-decoration: none; }
+    .grpick { display: grid; gap: 6px; }
+    .grpick .grow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; border: 2px solid #cbd5e1; border-radius: 12px; padding: 8px 10px; font-size: 16px; }
+    .grpick .grow.on { border-color: #1e40af; background: #dbeafe; }
+    .grpick label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .grpick input { width: 20px; height: 20px; }
+    .grpick select { font: inherit; font-size: 16px; padding: 2px 4px; }
+    .grpick .rg { font-size: 14px; color: #475569; }
+    .row2 { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; }
+    .row2 input[type=text] { font: inherit; font-size: 20px; padding: 8px 10px; border: 2px solid #94a3b8; border-radius: 10px; width: 200px; }
+    .check { display: flex; align-items: center; gap: 8px; font-size: 17px; }
+    .check input { width: 22px; height: 22px; }
+    .note { font-size: 14px; color: #475569; }
+    .count { font-size: 16px; font-weight: 700; color: #1e40af; }
+    .preview { overflow-x: auto; padding-bottom: 20px; }
+
+    /* ---- プリント（A4 たて） ---- */
+    .page { position: relative; width: 210mm; height: 297mm; background: #fff; margin: 0 auto 10mm; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,.15); }
+    .hd { position: absolute; left: 10mm; right: 10mm; top: 7mm; height: 33mm; }
+    .step { position: absolute; left: 0; top: 0; font-size: 3.4mm; color: #64748b; font-weight: 700; }
+    .title { position: absolute; left: 0; top: 5mm; width: 88mm; height: 26mm; border: .6mm solid #1e3a8a; border-radius: 3mm; padding: 1.6mm 3mm; }
+    .title .t1 { font-size: 6.6mm; font-weight: 700; color: #1e3a8a; letter-spacing: .2mm; }
+    .title .t2 { font-size: 4.3mm; font-weight: 700; margin-top: 1.4mm; line-height: 1.5; }
+    .kakeru { position: absolute; left: 89mm; top: 0; height: 33mm; }
+    .who { position: absolute; left: 113mm; top: 2mm; right: 0; font-size: 4.4mm; font-weight: 700; }
+    .who .date { display: flex; gap: 11mm; padding-left: 2mm; }
+    .who .cls { margin-top: 3mm; display: flex; gap: 9mm; padding-left: 2mm; align-items: flex-end; }
+    .who .name { margin-top: 2mm; display: flex; align-items: flex-end; gap: 2mm; border-bottom: .4mm solid #475569; padding: 0 0 1mm 2mm; height: 10mm; }
+    .who .name .nm { font-size: 6.6mm; padding-left: 3mm; }
+    .key { position: absolute; right: 0; top: -3mm; background: #dc2626; color: #fff; font-size: 4.4mm; font-weight: 700; border-radius: 2mm; padding: .5mm 3mm; }
+    .inst { position: absolute; left: 11mm; right: 10mm; top: 42.5mm; font-size: 4.3mm; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
+    .face { display: flex; align-items: center; gap: 1.5mm; font-size: 3.8mm; }
+    .grid { position: absolute; left: 10mm; top: 50mm; width: 190mm; }
+
+    @media print {
+      body { background: #fff; }
+      .controls { display: none; }
+      .preview { padding: 0; overflow: visible; }
+      .page { margin: 0; box-shadow: none; page-break-after: always; break-after: page; }
+    }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <div class="panel">
+      <h1><img src="../img/kakeru_happy.webp" alt="" style="height:64px" onerror="this.remove()"> かけざんの ひっさん プリント</h1>
+      <p>ケンジャの カケルさまの ひっさん クエスト（アプリ）と同じ順番で練習するプリントです。A4たて・1まいに5もんです。</p>
+      <h2 style="margin-top:12px">できあがった PDF（そのまま印刷・保存できます）</h2>
+      <div class="btns">
+        <a class="btn small" href="pdf/かけざんひっさんプリント_1_カラー.pdf" target="_blank">📄 カラー（95まい）</a>
+        <a class="btn small" href="pdf/かけざんひっさんプリント_2_しろくろ.pdf" target="_blank">📄 しろくろ（95まい）</a>
+        <a class="btn small" href="pdf/かけざんひっさんプリント_3_こたえ.pdf" target="_blank">📄 こたえ（95まい）</a>
+      </div>
+      <p class="note">どの PDF も、じゅんびが 1〜10ページ、Lv1 が 11〜20ページ、…、まとめ（ボス）が 81〜90ページ、まとめテストが 91〜95ページです。</p>
+    </div>
+    <div class="panel">
+      <h2>1. プリントを えらぶ</h2>
+      <div class="btns" style="margin-bottom:10px">
+        <button class="btn small" id="allOn">ぜんぶ えらぶ</button>
+        <button class="btn small" id="allOff">ぜんぶ はずす</button>
+      </div>
+      <div class="grpick" id="pick"></div>
+    </div>
+    <div class="panel">
+      <h2>2. いろ・名前・こたえ</h2>
+      <div class="btns" id="modeBtns">
+        <button class="btn small" data-m="color">🎨 カラー</button>
+        <button class="btn small" data-m="mono">⚫ しろくろ</button>
+      </div>
+      <div class="row2"><label for="nen" style="font-weight:700">ねん</label><input type="text" id="nen" style="width:60px">
+        <label for="kumi" style="font-weight:700">くみ</label><input type="text" id="kumi" style="width:60px"></div>
+      <div class="row2"><label for="nm" style="font-weight:700">なまえ（入れると印刷されます）</label><input type="text" id="nm" placeholder="空けておくと手で書けます"></div>
+      <div class="row2"><label class="check"><input type="checkbox" id="ans"> こたえの ページも つける（プリントの すぐ うしろに 入ります）</label></div>
+      <div class="row2"><button class="btn" id="reroll">🔄 べつの もんだいに する</button><button class="btn small" id="reset">もとの もんだいに もどす</button><span class="note" id="seedNote"></span></div>
+    </div>
+    <div class="panel">
+      <div class="row2" style="margin-top:0"><button class="btn big" id="printBtn">🖨 いんさつ する</button><span class="count" id="cnt"></span></div>
+      <p class="note">印刷の画面で、用紙は「A4」、倍率は「100%（実際のサイズ）」、「背景のグラフィック」をオンにしてください。</p>
+    </div>
+  </div>
+  <div class="preview" id="out"></div>
+
+  <script src="../data/data.js"></script>
+  <script>
+  /* =========================================================
+     きほん
+     ========================================================= */
+  const D = window.KAKE_DATA || { POOL: {} };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  function rng(seed) { let s = seed >>> 0 || 1; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  let R = rng(1);
+  const rnd = (lo, hi) => lo + Math.floor(R() * (hi - lo + 1));
+  const pickOne = a => a[Math.floor(R() * a.length)];
+  const KURAI = '<ruby>位<rt>くらい</rt></ruby>';
+
+  // いろ（カラー／しろくろ）
+  const COLOR = { yel: '#fde047', grn: '#86efac', memo: '#fff1f2', memoLine: '#fb7185', red: '#dc2626', grid: '#94a3b8', ink: '#1f2937' };
+  // しろくろ：きいろ は うすい はいいろ、みどり は こい はいいろ（もようを つかうと PDF が とても 大きく なるため）
+  const MONO = { yel: '#eeeeee', grn: '#c4c4c4', memo: '#ffffff', memoLine: '#6b7280', red: '#1f2937', grid: '#6b7280', ink: '#1f2937' };
+
+  /* =========================================================
+     ひっ算の しくみ（アプリの index.html と おなじ）
+     ========================================================= */
+  const digits = n => String(n).split('').reverse().map(Number);
+  function classify(a, b) {
+    const A = digits(a), B = digits(b);
+    if (A.length === 1 && B.length === 1) return 'k';
+    if (B.length === 1) {
+      if (A.length === 3) return 'h31';
+      const p0 = A[0] * b, c = Math.floor(p0 / 10), p1 = A[1] * b + c;
+      if (c > 0 && p1 % 10 === 0) return 'z0';
+      if (p1 >= 10) return 'd3';
+      return c > 0 ? 'c1' : 'n0';
+    }
+    if (A.length === 3) return 'h32';
+    if (b === 10) return 't10';
+    if (b % 10 === 0) return 'tn';
+    if (b > 10 && b < 20) return 't1x';
+    const noCarry = B.every(d => A.every(x => x * d < 10));
+    return noCarry ? 'x22a' : 'x22';
+  }
+  function randFor(spec) {
+    for (let i = 0; i < 400; i++) {
+      let a, b;
+      if (spec === 'k') { a = rnd(2, 9); b = rnd(2, 9); }
+      else if (['n0', 'c1', 'd3', 'z0'].includes(spec)) { a = rnd(11, 99); b = rnd(2, 9); if (a % 10 === 0) continue; }
+      else if (spec === 't10') { a = rnd(12, 98); b = 10; if (a % 10 === 0) continue; }
+      else if (spec === 'tn') { a = rnd(12, 49); b = rnd(2, 9) * 10; if (a % 10 === 0) continue; }
+      else if (spec === 't1x') { a = rnd(12, 69); b = rnd(11, 19); if (a % 10 === 0) continue; }
+      else if (spec === 'x22a') { a = rnd(11, 44); b = rnd(12, 44); if (a % 10 === 0 || b % 10 === 0) continue; }
+      else if (spec === 'x22') { a = rnd(12, 98); b = rnd(21, 98); if (a % 10 === 0 || b % 10 === 0) continue; }
+      else return [23, 3];
+      if (classify(a, b) === spec) return [a, b];
+    }
+    return [23, 3];
+  }
+  // 先生の プリントの もんだいを ときどき まぜる
+  function makeProblem(spec, used) {
+    if (spec === 'm1') spec = pickOne(['c1', 'd3', 'z0']);
+    if (spec === 'm2') spec = pickOne(['tn', 't1x', 'x22', 'x22']);
+    const key = p => p[0] + 'x' + p[1];
+    const pool = ((D.POOL || {})[spec] || []).filter(p => !used.has(key(p)));
+    let p = null;
+    if (pool.length && R() < 0.4) p = pickOne(pool);
+    for (let i = 0; !p && i < 30; i++) { const q = randFor(spec); if (!used.has(key(q)) || i === 29) p = q; }
+    used.add(key(p));
+    return p;
+  }
+  // 1マスずつの こたえ（vals）と、メモ（memo：かけ算の こたえ と くりあがり）
+  function solve(a, b) {
+    const A = digits(a), B = digits(b), vals = {}, memo = {};
+    const mulRow = (row, d, shift) => {
+      let carry = 0; const out = [];
+      for (let i = 0; i < A.length; i++) {
+        const prod = A[i] * d, tot = prod + carry, place = i + shift;
+        if (i > 0 && carry > 0) memo[row + ':' + place] = [prod, carry];
+        vals[row + ':' + place] = tot % 10; out[place] = tot % 10;
+        carry = Math.floor(tot / 10);
+        if (carry > 0 && i === A.length - 1) { vals[row + ':' + (place + 1)] = carry; out[place + 1] = carry; }
+      }
+      return out;
+    };
+    const two = B.length === 2;
+    if (!two) mulRow('ans', B[0], 0);
+    else {
+      const p1 = mulRow('p1', B[0], 0);
+      vals['p2:0'] = 0;
+      const p2 = mulRow('p2', B[1], 1);
+      const top = Math.max(p1.length, p2.length);
+      let carry = 0;
+      for (let pl = 0; pl < top; pl++) {
+        const s = (p1[pl] || 0) + (pl === 0 ? 0 : (p2[pl] || 0)) + carry;
+        if (carry > 0) memo['sum:' + pl] = [null, carry];
+        vals['sum:' + pl] = s % 10;
+        carry = Math.floor(s / 10);
+        if (carry > 0 && pl === top - 1) vals['sum:' + (pl + 1)] = carry;
+      }
+    }
+    return { A, B, two, vals, memo };
+  }
+
+  /* =========================================================
+     ひっ算の マスを かく（SVG。たんいは mm）
+     ========================================================= */
+  const DEFS = `<defs>
+    <pattern id="dotY" width="2" height="2" patternUnits="userSpaceOnUse"><rect width="2" height="2" fill="#fff"/><circle cx="1" cy="1" r=".32" fill="#9ca3af"/></pattern>
+    <pattern id="hatG" width="2" height="2" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2" height="2" fill="#fff"/><line x1="0" y1="0" x2="0" y2="2" stroke="#9ca3af" stroke-width=".45"/></pattern>
+  </defs>`;
+  const T = (x, y, s, size, fill, extra = '') => `<text x="${x}" y="${y}" font-size="${size}" fill="${fill}" text-anchor="middle" dominant-baseline="central" font-weight="700" ${extra}>${s}</text>`;
+
+  // (x, y) から 1もんを かく。c は マスの 大きさ。かえすのは { svg, w, h }
+  function drawHissan(x, y, a, b, c, C, key) {
+    const S = solve(a, b), A = S.A, B = S.B;
+    const W = A.length + B.length;               // こたえの いちばん 大きい けた数
+    const X = pl => x + (W - 1 - pl) * c;        // pl の 位の マスの 左はし
+    const mh = c * 0.6;                           // メモの だんの たかさ
+    let out = '', yy = y;
+    const cell = (pl, top, h, fill, txt, col = C.ink, fs = c * .64) => {
+      out += `<rect x="${X(pl)}" y="${top}" width="${c}" height="${h}" fill="${fill}" stroke="${C.grid}" stroke-width=".25" stroke-dasharray="1 .8"/>`;
+      if (txt !== undefined && txt !== '') out += T(X(pl) + c / 2, top + h / 2 + .2, txt, fs, col);
+    };
+    // かけられる 数
+    for (let pl = 0; pl < W; pl++) cell(pl, yy, c, '#fff', pl < A.length ? A[pl] : '');
+    yy += c;
+    // × かける 数（1の位は きいろ、10の位は みどり）
+    // × の いち：1けた×1けたは 10の位、ほかは 100の位（ワークシートと おなじ）
+    const k1 = A.length === 1 && B.length === 1;
+    const xPl = k1 ? 1 : 2;
+    for (let pl = 0; pl < W; pl++) {
+      const fill = k1 ? '#fff' : pl === 0 ? C.yel : pl === 1 ? C.grn : '#fff';
+      cell(pl, yy, c, fill, pl < B.length ? B[pl] : pl === xPl ? '×' : '');
+    }
+    yy += c;
+    out += `<line x1="${X(W - 1)}" y1="${yy}" x2="${X(0) + c}" y2="${yy}" stroke="${C.ink}" stroke-width=".6"/>`;
+    const memoRow = (row, places) => {
+      places.forEach(pl => {
+        out += `<rect x="${X(pl) + .5}" y="${yy + .4}" width="${c - 1}" height="${mh - .8}" rx=".8" fill="${C.memo}" stroke="${C.memoLine}" stroke-width=".25" stroke-dasharray=".9 .6"/>`;
+        const m = key && S.memo[row + ':' + pl];
+        if (m) {
+          if (m[0] === null) out += T(X(pl) + c * .72, yy + mh / 2 + .1, m[1], mh * .72, C.red);
+          else { out += T(X(pl) + c * .34, yy + mh / 2 + .1, m[0], mh * .62, C.red); out += T(X(pl) + c * .82, yy + mh / 2 + .1, m[1], mh * .62, C.red); }
+        }
+      });
+      yy += mh;
+    };
+    const ansRow = (row, from, to, fill, cross) => {
+      for (let pl = 0; pl < W; pl++) {
+        if (pl < from || pl > to) { cell(pl, yy, c, '#fff', ''); continue; }
+        if (cross && pl === 0) {
+          cell(pl, yy, c, '#fff', key ? 0 : '', C.red);
+          out += `<line x1="${X(0) + .8}" y1="${yy + .8}" x2="${X(0) + c - .8}" y2="${yy + c - .8}" stroke="${C.ink}" stroke-width=".3"/><line x1="${X(0) + c - .8}" y1="${yy + .8}" x2="${X(0) + .8}" y2="${yy + c - .8}" stroke="${C.ink}" stroke-width=".3"/>`;
+          continue;
+        }
+        const v = S.vals[row + ':' + pl];
+        cell(pl, yy, c, fill, key && v !== undefined ? v : '', C.red);
+      }
+      yy += c;
+    };
+    const range = (lo, hi) => Array.from({ length: hi - lo + 1 }, (_, i) => lo + i);
+    if (!S.two) {
+      // くりあがりの ない もんだい（Lv1）は メモの だんを 出さない
+      if (A.length > 1 && classify(a, b) !== 'n0') memoRow('ans', range(1, A.length - 1));
+      ansRow('ans', 0, W - 1, A.length > 1 ? C.yel : '#fff');
+    } else {
+      memoRow('p1', range(1, A.length - 1));
+      ansRow('p1', 0, A.length, C.yel);
+      memoRow('p2', range(2, A.length));
+      ansRow('p2', 0, A.length + 1, C.grn, true);
+      out += `<line x1="${X(W - 1)}" y1="${yy}" x2="${X(0) + c}" y2="${yy}" stroke="${C.ink}" stroke-width=".6"/>`;
+      memoRow('sum', range(1, W - 1));
+      ansRow('sum', 0, W - 1, '#fff');
+    }
+    return { svg: out, w: W * c, h: yy - y };
+  }
+
+  /* =========================================================
+     だんかい（アプリの ばしょと おなじ じゅん）
+     ========================================================= */
+  const GROUPS = [
+    { id: 'p0', lv: 'じゅんび', name: `<ruby>九九<rt>くく</rt></ruby>を ひっ<ruby>算<rt>さん</rt></ruby>の かたちで`, plain: '九九を ひっ算の かたちで', specs: ['k'], count: 10 },
+    { id: 'p1', lv: 'Lv1', name: '2けた × 1けた　くりあがり なし', specs: ['n0'], count: 10 },
+    { id: 'p2', lv: 'Lv2', name: `1の${KURAI}で くりあがる`, plain: '1の位で くりあがる', specs: ['c1'], count: 10 },
+    { id: 'p3', lv: 'Lv3', name: 'こたえが 3けた', specs: ['d3'], count: 10 },
+    { id: 'p4', lv: 'Lv4', name: 'くりあがって 0に なる', specs: ['z0'], count: 10 },
+    { id: 'p5', lv: 'Lv5', name: `× 10・× <ruby>何<rt>なん</rt></ruby><ruby>十<rt>じゅう</rt></ruby>`, plain: '× 10・× 何十', specs: ['t10', 't10', 'tn', 'tn', 'tn'], count: 10 },
+    { id: 'p6', lv: 'Lv6', name: '× 11〜19', specs: ['t1x'], count: 10 },
+    { id: 'p7', lv: 'Lv7', name: '2けた × 2けた', specs: ['x22a', 'x22a', 'x22', 'x22', 'x22'], count: 10 },
+    { id: 'p8', lv: 'ボス', name: 'まとめ', specs: ['m1', 'm1', 'm2', 'm2', 'm2'], count: 10 },
+    { id: 'test', lv: 'テスト', name: 'まとめ テスト', specs: ['c1', 'z0', 'tn', 't1x', 'x22'], count: 5 },
+  ];
+  const GMAP = Object.fromEntries(GROUPS.map(g => [g.id, g]));
+
+  // やりかた（6ばんめの わく）
+  function howTo(g, mono) {
+    const Y = mono ? 'うすい はいいろ' : 'きいろ', G = mono ? 'こい はいいろ' : 'みどり';
+    if (g.id === 'p0') return ['<ruby>九九<rt>くく</rt></ruby>で こたえを もとめよう。', `こたえが 2けたの ときは、1の${KURAI}を みぎ、10の${KURAI}を ひだりに かこう。`];
+    if (g.id === 'p1') return [
+      `① 1の${KURAI}（<b style="color:#a16207">${Y}</b>）を かけて、1の${KURAI}に かく。`,
+      `② 10の${KURAI}を かけて、10の${KURAI}に かく。`,
+      'みぎから じゅんばんに けいさんしよう。'];
+    if (['p2', 'p3', 'p4'].includes(g.id)) return [
+      `① 1の${KURAI}（<b style="color:#a16207">${Y}</b>）を かけて、1の${KURAI}を かく。`,
+      `② 10の${KURAI}を かけた こたえと、くりあがりを <b style="color:#dc2626">メモ</b> する。`,
+      '③ メモの 2つを たして かく。'];
+    return [
+      `① 1だんめ：1の${KURAI}（<b style="color:#a16207">${Y}</b>）を かける。`,
+      `② 2だんめ：10の${KURAI}（<b style="color:#15803d">${G}</b>）を かける。<br>　 ✕の マスは 0。`,
+      '③ 1だんめと 2だんめを たす。',
+      `くりあがりは、かけ<ruby>算<rt>ざん</rt></ruby>の こたえと いっしょに <b style="color:#dc2626">メモ</b> しよう。`];
+  }
+  const EXAMPLE = { p0: [6, 3], p1: [23, 3], p2: [27, 3], p3: [54, 4], p4: [34, 3], p5: [34, 10], p6: [34, 12], p7: [23, 26], p8: [27, 3], test: [27, 3] };
+
+  /* =========================================================
+     1まいの プリント
+     ========================================================= */
+  const NUM = ['①', '②', '③', '④', '⑤'];
+  function faces() {
+    const f = (mouth) => `<svg width="7mm" height="7mm" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.4" fill="none" stroke="#475569" stroke-width=".6"/><circle cx="3.5" cy="4" r=".6" fill="#475569"/><circle cx="6.5" cy="4" r=".6" fill="#475569"/><path d="${mouth}" stroke="#475569" stroke-width=".6" fill="none" stroke-linecap="round"/></svg>`;
+    return `<span class="face">できたかな？ ${f('M3 6 Q5 8.2 7 6')}${f('M3.2 6.6 Q5 7.5 6.8 6.6')}${f('M3.3 6.8 L6.7 6.8')}</span>`;
+  }
+  function sheet(g, no, seed, opt) {
+    R = rng(seed);
+    const C = opt.mono ? MONO : COLOR, key = opt.key;
+    const used = new Set();
+    const probs = g.specs.map(s => makeProblem(s, used));
+    if (g.id !== 'test' && g.id !== 'p5' && g.id !== 'p7' && g.id !== 'p8') { while (probs.length < 5) probs.push(makeProblem(g.specs[0], used)); }
+    const two = probs.some(p => p[1] >= 10);
+    const c = g.id === 'p0' ? 15 : two ? 9.4 : 14;
+    // 2れつ × 3だん。6ばんめは やりかたの わく
+    const SW = 95, SH = 78;
+    let svg = '';
+    probs.forEach((p, i) => {
+      const col = i % 2, row = Math.floor(i / 2), x0 = col * SW, y0 = row * SH;
+      svg += `<rect x="${x0 + 1}" y="${y0 + 1}" width="${SW - 2}" height="${SH - 2}" rx="3" fill="none" stroke="#cbd5e1" stroke-width=".35"/>`;
+      svg += T(x0 + 8, y0 + 8, NUM[i], 7, '#1e3a8a');
+      const S = solve(p[0], p[1]);
+      const W = S.A.length + S.B.length;
+      const hh = c * (2 + (S.two ? 3 : 1)) + (S.two ? 3 : (S.A.length > 1 && classify(p[0], p[1]) !== 'n0' ? 1 : 0)) * c * .6;
+      const H = drawHissan(x0 + (SW - W * c) / 2 + 8, y0 + (SH - hh) / 2 + 1, p[0], p[1], c, C, key);
+      svg += H.svg;
+      if (key) svg += `<text x="${x0 + 5}" y="${y0 + SH - 6}" font-size="3.8" fill="${C.red}" font-weight="700" dominant-baseline="central">${p[0]} × ${p[1]} ＝ ${p[0] * p[1]}</text>`;
+    });
+    // やりかたの わく（おてほん つき）
+    const hx = SW, hy = 2 * SH;
+    svg += `<rect x="${hx + 1}" y="${hy + 1}" width="${SW - 2}" height="${SH - 2}" rx="3" fill="${opt.mono ? '#fff' : '#eff6ff'}" stroke="#1e3a8a" stroke-width=".5"/>`;
+    const ex = EXAMPLE[g.id] || [27, 3], ES = solve(ex[0], ex[1]), ec = ES.two ? 6.4 : 8, EW = ES.A.length + ES.B.length;
+    const ehh = ec * (2 + (ES.two ? 3 : 1)) + (ES.two ? 3 : (ES.A.length > 1 && classify(ex[0], ex[1]) !== 'n0' ? 1 : 0)) * ec * .6;
+    svg += drawHissan(hx + SW - EW * ec - 6, hy + SH - ehh - 5, ex[0], ex[1], ec, C, true).svg;
+    svg += `<text x="${hx + SW - EW * ec / 2 - 6}" y="${hy + SH - ehh - 8}" font-size="3.6" fill="#1e3a8a" text-anchor="middle" font-weight="700">おてほん</text>`;
+    const how = `<div style="position:absolute;left:${10 + hx + 4}mm;top:${50 + hy + 4}mm;width:${SW - EW * ec - 14}mm;font-size:3.5mm;font-weight:700;line-height:1.55;color:#1e3a8a">
+      <div style="font-size:4.4mm;margin-bottom:1mm">📜 やりかた</div>${howTo(g, opt.mono).map(s => `<div>${s}</div>`).join('')}</div>`;
+
+    const who = `<div class="who">
+      <div class="date"><span>　　がつ</span><span>　　にち</span></div>
+      <div class="cls"><span>${esc(opt.nen || '　')} ねん</span><span>${esc(opt.kumi || '　')} くみ</span></div>
+      <div class="name">なまえ<span class="nm">${esc(opt.name || '')}</span></div></div>`;
+    return `<div class="page">
+      <div class="hd">
+        <div class="step">${g.id === 'test' ? 'まとめ テスト' : esc(g.lv)}　その ${no}${key ? '' : ''}</div>
+        <div class="title"><div class="t1">かけざんの ひっさん</div><div class="t2">${g.lv === 'テスト' ? '' : g.lv + '　'}${g.name}</div></div>
+        <img class="kakeru" src="../img/kakeru_normal.webp" alt="" onerror="this.remove()">
+        ${who}
+        ${key ? '<div class="key">こたえ</div>' : ''}
+      </div>
+      <div class="inst"><span>・つぎの けいさんを ひっさんで しましょう。</span>${faces()}</div>
+      <svg class="grid" viewBox="0 0 190 ${3 * SH}" width="190mm" height="${3 * SH}mm">${DEFS}${svg}</svg>
+      ${how}
+    </div>`;
+  }
+
+  /* =========================================================
+     どの プリントを 出すか（URL でも えらべる）
+     ?g=all  ?g=p1:1-3,test  ?mono=1  ?only=key（こたえだけ）  ?answers=1（こたえも）
+     ========================================================= */
+  const DEFAULT_SEED = 20261109;
+  const q = new URLSearchParams(location.search);
+  let seed = Number(q.get('seed')) || DEFAULT_SEED;
+  let mono = q.get('mono') === '1';
+  const sel = {};
+  function parseSel(str) {
+    GROUPS.forEach(g => { delete sel[g.id]; });
+    if (!str || str === 'all') { GROUPS.forEach(g => { sel[g.id] = [1, g.count]; }); return; }
+    str.split(',').forEach(part => {
+      const [id, rg] = part.split(':');
+      const g = GMAP[id]; if (!g) return;
+      if (!rg) { sel[id] = [1, g.count]; return; }
+      const [a, b] = rg.split('-').map(Number);
+      sel[id] = [Math.max(1, Math.min(a || 1, g.count)), Math.max(1, Math.min(b || a || 1, g.count))];
+    });
+  }
+  parseSel(q.get('g') || 'p0:1,p1:1,p2:1');
+  const sheetSeed = (g, no) => (seed * 31 + GROUPS.indexOf(g) * 7919 + no * 104729) >>> 0;
+
+  const pick = document.getElementById('pick');
+  function render() {
+    const opt = { name: document.getElementById('nm').value.trim(), nen: document.getElementById('nen').value.trim(), kumi: document.getElementById('kumi').value.trim(), mono };
+    const withKey = document.getElementById('ans').checked, onlyKey = q.get('only') === 'key';
+    let html = '', pages = 0;
+    GROUPS.forEach(g => {
+      const rg = sel[g.id]; if (!rg) return;
+      for (let no = rg[0]; no <= rg[1]; no++) {
+        const sd = sheetSeed(g, no);
+        if (!onlyKey) { html += sheet(g, no, sd, { ...opt, key: false }); pages++; }
+        if (withKey || onlyKey) { html += sheet(g, no, sd, { ...opt, name: '', nen: '', kumi: '', key: true }); pages++; }
+      }
+    });
+    document.getElementById('out').innerHTML = html;
+    document.getElementById('cnt').textContent = `${pages}まい`;
+    document.getElementById('seedNote').textContent = seed === DEFAULT_SEED ? '（PDF と 同じ もんだいです）' : `もんだいの ばんごう：${seed}（PDF とは ちがう もんだいです）`;
+    document.querySelectorAll('#modeBtns .btn').forEach(b => b.classList.toggle('on', (b.dataset.m === 'mono') === mono));
+    drawPick();
+  }
+  function drawPick() {
+    pick.innerHTML = GROUPS.map(g => {
+      const on = !!sel[g.id], rg = sel[g.id] || [1, g.count];
+      const opts = n => Array.from({ length: g.count }, (_, i) => `<option value="${i + 1}" ${n === i + 1 ? 'selected' : ''}>${i + 1}</option>`).join('');
+      return `<div class="grow ${on ? 'on' : ''}" data-id="${g.id}">
+        <label><input type="checkbox" ${on ? 'checked' : ''}><b>${esc(g.lv)}</b>　${g.name}</label>
+        <span class="rg">その <select data-k="0">${opts(rg[0])}</select> 〜 <select data-k="1">${opts(rg[1])}</select>（ぜんぶで ${g.count}まい）</span>
+      </div>`;
+    }).join('');
+    pick.querySelectorAll('.grow').forEach(row => {
+      const id = row.dataset.id;
+      row.querySelector('input').onchange = e => { if (e.target.checked) sel[id] = [1, 1]; else delete sel[id]; render(); };
+      row.querySelectorAll('select').forEach(s => s.onchange = () => {
+        const cur = sel[id] || [1, 1];
+        cur[Number(s.dataset.k)] = Number(s.value);
+        if (cur[0] > cur[1]) cur[Number(s.dataset.k) ? 0 : 1] = Number(s.value);
+        sel[id] = cur; render();
+      });
+    });
+  }
+  document.getElementById('allOn').onclick = () => { parseSel('all'); render(); };
+  document.getElementById('allOff').onclick = () => { GROUPS.forEach(g => delete sel[g.id]); render(); };
+  ['nm', 'nen', 'kumi'].forEach(id => document.getElementById(id).addEventListener('input', render));
+  document.getElementById('ans').addEventListener('change', render);
+  document.querySelectorAll('#modeBtns .btn').forEach(b => b.onclick = () => { mono = b.dataset.m === 'mono'; render(); });
+  document.getElementById('reroll').onclick = () => { seed = Math.floor(Math.random() * 900000) + 100000; render(); };
+  document.getElementById('reset').onclick = () => { seed = DEFAULT_SEED; render(); };
+  document.getElementById('printBtn').onclick = () => window.print();
+  if (q.get('answers') === '1') document.getElementById('ans').checked = true;
+  if (q.get('name')) document.getElementById('nm').value = q.get('name');
+  render();
+  Promise.all([document.fonts.ready, ...[...document.images].map(im => im.complete ? 0 : new Promise(res => { im.onload = im.onerror = res; }))]).then(() => { document.body.dataset.ready = '1'; });
+  </script>
+</body>
+</html>
