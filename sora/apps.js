@@ -106,6 +106,7 @@ window.SORA = {
           { id: 'kukubingo', emoji: '🎯', name: 'かけ{算|ざん}{九九|くく}（ビンゴよう）', url: 'https://sites.google.com/view/kakezanbingo/%E3%83%9B%E3%83%BC%E3%83%A0' },
           { id: 'anaaki', emoji: '🕳️', name: 'あなあき かけざん', url: 'https://sites.google.com/view/anaakikakezan/%E3%83%9B%E3%83%BC%E3%83%A0' },
           { id: 'kakehissan', emoji: '📐', name: 'かけざんの ひっさんマスター', url: 'https://sites.google.com/view/kakezanhissannmaster/%E3%83%9B%E3%83%BC%E3%83%A0' },
+          { id: 'kakezanquest', emoji: '🧙', name: 'ケンジャの カケルさまの ひっさん クエスト', url: 'https://script.google.com/macros/s/AKfycbx1KDdpc8r3NYfusWoUs7EyZPY9NbJ3SuP-k3yqu5seKv0OSsfMbqNoV5CdsPcRVmSK/exec' },
           { id: 'warimaster', emoji: '🍎', name: 'わり{算|ざん}マスター', url: 'https://sites.google.com/view/warizanmaster/%E3%83%9B%E3%83%BC%E3%83%A0' },
         ] },
         { id: 'tokei', name: 'とけい・じかん', emoji: '🕐', apps: [
