@@ -206,8 +206,9 @@
     'bg_p8.webp', 'bg_p9.webp',
     // まちと ワールドマップ
     'town.webp', 'worldmap.webp',
-    // おみせの しなもの（シートI）
+    // おみせの しなもの（シートI・J）
     'item_b1.webp', 'item_b2.webp', 'item_b3.webp', 'item_b4.webp', 'item_b5.webp', 'item_b6.webp', 'item_b7.webp', 'item_b8.webp',
+    'item_b9.webp', 'item_b10.webp', 'item_a1.webp', 'item_a2.webp', 'item_a3.webp', 'item_a4.webp', 'item_a5.webp', 'item_a6.webp',
   ];
 
   // ChatGPT の まちの 絵（town）の うえで 押す ばしょ。TOWN_SIZE は 絵の 大きさ（よこ, たて。ピクセル）
