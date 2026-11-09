@@ -78,7 +78,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.4.0';
+    const APP_VERSION = '1.5.0';
     const BASE = window.KAKE_BASE;
     const IMG = BASE + 'img/';
     let D = {}, PLACES = [], MONSTERS = [], JOBS = [], FORMS = [], SHOPS = [], SHUGYO = [], ALL_ITEMS = [];
@@ -777,27 +777,33 @@
     //  9. はじめの がめん（なまえ・おはなし・キャラクターづくり）
     // =====================================================================
     function TitleBg({ children }) {
+      useImgVer();
+      const u = Img.url('title');  // ChatGPT の タイトルの 絵（文字は アプリが かさねる）
       return (
         <div className="min-h-screen w-full relative overflow-hidden" style={{ background: 'linear-gradient(#60a5fa 0%, #93c5fd 45%, #86efac 70%, #4ade80 100%)' }}>
+          {u ? <div className="absolute inset-0" style={{ backgroundImage: `url(${u})`, backgroundSize: 'cover', backgroundPosition: 'center' }} /> :
           <svg className="absolute inset-0 w-full h-full" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid slice">
             <g fill="#fff" opacity=".85"><ellipse cx="160" cy="90" rx="70" ry="22" /><ellipse cx="200" cy="76" rx="44" ry="22" /><ellipse cx="780" cy="120" rx="80" ry="24" /><ellipse cx="820" cy="102" rx="46" ry="22" /></g>
             <g fill="#a8a29e"><rect x="420" y="250" width="160" height="120" /><rect x="400" y="210" width="44" height="160" /><rect x="556" y="210" width="44" height="160" /><rect x="476" y="180" width="48" height="190" /></g>
             <g fill="#3b82f6"><path d="M396 210 l26 -40 l26 40 z" /><path d="M552 210 l26 -40 l26 40 z" /><path d="M472 180 l28 -50 l28 50 z" /></g>
             <rect x="486" y="310" width="28" height="60" rx="14" fill="#78350f" />
             <path d="M0 420 q250 -60 500 0 t500 0 v180 h-1000 z" fill="#22c55e" /><path d="M0 480 q300 -40 600 10 t400 -10 v120 h-1000 z" fill="#16a34a" />
-          </svg>
+          </svg>}
           <div className="relative">{children}</div>
         </div>
       );
     }
     function LoginScreen({ students, onSelect, onTeacher, demo }) {
+      useImgVer();
       return (
         <TitleBg>
           <div className="min-h-screen flex flex-col items-center gap-4 p-6">
-            <div className="text-center mt-2">
-              <div className="text-2xl font-bold text-white tshadow">ケンジャの カケルさまの</div>
-              <div className="text-6xl font-bold text-amber-300 title">ひっさん クエスト</div>
-            </div>
+            {Img.has('logo')
+              ? <Pic name="logo" alt="ケンジャの カケルさまの ひっさん クエスト" className="pop" style={{ width: 'min(720px, 92vw)', height: 'auto', maxHeight: '34vh', filter: 'drop-shadow(0 6px 10px rgba(0,0,0,.35))' }} />
+              : <div className="text-center mt-2">
+                <div className="text-2xl font-bold text-white tshadow">ケンジャの カケルさまの</div>
+                <div className="text-6xl font-bold text-amber-300 title">ひっさん クエスト</div>
+              </div>}
             <div className="flex items-end gap-2"><Kakeru size={120} mood="happy" className="floaty" /></div>
             <div className="rpgwin p-5 w-full max-w-3xl">
               <div className="text-2xl font-bold text-center mb-3">じぶんの なまえを おしてね</div>
@@ -1921,6 +1927,7 @@
       ['モンスター（30たい）', MONSTERS.map(m => `monster_${m.id}`)],
       ['ばしょの はいけい（10まい）', PLACES.map(pl => `bg_${pl.id}`)],
       ['おみせの しなもの（30こ）', ALL_ITEMS.map(it => `item_${it.id}`)],
+      ['タイトルの 絵と もじ（2まい）', ['title', 'logo']],
       ['まちと ワールドマップ（2まい。この2まいは Claude に送って、押す ばしょを あわせて もらいます）', ['town', 'worldmap']],
     ];
 
