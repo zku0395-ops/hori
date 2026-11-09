@@ -205,7 +205,7 @@
     'bg_p4.webp', 'bg_p5.webp', 'bg_p6.webp', 'bg_p7.webp',
     'bg_p8.webp', 'bg_p9.webp',
     // まちと ワールドマップ
-    'town.webp', 'worldmap.webp', 'title.webp', 'logo.webp', 'story.webp',
+    'town.webp', 'worldmap.webp', 'title.webp', 'logo.webp', 'story.webp', 'story_end.webp',
     // おみせの しなもの（シートI・J・K・L）
     'item_b1.webp', 'item_b2.webp', 'item_b3.webp', 'item_b4.webp', 'item_b5.webp', 'item_b6.webp', 'item_b7.webp', 'item_b8.webp',
     'item_b9.webp', 'item_b10.webp', 'item_a1.webp', 'item_a2.webp', 'item_a3.webp', 'item_a4.webp', 'item_a5.webp', 'item_a6.webp',
