@@ -78,7 +78,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.3.0';
+    const APP_VERSION = '1.4.0';
     const BASE = window.KAKE_BASE;
     const IMG = BASE + 'img/';
     let D = {}, PLACES = [], MONSTERS = [], JOBS = [], FORMS = [], SHOPS = [], SHUGYO = [], ALL_ITEMS = [];
@@ -720,6 +720,13 @@
           background: `radial-gradient(circle at 50% 45%, ${m.color} 0%, ${m.color}cc 45%, transparent 70%)`, fontSize: size * 0.58, lineHeight: 1 }}>
           <span style={{ filter: 'drop-shadow(0 4px 6px rgba(0,0,0,.35))' }}>{m.emoji}</span></div>} />;
     }
+    // おみせの しなもの（絵が あれば 絵、なければ 絵文字）
+    function ItemPic({ it, size = 56, className = '' }) {
+      useImgVer();
+      if (!it) return null;
+      return <Pic name={`item_${it.id}`} className={className} style={{ width: size, height: size, display: 'inline-block', verticalAlign: 'middle' }}
+        fallback={<span className={className} style={{ fontSize: size * 0.9, lineHeight: 1, display: 'inline-block' }}>{it.e}</span>} />;
+    }
     function MaouPic({ size = 140 }) {
       return <MonsterPic m={MON.barabara} size={size} />;
     }
@@ -1230,7 +1237,7 @@
                 return (
                   <div key={it.id} className="bg-amber-50 rounded-2xl border-4 p-2 flex flex-col items-center gap-1" style={{ borderColor: tier.color }}>
                     <div className="text-xs font-bold text-white rounded-full px-2" style={{ background: tier.color }}>{tier.name}</div>
-                    <div style={{ fontSize: 56, lineHeight: 1.1 }}>{it.e}</div>
+                    <div className="flex items-center justify-center" style={{ height: 64 }}><ItemPic it={it} size={62} /></div>
                     <div className="font-bold text-center text-base leading-tight" style={{ minHeight: 40 }}>{it.n}</div>
                     {!have ? <button disabled={p.gold < it.p} onClick={() => { Sound.buy(); onBuy(shop, it); talk.say(`${it.n}を かった！ そうび したよ。`, { who: { name: shop.name, emoji: shop.keeper, color: '#fde68a' } }); }}
                       className={`btn3d w-full rounded-xl border-2 py-1 text-lg font-bold ${p.gold < it.p ? 'bg-slate-200 border-slate-300 text-slate-400' : 'bg-amber-300 border-amber-600'}`}>💰 {it.p}</button>
@@ -1270,7 +1277,7 @@
                 <div>といた ひっ算：{p.total || 0} もん</div>
                 <div className="mt-2 font-bold">そうび</div>
                 <div className="flex gap-2 flex-wrap">
-                  {SHOPS.map(s => { const it = ITEM[p.equip[s.id]]; return <div key={s.id} className="bg-white/10 rounded-xl px-3 py-1">{s.icon} {it ? `${it.e} ${it.n}` : 'なし'}</div>; })}
+                  {SHOPS.map(s => { const it = ITEM[p.equip[s.id]]; return <div key={s.id} className="bg-white/10 rounded-xl px-3 py-1">{s.icon} {it ? <><ItemPic it={it} size={28} /> {it.n}</> : 'なし'}</div>; })}
                 </div>
                 {p.waza.length > 0 && <div>わざ：{p.waza.map(w => <span key={w} className="mr-2 text-amber-200 font-bold">✨{w}</span>)}</div>}
               </div>
@@ -1585,7 +1592,7 @@
         <div className="flex items-end gap-1">
           {p.hero && <div className={attack ? 'pop' : 'bob'}><HeroPic job={p.hero.job} form={p.hero.form} size={size} /></div>}
           {party.map(c => <div key={c.id} className="bob"><HeroPic job={c.job} form={c.form} size={size * 0.82} /></div>)}
-          {pet && <div style={{ fontSize: size * 0.45 }} className="bob">{pet.e}</div>}
+          {pet && <div className="bob"><ItemPic it={pet} size={size * 0.5} /></div>}
         </div>
       );
     }
@@ -1627,7 +1634,7 @@
         onProblem({ ...rec, place: placeLabel(pl), battle: BATTLE_NAMES[bi] }, { place: pl.id, bi, solved: k + 1, n: probs.n });
         const weapon = ITEM[p.equip.buki];
         const waza = p.waza.length && Math.random() < 0.4 ? SHUGYO.find(s => s.waza === pickOne(p.waza)) : null;
-        setFx({ e: waza ? waza.wazaFx : weapon ? weapon.e : job.fx, waza: waza ? waza.waza : null, key: uid() });
+        setFx({ e: waza ? waza.wazaFx : weapon ? weapon.e : job.fx, it: !waza && weapon ? weapon : null, waza: waza ? waza.waza : null, key: uid() });
         setPhase('attack'); Sound.hit();
         talk.say(waza ? `${name}の わざ「${waza.waza}」！` : `${name}の こうげき！ ${job.attack}`, { who: { name, job: p.hero.job, form: p.hero.form } });
         setTimeout(() => {
@@ -1648,7 +1655,7 @@
               <div key={phase === 'attack' && fx ? 'm' + fx.key : 'm'} className={phase === 'attack' ? 'hit' : phase === 'win' ? 'defeat' : phase === 'appear' ? 'pop' : 'floaty'}>
                 <MonsterPic m={m} size={m.boss ? 200 : 170} />
               </div>
-              {fx && <div key={fx.key} className="absolute inset-0 flex items-center justify-center pointer-events-none"><div className="fxfly" style={{ fontSize: 90 }}>{fx.e}</div></div>}
+              {fx && <div key={fx.key} className="absolute inset-0 flex items-center justify-center pointer-events-none"><div className="fxfly" style={{ fontSize: 90 }}>{fx.it ? <ItemPic it={fx.it} size={96} /> : fx.e}</div></div>}
               {fx && fx.waza && <div className="absolute left-1/2 top-0 -translate-x-1/2 rpgwin px-3 py-1 text-xl font-bold text-amber-300 whitespace-nowrap pop">✨{fx.waza}✨</div>}
             </div>
             <PartyRow p={p} size={64} attack={phase === 'attack'} />
@@ -1913,6 +1920,7 @@
       ['カケルさま（3まい）', ['kakeru_normal', 'kakeru_happy', 'kakeru_think']],
       ['モンスター（30たい）', MONSTERS.map(m => `monster_${m.id}`)],
       ['ばしょの はいけい（10まい）', PLACES.map(pl => `bg_${pl.id}`)],
+      ['おみせの しなもの（30こ）', ALL_ITEMS.map(it => `item_${it.id}`)],
       ['まちと ワールドマップ（2まい。この2まいは Claude に送って、押す ばしょを あわせて もらいます）', ['town', 'worldmap']],
     ];
 
