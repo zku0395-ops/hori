@@ -66,7 +66,7 @@
       var h = location.hostname;
       var local = location.protocol === 'file:' || /github\.io$/.test(h) || h === 'localhost' || h === '127.0.0.1';
       window.KAKE_BASE = local ? '' : 'https://zku0395-ops.github.io/hori/kakezan/';
-      var V = '2'; // data.js を かえたら 1 ふやす（ふるい データを つかわないように）
+      var V = '3'; // data.js を かえたら 1 ふやす（ふるい データを つかわないように）
       window.KAKE_READY = new Promise(function (ok, ng) {
         var s = document.createElement('script');
         s.src = window.KAKE_BASE + 'data/data.js?v=' + V;
@@ -78,7 +78,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.7.0';
+    const APP_VERSION = '1.8.0';
     const BASE = window.KAKE_BASE;
     const IMG = BASE + 'img/';
     let D = {}, PLACES = [], MONSTERS = [], JOBS = [], FORMS = [], SHOPS = [], SHUGYO = [], ALL_ITEMS = [];
@@ -730,6 +730,11 @@
     function MaouPic({ size = 140 }) {
       return <MonsterPic m={MON.barabara} size={size} />;
     }
+    // たてものの なかの はいけい（ChatGPT の 絵が あれば 絵、なければ グラデーション）
+    function roomBg(name, grad) {
+      const u = Img.url(name);
+      return u ? { backgroundImage: `linear-gradient(rgba(15,23,42,.12), rgba(15,23,42,.12)), url(${u})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'local' } : { background: grad };
+    }
     // ばしょの はいけい
     function PlaceBg({ pl, children, className = '', style = {}, dim = 0 }) {
       useImgVer();
@@ -987,7 +992,7 @@
       const heroAt = townImg ? [T.hero[0] / TW * 100, T.hero[1] / TH * 100] : [446 / 9.6, 392 / 6.4];
       const aspect = townImg ? TW / TH : 1.5;
       return (
-        <div className="flex-1 flex flex-col items-center gap-2 p-2" style={{ background: '#2f7d32' }}>
+        <div className="flex-1 flex flex-col items-center gap-2 p-2" style={Img.has('town_bg') ? { backgroundImage: `url(${Img.url('town_bg')})`, backgroundSize: 'cover', backgroundPosition: 'center' } : { background: '#2f7d32' }}>
           <div className="w-full relative" style={{ aspectRatio: `${aspect}`, maxWidth: `min(64rem, calc((100vh - 260px) * ${aspect}))` }}>
             {imgTown || <svg viewBox="0 -20 960 640" className="absolute inset-0 w-full h-full rounded-2xl" style={{ ...light, background: '#79c05a' }}>
               <defs><pattern id="grass" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill="#79c05a" /><rect x="4" y="6" width="3" height="3" fill="#6aae4c" /><rect x="15" y="16" width="3" height="3" fill="#8bd06a" /></pattern></defs>
@@ -1234,7 +1239,7 @@
       const open = shopOpen(p, shop);
       useEffect(() => { talk.say(open ? shop.hello : `${PLACE[shop.open].name}の ぬしを たおすと、おみせが ひらくよ。`, { who: open ? { name: shop.name, emoji: shop.keeper, color: '#fde68a' } : 'kakeru' }); }, [shop.id]);
       return (
-        <div className="flex-1 p-3 flex flex-col items-center gap-3" style={{ background: 'linear-gradient(#78350f, #451a03)' }}>
+        <div className="flex-1 p-3 flex flex-col items-center gap-3" style={roomBg('room_' + shop.id, 'linear-gradient(#78350f, #451a03)')}>
           <div className="rpgwin px-6 py-2 text-3xl font-bold">{shop.icon} {shop.name}</div>
           {!open ? <div className="text-white text-2xl p-8">🔒 まだ しまって いるよ</div> :
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 w-full max-w-5xl">
@@ -1265,7 +1270,7 @@
       const comps = p.comps.map(id => compById(p.hero, id)).filter(Boolean);
       const seen = MONSTERS.filter(m => p.zukan[m.id]).length;
       return (
-        <div className="flex-1 p-3 flex flex-col items-center gap-3" style={{ background: 'linear-gradient(#fde68a, #f59e0b)' }}>
+        <div className="flex-1 p-3 flex flex-col items-center gap-3" style={roomBg('room_house', 'linear-gradient(#fde68a, #f59e0b)')}>
           <div className="flex gap-2 flex-wrap justify-center">
             {[['status', '🧑 つよさ'], ['nakama', '🤝 なかま'], ['zukan', '📕 モンスターずかん'], ['shu', '🥋 しゅぎょう'], ['kigae', '👕 すがた']].map(([k, t]) =>
               <button key={k} onClick={() => { Sound.tap(); setTab(k); }} className={`btn3d rounded-2xl border-4 px-4 py-2 text-xl font-bold ${tab === k ? 'bg-amber-300 border-amber-700' : 'bg-white border-amber-500'}`}>{t}</button>)}
@@ -1343,7 +1348,7 @@
       const inn = { name: 'やどやの おかみさん', emoji: '👩‍🍳', color: '#fecdd3' };
       useEffect(() => { talk.say(td.n ? `おつかれさま。きょうは ${td.n}もんも といたんだね。すごいよ！` : 'いらっしゃい。つかれたら やすんで いってね。', { who: inn }); }, []);
       return (
-        <div className="flex-1 p-4 flex flex-col items-center gap-4" style={{ background: 'linear-gradient(#fecdd3, #be123c)' }}>
+        <div className="flex-1 p-4 flex flex-col items-center gap-4" style={roomBg('room_inn', 'linear-gradient(#fecdd3, #be123c)')}>
           <div className="rpgwin px-6 py-2 text-3xl font-bold">🛏️ やどや</div>
           <div className="rpgwin p-5 text-2xl flex flex-col gap-2 w-full max-w-xl">
             <div className="font-bold text-amber-300">きょうの がんばり</div>
@@ -1363,7 +1368,7 @@
       const g = gemsOf(p);
       useEffect(() => { talk.say(g >= 9 ? 'ほうせきが ぜんぶ もどった！ まちに かけ算の ちからが もどったぞ。' : `とりもどした ほうせきは ${g}こ。のこりは ${9 - g}こじゃ。`, { who: 'kakeru' }); }, []);
       return (
-        <div className="flex-1 p-4 flex flex-col items-center gap-4" style={{ background: 'linear-gradient(#bfdbfe, #1e3a8a)' }}>
+        <div className="flex-1 p-4 flex flex-col items-center gap-4" style={roomBg('room_castle', 'linear-gradient(#bfdbfe, #1e3a8a)')}>
           <div className="rpgwin px-6 py-2 text-3xl font-bold">🏰 ほうせきの へや</div>
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 w-full max-w-4xl">
             {PLACES.map(pl => { const on = placeCleared(p, pl); return (
@@ -1385,7 +1390,7 @@
       const talk = useTalk();
       useEffect(() => { talk.say('ここは ギルドじゃ。ひっ算の おてほんを みせて あげよう。みたい ばしょを えらんでおくれ。', { who: 'kakeru' }); }, []);
       return (
-        <div className="flex-1 p-4 flex flex-col items-center gap-3" style={{ background: 'linear-gradient(#fed7aa, #9a3412)' }}>
+        <div className="flex-1 p-4 flex flex-col items-center gap-3" style={roomBg('room_guild', 'linear-gradient(#fed7aa, #9a3412)')}>
           <div className="flex items-end gap-4"><Kakeru size={130} mood="happy" /><div className="rpgwin px-6 py-2 text-3xl font-bold">📜 ギルド</div></div>
           <div className="rpgwin p-4 text-xl w-full max-w-4xl leading-relaxed">
             <div className="font-bold text-amber-300 mb-1">ひっ算の やくそく</div>
@@ -1727,7 +1732,7 @@
       const talk = useTalk();
       useEffect(() => { talk.say('しゅぎょうの ばへ ようこそ。なんども しゅぎょうすると、わざを おぼえるぞ。', { who: 'kakeru' }); }, []);
       return (
-        <div className="flex-1 p-4 flex flex-col items-center gap-3" style={{ background: 'linear-gradient(#fef3c7, #a16207)' }}>
+        <div className="flex-1 p-4 flex flex-col items-center gap-3" style={roomBg('room_shugyo', 'linear-gradient(#fef3c7, #a16207)')}>
           <div className="rpgwin px-6 py-2 text-3xl font-bold">🥋 しゅぎょうの ば</div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-4xl">
             {SHUGYO.map(s => { const n = p.shu[s.id] || 0; return (
@@ -1863,7 +1868,7 @@
       const talk = useTalk();
       useEffect(() => { talk.say(`しゅぎょう かんりょう！ ${s.name}の ほしが ふえたぞ。`, { who: 'kakeru', mood: 'happy' }); }, []);
       return (
-        <div className="flex-1 p-4 flex flex-col items-center gap-4" style={{ background: 'linear-gradient(#fef3c7, #a16207)' }}>
+        <div className="flex-1 p-4 flex flex-col items-center gap-4" style={roomBg('room_shugyo', 'linear-gradient(#fef3c7, #a16207)')}>
           <div className="rpgwin px-8 py-3 text-4xl font-bold text-amber-300 pop">{s.icon} しゅぎょう かんりょう！</div>
           <div className="rpgwin p-5 text-2xl flex flex-col gap-2"><div>★ ほしが 1つ ふえた！</div><div>💰 ゴールド ＋{gain.gold}</div><div>✨ けいけんち ＋{gain.exp}</div></div>
           <div className="flex gap-3">
@@ -1928,6 +1933,7 @@
       ['ばしょの はいけい（10まい）', PLACES.map(pl => `bg_${pl.id}`)],
       ['おみせの しなもの（30こ）', ALL_ITEMS.map(it => `item_${it.id}`)],
       ['タイトルの 絵と もじ・おはなしの はいけい（4まい）', ['title', 'logo', 'story', 'story_end']],
+      ['たてものの なかと まちの まわり（9まい）', ['room_buki', 'room_bougu', 'room_dougu', 'room_house', 'room_inn', 'room_castle', 'room_guild', 'room_shugyo', 'town_bg']],
       ['まちと ワールドマップ（2まい。この2まいは Claude に送って、押す ばしょを あわせて もらいます）', ['town', 'worldmap']],
     ];
 
