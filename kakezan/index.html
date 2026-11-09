@@ -78,7 +78,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.2.0';
+    const APP_VERSION = '1.3.0';
     const BASE = window.KAKE_BASE;
     const IMG = BASE + 'img/';
     let D = {}, PLACES = [], MONSTERS = [], JOBS = [], FORMS = [], SHOPS = [], SHUGYO = [], ALL_ITEMS = [];
@@ -945,12 +945,12 @@
       const part = p.part && PLACE[p.part.place] ? p.part : null;
       const light = { filter: `saturate(${sat}) brightness(${0.86 + 0.14 * g / 9})` };
       const townImg = Img.url('town');
-      const T = D.TOWN_SPOTS;
+      const T = D.TOWN_SPOTS, [TW, TH] = D.TOWN_SIZE || [960, 640];
       // ChatGPT の まちの 絵が ある とき：絵の うえに 押す ばしょと かんばんを かさねる
       const imgTown = townImg && (
         <>
           <img src={townImg} alt="" draggable="false" className="absolute inset-0 w-full h-full rounded-2xl" style={{ objectFit: 'cover', ...light }} />
-          <svg viewBox="0 0 960 640" className="absolute inset-0 w-full h-full">
+          <svg viewBox={`0 0 ${TW} ${TH}`} className="absolute inset-0 w-full h-full">
             {TOWN_PLACES.map(([id, go2, label, emoji]) => {
               const [x, y, w, h] = T[id], locked = go2 === 'shop:bougu' ? !shopOpen(p, S.bougu) : go2 === 'shop:dougu' ? !shopOpen(p, S.dougu) : false;
               const sw = 56 + label.replace(/ /g, '').length * 18, sy = Math.max(2, y - 34);
@@ -971,10 +971,11 @@
           </svg>
         </>
       );
-      const heroAt = townImg ? T.hero : [446, 392];
+      const heroAt = townImg ? [T.hero[0] / TW * 100, T.hero[1] / TH * 100] : [446 / 9.6, 392 / 6.4];
+      const aspect = townImg ? TW / TH : 1.5;
       return (
         <div className="flex-1 flex flex-col items-center gap-2 p-2" style={{ background: '#2f7d32' }}>
-          <div className="w-full relative" style={{ aspectRatio: '3 / 2', maxWidth: 'min(64rem, calc((100vh - 260px) * 1.5))' }}>
+          <div className="w-full relative" style={{ aspectRatio: `${aspect}`, maxWidth: `min(64rem, calc((100vh - 260px) * ${aspect}))` }}>
             {imgTown || <svg viewBox="0 -20 960 640" className="absolute inset-0 w-full h-full rounded-2xl" style={{ ...light, background: '#79c05a' }}>
               <defs><pattern id="grass" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="24" height="24" fill="#79c05a" /><rect x="4" y="6" width="3" height="3" fill="#6aae4c" /><rect x="15" y="16" width="3" height="3" fill="#8bd06a" /></pattern></defs>
               <rect y="-20" width="960" height="640" fill="url(#grass)" />
@@ -1031,7 +1032,7 @@
               <text x="600" y="380" fontSize="26">{g >= 1 ? '🐕' : ''}</text>
               {g >= 9 && <text x="455" y="270" fontSize="34" className="twinkle">🎉</text>}
             </svg>}
-            <div className="absolute flex items-end pointer-events-none" style={{ left: `${heroAt[0] / 9.6}%`, top: `${heroAt[1] / 6.4}%`, transform: 'translate(-50%,-50%)' }}>
+            <div className="absolute flex items-end pointer-events-none" style={{ left: `${heroAt[0]}%`, top: `${heroAt[1]}%`, transform: 'translate(-50%,-50%)' }}>
               {p.hero && <div className="bob"><HeroPic job={p.hero.job} form={p.hero.form} size={44} /></div>}
               {party.map(c => <div key={c.id} className="bob -ml-3"><HeroPic job={c.job} form={c.form} size={36} /></div>)}
             </div>
@@ -1053,7 +1054,7 @@
     // =====================================================================
     const MAP_POS = { p9: [120, 130], town: [150, 470], p0: [300, 530], p1: [420, 420], p2: [580, 500], p3: [650, 360], p4: [830, 470], p5: [890, 290], p6: [740, 170], p7: [560, 220], p8: [380, 120] };
     const CHAIN = ['p9', 'town', 'p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8'];
-    // ちずの ざひょう：ChatGPT の 絵が ある ときは data.js の MAP_SPOTS（たて 0〜667）、ない ときは 自作の ちず（たて -23〜644）
+    // ちずの ざひょう：ChatGPT の 絵が ある ときは data.js の MAP_SPOTS（MAP_SIZE の わく）、ない ときは 自作の ちず（よこ 1000・たて -23〜644）
     const mapImgOn = () => Img.has('worldmap');
     const mapPos = (id) => mapImgOn() ? D.MAP_SPOTS[id] : MAP_POS[id];
     // id から id へ あるく ときの とちゅうの まがりかど
@@ -1068,6 +1069,8 @@
       const talk = useTalk();
       const imgMap = Img.url('worldmap');
       const yOff = imgMap ? 0 : 23;
+      const [MW, MH] = imgMap ? (D.MAP_SIZE || [1000, 667]) : [1000, 667];
+      const aspect = MW / MH;
       const [pos, setPos] = useState(mapPos(p.mapAt in MAP_POS ? p.mapAt : 'town'));
       const [moving, setMoving] = useState(false);
       const party = partyOf(p);
@@ -1109,22 +1112,22 @@
       const R = (id, el) => { const [x, y] = MAP_POS[id]; return <g transform={`translate(${x} ${y})`}>{el}</g>; };
       return (
         <div className="flex-1 flex flex-col items-center gap-2 p-2" style={{ background: '#1d4f91' }}>
-          <div className="w-full relative" style={{ aspectRatio: '3 / 2', maxWidth: 'min(64rem, calc((100vh - 190px) * 1.5))' }}>
+          <div className="w-full relative" style={{ aspectRatio: `${aspect}`, maxWidth: `min(64rem, calc((100vh - 190px) * ${aspect}))` }}>
             {imgMap ? <>
               <img src={imgMap} alt="" draggable="false" className="absolute inset-0 w-full h-full rounded-2xl" style={{ objectFit: 'cover' }} />
-              <svg viewBox="0 0 1000 667" className="absolute inset-0 w-full h-full">
+              <svg viewBox={`0 0 ${MW} ${MH}`} className="absolute inset-0 w-full h-full">
                 {CHAIN.map(id => {
                   const [x, y] = D.MAP_SPOTS[id];
                   const pl = PLACE[id], open = id === 'town' || placeOpen(p, pl), done = pl && placeCleared(p, pl);
                   return (
-                    <g key={id} transform={`translate(${x} ${y})`} className="bldg" onClick={() => tap(id)}>
-                      <circle r="40" fill={open ? '#fff' : '#334155'} fillOpacity={open ? 0.12 : 0.45} stroke={done ? '#f59e0b' : open ? '#fff' : '#94a3b8'} strokeWidth={done ? 7 : 4} strokeDasharray={open ? 'none' : '8 6'} />
-                      {!open && <text y="12" textAnchor="middle" fontSize="32">🔒</text>}
-                      {done && <path d="M28 -44 l9 11 l-9 11 l-9 -11 z" fill={pl.gemColor} stroke="#fff" strokeWidth="2" />}
-                      <rect x="-80" y="44" width="160" height={pl ? 44 : 28} rx="10" fill={open ? '#fffbeb' : '#e2e8f0'} fillOpacity=".93" stroke="#78350f" strokeWidth="3" />
-                      {pl ? <><text y="62" textAnchor="middle" fontSize="14" fontWeight="bold" fill="#92400e">{pl.lv}</text>
-                        <text y="81" textAnchor="middle" fontSize="16" fontWeight="bold" fill="#3f2a14">{pl.name}</text></>
-                        : <text y="64" textAnchor="middle" fontSize="17" fontWeight="bold" fill="#3f2a14">はじまりの まち</text>}
+                    <g key={id} transform={`translate(${x} ${y}) scale(${MW / 1000})`} className="bldg" onClick={() => tap(id)}>
+                      <circle r="34" fill={open ? '#fff' : '#334155'} fillOpacity={open ? 0.12 : 0.45} stroke={done ? '#f59e0b' : open ? '#fff' : '#94a3b8'} strokeWidth={done ? 6 : 4} strokeDasharray={open ? 'none' : '8 6'} />
+                      {!open && <text y="11" textAnchor="middle" fontSize="28">🔒</text>}
+                      {done && <path d="M24 -38 l8 10 l-8 10 l-8 -10 z" fill={pl.gemColor} stroke="#fff" strokeWidth="2" />}
+                      <rect x="-76" y="36" width="152" height={pl ? 40 : 26} rx="9" fill={open ? '#fffbeb' : '#e2e8f0'} fillOpacity=".93" stroke="#78350f" strokeWidth="2.5" />
+                      {pl ? <><text y="52" textAnchor="middle" fontSize="12" fontWeight="bold" fill="#92400e">{pl.lv}</text>
+                        <text y="70" textAnchor="middle" fontSize="15" fontWeight="bold" fill="#3f2a14">{pl.name}</text></>
+                        : <text y="54" textAnchor="middle" fontSize="15" fontWeight="bold" fill="#3f2a14">はじまりの まち</text>}
                     </g>
                   );
                 })}
@@ -1164,7 +1167,7 @@
                 );
               })}
             </svg>}
-            <div className="absolute flex items-end pointer-events-none" style={{ left: `${pos[0] / 10}%`, top: `${(pos[1] + yOff) / 6.67}%`, transform: 'translate(-50%, -95%)' }}>
+            <div className="absolute flex items-end pointer-events-none" style={{ left: `${pos[0] / MW * 100}%`, top: `${(pos[1] + yOff) / MH * 100}%`, transform: 'translate(-50%, -95%)' }}>
               {p.hero && <div className={moving ? 'bob' : ''}><HeroPic job={p.hero.job} form={p.hero.form} size={46} /></div>}
               {party.map(c => <div key={c.id} className={`-ml-4 ${moving ? 'bob' : ''}`}><HeroPic job={c.job} form={c.form} size={38} /></div>)}
             </div>
