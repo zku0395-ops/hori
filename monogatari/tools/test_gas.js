@@ -146,6 +146,19 @@ ok(fetchLog[0].body.contents[0].parts[0].text.includes('読み聞かせ'), 'よ�
 v = ctx.getVoice('にちようびの あさ、', 'Sulafat');
 ok(v.ok && v.cached && fetchLog.length === 1, '2かいめは ドライブの こえを つかう');
 ok(ctx.getVoice('x'.repeat(201), 'Sulafat').reason === 'text', 'ながすぎる ぶんは つくらない');
+ok(fetchLog[0].body.contents[0].parts[0].text.includes('文：にちようびの あさ、') && fetchLog[0].body.contents[0].parts[0].text.includes('つづき'), '「文：」の あとの 文だけを 読むように たのむ');
+// こえが ながすぎる（ほかの 詩を 読んだ）ときは つかわない・ドライブに のこさない・もう1かい ためす
+{
+  const longPcm = Buffer.alloc(24000 * 2 * 30).toString('base64'); // 30びょう
+  const n0 = fetchLog.length;
+  const filesBefore = folders.reduce((a, f) => a + f.files.length, 0);
+  fetchReply = () => ({ getResponseCode: () => 200, getContentText: () => JSON.stringify({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/L16;rate=24000', data: longPcm } }] } }] }) });
+  const vl = ctx.getVoice('ふたを あけると、', 'Sulafat');
+  ok(!vl.ok && fetchLog.length - n0 >= 2 && folders.reduce((a, f) => a + f.files.length, 0) === filesBefore && /ながすぎ/.test(props.TTS_LAST_ERROR), 'ながすぎる こえは つかわない（もう1かい ためして、のこさない）');
+  const shortPcm = Buffer.alloc(24000 * 2 * 3).toString('base64'); // 3びょう
+  fetchReply = () => ({ getResponseCode: () => 200, getContentText: () => JSON.stringify({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/L16;rate=24000', data: shortPcm } }] } }] }) });
+  ok(ctx.getVoice('ふたを あけると、', 'Sulafat').ok, 'ふつうの ながさの こえは つかう');
+}
 fetchReply = () => ({ getResponseCode: () => 429, getContentText: () => 'quota' });
 ok(ctx.getVoice('べつの ぶん', 'Sulafat').reason === 'pause', 'つかいすぎの ときは やすむ');
 ok(ctx.getTtsStatus('2468').hasKey === true, 'こえの ようす');

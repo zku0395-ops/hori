@@ -91,7 +91,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, useCallback } = React;
-    const APP_VERSION = '0.5.0';
+    const APP_VERSION = '0.5.1';
     const BASE = window.MONO_BASE;
     const IMG = BASE + 'img/';
 
@@ -166,7 +166,7 @@
       useGemini(t) { return this.gemini && !this.off && HAS_GAS && t && !(this.avoid && t.includes(this.avoid)); },
       // 1つの ぶんの こえ（objectURL）。なければ サーバーに たのむ（おなじ ぶんを 2かい たのまない）
       voiceUrl(t) {
-        const key = this.gvoice + '|' + t;
+        const key = 'v2|' + this.gvoice + '|' + t; // v2：まちがった こえ（ほかの 詩など）が はいった まえの こえは つかわない
         if (this.cache.has(key)) return this.cache.get(key);
         const pr = (async () => {
           const blob = await VoiceDB.get(key);

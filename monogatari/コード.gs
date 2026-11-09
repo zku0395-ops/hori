@@ -433,13 +433,17 @@ const TTS_VOICES = ['Sulafat', 'Leda', 'Aoede', 'Achird', 'Callirrhoe', 'Despina
 // つかう モデル（あたらしい じゅん。つかえない ときは つぎを ためす。スクリプト プロパティ GEMINI_TTS_MODEL で かえられる）
 const TTS_MODELS = ['gemini-3.1-flash-tts-preview', 'gemini-2.5-flash-preview-tts'];
 const TTS_STYLE = 'やさしい 先生が、小学校の 低学年の 子どもに 絵本を 読み聞かせるように、ゆっくり はっきり、あたたかく 読んでください。かぎかっこの せりふは、その 人物の 気持ちを こめて 読んでください。';
+// 1行だけを たのむと、Gemini が つづきの お話や 詩を 作って 読んで しまう ことが ある。
+// 「文：」の あとの 文だけを そのまま 読むように はっきり たのみ、こえが ながすぎる ときは つかわない
+const TTS_ASK = '次の「文：」の あとに ある 文だけを、書いて ある とおりに 読んでください。文を 足したり、つづきや べつの お話・詩を 作ったり しないでください。';
+const TTS_VER = 'v2';
 const TTS_FOLDER = 'ものがたりの もり こえ';
 const TTS_MAX_CHARS = 200;
 
 function ttsProps_() { return PropertiesService.getScriptProperties(); }
 
 function ttsHash_(text, voice) {
-  const d = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, voice + '|' + TTS_STYLE + '|' + text, Utilities.Charset.UTF_8);
+  const d = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, TTS_VER + '|' + voice + '|' + TTS_STYLE + '|' + TTS_ASK + '|' + text, Utilities.Charset.UTF_8);
   return d.map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('');
 }
 
@@ -458,11 +462,17 @@ function wavBytes_(pcm, rate) {
   return h.map(function (b) { return b > 127 ? b - 256 : b; }).concat(pcm);
 }
 
+// その 文を ゆっくり 読んでも かかる じかんの 上限（びょう）。これより ながい こえは、ほかの ことばが まざって いる
+function ttsMaxSecs_(text) {
+  const n = String(text).replace(/[\s　、。「」！？!?…・ー〜]/g, '').length;
+  return 4 + n * 0.55;
+}
+
 function ttsCountKey_() { return 'TTS_COUNT_' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd'); }
 
 function callGemini_(key, model, text, voice) {
   const body = {
-    contents: [{ parts: [{ text: TTS_STYLE + '\n' + text }] }],
+    contents: [{ parts: [{ text: TTS_STYLE + '\n' + TTS_ASK + '\n文：' + text }] }],
     generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } } },
   };
   const res = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent', {
@@ -476,7 +486,10 @@ function callGemini_(key, model, text, voice) {
   const inl = part.filter(function (x) { return x.inlineData && x.inlineData.data; })[0];
   if (!inl) return { code: 500, error: 'こえが ありません' };
   const m = /rate=(\d+)/.exec(inl.inlineData.mimeType || '');
-  return { code: 200, pcm: Utilities.base64Decode(inl.inlineData.data), rate: m ? Number(m[1]) : 24000 };
+  const pcm = Utilities.base64Decode(inl.inlineData.data), rate = m ? Number(m[1]) : 24000;
+  const secs = pcm.length / 2 / rate;
+  if (secs > ttsMaxSecs_(text)) return { code: 422, error: 'こえが ながすぎます（' + Math.round(secs) + 'びょう。ほかの ことばを 読んだ かも しれません）' };
+  return { code: 200, pcm: pcm, rate: rate };
 }
 
 // アプリから よぶ：こえ（WAV の base64）を かえす。だめな ときは ok:false（アプリは ブラウザの こえで 読む）
@@ -508,7 +521,8 @@ function getVoice(text, voice, prep) {
   const start = Math.max(0, models.indexOf(props.getProperty('TTS_MODEL_OK') || ''));
   let last = null;
   for (let i = start; i < models.length; i++) {
-    const r = callGemini_(key, models[i], text, voice);
+    let r = callGemini_(key, models[i], text, voice);
+    if (r.code === 422) r = callGemini_(key, models[i], text, voice); // ながすぎる ときは もう1かい
     if (r.code === 200) {
       props.setProperty('TTS_MODEL_OK', models[i]);
       const ck = ttsCountKey_();
@@ -520,7 +534,7 @@ function getVoice(text, voice, prep) {
     }
     last = r;
     if (r.code === 429) { props.setProperty('TTS_PAUSE_UNTIL', String(Date.now() + 10 * 60 * 1000)); break; } // つかいすぎ：10ぷん やすむ
-    if (r.code !== 404 && r.code !== 400) break;
+    if (r.code !== 404 && r.code !== 400 && r.code !== 422) break;
   }
   props.setProperty('TTS_LAST_ERROR', last ? (new Date().toISOString() + ' ' + last.code + ' ' + last.error) : '');
   return { ok: false, reason: last && last.code === 429 ? 'pause' : 'error' };
