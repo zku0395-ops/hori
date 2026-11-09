@@ -200,9 +200,10 @@
     // モンスター（シートE）
     'monster_volka.webp', 'monster_numaghost.webp', 'monster_wanida.webp', 'monster_numanuma.webp', 'monster_kagekishi.webp',
     'monster_yamimadoshi.webp', 'monster_barabara.webp', 'monster_kaminarigumo.webp', 'monster_sorawashi.webp', 'monster_tenkuryu.webp',
-    // ばしょの はいけい（シートF・G）
+    // ばしょの はいけい（シートF・G・H）
     'bg_p0.webp', 'bg_p1.webp', 'bg_p2.webp', 'bg_p3.webp',
     'bg_p4.webp', 'bg_p5.webp', 'bg_p6.webp', 'bg_p7.webp',
+    'bg_p8.webp', 'bg_p9.webp',
   ];
 
   // ChatGPT の まちの 絵（town）の うえで 押す ばしょ。絵は よこ 960 × たて 640 と して かぞえる
