@@ -66,7 +66,7 @@
       var h = location.hostname;
       var local = location.protocol === 'file:' || /github\.io$/.test(h) || h === 'localhost' || h === '127.0.0.1';
       window.KAKE_BASE = local ? '' : 'https://zku0395-ops.github.io/hori/kakezan/';
-      var V = '1';
+      var V = '2'; // data.js を かえたら 1 ふやす（ふるい データを つかわないように）
       window.KAKE_READY = new Promise(function (ok, ng) {
         var s = document.createElement('script');
         s.src = window.KAKE_BASE + 'data/data.js?v=' + V;
@@ -78,7 +78,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.5.0';
+    const APP_VERSION = '1.6.0';
     const BASE = window.KAKE_BASE;
     const IMG = BASE + 'img/';
     let D = {}, PLACES = [], MONSTERS = [], JOBS = [], FORMS = [], SHOPS = [], SHUGYO = [], ALL_ITEMS = [];
@@ -776,9 +776,9 @@
     // =====================================================================
     //  9. はじめの がめん（なまえ・おはなし・キャラクターづくり）
     // =====================================================================
-    function TitleBg({ children }) {
+    function TitleBg({ children, bg = 'title' }) {
       useImgVer();
-      const u = Img.url('title');  // ChatGPT の タイトルの 絵（文字は アプリが かさねる）
+      const u = Img.url(bg) || Img.url('title');  // ChatGPT の タイトルの 絵（文字は アプリが かさねる）
       return (
         <div className="min-h-screen w-full relative overflow-hidden" style={{ background: 'linear-gradient(#60a5fa 0%, #93c5fd 45%, #86efac 70%, #4ade80 100%)' }}>
           {u ? <div className="absolute inset-0" style={{ backgroundImage: `url(${u})`, backgroundSize: 'cover', backgroundPosition: 'center' }} /> :
@@ -827,7 +827,7 @@
       const pg = pages[i];
       useEffect(() => { talk.say(pg.text, { who: pg.who }); }, [i]);
       return (
-        <TitleBg>
+        <TitleBg bg="story">
           <div className="min-h-screen flex flex-col items-center justify-center gap-6 p-6">
             <div className="flex items-end gap-10" style={{ minHeight: 220 }}>
               {pg.who === 'maou' ? <div className="pop" key={i}><MaouPic size={200} /></div> : <div className="pop" key={i}><Kakeru size={170} mood="normal" /></div>}
@@ -1927,7 +1927,7 @@
       ['モンスター（30たい）', MONSTERS.map(m => `monster_${m.id}`)],
       ['ばしょの はいけい（10まい）', PLACES.map(pl => `bg_${pl.id}`)],
       ['おみせの しなもの（30こ）', ALL_ITEMS.map(it => `item_${it.id}`)],
-      ['タイトルの 絵と もじ（2まい）', ['title', 'logo']],
+      ['タイトルの 絵と もじ・おはなしの はいけい（3まい）', ['title', 'logo', 'story']],
       ['まちと ワールドマップ（2まい。この2まいは Claude に送って、押す ばしょを あわせて もらいます）', ['town', 'worldmap']],
     ];
 
