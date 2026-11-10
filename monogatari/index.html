@@ -76,7 +76,7 @@
       var h = location.hostname;
       var local = location.protocol === 'file:' || /github\.io$/.test(h) || h === 'localhost' || h === '127.0.0.1';
       window.MONO_BASE = local ? '' : 'https://zku0395-ops.github.io/hori/monogatari/';
-      var V = '1';
+      var V = '2'; // データを 直したら ふやす（古い データが のこらないように）
       var load = function (f) {
         return new Promise(function (ok, ng) {
           var s = document.createElement('script');
@@ -91,7 +91,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, useCallback } = React;
-    const APP_VERSION = '0.5.1';
+    const APP_VERSION = '0.6.0';
     const BASE = window.MONO_BASE;
     const IMG = BASE + 'img/';
 
@@ -325,7 +325,7 @@
     //  5. データの ほぞん（スプレッドシート／おためしモード）
     // =====================================================================
     const LOG_HEADER = ['日時', 'なまえ', 'おはなし', 'だいめい', 'しゅるい', 'もんだい', 'こたえ', 'けっか', 'まちがい', 'ヒント', 'えらんだ こたえ', 'びょう', 'ID'];
-    const DEFAULT_SETTINGS = { rate: 0.8, font: 1, quiz: true, sound: true, tts: true, voice: 'Sulafat' };
+    const DEFAULT_SETTINGS = { rate: 0.8, font: 1, quiz: true, sound: true, tts: true, voice: 'Sulafat', hando: true, handoMark: true };
     const VOICES = [['Sulafat', 'あたたかい'], ['Leda', 'わかわかしい'], ['Aoede', 'さわやか'], ['Achird', 'したしみやすい'], ['Callirrhoe', 'おだやか'], ['Despina', 'なめらか']];
     const CAT_NAMES = { dare: '①だれが いった', itsu: '②いつ', doko: '③どこ', kimochi: '④きもち', oto: '⑤オノマトペ' };
 
@@ -757,6 +757,18 @@
     const VOICE_KEY = 'monogatari_voice_onoff';
     // よみあげ OFF の ときに 1行を ひからせて おく じかん（もじの かず と よみあげの はやさ から）
     const silentMs = (text, rate) => Math.round((900 + norm(text).length * 420) * 0.8 / (rate || 0.8));
+    // 範読（1話 まるごと 1本の 音声）。どの 行を よんで いるかは 分からないので、もじの かずから「だいたい ここ」を 出す
+    //   さいしょに だいめいを よむ。行の あいだには すこし まが ある
+    const HANDO_GAP = 3;
+    const handoUrl = (story) => story.hando ? (window.MONO_BASE || '') + 'hando/' + encodeURIComponent(story.hando) : '';
+    const handoMarks = (story, P) => {
+      const w = [norm(story.title).length + HANDO_GAP, ...P.speech.map(t => norm(t).length + HANDO_GAP)];
+      const total = w.reduce((a, b) => a + b, 0);
+      const starts = []; let acc = w[0];
+      for (let i = 1; i < w.length; i++) { starts.push(acc / total); acc += w[i]; }
+      return starts; // 行ごとの はじまり（0〜1）
+    };
+    const handoLineAt = (marks, frac) => { let k = -1; for (let i = 0; i < marks.length; i++) if (frac >= marks[i]) k = i; return k; };
 
     function StoryScreen({ story, index, settings, hatten, startStep, onRecord, onKakera, onStep, onDone, onExit, onLock }) {
       const P = useMemo(() => prep(story), [story]);
@@ -771,10 +783,16 @@
       const [mood, setMood] = useState('normal');
       const [reading, setReading] = useState(null);
       const [readDone, setReadDone] = useState(false);
-      const [mode, setMode] = useState(safeStore.get(READ_MODE_KEY) === 'line' ? 'line' : 'all');
+      // 範読：先生用画面で「出す」にして いて、その 話の 音声が ある ときだけ
+      const handoOk = settings.hando !== false && !!story.hando;
+      const [mode, setMode] = useState(() => { const m = safeStore.get(READ_MODE_KEY); return m === 'line' ? 'line' : m === 'hando' && handoOk ? 'hando' : 'all'; });
       const [cursor, setCursor] = useState(0);
       const readTok = useRef(0);
       const silentTimer = useRef(null);
+      const audio = useRef(null);
+      const [handoPlaying, setHandoPlaying] = useState(false);
+      const [handoErr, setHandoErr] = useState(false);
+      const marks = useMemo(() => handoMarks(story, P), [story, P]);
       // よみあげ ON／OFF（OFF でも、よむ ばしょの マーカーは うごく）。この たんまつに おぼえる
       const [voiceOn, setVoiceOn] = useState(safeStore.get(VOICE_KEY) !== 'off');
       // さがす
@@ -796,7 +814,37 @@
       const target = useMemo(() => q ? findSpan(P, q.c, q.find || q.a) : null, [q, P]);
 
       const speak = (t, m = 'normal') => { setMsg(t); setMood(m); Speech.sayVoice(t); };
-      const stopRead = () => { readTok.current++; Speech.stop(); clearTimeout(silentTimer.current); setReading(null); };
+      const pauseHando = () => { const a = audio.current; if (a && !a.paused) a.pause(); setHandoPlaying(false); };
+      const stopRead = () => { readTok.current++; Speech.stop(); clearTimeout(silentTimer.current); pauseHando(); setReading(null); };
+
+      // ---- 範読 ----
+      const handoMark = (a) => {
+        if (!a || !a.duration) return;
+        const k = handoLineAt(marks, a.currentTime / a.duration);
+        if (k >= 0) setCursor(k);
+        setReading(settings.handoMark !== false && k >= 0 ? k : null);
+      };
+      const playHando = (fromLine) => {
+        const a = audio.current; if (!a) return;
+        readTok.current++; Speech.stop(); clearTimeout(silentTimer.current);
+        const go = () => {
+          if (fromLine !== undefined && a.duration) a.currentTime = Math.max(0, marks[fromLine] * a.duration - 0.3);
+          const p = a.play(); setHandoPlaying(true);
+          if (p && p.catch) p.catch(() => { setHandoPlaying(false); setHandoErr(true); });
+        };
+        if (fromLine !== undefined && !a.duration) a.addEventListener('loadedmetadata', go, { once: true }); else go();
+        if (a.readyState === 0) a.load();
+      };
+      const restartHando = () => { const a = audio.current; if (!a) return; a.pause(); try { a.currentTime = 0; } catch (e) {} setReading(null); setCursor(0); playHando(); };
+      useEffect(() => {
+        const a = audio.current; if (!a) return;
+        const onTime = () => { if (!a.paused) handoMark(a); };
+        const onEnd = () => { setHandoPlaying(false); try { a.currentTime = 0; } catch (e) {} finishRead(); };
+        const onErr = () => { setHandoPlaying(false); setHandoErr(true); };
+        a.addEventListener('timeupdate', onTime); a.addEventListener('ended', onEnd); a.addEventListener('error', onErr);
+        return () => { a.removeEventListener('timeupdate', onTime); a.removeEventListener('ended', onEnd); a.removeEventListener('error', onErr); a.pause(); };
+      }, [marks, settings.handoMark, step, handoOk]); // ① きく の がめんに もどる たびに audio が つくりなおされる
+      useEffect(() => { if (handoErr) speak('はんどくの おとが よみこめなかったよ。「ぜんぶ とおして」で よもうね。', 'surprise'); }, [handoErr]);
 
       // 1行 よむ（そのあと つぎへ すすむ ときは onEnd）
       const readLine = (i, onEnd) => {
@@ -846,7 +894,9 @@
       };
       const pickMode = (m) => {
         stopRead(); setMode(m); safeStore.set(READ_MODE_KEY, m);
-        speak(m === 'line' ? '1ぎょうずつ よむよ。「つぎの ぎょう」を おすと、つぎの ぎょうを よむよ。' : 'さいごまで とおして よむよ。🔊 よんで を おしてね。');
+        speak(m === 'line' ? '1ぎょうずつ よむよ。「つぎの ぎょう」を おすと、つぎの ぎょうを よむよ。'
+          : m === 'hando' ? 'せんせいの はんどくを きくよ。▶ ながす を おしてね。'
+          : 'さいごまで とおして よむよ。🔊 よんで を おしてね。');
       };
 
       const goStep = (n) => {
@@ -863,6 +913,8 @@
           setCursor(0);
           speak(mode === 'line'
             ? `「${story.title}」の おはなしだよ。「🔊 この ぎょう」を おすと、1ぎょうずつ よむよ。`
+            : mode === 'hando'
+            ? `「${story.title}」の おはなしだよ。▶ ながす を おすと、せんせいの はんどくが きこえるよ。`
             : `「${story.title}」の おはなしだよ。🔊 よんで を おしてね。ぎょうを さわると、その ぎょうだけ よむよ。`);
         }
         if (step === 2) {
@@ -1019,7 +1071,7 @@
             <div className="paper flex-1 min-w-0 relative">
               <StoryText story={story} P={P} reading={reading} cursor={step === 1 && mode === 'line' && reading === null ? cursor : null}
                 litCat={null} hintLine={hintLine} hintLines={findHintLines} hintNode={hintNode} find={find} fontScale={settings.font}
-                onLine={step === 2 ? null : (i) => { Sound.tap(); stopRead(); if (step === 1 && mode === 'line') readOne(i); else readLine(i); }}
+                onLine={step === 2 ? null : (i) => { Sound.tap(); stopRead(); if (step === 1 && mode === 'hando' && handoOk && !handoErr) playHando(i); else if (step === 1 && mode === 'line') readOne(i); else readLine(i); }}
                 onSpan={null} />
               {fly > 0 && <KakeraFly key={fly} n={1} />}
             </div>
@@ -1029,16 +1081,27 @@
           <div className="shrink-0 px-3 pb-3">
             {step === 1 && (
               <div className="flex items-center gap-3 bg-indigo-900/80 rounded-2xl p-3">
-                <button onClick={toggleVoice} aria-pressed={voiceOn}
-                  className={`btn3d rounded-2xl border-2 px-3 py-2 font-bold text-base leading-tight self-stretch ${voiceOn ? 'bg-sky-200 border-sky-500 text-sky-950' : 'bg-stone-200 border-stone-400 text-stone-700'}`}>
-                  <div className="text-2xl">{voiceOn ? '🔊' : '🔇'}</div>よみあげ<br />{voiceOn ? 'ON' : 'OFF'}
-                </button>
+                {handoOk && <audio ref={audio} src={handoUrl(story)} preload="metadata" />}
+                {mode !== 'hando' && (
+                  <button onClick={toggleVoice} aria-pressed={voiceOn}
+                    className={`btn3d rounded-2xl border-2 px-3 py-2 font-bold text-base leading-tight self-stretch ${voiceOn ? 'bg-sky-200 border-sky-500 text-sky-950' : 'bg-stone-200 border-stone-400 text-stone-700'}`}>
+                    <div className="text-2xl">{voiceOn ? '🔊' : '🔇'}</div>よみあげ<br />{voiceOn ? 'ON' : 'OFF'}
+                  </button>
+                )}
                 <div className="flex flex-col gap-1">
-                  {[['all', '📖 ぜんぶ とおして'], ['line', '☝️ 1ぎょうずつ']].map(([m, l]) => (
+                  {[['all', '📖 ぜんぶ とおして'], ['line', '☝️ 1ぎょうずつ'], ...(handoOk ? [['hando', '🎧 はんどく']] : [])].map(([m, l]) => (
                     <button key={m} onClick={() => pickMode(m)} className={`rounded-xl border-2 px-3 py-1 font-bold text-base ${mode === m ? 'bg-amber-300 border-amber-600 text-amber-950' : 'bg-indigo-800 border-indigo-600 text-indigo-100'}`}>{mode === m ? '● ' : '○ '}{l}</button>
                   ))}
                 </div>
-                {mode === 'all' ? (
+                {mode === 'hando' && handoOk ? (
+                  <>
+                    {handoPlaying
+                      ? <Btn color="amber" className="!text-2xl" onClick={pauseHando}>⏸ とめる</Btn>
+                      : <Btn color="amber" className="!text-2xl" disabled={handoErr} onClick={() => playHando()}>▶ ながす</Btn>}
+                    <Btn color="white" disabled={handoErr} onClick={restartHando}>⏮ はじめから</Btn>
+                    <div className="flex-1 text-indigo-100 text-lg">{handoErr ? 'はんどくの おとが よみこめなかったよ。' : 'せんせいの こえを よく きこう。ぎょうを さわると、そこから ながれるよ。'}</div>
+                  </>
+                ) : mode === 'all' || mode === 'hando' ? (
                   <>
                     <Btn color="amber" className="!text-2xl" onClick={() => { stopRead(); readFrom(0); }}>{voiceOn ? '🔊 よんで' : '▶ スタート'}</Btn>
                     <Btn color="white" onClick={stopRead} disabled={reading === null}>⏹ とめる</Btn>
@@ -1497,6 +1560,8 @@
                 <Row label="文字の大きさ">{[[0.9, 'ちいさめ'], [1, 'ふつう'], [1.15, 'おおきめ'], [1.3, 'とても おおきい']].map(([v, l]) => <Choice key={v} on={s.font === v} onClick={() => saveS({ font: v })}>{l}</Choice>)}</Row>
                 <Row label="③ たしかめ">{[[true, 'する'], [false, 'しない']].map(([v, l]) => <Choice key={l} on={s.quiz === v} onClick={() => saveS({ quiz: v })}>{l}</Choice>)}</Row>
                 <Row label="効果音">{[[true, 'ならす'], [false, 'ならさない']].map(([v, l]) => <Choice key={l} on={s.sound === v} onClick={() => saveS({ sound: v })}>{l}</Choice>)}</Row>
+                <Row label="🎧 はんどく">{[[true, '出す'], [false, '出さない']].map(([v, l]) => <Choice key={l} on={s.hando === v} onClick={() => saveS({ hando: v })}>{l}</Choice>)}</Row>
+                <Row label="はんどくの 黄色い マーカー">{[[true, '出す（だいたいの 位置）'], [false, '出さない']].map(([v, l]) => <Choice key={l} on={s.handoMark === v} onClick={() => saveS({ handoMark: v })}>{l}</Choice>)}</Row>
                 <Row label="よみきかせの声（Gemini）">{[[true, 'つかう'], [false, 'つかわない']].map(([v, l]) => <Choice key={l} on={s.tts === v} onClick={() => saveS({ tts: v })}>{l}</Choice>)}</Row>
                 <Row label="声の しゅるい">
                   {VOICES.map(([v, l]) => <Choice key={v} on={s.voice === v} onClick={() => saveS({ voice: v })}>{v}（{l}）</Choice>)}

@@ -129,6 +129,11 @@ ok(pt.kakera === 1 && pt.unlockAll === true, '古い 端末の しんちょく�
 ctx.saveSettings('1234', { rate: 0.7, quiz: false, voice: 'Leda', newPin: '2468' });
 const s1 = ctx.getInitData().settings;
 ok(s1.rate === 0.7 && s1.quiz === false && s1.voice === 'Leda', '設定を ほぞん');
+ok(s0.hando === true && s0.handoMark === true && s1.hando === true, 'はんどく：はじめは 出す');
+ctx.saveSettings('2468', { hando: false, handoMark: false });
+const s2 = ctx.getInitData().settings;
+ok(s2.hando === false && s2.handoMark === false && s2.quiz === false, 'はんどく：出さない を ほぞん（ほかの 設定は そのまま）');
+ctx.saveSettings('2468', { hando: true, handoMark: true });
 ok(ctx.getTeacherData('2468').ok && !ctx.getTeacherData('1234').ok, '暗証番号を 変える');
 const bk = ctx.getBackup('2468');
 ok(bk.ok && bk.data.app === 'monogatari', 'バックアップ');
