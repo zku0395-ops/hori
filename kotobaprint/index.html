@@ -29,6 +29,8 @@
   /* 1まい（A4 たて） */
   .sheet { --fs: 15pt; width: 210mm; height: 297mm; margin: 0 auto 16px; background: #fff; padding: 8mm 10mm 9mm; display: flex; flex-direction: column; gap: 2.5mm; overflow: hidden; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,.15); word-break: keep-all; overflow-wrap: anywhere; }
   .sheet.g3, .sheet.g4 { --fs: 13pt; }
+  .sheet.hat { --fs: 16.5pt; }
+  .sheet.hat.g3, .sheet.hat.g4 { --fs: 14pt; }
   .inner { flex: 1; display: flex; flex-direction: column; gap: 2.5mm; min-height: 0; justify-content: space-between; }
   @media print {
     body { background: #fff; }
@@ -94,6 +96,21 @@
   .fill .s { flex: 1; font-size: calc(var(--fs) * 0.86); line-height: 2.05; }
   .blk { position: relative; display: inline-block; vertical-align: middle; height: 1.75em; border: 0.45mm solid #111; border-radius: 1.5mm; margin: 0 0.3em; text-align: center; line-height: 1.7em; font-weight: 700; }
   .blk b { position: absolute; left: 0; right: 0; top: 0; color: #dc2626; font-size: 0.9em; white-space: nowrap; }  /* こたえを 入れても 字の 大きさが かわらない ように */
+  /* はってん */
+  .htag { display: inline-block; margin-left: 2mm; font-size: 10pt; border: 0.5mm solid #111; border-radius: 2mm; padding: 0 2mm; background: #fef3c7; vertical-align: middle; }
+  .use { display: flex; flex-direction: column; gap: 2mm; }
+  .uq { border-top: 0.3mm dashed #bbb; padding-top: 1.4mm; }
+  .uq:first-child { border-top: 0; padding-top: 0; }
+  .uw { display: flex; align-items: baseline; gap: 1.5mm; margin-bottom: 0.6mm; }
+  .uw .t { font-size: var(--fs); font-weight: 700; }
+  .uw .kj { font-size: calc(var(--fs) * 0.62); color: #444; }
+  .us { display: flex; align-items: center; gap: 2mm; margin-left: 9mm; font-size: calc(var(--fs) * 0.84); line-height: 1.6; }
+  .us .mk { flex: none; width: 7mm; height: 7mm; border: 0.4mm solid #999; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10pt; font-weight: 700; }
+  .us .mk.ok { border-color: #dc2626; outline: 0.6mm solid #dc2626; color: #dc2626; }
+  .make .pickw { display: flex; align-items: center; gap: 3mm; font-size: calc(var(--fs) * 0.86); font-weight: 700; margin-bottom: 1mm; }
+  .make .pbox { display: inline-block; min-width: 60mm; height: 9mm; border: 0.45mm solid #111; border-radius: 1.5mm; padding: 0 2mm; line-height: 9mm; font-size: calc(var(--fs) * 0.86); }
+  .make .lines .ln { height: 13mm; border-bottom: 0.4mm solid #555; font-size: calc(var(--fs) * 0.9); padding: 4mm 1mm 0; }
+  .make .rei { font-size: calc(var(--fs) * 0.72); margin-top: 1.5mm; }
   .foot { position: absolute; bottom: 3mm; left: 10mm; right: 10mm; display: flex; justify-content: space-between; font-size: 8pt; color: #888; }
 </style>
 </head>
@@ -128,15 +145,22 @@
     window.KOTOBAPRINT_FILES.push({ g: g, ans: 0, file: 'ことばワークシート_' + g + 'ねん.pdf' });
     window.KOTOBAPRINT_FILES.push({ g: g, ans: 1, file: 'ことばワークシート_' + g + 'ねん_こたえ.pdf' });
   });
+  [1, 2, 3, 4].forEach(function (g) {
+    window.KOTOBAPRINT_FILES.push({ g: g, ans: 0, t: 'h', file: 'ことばワークシート_' + g + 'ねん_はってん.pdf' });
+    window.KOTOBAPRINT_FILES.push({ g: g, ans: 1, t: 'h', file: 'ことばワークシート_' + g + 'ねん_はってん_こたえ.pdf' });
+  });
 
   var Q = new URLSearchParams(location.search);
   var g = Math.min(4, Math.max(1, Number(Q.get('g')) || 1));
   var pSel = Q.get('p') || 'all';
   var kSel = Q.get('k') === 'A' || Q.get('k') === 'B' ? Q.get('k') : 'all';
   var ans = Q.get('ans') === '1';
+  var hat = Q.get('t') === 'h'; // はってん（ただしい つかいかた）
 
   var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
   var bw = function (w) { return w.bw || w.w; };
+  var fillBun = function (w) { return w.bun.replace('（　）', bw(w)); };
+  var KANA = ['ア', 'イ', 'ウ'];
   // いつも 同じ 順に まぜる（プリントと こたえで 順番が かわらないように）
   function seeded(str) { var h = 2166136261; for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return function () { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 100000) / 100000; }; }
   function shuffle(arr, key) { var r = seeded(key), a = arr.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(r() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
@@ -151,11 +175,12 @@
 
   // 画面の 上の ボタン
   var url = function (o) {
-    var q = { g: g, p: pSel, k: kSel, ans: ans ? 1 : 0 };
+    var q = { g: g, p: pSel, k: kSel, ans: ans ? 1 : 0, t: hat ? 'h' : '' };
     for (var k in o) q[k] = o[k];
     var s = '?g=' + q.g;
     if (q.p !== 'all') s += '&p=' + q.p;
     if (q.k !== 'all') s += '&k=' + q.k;
+    if (q.t) s += '&t=h';
     if (q.ans) s += '&ans=1';
     return s;
   };
@@ -164,6 +189,7 @@
   var places = D.CHIHOU.find(function (c) { return c.g === g; }).places;
   bar += '<select id="psel"><option value="all">ばしょ：ぜんぶ</option>' + places.map(function (pid) { return '<option value="' + pid + '"' + (pid === pSel ? ' selected' : '') + '>' + esc(PLACE[pid].icon + ' ' + PLACE[pid].name) + '</option>'; }).join('') + '</select>';
   bar += '<select id="ksel"><option value="all">くみ：ぜんぶ</option><option value="A"' + (kSel === 'A' ? ' selected' : '') + '>1くみ</option><option value="B"' + (kSel === 'B' ? ' selected' : '') + '>2くみ</option></select>';
+  bar += '<a class="' + (hat ? '' : 'on') + '" href="' + url({ t: '' }) + '">ふつう</a><a class="' + (hat ? 'on' : '') + '" href="' + url({ t: 'h' }) + '">✨ はってん</a>';
   bar += '<a class="' + (ans ? '' : 'on') + '" href="' + url({ ans: 0 }) + '">もんだい</a><a class="' + (ans ? 'on' : '') + '" href="' + url({ ans: 1 }) + '">こたえ</a>';
   bar += '<span class="sp"></span><button onclick="window.print()">🖨️ いんさつ・PDF に ほぞん</button>';
   bar += '<div class="help">「いんさつ」を おして、プリンターを えらぶと 印刷、「PDF に 保存」を えらぶと PDF に なります。用紙は A4（たて）、余白は「なし」に してください。</div>';
@@ -175,11 +201,11 @@
   function sheet(S) {
     var p = S.p, ws = S.words;
     var mon = D.MONSTERS.find(function (m) { return m.p === p.id && m.boss === (S.k === 'B'); });
-    var h = '<div class="sheet g' + S.g + '" style="--pc:' + p.color + ';--pb:' + p.bg + '">';
+    var h = '<div class="sheet g' + S.g + (hat ? ' hat' : '') + '" style="--pc:' + p.color + ';--pb:' + p.bg + '">';
     if (ans) h += '<div class="stamp">こたえ</div>';
     h += '<div class="band"><img class="dr" src="' + IMG + 'dracchi.webp" alt="">'
       + '<div><div class="t1">ドラッチの ことばの ワークシート　' + GN[S.g] + '「' + esc(S.c.name) + '」</div>'
-      + '<div class="t2">' + esc(p.name) + '　' + KUMI[S.k] + '</div>'
+      + '<div class="t2">' + esc(p.name) + '　' + KUMI[S.k] + (hat ? '<span class="htag">✨ はってん</span>' : '') + '</div>'
       + '<div class="t3"><span class="grp">' + esc(p.group) + '</span></div></div>'
       + (mon ? '<img class="mon" src="' + IMG + 'mon_' + mon.id + '.webp" alt="">' : '')
       + '<div class="no">ばんごう<br><b style="font-size:14pt;color:#111">' + S.no + '</b></div></div>';
@@ -188,6 +214,7 @@
       + '<div class="box"><span class="blank"></span>がつ<span class="blank"></span>にち</div>'
       + '<div class="box self">できたかな？<span class="f">◎</span><span class="f">○</span><span class="f">△</span></div></div>';
     h += '<div class="inner">';
+    if (hat) return h + hatten(S) + foot(S);
 
     // ① ことばと いみを せんで むすぶ
     var order = shuffle(ws.map(function (_, i) { return i; }), 'm' + p.id + S.k);
@@ -223,7 +250,29 @@
     });
     h += '</div></div>';
 
-    h += '</div><div class="foot"><span>ドラッチと ことばの ぼうけん</span><span>' + GN[S.g] + ' ' + S.no + ' / ' + SHEETS.filter(function (x) { return x.g === S.g; }).length + '</span></div></div>';
+    return h + foot(S);
+  }
+  function foot(S) {
+    return '</div><div class="foot"><span>ドラッチと ことばの ぼうけん' + (hat ? '　はってん' : '') + '</span><span>' + GN[S.g] + ' ' + S.no + ' / ' + SHEETS.filter(function (x) { return x.g === S.g; }).length + '</span></div></div>';
+  }
+
+  // はってん：① つかいかたが ただしい 文に ○（アプリの「ただしい つかいかた」と おなじ 文）、② じぶんで 文を つくる
+  function hatten(S) {
+    var p = S.p, ws = S.words;
+    var h = '<div class="sec"><div class="lead"><span class="n">1</span>つかいかたが ただしい ぶんに ○を つけよう。</div><div class="use">';
+    shuffle(ws, 'h' + p.id + S.k).forEach(function (w, i) {
+      var cs = shuffle([{ ok: true, t: fillBun(w) }, { t: w.ng[0] }, { t: w.ng[1] }], 'u' + w.id);
+      h += '<div class="uq"><div class="uw"><span class="qn">' + NUM[i] + '</span><span class="t">' + esc(w.w) + '</span>'
+        + (w.k ? '<span class="kj">（<ruby>' + esc(w.k) + '<rt>' + esc(w.w.replace('〜', '')) + '</rt></ruby>）</span>' : '') + '</div>'
+        + cs.map(function (c, j) { return '<div class="us"><span class="mk' + (ans && c.ok ? ' ok' : '') + '">' + KANA[j] + '</span><span>' + esc(c.t) + '</span></div>'; }).join('') + '</div>';
+    });
+    h += '</div></div>';
+    h += '<div class="sec make"><div class="lead"><span class="n">2</span>□の なかから ことばを 1つ えらんで、ぶんを つくろう。</div>';
+    h += '<div class="bank">' + ws.map(function (w) { return '<span>' + esc(w.w) + '</span>'; }).join('') + '</div>';
+    h += '<div class="pickw">えらんだ ことば<span class="pbox">' + (ans ? '<b class="red">（れい）' + esc(ws[0].w) + '</b>' : '') + '</span></div>';
+    h += '<div class="lines"><div class="ln">' + (ans ? '<b class="red">' + esc(ws[0].ex) + '</b>' : '') + '</div><div class="ln"></div>' + (S.g <= 2 ? '<div class="ln"></div>' : '') + '</div>'; // 1・2年生は 大きな 字で 書くので 3ぎょう
+    if (ans) h += '<div class="rei red">ほかの れい：' + ws.slice(1, 3).map(function (w) { return esc(w.ex); }).join('　') + '</div>';
+    h += '</div>';
     return h;
   }
 

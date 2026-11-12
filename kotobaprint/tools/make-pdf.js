@@ -1,5 +1,5 @@
 // ことばの ワークシートの PDF を 作ります。
-// つかいかた：node kotobaprint/tools/make-pdf.js      … 全部（1〜4ねん、それぞれ こたえも）
+// つかいかた：node kotobaprint/tools/make-pdf.js      … 全部（1〜4ねん、ふつう・はってん、それぞれ こたえも）
 //             node kotobaprint/tools/make-pdf.js 3    … 1つの 学年だけ
 // （Playwright と Chromium が いります。できた PDF は kotobaprint/pdf/ に 入ります）
 // FONT_CSS に フォントの CSS の 場所を 入れると、Google Fonts の かわりに それを 使います。
@@ -60,7 +60,7 @@ function serve() {
   fs.mkdirSync(OUT, { recursive: true });
   for (const f of files) {
     if (only && String(f.g) !== only) continue;
-    await open(`g=${f.g}${f.ans ? '&ans=1' : ''}`);
+    await open(`g=${f.g}${f.t ? '&t=' + f.t : ''}${f.ans ? '&ans=1' : ''}`);
     const file = path.join(OUT, f.file);
     await page.pdf({ path: file, format: 'A4', landscape: false, printBackground: true, preferCSSPageSize: true });
     console.log('できました：', path.relative(process.cwd(), file));
