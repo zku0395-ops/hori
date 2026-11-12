@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ドラッチの ことばの ワークシート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4 portrait; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { font-family: 'BIZ UDPGothic', 'IPAGothic', sans-serif; color: #111; background: #e7e5e4; }
+  rt { font-size: 0.5em; font-weight: 400; }
+  .red { color: #dc2626; }
+
+  /* 画面だけに 出す ところ */
+  .bar { position: sticky; top: 0; z-index: 5; background: #ecfdf5; border-bottom: 2px solid #6ee7b7; padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .bar h1 { font-size: 18px; margin: 0 10px 0 0; }
+  .bar a, .bar button, .bar select { font: inherit; font-size: 15px; font-weight: 700; padding: 8px 12px; border-radius: 10px; border: 2px solid #047857; background: #fff; color: #065f46; text-decoration: none; cursor: pointer; }
+  .bar a.on { background: #047857; color: #fff; }
+  .bar .sp { flex: 1; }
+  .bar .pdf { width: 100%; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 14px; font-weight: 700; }
+  .bar .pdf a { font-size: 13px; padding: 4px 8px; border-width: 1px; }
+  .bar .help { width: 100%; font-size: 13px; color: #065f46; }
+  .pages { padding: 16px 0 40px; }
+
+  /* 1まい（A4 たて） */
+  .sheet { --fs: 15pt; width: 210mm; height: 297mm; margin: 0 auto 16px; background: #fff; padding: 8mm 10mm 9mm; display: flex; flex-direction: column; gap: 2.5mm; overflow: hidden; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,.15); word-break: keep-all; overflow-wrap: anywhere; }
+  .sheet.g3, .sheet.g4 { --fs: 13pt; }
+  .sheet.hat { --fs: 16.5pt; }
+  .sheet.hat.g3, .sheet.hat.g4 { --fs: 14pt; }
+  .inner { flex: 1; display: flex; flex-direction: column; gap: 2.5mm; min-height: 0; justify-content: space-between; }
+  @media print {
+    body { background: #fff; }
+    .bar { display: none; }
+    .pages { padding: 0; }
+    .sheet { margin: 0; box-shadow: none; page-break-after: always; break-after: page; }
+    .sheet:last-child { page-break-after: auto; break-after: auto; }
+  }
+
+  /* 上の 帯：ドラッチ・場所・モンスター */
+  .band { display: flex; align-items: center; gap: 3mm; border: 0.6mm solid var(--pc); background: var(--pb); border-radius: 3mm; padding: 1.5mm 3mm; height: 20mm; flex: none; }
+  .band .dr { width: 16mm; height: 16mm; object-fit: contain; }
+  .band .mon { width: 16mm; height: 16mm; object-fit: contain; margin-left: auto; }
+  .band .t1 { font-size: 10pt; font-weight: 700; line-height: 1.3; }
+  .band .t2 { font-size: 15pt; font-weight: 700; line-height: 1.3; }
+  .band .t3 { font-size: 11pt; font-weight: 700; line-height: 1.3; }
+  .band .grp { font-weight: 400; font-size: 10pt; }
+  .band .no { font-size: 9pt; color: #555; text-align: right; line-height: 1.3; }
+  .stamp { position: absolute; top: 9.5mm; right: 52mm; transform: rotate(8deg); border: 1mm solid #dc2626; color: #dc2626; border-radius: 3mm; padding: 0 4mm; font-size: 16pt; font-weight: 700; background: #fff; }
+
+  /* 学年・名前・日・できたかな */
+  .info { display: flex; gap: 2mm; height: 13mm; flex: none; }
+  .box { border: 0.6mm solid #111; border-radius: 3mm; display: flex; align-items: center; padding: 0 3mm; font-size: 12pt; font-weight: 700; white-space: nowrap; }
+  .box .blank { display: inline-block; width: 10mm; }
+  .box.name { flex: 1; }
+  .box .lbl { font-size: 10.5pt; margin-right: 2mm; }
+  .self { gap: 1.5mm; font-size: 10pt; }
+  .self .f { font-size: 13pt; width: 9mm; height: 9mm; border: 0.4mm dashed #888; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
+
+  /* 問題の まとまり */
+  .sec { border: 0.5mm solid #111; border-radius: 3mm; padding: 2mm 3.5mm 2.5mm; display: flex; flex-direction: column; }
+  .lead { display: flex; align-items: center; gap: 2.5mm; font-size: calc(var(--fs) * 0.9); font-weight: 700; margin-bottom: 1.5mm; line-height: 1.5; }
+  .lead .n { flex: none; border: 0.5mm solid #111; border-radius: 50%; width: 8mm; height: 8mm; display: inline-flex; align-items: center; justify-content: center; font-size: 12pt; background: var(--pb); }
+  .lead .ex { font-weight: 400; font-size: calc(var(--fs) * 0.72); color: #444; }
+
+  /* ① せんで むすぶ */
+  .match { position: relative; display: grid; grid-template-columns: 62mm 24mm 1fr; row-gap: 1.5mm; align-items: center; }
+  .match .w { display: flex; align-items: center; justify-content: space-between; gap: 2mm; border: 0.4mm solid #999; border-radius: 2.5mm; padding: 0.8mm 2.5mm; min-height: 11mm; }
+  .match .w .t { font-size: var(--fs); font-weight: 700; line-height: 1.35; }
+  .match .w .kj { display: block; font-size: calc(var(--fs) * 0.62); font-weight: 400; color: #444; line-height: 1.6; }
+  .match .m { display: flex; align-items: center; gap: 2mm; border: 0.4mm solid #999; border-radius: 2.5mm; padding: 0.8mm 2.5mm 0.8mm 2mm; min-height: 11mm; font-size: calc(var(--fs) * 0.82); line-height: 1.45; }
+  .dot { flex: none; width: 3.2mm; height: 3.2mm; border-radius: 50%; background: #111; }
+  .match svg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+
+  /* ② ○を つける */
+  .pick { display: flex; flex-direction: column; gap: 1.6mm; }
+  .pick .row { display: flex; align-items: center; gap: 2.5mm; }
+  .pick .q { flex: 1; font-size: calc(var(--fs) * 0.82); line-height: 1.45; }
+  .pick .ch { flex: none; display: flex; gap: 1.5mm; }
+  .pick .o { font-size: calc(var(--fs) * 0.86); font-weight: 700; border: 0.4mm solid #999; border-radius: 6mm; padding: 0.6mm 2.6mm; white-space: nowrap; line-height: 1.45; }
+  .pick .o.ok { border-color: #dc2626; outline: 0.5mm solid #dc2626; color: #dc2626; }
+  /* えらぶ ことばが ながい とき（ことわざ など）は、いみの 下に ならべる */
+  .pick .row { flex-wrap: wrap; row-gap: 0.8mm; }
+  .pick .q { flex: 1 1 55mm; }
+  .pick .ch { flex: 0 1 auto; flex-wrap: wrap; justify-content: flex-end; row-gap: 1mm; margin-left: auto; }
+  .qn { flex: none; font-weight: 700; font-size: calc(var(--fs) * 0.82); min-width: 7mm; white-space: nowrap; }
+
+  /* ③ ぶんに かく */
+  .bank { display: flex; flex-wrap: wrap; gap: 1.5mm 3mm; border: 0.5mm dashed #555; border-radius: 3mm; padding: 1.5mm 3mm; margin-bottom: 2mm; background: var(--pb); }
+  .bank span { font-size: var(--fs); font-weight: 700; line-height: 1.5; }
+  .fill { display: flex; flex-direction: column; gap: 1.6mm; }
+  .fill .row { display: flex; align-items: baseline; gap: 1mm; }
+  .fill .s { flex: 1; font-size: calc(var(--fs) * 0.86); line-height: 2.05; }
+  .blk { position: relative; display: inline-block; vertical-align: middle; height: 1.75em; border: 0.45mm solid #111; border-radius: 1.5mm; margin: 0 0.3em; text-align: center; line-height: 1.7em; font-weight: 700; }
+  .blk b { position: absolute; left: 0; right: 0; top: 0; color: #dc2626; font-size: 0.9em; white-space: nowrap; }  /* こたえを 入れても 字の 大きさが かわらない ように */
+  /* はってん */
+  .htag { display: inline-block; margin-left: 2mm; font-size: 10pt; border: 0.5mm solid #111; border-radius: 2mm; padding: 0 2mm; background: #fef3c7; vertical-align: middle; }
+  .use { display: flex; flex-direction: column; gap: 2mm; }
+  .uq { border-top: 0.3mm dashed #bbb; padding-top: 1.4mm; }
+  .uq:first-child { border-top: 0; padding-top: 0; }
+  .uw { display: flex; align-items: baseline; gap: 1.5mm; margin-bottom: 0.6mm; }
+  .uw .t { font-size: var(--fs); font-weight: 700; }
+  .uw .kj { font-size: calc(var(--fs) * 0.62); color: #444; }
+  .us { display: flex; align-items: center; gap: 2mm; margin-left: 9mm; font-size: calc(var(--fs) * 0.84); line-height: 1.6; }
+  .us .mk { flex: none; width: 7mm; height: 7mm; border: 0.4mm solid #999; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 10pt; font-weight: 700; }
+  .us .mk.ok { border-color: #dc2626; outline: 0.6mm solid #dc2626; color: #dc2626; }
+  .make .pickw { display: flex; align-items: center; gap: 3mm; font-size: calc(var(--fs) * 0.86); font-weight: 700; margin-bottom: 1mm; }
+  .make .pbox { display: inline-block; min-width: 60mm; height: 9mm; border: 0.45mm solid #111; border-radius: 1.5mm; padding: 0 2mm; line-height: 9mm; font-size: calc(var(--fs) * 0.86); }
+  .make .lines .ln { height: 13mm; border-bottom: 0.4mm solid #555; font-size: calc(var(--fs) * 0.9); padding: 4mm 1mm 0; }
+  .make .rei { font-size: calc(var(--fs) * 0.72); margin-top: 1.5mm; }
+  .foot { position: absolute; bottom: 3mm; left: 10mm; right: 10mm; display: flex; justify-content: space-between; font-size: 8pt; color: #888; }
+</style>
+</head>
+<body>
+<div class="bar" id="bar"></div>
+<div class="pages" id="pages"></div>
+<script src="../kotoba/data/kotoba.js"></script>
+<script>
+(function () {
+  var D = window.KOTOBA_DATA;
+  var IMG = '../kotoba/img/';
+  var PLACE = {}; D.PLACES.forEach(function (p) { PLACE[p.id] = p; });
+  var WORD = {}; D.WORDS.forEach(function (w) { WORD[w.w] = w; });
+  var GN = ['', '1ねんせい', '2ねんせい', '3ねんせい', '4ねんせい'];
+  var KUMI = { A: '1くみ', B: '2くみ' };
+  var NUM = ['(1)', '(2)', '(3)', '(4)', '(5)'];
+
+  // 1まい ＝ 1つの 場所の 1くみ（5語）。学年ごとに ばんごうを つける
+  var SHEETS = [];
+  D.CHIHOU.forEach(function (c) {
+    var n = 0;
+    c.places.forEach(function (pid) {
+      ['A', 'B'].forEach(function (k) {
+        var ws = D.WORDS.filter(function (w) { return w.p === pid; });
+        SHEETS.push({ g: c.g, c: c, p: PLACE[pid], k: k, no: ++n, words: k === 'A' ? ws.slice(0, 5) : ws.slice(5, 10) });
+      });
+    });
+  });
+  // PDF の ファイル（tools/make-pdf.js が 使います）
+  window.KOTOBAPRINT_FILES = [];
+  [1, 2, 3, 4].forEach(function (g) {
+    window.KOTOBAPRINT_FILES.push({ g: g, ans: 0, file: 'ことばワークシート_' + g + 'ねん.pdf' });
+    window.KOTOBAPRINT_FILES.push({ g: g, ans: 1, file: 'ことばワークシート_' + g + 'ねん_こたえ.pdf' });
+  });
+  [1, 2, 3, 4].forEach(function (g) {
+    window.KOTOBAPRINT_FILES.push({ g: g, ans: 0, t: 'h', file: 'ことばワークシート_' + g + 'ねん_はってん.pdf' });
+    window.KOTOBAPRINT_FILES.push({ g: g, ans: 1, t: 'h', file: 'ことばワークシート_' + g + 'ねん_はってん_こたえ.pdf' });
+  });
+
+  var Q = new URLSearchParams(location.search);
+  var g = Math.min(4, Math.max(1, Number(Q.get('g')) || 1));
+  var pSel = Q.get('p') || 'all';
+  var kSel = Q.get('k') === 'A' || Q.get('k') === 'B' ? Q.get('k') : 'all';
+  var ans = Q.get('ans') === '1';
+  var hat = Q.get('t') === 'h'; // はってん（ただしい つかいかた）
+
+  var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var bw = function (w) { return w.bw || w.w; };
+  var fillBun = function (w) { return w.bun.replace('（　）', bw(w)); };
+  var KANA = ['ア', 'イ', 'ウ'];
+  // いつも 同じ 順に まぜる（プリントと こたえで 順番が かわらないように）
+  function seeded(str) { var h = 2166136261; for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return function () { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 100000) / 100000; }; }
+  function shuffle(arr, key) { var r = seeded(key), a = arr.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(r() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  // ② の えらぶ ことば：こたえ ＋ まちがいやすい ことば 2つ（はんたい・にている おとを さきに。アプリと おなじ 考え）
+  function choices(w) {
+    var mg = (w.mg || []).filter(function (m) { return WORD[m[0]]; });
+    var first = mg.filter(function (m) { return m[1] === 'h' || m[1] === 'o'; });
+    var rest = mg.filter(function (m) { return !(m[1] === 'h' || m[1] === 'o'); });
+    var two = first.slice(0, 1).concat(rest, first.slice(1)).slice(0, 2).map(function (m) { return m[0]; });
+    return shuffle([w.w].concat(two), 'c' + w.id);
+  }
+
+  // 画面の 上の ボタン
+  var url = function (o) {
+    var q = { g: g, p: pSel, k: kSel, ans: ans ? 1 : 0, t: hat ? 'h' : '' };
+    for (var k in o) q[k] = o[k];
+    var s = '?g=' + q.g;
+    if (q.p !== 'all') s += '&p=' + q.p;
+    if (q.k !== 'all') s += '&k=' + q.k;
+    if (q.t) s += '&t=h';
+    if (q.ans) s += '&ans=1';
+    return s;
+  };
+  var bar = '<h1>🐉 ドラッチの ことばの ワークシート</h1>';
+  [1, 2, 3, 4].forEach(function (x) { bar += '<a class="' + (x === g ? 'on' : '') + '" href="' + url({ g: x, p: 'all', k: 'all' }) + '">' + x + 'ねん</a>'; });
+  var places = D.CHIHOU.find(function (c) { return c.g === g; }).places;
+  bar += '<select id="psel"><option value="all">ばしょ：ぜんぶ</option>' + places.map(function (pid) { return '<option value="' + pid + '"' + (pid === pSel ? ' selected' : '') + '>' + esc(PLACE[pid].icon + ' ' + PLACE[pid].name) + '</option>'; }).join('') + '</select>';
+  bar += '<select id="ksel"><option value="all">くみ：ぜんぶ</option><option value="A"' + (kSel === 'A' ? ' selected' : '') + '>1くみ</option><option value="B"' + (kSel === 'B' ? ' selected' : '') + '>2くみ</option></select>';
+  bar += '<a class="' + (hat ? '' : 'on') + '" href="' + url({ t: '' }) + '">ふつう</a><a class="' + (hat ? 'on' : '') + '" href="' + url({ t: 'h' }) + '">✨ はってん</a>';
+  bar += '<a class="' + (ans ? '' : 'on') + '" href="' + url({ ans: 0 }) + '">もんだい</a><a class="' + (ans ? 'on' : '') + '" href="' + url({ ans: 1 }) + '">こたえ</a>';
+  bar += '<span class="sp"></span><button onclick="window.print()">🖨️ いんさつ・PDF に ほぞん</button>';
+  bar += '<div class="help">「いんさつ」を おして、プリンターを えらぶと 印刷、「PDF に 保存」を えらぶと PDF に なります。用紙は A4（たて）、余白は「なし」に してください。</div>';
+  bar += '<div class="pdf">できあがった PDF：' + window.KOTOBAPRINT_FILES.map(function (f) { return '<a href="pdf/' + encodeURIComponent(f.file) + '" target="_blank">' + esc(f.file.replace('ことばワークシート_', '').replace('.pdf', '')) + '</a>'; }).join('') + '</div>';
+  document.getElementById('bar').innerHTML = bar;
+  document.getElementById('psel').onchange = function (e) { location.search = url({ p: e.target.value }); };
+  document.getElementById('ksel').onchange = function (e) { location.search = url({ k: e.target.value }); };
+
+  function sheet(S) {
+    var p = S.p, ws = S.words;
+    var mon = D.MONSTERS.find(function (m) { return m.p === p.id && m.boss === (S.k === 'B'); });
+    var h = '<div class="sheet g' + S.g + (hat ? ' hat' : '') + '" style="--pc:' + p.color + ';--pb:' + p.bg + '">';
+    if (ans) h += '<div class="stamp">こたえ</div>';
+    h += '<div class="band"><img class="dr" src="' + IMG + 'dracchi.webp" alt="">'
+      + '<div><div class="t1">ドラッチの ことばの ワークシート　' + GN[S.g] + '「' + esc(S.c.name) + '」</div>'
+      + '<div class="t2">' + esc(p.name) + '　' + KUMI[S.k] + (hat ? '<span class="htag">✨ はってん</span>' : '') + '</div>'
+      + '<div class="t3"><span class="grp">' + esc(p.group) + '</span></div></div>'
+      + (mon ? '<img class="mon" src="' + IMG + 'mon_' + mon.id + '.webp" alt="">' : '')
+      + '<div class="no">ばんごう<br><b style="font-size:14pt;color:#111">' + S.no + '</b></div></div>';
+    h += '<div class="info"><div class="box"><span class="blank"></span>ねん</div>'
+      + '<div class="box name"><span class="lbl">なまえ</span></div>'
+      + '<div class="box"><span class="blank"></span>がつ<span class="blank"></span>にち</div>'
+      + '<div class="box self">できたかな？<span class="f">◎</span><span class="f">○</span><span class="f">△</span></div></div>';
+    h += '<div class="inner">';
+    if (hat) return h + hatten(S) + foot(S);
+
+    // ① ことばと いみを せんで むすぶ
+    var order = shuffle(ws.map(function (_, i) { return i; }), 'm' + p.id + S.k);
+    if (order.every(function (x, i) { return x === i; })) order.push(order.shift());
+    h += '<div class="sec"><div class="lead"><span class="n">1</span>ことばと いみを、せんで むすぼう。</div><div class="match">';
+    ws.forEach(function (w, i) {
+      h += '<div class="w" style="grid-column:1;grid-row:' + (i + 1) + '"><span><span class="t">' + esc(w.w) + '</span>'
+        + (w.k ? '<span class="kj">かんじで かくと <ruby>' + esc(w.k) + '<rt>' + esc(w.w.replace('〜', '')) + '</rt></ruby></span>' : '') + '</span><span class="dot l" data-i="' + i + '"></span></div>';
+    });
+    order.forEach(function (x, r) {
+      h += '<div class="m" style="grid-column:3;grid-row:' + (r + 1) + '"><span class="dot r" data-i="' + x + '"></span><span>' + esc(ws[x].mean) + '</span></div>';
+    });
+    h += '</div></div>';
+
+    // ② いみに あう ことばに ○
+    var qs = shuffle(ws, 'p' + p.id + S.k);
+    h += '<div class="sec"><div class="lead"><span class="n">2</span>いみに あう ことばに ○を つけよう。</div><div class="pick">';
+    qs.forEach(function (w, i) {
+      var cs = choices(w);
+      h += '<div class="row"><span class="qn">' + NUM[i] + '</span><span class="q">' + esc(w.mean) + '</span><span class="ch">'
+        + cs.map(function (c) { return '<span class="o' + (ans && c === w.w ? ' ok' : '') + '">' + esc(c) + '</span>'; }).join('') + '</span></div>';
+    });
+    h += '</div></div>';
+
+    // ③ ぶんの（　）に かく
+    var fs = shuffle(ws, 'f' + p.id + S.k);
+    var len = Math.min(13, Math.max.apply(null, ws.map(function (w) { return bw(w).length; })) + 1.5);
+    h += '<div class="sec"><div class="lead"><span class="n">3</span>（　）に あう ことばを、□の なかから えらんで かこう。</div>';
+    h += '<div class="bank">' + ws.map(function (w) { return '<span>' + esc(bw(w)) + '</span>'; }).join('') + '</div><div class="fill">';
+    fs.forEach(function (w, i) {
+      var blank = '<span class="blk" style="width:' + len + 'em">' + (ans ? '<b>' + esc(bw(w)) + '</b>' : '') + '</span>';
+      h += '<div class="row"><span class="qn">' + NUM[i] + '</span><span class="s">' + esc(w.bun).replace('（　）', blank) + '</span></div>';
+    });
+    h += '</div></div>';
+
+    return h + foot(S);
+  }
+  function foot(S) {
+    return '</div><div class="foot"><span>ドラッチと ことばの ぼうけん' + (hat ? '　はってん' : '') + '</span><span>' + GN[S.g] + ' ' + S.no + ' / ' + SHEETS.filter(function (x) { return x.g === S.g; }).length + '</span></div></div>';
+  }
+
+  // はってん：① つかいかたが ただしい 文に ○（アプリの「ただしい つかいかた」と おなじ 文）、② じぶんで 文を つくる
+  function hatten(S) {
+    var p = S.p, ws = S.words;
+    var h = '<div class="sec"><div class="lead"><span class="n">1</span>つかいかたが ただしい ぶんに ○を つけよう。</div><div class="use">';
+    shuffle(ws, 'h' + p.id + S.k).forEach(function (w, i) {
+      var cs = shuffle([{ ok: true, t: fillBun(w) }, { t: w.ng[0] }, { t: w.ng[1] }], 'u' + w.id);
+      h += '<div class="uq"><div class="uw"><span class="qn">' + NUM[i] + '</span><span class="t">' + esc(w.w) + '</span>'
+        + (w.k ? '<span class="kj">（<ruby>' + esc(w.k) + '<rt>' + esc(w.w.replace('〜', '')) + '</rt></ruby>）</span>' : '') + '</div>'
+        + cs.map(function (c, j) { return '<div class="us"><span class="mk' + (ans && c.ok ? ' ok' : '') + '">' + KANA[j] + '</span><span>' + esc(c.t) + '</span></div>'; }).join('') + '</div>';
+    });
+    h += '</div></div>';
+    h += '<div class="sec make"><div class="lead"><span class="n">2</span>□の なかから ことばを 1つ えらんで、ぶんを つくろう。</div>';
+    h += '<div class="bank">' + ws.map(function (w) { return '<span>' + esc(w.w) + '</span>'; }).join('') + '</div>';
+    h += '<div class="pickw">えらんだ ことば<span class="pbox">' + (ans ? '<b class="red">（れい）' + esc(ws[0].w) + '</b>' : '') + '</span></div>';
+    h += '<div class="lines"><div class="ln">' + (ans ? '<b class="red">' + esc(ws[0].ex) + '</b>' : '') + '</div><div class="ln"></div>' + (S.g <= 2 ? '<div class="ln"></div>' : '') + '</div>'; // 1・2年生は 大きな 字で 書くので 3ぎょう
+    if (ans) h += '<div class="rei red">ほかの れい：' + ws.slice(1, 3).map(function (w) { return esc(w.ex); }).join('　') + '</div>';
+    h += '</div>';
+    return h;
+  }
+
+  var list = SHEETS.filter(function (S) { return S.g === g && (pSel === 'all' || S.p.id === pSel) && (kSel === 'all' || S.k === kSel); });
+  document.getElementById('pages').innerHTML = list.map(sheet).join('');
+
+  // 1まいに 入るように、字を すこしずつ 小さく する
+  function fit() {
+    [].forEach.call(document.querySelectorAll('.sheet'), function (sh) {
+      var inner = sh.querySelector('.inner');
+      var fsz = parseFloat(getComputedStyle(sh).getPropertyValue('--fs'));
+      var guard = 0;
+      while (inner.scrollHeight > inner.clientHeight + 1 && fsz > 9 && guard++ < 30) {
+        fsz -= 0.5; sh.style.setProperty('--fs', fsz + 'pt');
+      }
+    });
+  }
+  // こたえ：① に 赤い せんを ひく
+  function lines() {
+    [].forEach.call(document.querySelectorAll('.match'), function (m) {
+      var old = m.querySelector('svg'); if (old) old.remove();
+      if (!ans) return;
+      var box = m.getBoundingClientRect();
+      var s = '<svg xmlns="http://www.w3.org/2000/svg">';
+      [].forEach.call(m.querySelectorAll('.dot.l'), function (a) {
+        var b = m.querySelector('.dot.r[data-i="' + a.dataset.i + '"]');
+        var ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+        s += '<line x1="' + (ra.left + ra.width / 2 - box.left) + '" y1="' + (ra.top + ra.height / 2 - box.top) + '" x2="' + (rb.left + rb.width / 2 - box.left) + '" y2="' + (rb.top + rb.height / 2 - box.top) + '" stroke="#dc2626" stroke-width="2.5" stroke-linecap="round"/>';
+      });
+      m.insertAdjacentHTML('beforeend', s + '</svg>');
+    });
+  }
+  var done = function () { fit(); lines(); document.body.dataset.ready = '1'; };
+  var imgs = [].map.call(document.images, function (im) { return im.complete ? Promise.resolve() : new Promise(function (r) { im.onload = im.onerror = r; }); });
+  Promise.all([document.fonts ? document.fonts.ready : Promise.resolve()].concat(imgs)).then(done);
+  window.addEventListener('beforeprint', lines);
+})();
+</script>
+</body>
+</html>
