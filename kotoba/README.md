@@ -11,6 +11,8 @@
 - 形は、九九・わり算・漢字アプリと同じ「Apps Script だけ」です。子どもは名簿の名前のボタンを押して始めます。
 - ことばのデータと絵は、GitHub Pages（`https://zku0395-ops.github.io/hori/kotoba/`）から読みこみます。Apps Script に貼り付けるファイルを短くするためです。
 
+- 紙で ためす ワークシート（A4たて・こたえつき）は [kotobaprint/](../kotobaprint/README.md) にあります。
+
 ## できること
 
 | 項目 | 内容 |
