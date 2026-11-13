@@ -89,7 +89,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.0.0';
+    const APP_VERSION = '1.0.1';
     const BASE = window.YUME_BASE;
     const IMG = BASE + 'img/';
 
@@ -184,7 +184,6 @@
 
     // ステージ（id は 記録に つかうので かえない）
     const STAGES = [
-      { id: '0', no: '⓪', name: '「〜したい」の ぶん', type: 'order', n: 5, desc: 'ことばを ならべて「〇〇は、〇〇です。」を つくる' },
       { id: '1', no: '①', name: 'りゆうの カード', type: 'card1', n: 5, desc: 'りゆうを カードから 1まい えらぶ' },
       { id: '2', no: '②', name: 'ぶんの おわり', type: 'ending', n: 5, desc: '「からです」と「だからです」を えらぶ' },
       { id: '3', no: '③', name: 'じぶんで かく', type: 'write', n: 3, blanks: ['そのりゆうは、'], desc: 'りゆうを じぶんで かく' },
@@ -257,6 +256,7 @@
       const q = { ...newProgress(), ...(p || {}) };
       ['cards', 'cleared', 'hana', 'hanaSeen'].forEach(k => { if (!q[k] || typeof q[k] !== 'object') q[k] = {}; });
       q.stars = Number(q.stars) || 0;
+      if (q.part && !(q.part.st in STAGE)) q.part = null; // なくした ステージ⓪の つづきは すてる
       return q;
     }
     const isCleared = (p, id) => !!p.cleared[id];
@@ -599,49 +599,6 @@
     // =====================================================================
     //  8. もんだい
     // =====================================================================
-    // ⓪ ことばを ならべて「かいたい どうぶつは、いぬです。」
-    function QOrder({ it, onDone }) {
-      const talk = useTalk();
-      const h = useHint();
-      const tp = TOPIC[it.t];
-      const target = useMemo(() => [{ t: tp.head }, { t: 'は、', j: 1 }, { t: it.n }, { t: 'です。', j: 1 }].map((c, i) => ({ ...c, i })), []);
-      const [cards] = useState(() => shuffle(target));
-      const [k, setK] = useState(0);
-      const [shake, setShake] = useState(-1);
-      const tips = [`なにの おはなしかな？「${tp.head}」から はじめよう。`, `「${tp.head}」の あとには、ちいさい ことばが くるよ。`, `${tp.head}は、なにかな？`, 'さいごは「です。」で おわるよ。'];
-      useEffect(() => { talk.say(`ことばの カードを ならべて、「${tp.head}は、${it.n}です。」の ぶんを つくろう。`); }, []);
-      useEffect(() => { if (h.level === 1) talk.say(tips[Math.min(k, 3)]); if (h.level === 2) talk.say('うすい もじの とおりに ならべて みよう。'); if (h.level === 3) talk.say('ひかって いる カードを おしてね。'); }, [h.level]);
-      const tap = (c) => {
-        if (c.i < k) return;
-        if (c.i === k) {
-          Sound.put(); const n = k + 1; setK(n);
-          if (n === 4) { talk.say(sent1(it), { mood: 'happy' }); setTimeout(() => onDone(h.rec({ answer: sent1(it) })), 1600); }
-          return;
-        }
-        h.picks.current.push(`${c.t}（ちがう）`);
-        h.addMiss('ことばの じゅんばん');
-        setShake(c.i); setTimeout(() => setShake(-1), 500);
-        talk.say(`「${c.t}」では ないよ。${tips[k]}`, { mood: 'think' });
-      };
-      const style = (c) => ({ background: c.j ? '#dcfce7' : tp.light, borderColor: c.j ? '#16a34a' : tp.color, minWidth: c.j ? '3rem' : '5rem' });
-      return (
-        <div className="flex flex-col items-center gap-5 w-full">
-          <div className="flex flex-wrap gap-2 items-center justify-center bg-white rounded-2xl p-4 border-4 border-pink-200 w-full">
-            {target.map((c, i) => i < k
-              ? <span key={i} className={`rcard ${c.j ? 'text-2xl' : ''}`} style={style(c)}><R>{c.t}</R></span>
-              : <span key={i} className="slot text-3xl font-bold text-stone-300">{h.level >= 2 ? <R>{c.t}</R> : (i + 1)}</span>)}
-          </div>
-          <div className="flex flex-wrap gap-4 justify-center min-h-[4rem]">
-            {cards.map(c => c.i < k ? null : (
-              <button key={c.i} onClick={() => tap(c)} className={`rcard btn3d ${shake === c.i ? 'shake' : ''} ${h.level >= 3 && c.i === k ? 'glow' : ''}`}
-                style={{ ...style(c), fontSize: c.j ? '1.5rem' : undefined }}><R>{c.t}</R></button>
-            ))}
-          </div>
-          <HintBtn h={h} />
-        </div>
-      );
-    }
-
     // ぶんを みせる（1つめは できて いる ぶん、2つめは つくって いる ぶん）
     function TwoLines({ it, children }) {
       return (
@@ -1034,7 +991,7 @@
         if (set.happyo) setShow({ s1, s2, next, fly: false });
         else { Sound.seikai(); setSeikai(true); setTimeout(() => { setSeikai(false); setShow({ s1, s2, next, fly: true }); }, 1300); }
       };
-      const Q = { order: QOrder, card1: QCard1, ending: QEnding, write: QWrite, all: QAll }[st.type];
+      const Q = { card1: QCard1, ending: QEnding, write: QWrite, all: QAll }[st.type];
       return (
         <div className={`w-full max-w-5xl flex flex-col ${phase === 'q' ? 'gap-1.5 pt-1' : 'gap-3'} px-3 pb-0 relative`}>
           <div className="flex items-center gap-2">
