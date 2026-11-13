@@ -78,7 +78,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.8.0';
+    const APP_VERSION = '1.9.0';
     const BASE = window.KAKE_BASE;
     const IMG = BASE + 'img/';
     let D = {}, PLACES = [], MONSTERS = [], JOBS = [], FORMS = [], SHOPS = [], SHUGYO = [], ALL_ITEMS = [];
@@ -304,7 +304,7 @@
       used.add(key(p));
       return p;
     }
-    const problemCount = (spec, s) => TWO_DIGIT_SPECS.includes(spec) ? (Number(s.count2) || 3) : (Number(s.count) || 5);
+    const problemCount = (spec, s) => TWO_DIGIT_SPECS.includes(spec) ? (Number(s.count2) || 10) : (Number(s.count) || 10);
     function makeSet(spec, n) { const used = new Set(); return Array.from({ length: n }, () => makeProblem(spec, used)); }
 
     // a × b の ひっ算を 1マスずつの てじゅんに する
@@ -492,7 +492,7 @@
     //  6. データの ほぞん（スプレッドシート／おためしモード）
     // =====================================================================
     const LOG_HEADER = ['日時', 'なまえ', 'ばしょ', 'たたかい', 'もんだい', 'こたえ', 'けっか', 'まちがい', 'ヒント', 'まちがいの しゅるい', 'まちがえて いれた かず', 'びょう', 'ID'];
-    const DEFAULT_SETTINGS = { rate: 0.8, font: 1, count: 5, count2: 3, kakashi: 10, hint: true, yomi: true, sound: true };
+    const DEFAULT_SETTINGS = { rate: 0.8, font: 1, count: 10, count2: 10, kakashi: 10, hint: true, yomi: true, sound: true };
 
     // まとめ（先生用）— コード.gs の aggregate_ と おなじ しくみ
     const emptyStu = () => ({ count: 0, ok: 0, miss: 0, hint: 0, last: '', places: {}, kinds: {}, wrongs: [] });
@@ -2106,8 +2106,8 @@
                 <label className="flex items-center gap-3">よみあげの はやさ：<input type="range" min="0.5" max="1.2" step="0.05" value={s.rate} onChange={e => setS({ ...s, rate: Number(e.target.value) })} /> {s.rate}倍
                   <button className="border rounded px-2" onClick={() => { Speech.rate = s.rate; Speech.say('わしは ケンジャの カケル。いっしょに ひっ算の ぼうけんに でよう。'); }}>ためす</button></label>
                 <div>もじの おおきさ：{opt('font', [[0.9, 'ちいさめ'], [1, 'ふつう'], [1.15, 'おおきめ'], [1.3, 'とても おおきい']])}</div>
-                <div>1回の たたかいの 問題数（かける数が 1けた）：{opt('count', [[3, '3もん'], [5, '5もん']])}</div>
-                <div>1回の たたかいの 問題数（かける数が 2けた）：{opt('count2', [[2, '2もん'], [3, '3もん'], [5, '5もん']])}</div>
+                <div>1回の たたかいの 問題数（かける数が 1けた）：{opt('count', [[3, '3もん'], [5, '5もん'], [10, '10もん']])}</div>
+                <div>1回の たたかいの 問題数（かける数が 2けた）：{opt('count2', [[2, '2もん'], [3, '3もん'], [5, '5もん'], [10, '10もん']])}</div>
                 <div>かかし れんぞくの 問題数：{opt('kakashi', [[5, '5もん'], [10, '10もん']])}</div>
                 <div>ヒントボタン：{opt('hint', [[true, 'だす'], [false, 'ださない']])} <span className="text-sm text-slate-500">（ださないときも、3回まちがえると答えのマスがうすく出ます）</span></div>
                 <div>1マスごとの よみあげ：{opt('yomi', [[true, 'する'], [false, 'しない']])} <span className="text-sm text-slate-500">（しないときは、文字だけ出します）</span></div>

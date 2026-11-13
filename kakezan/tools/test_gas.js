@@ -72,7 +72,19 @@ ok(['名簿', 'きろく', 'まとめ', 'せってい'].every(n => sheets[n]), '
 ok(sheets['きろく'].data[0].join(',') === '日時,なまえ,ばしょ,たたかい,もんだい,こたえ,けっか,まちがい,ヒント,まちがいの しゅるい,まちがえて いれた かず,びょう,ID', 'きろくの 見出し');
 sheets['名簿'].getRange(2, 1, 2, 1).setValues([['たろう'], ['はなこ']]);
 const init = ctx.getInitData();
-ok(init.students.length === 2 && init.settings.count === 5 && init.settings.count2 === 3 && init.settings.kakashi === 10 && init.settings.rate === 0.8 && init.settings.hint === true && init.settings.yomi === true && init.settings.sound === true, 'はじめの 設定（5もん・3もん・10もん・0.8倍・ヒント・よみあげ・おと）');
+ok(init.students.length === 2 && init.settings.count === 10 && init.settings.count2 === 10 && init.settings.kakashi === 10 && init.settings.rate === 0.8 && init.settings.hint === true && init.settings.yomi === true && init.settings.sound === true, 'はじめの 設定（10もん・10もん・10もん・0.8倍・ヒント・よみあげ・おと）');
+
+// 前の版の せってい シート（5もん・3もん）は 10もんに なる。先生が かえた かずは のこす
+{
+  const set = sheets['せってい'];
+  const row = (label) => set.data.findIndex(r => r[0] === label);
+  const r1 = row('1回の もんだいの かず（かける数が 1けた）'), r2 = row('1回の もんだいの かず（かける数が 2けた）');
+  set.data[r1][1] = '5'; set.data[r1][2] = '3・5';
+  set.data[r2][1] = '2'; set.data[r2][2] = '2・3・5';
+  const m = ctx.getInitData().settings;
+  ok(m.count === 10 && m.count2 === 2 && String(set.data[r1][2]).indexOf('10') >= 0, '前の版の 5もんは 10もんに、先生が かえた 2もんは そのまま');
+  set.data[r2][1] = '10';
+}
 
 // 2. きろくを うけとる
 const rec = (id, o = {}) => Object.assign({ id, place: 'Lv2 みずうみの ほとり', battle: 'ざこ ①', prob: '27×3', ans: 81, result: '○', miss: 0, hint: 0, kinds: '', inputs: '', secs: 20 }, o);
