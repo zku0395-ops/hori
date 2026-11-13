@@ -14,8 +14,8 @@ const IMG_FOLDER = 'ひっさんクエスト え';
 const SETTING_ROWS = [
   ['rate', 'よみあげの はやさ', '0.8', '1がふつう。小さいほどゆっくり（0.5〜1.2）'],
   ['font', 'もじの おおきさ', '1', '0.9（ちいさめ）・1（ふつう）・1.15（おおきめ）・1.3（とても おおきい）'],
-  ['count', '1回の もんだいの かず（かける数が 1けた）', '5', '3・5'],
-  ['count2', '1回の もんだいの かず（かける数が 2けた）', '3', '2・3・5'],
+  ['count', '1回の もんだいの かず（かける数が 1けた）', '10', '3・5・10（モンスター 1ぴきに この かず）'],
+  ['count2', '1回の もんだいの かず（かける数が 2けた）', '10', '2・3・5・10（モンスター 1ぴきに この かず）'],
   ['kakashi', 'かかし れんぞくの もんだいの かず', '10', '5・10'],
   ['hint', 'ヒントボタン', 'だす', 'だす／ださない（ださないときも、3回まちがえると答えがうすく出ます）'],
   ['yomi', '1マスごとの よみあげ', 'する', 'する／しない'],
@@ -23,7 +23,9 @@ const SETTING_ROWS = [
 ];
 // オン・オフの 設定の ことば（オンの ことば、オフの ことば）
 const ONOFF = { sound: ['ならす', 'ならさない'], hint: ['だす', 'ださない'], yomi: ['する', 'しない'] };
-const NUM_CHOICES = { count: [3, 5], count2: [2, 3, 5], kakashi: [5, 10] };
+const NUM_CHOICES = { count: [3, 5, 10], count2: [2, 3, 5, 10], kakashi: [5, 10] };
+// 前の版の「せってい」シート（せつめいが むかしの まま）は、はじめの かず（5・3）を 10 に かえる
+const OLD_SETTING_NOTES = { count: ['3・5', '5'], count2: ['2・3・5', '3'] };
 // 先生が 変える ところ（子どもの 端末の 古い しんちょくで 上書きしない）
 const TEACHER_KEYS = ['unlockAll', 'hatten', 'range', 'hero'];
 
@@ -117,7 +119,21 @@ function settingsMap_() {
   return map;
 }
 
+function migrateSettings_() {
+  const sh = ss_().getSheetByName(SHEET.SET);
+  const values = sh.getDataRange().getValues();
+  Object.keys(OLD_SETTING_NOTES).forEach(function (k) {
+    const row = SETTING_ROWS.filter(function (r) { return r[0] === k; })[0];
+    for (let i = 0; i < values.length; i++) {
+      if (String(values[i][0]).trim() !== row[1] || String(values[i][2]).trim() !== OLD_SETTING_NOTES[k][0]) continue;
+      if (String(values[i][1]).trim() === OLD_SETTING_NOTES[k][1]) sh.getRange(i + 1, 2).setValue(row[2]); // 先生が かえて いない ときだけ
+      sh.getRange(i + 1, 3).setValue(row[3]);
+    }
+  });
+}
+
 function appSettings_() {
+  migrateSettings_();
   const m = settingsMap_();
   const get = function (key) {
     const row = SETTING_ROWS.filter(function (r) { return r[0] === key; })[0];
