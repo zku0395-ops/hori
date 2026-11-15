@@ -108,6 +108,8 @@ ruby rt { font-family: var(--ui); }
 .pin.locked { filter: grayscale(1) opacity(.8); }
 .pin.locked .pi { animation: none; }
 .pin.now .pl { border-color: #e2574c; box-shadow: 0 3px 0 #9e2f27, 0 0 0 4px rgba(226,87,76,.35); }
+.island-tabs { display: flex; gap: .5rem; justify-content: center; padding: .5rem .5rem 0; flex-wrap: wrap; }
+.map > svg.road { pointer-events: none; }
 .meter-row { display: flex; align-items: center; justify-content: center; gap: .6rem; color: #fff; font-weight: 700; padding: 0 0 .5rem; }
 .meter { width: min(300px, 46vw); height: 16px; background: rgba(0,0,0,.3); border-radius: 99px; overflow: hidden; border: 2px solid #fff; }
 .meter i { display: block; height: 100%; background: linear-gradient(90deg, #ff9a9a, #ffd36b, #8ee07f, #6ec6ff, #b38bff); }
@@ -331,30 +333,42 @@ ruby rt { font-family: var(--ui); }
 <div id="app"><div style="padding:60px;text-align:center;font-size:28px;color:#fff;font-weight:bold;">じゅんび ちゅう…</div></div>
 <div id="modal" class="modal hidden"></div>
 
-<!-- 漢字・例文・書き順は kanji1 から、ぼうけんの データと 絵は この フォルダから（GitHub Pages）読みこみます -->
+<!-- 漢字・例文・書き順は kanji1・kanji2・kanji3 から、ぼうけんの データと 絵は この フォルダから（GitHub Pages）読みこみます -->
 <script>
 (function () {
   var h = location.hostname;
   var local = location.protocol === 'file:' || /github\.io$/.test(h) || h === 'localhost' || h === '127.0.0.1';
-  window.KQ_BASE = local ? '' : 'https://zku0395-ops.github.io/hori/kanjiquest/';
-  window.K1_BASE = local ? '../kanji1/' : 'https://zku0395-ops.github.io/hori/kanji1/';
-  var V = '1';
-  var files = [window.K1_BASE + 'data/mondai.js', window.K1_BASE + 'data/strokes.js', window.KQ_BASE + 'data/quest.js'];
-  window.KQ_READY = Promise.all(files.map(function (src) {
+  var ROOT = local ? '../' : 'https://zku0395-ops.github.io/hori/';
+  window.KQ_BASE = ROOT + 'kanjiquest/';
+  var V = '2';
+  var load = function (src) {
     return new Promise(function (ok, ng) {
       var s = document.createElement('script');
       s.src = src + '?v=' + V;
       s.onload = ok; s.onerror = function () { ng(new Error(src)); };
       document.head.appendChild(s);
     });
-  }));
+  };
+  // どの 学年も window.KANJI_DATA に 書くので、1学年ずつ 読んで とっておく
+  window.KQ_GRADES = {}; window.KQ_STROKES = {};
+  window.KQ_READY = [1, 2, 3].reduce(function (pr, g) {
+    return pr.then(function () {
+      window.KANJI_DATA = null; window.KANJI_STROKES = null;
+      return Promise.all([load(ROOT + 'kanji' + g + '/data/mondai.js'), load(ROOT + 'kanji' + g + '/data/strokes.js')]).then(function () {
+        window.KQ_GRADES[g] = window.KANJI_DATA;
+        Object.keys(window.KANJI_STROKES || {}).forEach(function (k) { window.KQ_STROKES[k] = window.KANJI_STROKES[k]; });
+      });
+    });
+  }, Promise.resolve()).then(function () {
+    return Promise.all([load(window.KQ_BASE + 'data/quest.js'), load(window.KQ_BASE + 'data/imglist.js').catch(function () {})]);
+  });
 })();
 </script>
 
 <script>
 (function () {
   'use strict';
-  const APP_VERSION = '1.0.1';
+  const APP_VERSION = '1.1.0';
   const app = document.getElementById('app');
   const modal = document.getElementById('modal');
   const $ = (s) => document.querySelector(s);
@@ -370,7 +384,8 @@ ruby rt { font-family: var(--ui); }
     del(k) { try { localStorage.removeItem(k); } catch (e) { /* noop */ } },
   };
 
-  let KANJI, STAGES, STROKES, Q;
+  let KANJI, STAGES, STROKES, Q, STAGE_MAP = {}, GRADE_KANJI = {};
+  const monImg = (sid) => 'mon_' + sid.replace('-', '_');
 
   /* =====================================================================
      1. わざ（問題の しゅるい）… この じゅんばんで つかえるように なります
@@ -442,7 +457,7 @@ ruby rt { font-family: var(--ui); }
       const old = parseProgress(d.progress[p.name]);
       const neu = parseProgress(p.progress);
       if (!old.t || neu.t >= old.t) {
-        if (old.flagT && old.flagT > neu.t) { neu.unlockAll = old.unlockAll; neu.flagT = old.flagT; }
+        if (old.flagT && old.flagT > neu.t) { ['unlockAll', 'open_g2', 'open_g3'].forEach((k) => { neu[k] = old[k]; }); neu.flagT = old.flagT; }
         if (old.goldT && old.goldT > neu.t) { neu.gold = old.gold; neu.goldT = old.goldT; }
         d.progress[p.name] = JSON.stringify(neu);
       }
@@ -540,8 +555,11 @@ ruby rt { font-family: var(--ui); }
   }
   const stInfo = (id) => P.st[id] || (P.st[id] = { lv: 1, clear: 0, done: false });
   const areaOf = (sid) => Q.AREAS.find((a) => a.stages.includes(sid) || a.boss === sid);
-  const stageDef = (sid) => STAGES.find((s) => s.id === sid);
-  const isBoss = (sid) => /^r/.test(sid);
+  const stageDef = (sid) => STAGE_MAP[sid];
+  const isBoss = (sid) => !!(STAGE_MAP[sid] && STAGE_MAP[sid].type === 'review');
+  const gradeAreas = (g) => Q.AREAS.filter((a) => a.grade === g);
+  // しまが ひらいて いるか（1年生は いつも。2・3年生は 先生が ひらく）
+  const islandOpen = (g) => g === 1 || P.unlockAll || !!P['open_g' + g];
   const stageKanji = (sid) => {
     const st = stageDef(sid);
     if (st.type === 'review') return st.from.flatMap((x) => stageDef(x).kanji);
@@ -558,8 +576,9 @@ ruby rt { font-family: var(--ui); }
   }
   function areaOpen(a) {
     if (P.unlockAll) return true;
-    const i = Q.AREAS.indexOf(a);
-    return i === 0 || stageDone(Q.AREAS[i - 1].boss);
+    if (!islandOpen(a.grade)) return false;
+    const list = gradeAreas(a.grade), i = list.indexOf(a);
+    return i === 0 || stageDone(list[i - 1].boss);
   }
   // つかえる わざ
   function wazaOf(sid) {
@@ -570,8 +589,8 @@ ruby rt { font-family: var(--ui); }
   const titleOf = () => { const n = clearedCount(); let t = Q.TITLES[0][1]; Q.TITLES.forEach(([c, name]) => { if (n >= c) t = name; }); return t; };
   const cardCount = () => Object.keys(P.cards).length;
   const heroDef = () => Q.HEROES.find((h) => h.id === P.hero) || Q.HEROES[0];
-  function currentStageId() {
-    for (const a of Q.AREAS) {
+  function currentStageId(g) {
+    for (const a of (g ? gradeAreas(g) : Q.AREAS)) {
       for (const sid of a.stages.concat([a.boss])) if (stageOpen(sid) && !stageDone(sid)) return sid;
     }
     return null;
@@ -582,11 +601,12 @@ ruby rt { font-family: var(--ui); }
      ===================================================================== */
   const IMG = {};
   function imgNames() {
-    const n = ['title', 'world_map', 'fude', 'story_dark'];
+    const n = ['title', 'fude', 'story_dark'];
+    Q.ISLANDS.forEach((i) => n.push(i.map));
     Q.SHOP.forEach((c) => c.items.forEach((it) => n.push('item_' + it.id)));
     Q.HEROES.forEach((h) => n.push(h.img));
     Q.AREAS.forEach((a) => n.push('field_' + a.id, 'bg_' + a.id));
-    Object.keys(Q.MON).forEach((id) => n.push('mon_' + id));
+    Object.keys(Q.MON).forEach((id) => n.push(monImg(id)));
     return n;
   }
   // img/<名前>.webp → なければ .png → .jpg
@@ -603,7 +623,12 @@ ruby rt { font-family: var(--ui); }
       next(0);
     });
   }
-  const preload = () => Promise.race([Promise.all(imgNames().map(tryLoad)), wait(6000)]);
+  // data/imglist.js（tools/check.js が 作る 絵の 一覧）が あれば、さがさずに つかう
+  const preload = () => {
+    const list = window.KQ_IMG;
+    if (list) { Object.keys(list).forEach((n) => { IMG[n] = window.KQ_BASE + 'img/' + n + '.' + list[n]; }); return Promise.resolve(); }
+    return Promise.race([Promise.all(imgNames().map(tryLoad)), wait(6000)]);
+  };
 
   function shade(hex, amt) {
     const n = parseInt(hex.slice(1), 16);
@@ -624,15 +649,15 @@ ruby rt { font-family: var(--ui); }
       default: body = '<path d="M24 170 C14 118 50 52 100 52 C150 52 186 118 176 170 Z"/>';
     }
     return `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-      <defs><radialGradient id="g_${id}" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="${l}"/><stop offset=".6" stop-color="${c}"/><stop offset="1" stop-color="${d}"/></radialGradient></defs>
+      <defs><radialGradient id="g_${id.replace('-', '_')}" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="${l}"/><stop offset=".6" stop-color="${c}"/><stop offset="1" stop-color="${d}"/></radialGradient></defs>
       <ellipse cx="100" cy="186" rx="60" ry="9" fill="rgba(0,0,0,.18)"/>
-      ${extra}<g fill="url(#g_${id})" stroke="${d}" stroke-width="5" stroke-linejoin="round">${body}</g>
+      ${extra}<g fill="url(#g_${id.replace('-', '_')})" stroke="${d}" stroke-width="5" stroke-linejoin="round">${body}</g>
       <ellipse cx="78" cy="112" rx="15" ry="18" fill="#fff"/><ellipse cx="122" cy="112" rx="15" ry="18" fill="#fff"/>
       <circle cx="81" cy="116" r="8" fill="#222"/><circle cx="125" cy="116" r="8" fill="#222"/>
       <circle cx="84" cy="112" r="3" fill="#fff"/><circle cx="128" cy="112" r="3" fill="#fff"/>
       <path d="M86 142 Q100 154 114 142" stroke="#222" stroke-width="5" fill="none" stroke-linecap="round"/></svg>`;
   }
-  const monsterHTML = (id) => IMG['mon_' + id] ? `<img src="${IMG['mon_' + id]}" alt="${esc(Q.MON[id].name)}">` : monsterSVG(id);
+  const monsterHTML = (id) => IMG[monImg(id)] ? `<img src="${IMG[monImg(id)]}" alt="${esc(Q.MON[id].name)}" loading="lazy">` : monsterSVG(id);
 
   function heroSVG(h) {
     const c = h.color, d = shade(c, -50);
@@ -662,7 +687,7 @@ ruby rt { font-family: var(--ui); }
       const e = (cat, cls) => { const it = P.eq[cat] && itemById(P.eq[cat]); return it ? `<span class="eq eq-${cls}">${itemIcon(it)}</span>` : ''; };
       eq = e('hat', 'hat') + e('weapon', 'weapon') + e('pet', 'pet');
     }
-    const AURA = { aura1: 'radial-gradient(closest-side, rgba(255,226,90,.95), rgba(255,200,40,.4) 60%, transparent)', aura2: 'radial-gradient(closest-side, rgba(255,140,60,.95), rgba(230,60,30,.45) 60%, transparent)', aura3: 'radial-gradient(closest-side, rgba(170,230,255,.95), rgba(80,170,240,.45) 60%, transparent)', aura4: 'radial-gradient(closest-side, rgba(255,255,255,.7), transparent), conic-gradient(#ff7a7a, #ffd36b, #8ee07f, #6ec6ff, #b38bff, #ff7a7a)', aura5: 'radial-gradient(closest-side, rgba(240,200,255,.95), rgba(170,110,240,.5) 60%, transparent)' };
+    const AURA = { aura1: 'radial-gradient(closest-side, rgba(255,226,90,.95), rgba(255,200,40,.4) 60%, transparent)', aura2: 'radial-gradient(closest-side, rgba(255,140,60,.95), rgba(230,60,30,.45) 60%, transparent)', aura3: 'radial-gradient(closest-side, rgba(170,230,255,.95), rgba(80,170,240,.45) 60%, transparent)', aura4: 'radial-gradient(closest-side, rgba(255,255,255,.7), transparent), conic-gradient(#ff7a7a, #ffd36b, #8ee07f, #6ec6ff, #b38bff, #ff7a7a)', aura5: 'radial-gradient(closest-side, rgba(240,200,255,.95), rgba(170,110,240,.5) 60%, transparent)', aura6: 'radial-gradient(closest-side, rgba(255,255,160,.95), rgba(250,210,40,.5) 55%, transparent)', aura7: 'radial-gradient(closest-side, rgba(255,215,230,.95), rgba(245,140,180,.5) 60%, transparent)', aura8: 'radial-gradient(closest-side, rgba(150,170,255,.9), rgba(60,40,140,.6) 60%, transparent)' };
     const au = withEq && P.eq.aura && itemById(P.eq.aura);
     return `<span class="hero${au ? ' aura' : ''}" ${au ? `style="--aura:${AURA[au.id.replace('aura', 'aura')] || AURA.aura1}"` : ''}>${base}${eq}</span>`;
   }
@@ -699,11 +724,11 @@ ruby rt { font-family: var(--ui); }
   }
   function fieldSVG(a) {
     const t = THEME[a.theme] || THEME.village;
-    const pts = a.nodes.map((n) => `${n.x * 4},${n.y * 3}`).join(' ');
+    const pts = (a.nodes || Q.NODES).map((n) => `${n.x * 4},${n.y * 3}`).join(' ');
     const deco = [];
     for (let i = 0; i < 34; i++) {
       const x = rnd(400), y = rnd(300);
-      if (a.nodes.some((n) => Math.abs(n.x * 4 - x) < 36 && Math.abs(n.y * 3 - y) < 36)) continue;
+      if ((a.nodes || Q.NODES).some((n) => Math.abs(n.x * 4 - x) < 36 && Math.abs(n.y * 3 - y) < 36)) continue;
       if (a.theme === 'forest') deco.push(`<g transform="translate(${x} ${y})"><path d="M0 -16 L12 6 L-12 6Z" fill="${t.tree}"/><path d="M0 -24 L9 -4 L-9 -4Z" fill="#3f9a45"/></g>`);
       else if (a.theme === 'lake') deco.push(i % 3 ? `<ellipse cx="${x}" cy="${y}" rx="14" ry="7" fill="#7fd3f5" opacity=".8"/>` : `<circle cx="${x}" cy="${y}" r="9" fill="${t.tree}"/>`);
       else if (a.theme === 'sky') deco.push(i % 2 ? `<ellipse cx="${x}" cy="${y}" rx="18" ry="8" fill="#fff" opacity=".85"/>` : `<path d="M${x - 10} ${y + 8} L${x} ${y - 12} L${x + 10} ${y + 8}Z" fill="${t.tree}"/>`);
@@ -717,7 +742,7 @@ ruby rt { font-family: var(--ui); }
   }
   // 絵の 上に かさねる 道（ステージの 位置と かならず あうように）
   function roadSVG(a) {
-    const pts = a.nodes.map((n) => `${n.x * 4},${n.y * 3}`).join(' ');
+    const pts = (a.nodes || Q.NODES).map((n) => `${n.x * 4},${n.y * 3}`).join(' ');
     return `<svg class="road" viewBox="0 0 400 300" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
       <polyline points="${pts}" fill="none" stroke="#a8824a" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/>
       <polyline points="${pts}" fill="none" stroke="#f1dca0" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 0"/></svg>`;
@@ -815,24 +840,32 @@ ruby rt { font-family: var(--ui); }
      ===================================================================== */
   const otherReadings = (k, y) => (KANJI[k] ? KANJI[k].yomi.filter((r) => r !== y) : []);
   const lookOf = (k) => (KANJI[k] ? KANJI[k].look : []);
+  // 「今日」のような とくべつな 読みの ことばの 例文（2・3年生）。よみの もんだいだけで 出す
+  const targetOf = (ex) => (ex.s.match(/\[(.+?)\]/) || [])[1] || '';
+  const isWordEx = (ex) => [...targetOf(ex)].length > 1;
+  const plainKana = (r) => r.normalize('NFD').replace(/[\u3099\u309A]/g, '');
+  const readingOf = (l) => { const d = KANJI[l]; if (!d) return ''; const e = d.ex.find((x) => !isWordEx(x)) || d.ex[0]; return e.y; };
   function makeQ(k, type, sid) {
     const d = KANJI[k];
-    // よく まちがえる 例文を すこし 多めに
-    const ex = pick(d.ex);
+    const yomi = type === 'yomiSelect' || type === 'yomiWrite';
+    const single = d.ex.filter((x) => !isWordEx(x));
+    const ex = pick(yomi || !single.length ? d.ex : single);
     const q = { type, k, ex, tries: 0, hint: 0, off: [], wrong: [], solved: false, t0: Date.now() };
     const pool = stageKanji(sid);
+    const gradeAll = GRADE_KANJI[stageDef(sid).grade] || Object.keys(KANJI);
     if (type === 'yomiSelect') {
-      const same = shuffle(otherReadings(k, ex.y));
-      const looks = lookOf(k).filter((l) => KANJI[l]).map((l) => ({ r: KANJI[l].ex[0].y, from: l }));
-      const others = shuffle(pool.filter((x) => x !== k)).map((l) => ({ r: pick(KANJI[l].ex).y, from: l }));
       const picked = [];
-      const add = (r) => { if (r && r !== ex.y && !picked.includes(r) && picked.length < 2) picked.push(r); };
+      const add = (r) => { if (r && r !== ex.y && plainKana(r) !== plainKana(ex.y) && !picked.includes(r) && picked.length < 2) picked.push(r); };
+      q.why = {};
+      if (isWordEx(ex)) (ex.ng || []).forEach((r) => { add(r); q.why[r] = { type: 'naive' }; });
+      const same = shuffle(otherReadings(k, ex.y));
+      const looks = lookOf(k).filter((l) => KANJI[l]).map((l) => ({ r: readingOf(l), from: l }));
+      const others = shuffle(pool.filter((x) => x !== k)).map((l) => ({ r: readingOf(l), from: l }));
       if (same[0]) add(same[0]);
       if (looks[0]) add(looks[0].r);
       others.forEach((o) => add(o.r));
-      Object.values(KANJI).forEach((x) => add(x.ex[0].y));
-      q.why = {};
-      same.forEach((r) => { q.why[r] = { type: 'same' }; });
+      shuffle(gradeAll).forEach((x) => add(readingOf(x)));
+      same.forEach((r) => { if (!q.why[r]) q.why[r] = { type: 'same' }; });
       looks.concat(others).forEach((o) => { if (!q.why[o.r]) q.why[o.r] = { type: lookOf(k).includes(o.from) ? 'look' : 'other', from: o.from }; });
       q.answer = ex.y; q.options = shuffle([ex.y].concat(picked));
     }
@@ -841,7 +874,7 @@ ruby rt { font-family: var(--ui); }
       const add = (c) => { if (c && c !== k && KANJI[c] && !picked.includes(c) && picked.length < 2) picked.push(c); };
       lookOf(k).slice(0, 2).forEach(add);
       shuffle(pool).forEach(add);
-      shuffle(Object.keys(KANJI)).forEach(add);
+      shuffle(gradeAll).forEach(add);
       q.answer = k; q.options = shuffle([k].concat(picked));
     }
     if (type === 'yomiWrite') {
@@ -918,7 +951,7 @@ ruby rt { font-family: var(--ui); }
     try { remote = await api.student(name); } catch (e) { /* ネットが ない */ }
     const a = parseProgress(remote), b = parseProgress(safeStore.get(COPY_KEY(name)));
     P = (b.t > a.t && !(a.flagT > b.t) && !(a.goldT > b.t)) ? b : a;
-    if (a.flagT > (b.t || 0)) { P.unlockAll = a.unlockAll; }
+    if (a.flagT > (b.t || 0)) { P.unlockAll = a.unlockAll; P.open_g2 = a.open_g2; P.open_g3 = a.open_g3; }
     if (!P.hero) return scHero(true);
     if (!P.story) return scStory(0);
     scWorld();
@@ -975,28 +1008,38 @@ ruby rt { font-family: var(--ui); }
   ACT.storySkip = () => { P.story = true; persist(); hush(); scWorld(); };
 
   /* ---- ワールドマップ ---- */
-  function scWorld() {
+  let curIsland = 1;
+  function scWorld(g) {
     document.documentElement.style.setProperty('--fs', SET.font || 1);
-    const total = Object.keys(KANJI).length;
-    const prog = cardCount() / total;
-    const now = currentStageId(), nowArea = now && areaOf(now);
-    const pins = Q.AREAS.map((a) => {
+    if (g) curIsland = g;
+    if (!islandOpen(curIsland)) curIsland = 1;
+    const isl = Q.ISLANDS.find((x) => x.grade === curIsland);
+    const allK = GRADE_KANJI[curIsland] || [];
+    const prog = allK.filter((k) => P.cards[k]).length / (allK.length || 1);
+    const now = currentStageId(curIsland), nowArea = now && areaOf(now);
+    const areas = gradeAreas(curIsland);
+    const road = isl.road ? `<svg class="road" viewBox="0 0 400 300" preserveAspectRatio="none"><polyline points="${areas.map((a) => `${a.pos.x * 4},${a.pos.y * 3}`).join(' ')}" fill="none" stroke="#fff7d6" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 10" opacity=".95"/></svg>` : '';
+    const tabs = Q.ISLANDS.map((x) => { const open = islandOpen(x.grade);
+      return `<button class="btn small ${x.grade === curIsland ? 'gold' : ''}" data-act="${open ? 'island' : 'islandLocked'}" data-arg="${x.grade}">${open ? '🏝️' : '🔒'} ${x.grade}ねんせい「${x.name}」</button>`; }).join('');
+    const pins = areas.map((a) => {
       const open = areaOpen(a);
       const all = a.stages.flatMap((s) => stageDef(s).kanji);
       const got = all.filter((k) => P.cards[k]).length;
       return `<button class="pin ${open ? '' : 'locked'} ${nowArea === a ? 'now' : ''}" style="left:${a.pos.x}%;top:${a.pos.y}%" data-act="toArea" data-arg="${a.id}">
         <span class="pi">${open ? a.icon : '🔒'}</span><span class="pl">${a.name}</span><span class="ps">${open ? `かんじ ${got}/${all.length}${stageDone(a.boss) ? ' 👑' : ''}` : 'まだ とじて いるよ'}</span></button>`;
-    }).join('') + Q.COMING.map((c) => `<button class="pin locked" style="left:${c.pos.x}%;top:${c.pos.y}%" data-act="coming"><span class="pi">🔒</span><span class="pl">${c.name}</span><span class="ps">じゅんびちゅう</span></button>`).join('');
+    }).join('');
     app.innerHTML = `<div class="screen" style="background:#2a7fc0">
       ${topBar('ワールドマップ', 'toNames')}
+      <div class="island-tabs">${tabs}</div>
       <div class="map-area"><div class="map-wrap">
-        <div class="map" style="filter:saturate(${(0.25 + 0.75 * prog).toFixed(2)})">${IMG.world_map ? `<img src="${IMG.world_map}" alt="">` : worldSVG()}</div>${pins}
+        <div class="map" style="filter:saturate(${(0.25 + 0.75 * prog).toFixed(2)})">${IMG[isl.map] ? `<img src="${IMG[isl.map]}" alt="">` : worldSVG()}${road}</div>${pins}
       </div></div>
       <div class="meter-row">🌈 しまの いろ <div class="meter"><i style="width:${Math.round(prog * 100)}%"></i></div> ${Math.round(prog * 100)}%</div>
     </div>`;
   }
-  ACT.toWorld = () => { SE.tap(); scWorld(); };
-  ACT.coming = () => toast('この しまは まだ じゅんびちゅう だよ');
+  ACT.toWorld = () => { SE.tap(); scWorld(curArea ? curArea.grade : curIsland); };
+  ACT.island = (g) => { SE.tap(); scWorld(+g); };
+  ACT.islandLocked = () => { const t = 'この しまは、せんせいが ひらいて くれるよ。'; toast(t); speak(t); };
 
   /* ---- エリア ---- */
   let curArea = null;
@@ -1008,7 +1051,7 @@ ruby rt { font-family: var(--ui); }
     const ids = a.stages.concat([a.boss]);
     const nodes = ids.map((sid, i) => {
       const st = stageDef(sid), boss = isBoss(sid), open = stageOpen(sid), done = stageDone(sid);
-      const n = a.nodes[i];
+      const n = (a.nodes || Q.NODES)[i];
       const waza = boss ? '' : wazaOf(sid).map((t) => TYPES[t].icon).join('');
       return `<button class="node ${boss ? 'boss' : ''} ${done ? 'cleared' : ''} ${open ? '' : 'locked'} ${sid === now ? 'now' : ''}" style="left:${n.x}%;top:${n.y}%" data-act="enter" data-arg="${sid}">
         <span class="nm">${monsterHTML(sid)}</span>
@@ -1498,27 +1541,27 @@ ruby rt { font-family: var(--ui); }
   /* =====================================================================
      10. ずかん（かんじ カード・なかま）
      ===================================================================== */
-  let bookTab = 'a1', bookFrom = null;
+  let bookTab = 'g1', bookFrom = null;
   ACT.toBook = () => { SE.tap(); bookFrom = app.querySelector('.map-wrap .node') && curArea ? curArea.id : null; scBook(); };
   ACT.bookTab = (t) => { bookTab = t; scBook(); };
   ACT.bookBack = () => { if (bookFrom) scArea(bookFrom); else scWorld(); };
   function scBook() {
     let body = '';
-    if (bookTab === 'nakama') {
-      const ids = Object.keys(Q.MON);
-      body = `<p>なかま ${Object.keys(P.nakama).length} / ${ids.length}</p><div class="zk-grid">${ids.map((id) => {
+    const bg = +(bookTab.match(/\d/) || [1])[0];
+    if (bookTab.startsWith('n')) {
+      const ids = gradeAreas(bg).flatMap((a) => a.stages.concat([a.boss]));
+      body = `<p>なかま ${ids.filter((id) => P.nakama[id]).length} / ${ids.length}</p><div class="zk-grid">${ids.map((id) => {
         const has = P.nakama[id];
         return `<div class="zk-cell ${has ? '' : 'none'}"><div class="mi">${monsterHTML(id)}</div><div class="mn">${has ? Q.MON[id].name : '？？？'}</div></div>`;
       }).join('')}</div>`;
     } else {
-      const a = Q.AREAS.find((x) => x.id === bookTab) || Q.AREAS[0];
-      body = a.stages.map((sid) => { const st = stageDef(sid); return `<div class="zk-stage"><h3>${esc(st.name)}</h3><div class="zk-grid">${st.kanji.map((k) => P.cards[k]
+      body = gradeAreas(bg).flatMap((a) => a.stages.map((sid) => [a, sid])).map(([a, sid]) => { const st = stageDef(sid); return `<div class="zk-stage"><h3>${a.icon} ${a.name}：${esc(st.name)}</h3><div class="zk-grid">${st.kanji.map((k) => P.cards[k]
         ? `<button class="zk-cell" data-act="cardDetail" data-arg="${k}"><span class="kk">${k}</span>${badgesHTML(k)}</button>`
         : '<div class="zk-cell none"><span class="kk">？</span><span class="muted" style="font-size:.8rem">まだ</span></div>').join('')}</div></div>`; }).join('')
         + '<div class="muted" style="font-size:.9rem">⚔️よみを えらぶ　🛡️かんじを えらぶ　🔥よみを かく　✨かんじを かく ― ぜんぶ あつめよう！</div>';
     }
     app.innerHTML = `<div class="screen book-screen">${topBar('ずかん', 'bookBack')}
-      <div class="tabs">${Q.AREAS.map((a) => `<button class="tab ${bookTab === a.id ? 'on' : ''}" data-act="bookTab" data-arg="${a.id}">${a.icon} ${a.name}</button>`).join('')}<button class="tab ${bookTab === 'nakama' ? 'on' : ''}" data-act="bookTab" data-arg="nakama">👾 なかま</button></div>
+      <div class="tabs">${Q.ISLANDS.filter((x) => islandOpen(x.grade)).map((x) => `<button class="tab ${bookTab === 'g' + x.grade ? 'on' : ''}" data-act="bookTab" data-arg="g${x.grade}">📖 ${x.grade}ねんせいの かんじ</button><button class="tab ${bookTab === 'n' + x.grade ? 'on' : ''}" data-act="bookTab" data-arg="n${x.grade}">👾 ${x.grade}ねんせいの なかま</button>`).join('')}</div>
       <div class="book-body">${body}</div></div>`;
   }
   ACT.cardDetail = (k) => {
@@ -1599,21 +1642,24 @@ ruby rt { font-family: var(--ui); }
     Object.keys(kanji || {}).forEach((key) => { const k = key.split('|')[0]; const a = per[k] || (per[k] = [0, 0]); a[0] += kanji[key][0]; a[1] += kanji[key][1]; });
     return Object.keys(per).filter((k) => per[k][0] >= 2 && per[k][1] / per[k][0] < 0.6).slice(0, 10).join('・');
   }
+  let tGrade = 1;
+  const gradeSel = () => `<div class="t-sel" style="margin-bottom:.6rem">${[1, 2, 3].map((g) => `<button class="${g === tGrade ? 'on' : ''}" data-act="tGrade" data-arg="${g}">${g}年生</button>`).join('')}</div>`;
+  ACT.tGrade = (g) => { tGrade = +g; scTeacher(); };
   function kanjiTable(kanji) {
     const head = `<tr><th></th><th>漢字</th>${ORDER.map((t) => `<th>${TYPES[t].icon} ${TYPES[t].label}</th>`).join('')}</tr>`;
-    const rows = STAGES.filter((s) => s.type === 'kanji').map((st) => st.kanji.map((k, i) => `<tr>${i === 0 ? `<th rowspan="${st.kanji.length}" style="font-size:.8rem">${st.id}<br>${esc(st.name)}</th>` : ''}<td class="k">${k}</td>${ORDER.map((t) => {
+    const rows = STAGES.filter((s) => s.type === 'kanji' && s.grade === tGrade).map((st) => st.kanji.map((k, i) => `<tr>${i === 0 ? `<th rowspan="${st.kanji.length}" style="font-size:.8rem">${st.key}<br>${esc(st.name)}</th>` : ''}<td class="k">${k}</td>${ORDER.map((t) => {
       const a = kanji[k + '|' + TYPES[t].label];
       return a ? `<td class="${cls(a[1], a[0])}">${a[1]}/${a[0]}${a[2] ? ` ✖${a[2]}` : ''}${a[3] ? ` 💡${a[3]}` : ''}</td>` : '<td class="c-none">―</td>';
     }).join('')}</tr>`).join('')).join('');
-    return `<div class="t-scroll"><table class="t-table">${head}${rows}</table></div><div class="t-note">まちがえずに できた数 ／ 問題の数。赤：60%未満　黄：60〜79%　緑：80%以上。✖＝まちがえた回数、💡＝ヒントを使った問題の数。</div>`;
+    return `${gradeSel()}<div class="t-scroll"><table class="t-table">${head}${rows}</table></div><div class="t-note">まちがえずに できた数 ／ 問題の数。赤：60%未満　黄：60〜79%　緑：80%以上。✖＝まちがえた回数、💡＝ヒントを使った問題の数。</div>`;
   }
   function scTeacher() {
     const d = TD; let body = '';
     if (tTab === 'class') {
-      body = `<div class="t-card"><h3>クラス全体</h3><div class="t-scroll"><table class="t-table"><tr><th>なまえ</th><th>しょくぎょう</th><th>クリア</th><th>カード</th><th>ゴールド</th><th>問題</th><th>まちがえずに</th><th>にがてな かんじ</th><th>さいご</th></tr>
+      body = `<div class="t-card"><h3>クラス全体</h3><div class="t-scroll"><table class="t-table"><tr><th>なまえ</th><th>しょくぎょう</th><th>クリア</th><th>カード</th><th>ひらいた しま</th><th>ゴールド</th><th>問題</th><th>まちがえずに</th><th>にがてな かんじ</th><th>さいご</th></tr>
         ${d.students.map((s) => { const p = parseProgress(s.progress); const h = Q.HEROES.find((x) => x.id === p.hero);
-          return `<tr><td>${esc(s.name)}</td><td>${h ? h.name : '―'}</td><td>${Object.keys(p.st).filter((k) => p.st[k].done).length} / 20</td><td>${Object.keys(p.cards).length} / 80</td><td>${p.gold}</td><td>${s.count}</td><td class="${cls(s.ok, s.count)}">${pct(s.ok, s.count)}</td><td class="kf">${weakOf(s.kanji)}</td><td>${s.last || '―'}</td></tr>`; }).join('')}</table></div>
-        <div class="t-note">クリア：ステージ16＋ボス4。まちがえずに：まちがえず、ヒントも使わずに できた問題の割合。にがてな かんじ：2回以上といて、まちがえずにできた割合が60%未満。</div></div>
+          return `<tr><td>${esc(s.name)}</td><td>${h ? h.name : '―'}</td><td>${Object.keys(p.st).filter((k) => p.st[k].done).length} / ${STAGES.length}</td><td>${Object.keys(p.cards).length} / ${Object.keys(KANJI).length}</td><td>${[2, 3].filter((g) => p['open_g' + g] || p.unlockAll).map((g) => g + '年').join('・') || '―'}</td><td>${p.gold}</td><td>${s.count}</td><td class="${cls(s.ok, s.count)}">${pct(s.ok, s.count)}</td><td class="kf">${weakOf(s.kanji)}</td><td>${s.last || '―'}</td></tr>`; }).join('')}</table></div>
+        <div class="t-note">クリア：1年生 20・2年生 40・3年生 50（ステージ＋ボス）。まちがえずに：まちがえず、ヒントも使わずに できた問題の割合。にがてな かんじ：2回以上といて、まちがえずにできた割合が60%未満。</div></div>
         <div class="t-card"><h3>クラス全体の 漢字の表</h3>${kanjiTable(d.classKanji || {})}</div>`;
     } else if (tTab === 'kid') {
       if (!tKid && d.students[0]) tKid = d.students[0].name;
@@ -1621,15 +1667,16 @@ ruby rt { font-family: var(--ui); }
       body = `<div class="t-card"><h3>子どもを えらぶ</h3><div class="t-sel">${d.students.map((x) => `<button class="${x.name === tKid ? 'on' : ''}" data-act="tKid" data-arg="${esc(x.name)}">${esc(x.name)}</button>`).join('')}</div></div>`;
       if (s) {
         const p = parseProgress(s.progress);
-        const stRows = Q.AREAS.flatMap((a) => a.stages.concat([a.boss])).map((sid) => { const i = p.st[sid] || {}; const g = s.stages[sid]; const st = stageDef(sid);
+        const stRows = gradeAreas(tGrade).flatMap((a) => a.stages.concat([a.boss])).map((sid) => { const i = p.st[sid] || {}; const g = s.stages[sid]; const st = stageDef(sid);
           return `<tr><td>${sid}</td><td>${esc(st.name)}</td><td>${isBoss(sid) ? '―' : (i.lv ? ORDER.slice(0, i.lv).map((t) => TYPES[t].icon).join('') : '⚔️')}</td><td>${i.done ? '🚩' : ''}</td><td>${g ? g[0] : 0}</td><td class="${g ? cls(g[1], g[0]) : 'c-none'}">${g ? pct(g[1], g[0]) : '―'}</td></tr>`; }).join('');
         body += `<div class="t-card"><h3>${esc(s.name)} さん</h3>
           <div class="t-btns"><button class="btn small ${p.unlockAll ? 'red' : 'blue'}" data-act="tUnlock">${p.unlockAll ? '全部開くを やめる' : '全部開く（すべてのステージと わざ）'}</button>
+            ${[2, 3].map((g) => `<button class="btn small ${p['open_g' + g] ? 'red' : 'blue'}" data-act="tOpen" data-arg="${g}">${g}年生の しまを ${p['open_g' + g] ? 'とじる' : 'ひらく'}</button>`).join('')}
             <button class="btn small" data-act="tGold" data-arg="10">ゴールド ＋10</button><button class="btn small" data-act="tGold" data-arg="-10">ゴールド −10</button>
             <button class="btn small red" data-act="tClearOne">この子の記録を消す</button></div>
           <p>ゴールド ${p.gold}・カード ${Object.keys(p.cards).length}・なかま ${Object.keys(p.nakama).length}・まちがえずに ${pct(s.ok, s.count)}（${s.count}問）</p>
           <p>にがてな かんじ：<span class="kf" style="font-size:1.3rem">${weakOf(s.kanji) || 'なし'}</span>　よく まちがえた問題：${Object.keys(s.missProb).sort((a, b) => s.missProb[b] - s.missProb[a]).slice(0, 5).map((k) => `${esc(k)}（${s.missProb[k]}）`).join('・') || 'なし'}</p></div>
-          <div class="t-card"><h3>ステージ</h3><table class="t-table"><tr><th>ID</th><th>ステージ</th><th>つかえる わざ</th><th>クリア</th><th>問題</th><th>まちがえずに</th></tr>${stRows}</table></div>
+          <div class="t-card"><h3>ステージ</h3>${gradeSel()}<table class="t-table"><tr><th>ID</th><th>ステージ</th><th>つかえる わざ</th><th>クリア</th><th>問題</th><th>まちがえずに</th></tr>${stRows}</table></div>
           <div class="t-card"><h3>漢字の表</h3>${kanjiTable(s.kanji)}</div>`;
       }
     } else if (tTab === 'set') {
@@ -1669,6 +1716,7 @@ ruby rt { font-family: var(--ui); }
   ACT.tKid = (n) => { tKid = n; scTeacher(); };
   ACT.tExit = async () => { const r = await api.init().catch(() => null); if (r) { STUDENTS = r.students; SET = { ...DEFAULT_SETTINGS, ...r.settings }; } document.documentElement.style.setProperty('--fs', SET.font || 1); scNames(); };
   ACT.tUnlock = async () => { const s = TD.students.find((x) => x.name === tKid); const p = parseProgress(s.progress); await api.setFlag(PIN, tKid, 'unlockAll', !p.unlockAll); toast('かえました'); reloadTeacher(); };
+  ACT.tOpen = async (g) => { const s = TD.students.find((x) => x.name === tKid); const p = parseProgress(s.progress); await api.setFlag(PIN, tKid, 'open_g' + g, !p['open_g' + g]); toast('かえました'); reloadTeacher(); };
   ACT.tGold = async (d) => { await api.addGold(PIN, tKid, Number(d)); toast('かえました'); reloadTeacher(); };
   ACT.tSave = async () => {
     const f = $('#tform'), s = {};
@@ -1707,7 +1755,17 @@ ruby rt { font-family: var(--ui); }
       app.innerHTML = '<div style="padding:40px;text-align:center;font-size:24px;color:#fff">データが よみこめませんでした。インターネットに つながって いるか たしかめて、ひらきなおして ください。</div>';
       return;
     }
-    KANJI = window.KANJI_DATA.KANJI; STAGES = window.KANJI_DATA.STAGES; STROKES = window.KANJI_STROKES; Q = window.QUEST;
+    Q = window.QUEST; STROKES = window.KQ_STROKES; KANJI = {}; STAGES = [];
+    [1, 2, 3].forEach((g) => {
+      const D = window.KQ_GRADES[g]; if (!D) return;
+      Object.assign(KANJI, D.KANJI);
+      const kk = (id) => (g === 1 ? id : g + '-' + id);
+      D.STAGES.filter((st) => st.type === 'kanji' || st.type === 'review').forEach((st) => {
+        const o = { ...st, key: kk(st.id), grade: g, from: st.from && st.from.map(kk) };
+        STAGES.push(o); STAGE_MAP[o.key] = o;
+      });
+      GRADE_KANJI[g] = D.STAGES.filter((st) => st.type === 'kanji').flatMap((st) => st.kanji);
+    });
     try { if ('speechSynthesis' in window) speechSynthesis.getVoices(); } catch (e) { /* noop */ }
     const [init] = await Promise.all([api.init().catch(() => ({ students: [], settings: {} })), preload()]);
     STUDENTS = init.students || []; DEMO = !!init.demo; SET = { ...DEFAULT_SETTINGS, ...(init.settings || {}) };
@@ -1716,7 +1774,7 @@ ruby rt { font-family: var(--ui); }
     scTitle();
   }
   // テスト用（ブラウザで たしかめる ときに つかいます）
-  window.__KQ = { get P() { return P; }, get B() { return B; }, get W() { return W; }, ACT };
+  window.__KQ = { get P() { return P; }, get B() { return B; }, get W() { return W; }, ACT, makeQ, get STAGES() { return STAGES; }, stageKanji };
   boot();
 })();
 </script>
