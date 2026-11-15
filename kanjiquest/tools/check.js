@@ -34,7 +34,7 @@ const ids = Q.SHOP.flatMap((c) => c.items.map((i) => i.id));
 ok(new Set(ids).size === ids.length && Q.SHOP.every((c) => c.items.every((i) => i.p > 0)), 'おみせの しなもの（IDと ねだん）');
 
 // 絵（なくても うごきますが、ない ものを 知らせます）
-const want = ['title', 'world_map', 'fude', ...Q.HEROES.map((h) => h.img), ...Q.AREAS.flatMap((a) => ['field_' + a.id, 'bg_' + a.id]), ...Object.keys(Q.MON).map((id) => 'mon_' + id)];
+const want = ['title', 'world_map', 'fude', 'story_dark', ...Q.HEROES.map((h) => h.img), ...Q.AREAS.flatMap((a) => ['field_' + a.id, 'bg_' + a.id]), ...Object.keys(Q.MON).map((id) => 'mon_' + id)];
 const dir = path.join(__dirname, '..', 'img');
 const have = fs.existsSync(dir) ? fs.readdirSync(dir) : [];
 const missing = want.filter((n) => !have.includes(n + '.webp') && !have.includes(n + '.png') && !have.includes(n + '.jpg'));

@@ -11,6 +11,8 @@ param(
   [int]$Max = 512,
   [switch]$NoTrim   # 背景の 絵など：けずらずに マスの まま 切りとる（-Inset で ふちを すこし おとす）
   , [int]$Inset = 6
+  , [int]$OffY = 0        # 絵が 上の だんに はみ出して いるとき、マスを この ピクセルだけ 上に ずらす
+  , [int]$CutBottom = 0   # となりの だんの 絵が 下に はみ出して いるとき、マスの 下を この ピクセルだけ 見ない
 )
 Add-Type -AssemblyName System.Drawing
 $list = $Names.Split(',')
@@ -23,7 +25,7 @@ try {
     $name = $list[$i].Trim()
     if (-not $name) { continue }
     $cx = ($i % $Cols) * $cw
-    $cy = [Math]::Floor($i / $Cols) * $ch
+    $cy = [Math]::Max(0, [Math]::Floor($i / $Cols) * $ch - $OffY)
     if ($NoTrim) {
       $sw = $cw - 2 * $Inset; $sh = $ch - 2 * $Inset
       $sc = [Math]::Min(1.0, $Max / [Math]::Max($sw, $sh))
@@ -41,7 +43,7 @@ try {
     }
     # すきとおって いない ところの はんいを さがす（4ピクセルおきに しらべる）
     $minX = $cw; $minY = $ch; $maxX = -1; $maxY = -1
-    for ($y = 0; $y -lt $ch; $y += 4) {
+    for ($y = 0; $y -lt ($ch - $CutBottom); $y += 4) {
       for ($x = 0; $x -lt $cw; $x += 4) {
         if ($img.GetPixel($cx + $x, $cy + $y).A -gt 40) {
           if ($x -lt $minX) { $minX = $x }; if ($x -gt $maxX) { $maxX = $x }
