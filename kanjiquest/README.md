@@ -84,11 +84,15 @@ kanjiquest/tools/split.ps1   1まいに ならべた絵を 切りわけて img/ 
 | `bg_a1` 〜 `bg_a4` | たたかいの背景 | 2×2 に ならべて 1まい |
 | `field_a1` 〜 `field_a4` | エリアの地図（道は アプリが かさねて かきます） | 2×2 に ならべて 1まい |
 | `world_map` | ワールドマップ（4つの場所の位置を指定） | 1まい（4:3） |
+| `story_dark` | おはなし2ばんめの背景（まものが あらわれる、あらしの空の島） | 1まい（16:9） |
+| `title` | タイトル画面と おはなし3ばんめの背景（冒険が はじまる 青空と草原） | 1まい（16:9） |
 
 - 切りわけ方の例：
   `powershell -NoProfile -ExecutionPolicy Bypass -File kanjiquest\tools\split.ps1 -Src "<ダウンロードの絵>" -Cols 3 -Rows 3 -Names "mon_s3,mon_s4,..." -Max 512`
   （背景は `-NoTrim` をつけます）
-- タイトル画面は、`title` が ないときは `bg_a4`（そらの いわやま）を使います。
+- タイトル画面は `title` を使います（ないときは `bg_a4`）。
+- おはなしの1ばんめは `world_map`、2ばんめは `story_dark`、3ばんめは `title` を画面いっぱいに出します。
+- 切りわけで となりの だんの 絵が はみ出すときは、`-OffY`（マスを上にずらす）と `-CutBottom`（マスの下を見ない）を使います（`mon_r1` は `-OffY 30 -CutBottom 24`）。
 
 ## 公開の手順
 
