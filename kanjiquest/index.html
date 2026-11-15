@@ -72,10 +72,13 @@ ruby rt { font-family: var(--ui); }
 .hero { position: relative; display: inline-flex; align-items: flex-end; justify-content: center; height: 100%; }
 .hero > img, .hero > svg { height: 100%; width: auto; max-width: 100%; object-fit: contain; filter: drop-shadow(0 4px 3px rgba(0,0,0,.3)); position: relative; z-index: 1; }
 .hero .eq { position: absolute; z-index: 2; line-height: 1; filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
-.hero .eq-hat { top: -4%; left: 50%; transform: translateX(-50%); font-size: 2.1em; }
-.hero .eq-weapon { right: -14%; top: 40%; font-size: 1.9em; transform: rotate(-20deg); }
-.hero .eq-pet { right: -34%; bottom: 0; font-size: 1.9em; }
-.hero .eq-aura { left: -22%; top: 10%; font-size: 1.5em; animation: bob 1.8s ease-in-out infinite; z-index: 0; }
+/* ぼうしは あたまの 上、ぶきと おともは よこ（かおに かからないように） */
+.hero .eq-hat { top: -24%; left: 50%; transform: translateX(-50%); font-size: 1.5em; }
+.hero .eq-weapon { right: -36%; top: 30%; font-size: 1.4em; transform: rotate(-15deg); }
+.hero .eq-pet { right: -46%; bottom: -2%; font-size: 1.5em; }
+/* オーラは うしろの ひかり */
+.hero.aura::before { content: ''; position: absolute; left: -30%; right: -30%; top: -10%; bottom: -6%; background: var(--aura); border-radius: 50%; filter: blur(6px); opacity: .85; z-index: 0; animation: auraPulse 2s ease-in-out infinite; }
+@keyframes auraPulse { 50% { opacity: .5; transform: scale(1.06); } }
 
 /* ストーリー */
 .story-screen { align-items: center; justify-content: flex-end; background: linear-gradient(#253a6b, #5b78b8); padding: 1.2rem; }
@@ -256,7 +259,10 @@ ruby rt { font-family: var(--ui); }
 .zk-cell.none .mi { filter: brightness(0) opacity(.25); }
 .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .8rem; }
 .item { border: 3px solid var(--wood); border-radius: 14px; background: #fff; padding: .6rem; display: flex; flex-direction: column; align-items: center; gap: .3rem; box-shadow: 0 4px 0 var(--wood-d); }
-.item .ie { font-size: 3rem; line-height: 1.1; }
+.item .ie { font-size: 3rem; line-height: 1.1; height: 4.2rem; display: flex; align-items: center; justify-content: center; }
+.iimg { width: 1.4em; height: 1.4em; object-fit: contain; display: block; }
+.modal .ie { font-size: 4rem; display: flex; justify-content: center; }
+.hero .eq .iimg { width: 1.6em; height: 1.6em; }
 .item .in { font-weight: 700; }
 .item.eq { border-color: var(--gold); background: #fffbe6; box-shadow: 0 4px 0 var(--gold-d), 0 0 0 4px rgba(242,193,78,.4); }
 .shop-hero { height: 180px; display: flex; justify-content: center; margin-bottom: .6rem; font-size: 26px; }
@@ -577,6 +583,7 @@ ruby rt { font-family: var(--ui); }
   const IMG = {};
   function imgNames() {
     const n = ['title', 'world_map', 'fude', 'story_dark'];
+    Q.SHOP.forEach((c) => c.items.forEach((it) => n.push('item_' + it.id)));
     Q.HEROES.forEach((h) => n.push(h.img));
     Q.AREAS.forEach((a) => n.push('field_' + a.id, 'bg_' + a.id));
     Object.keys(Q.MON).forEach((id) => n.push('mon_' + id));
@@ -645,16 +652,19 @@ ruby rt { font-family: var(--ui); }
       <circle cx="48" cy="68" r="5" fill="#333"/><circle cx="72" cy="68" r="5" fill="#333"/>
       <path d="M52 82 Q60 88 68 82" stroke="#a8541a" stroke-width="3" fill="none" stroke-linecap="round"/>${tool}</svg>`;
   }
+  const itemIcon = (it) => IMG['item_' + it.id] ? `<img class="iimg" src="${IMG['item_' + it.id]}" alt="${esc(it.n)}">` : it.e;
   function itemById(id) { for (const c of Q.SHOP) { const it = c.items.find((x) => x.id === id); if (it) return it; } return null; }
   function heroHTML(h, withEq = true) {
     h = h || heroDef();
     const base = IMG[h.img] ? `<img src="${IMG[h.img]}" alt="${esc(h.name)}">` : heroSVG(h);
     let eq = '';
     if (withEq) {
-      const e = (cat, cls) => { const it = P.eq[cat] && itemById(P.eq[cat]); return it ? `<span class="eq eq-${cls}">${it.e}</span>` : ''; };
-      eq = e('aura', 'aura') + e('hat', 'hat') + e('weapon', 'weapon') + e('pet', 'pet');
+      const e = (cat, cls) => { const it = P.eq[cat] && itemById(P.eq[cat]); return it ? `<span class="eq eq-${cls}">${itemIcon(it)}</span>` : ''; };
+      eq = e('hat', 'hat') + e('weapon', 'weapon') + e('pet', 'pet');
     }
-    return `<span class="hero">${base}${eq}</span>`;
+    const AURA = { aura1: 'radial-gradient(closest-side, rgba(255,226,90,.95), rgba(255,200,40,.4) 60%, transparent)', aura2: 'radial-gradient(closest-side, rgba(255,140,60,.95), rgba(230,60,30,.45) 60%, transparent)', aura3: 'radial-gradient(closest-side, rgba(170,230,255,.95), rgba(80,170,240,.45) 60%, transparent)', aura4: 'radial-gradient(closest-side, rgba(255,255,255,.7), transparent), conic-gradient(#ff7a7a, #ffd36b, #8ee07f, #6ec6ff, #b38bff, #ff7a7a)', aura5: 'radial-gradient(closest-side, rgba(240,200,255,.95), rgba(170,110,240,.5) 60%, transparent)' };
+    const au = withEq && P.eq.aura && itemById(P.eq.aura);
+    return `<span class="hero${au ? ' aura' : ''}" ${au ? `style="--aura:${AURA[au.id.replace('aura', 'aura')] || AURA.aura1}"` : ''}>${base}${eq}</span>`;
   }
   function fudeSVG() {
     return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
@@ -1538,7 +1548,7 @@ ruby rt { font-family: var(--ui); }
       const cat = Q.SHOP.find((c) => c.id === shopTab);
       body = `<div class="shop-grid">${cat.items.map((it) => {
         const own = P.items.includes(it.id), eq = P.eq[cat.id] === it.id;
-        return `<div class="item ${eq ? 'eq' : ''}"><span class="ie">${it.e}</span><span class="in">${it.n}</span>
+        return `<div class="item ${eq ? 'eq' : ''}"><span class="ie">${itemIcon(it)}</span><span class="in">${it.n}</span>
           ${own ? `<button class="btn small ${eq ? '' : 'green'}" data-act="equip" data-arg="${it.id}">${eq ? 'はずす' : 'そうび する'}</button>`
             : `<button class="btn small gold" data-act="buy" data-arg="${it.id}" ${P.gold >= it.p ? '' : 'disabled'}>🪙 ${it.p} で かう</button>`}</div>`;
       }).join('')}</div>`;
@@ -1549,7 +1559,7 @@ ruby rt { font-family: var(--ui); }
   }
   ACT.buy = (id) => {
     const it = itemById(id); if (!it || P.gold < it.p) return;
-    openModal(`<h2>${it.e} ${it.n}</h2><p style="font-size:1.3rem">🪙 ${it.p} で かいますか？</p>
+    openModal(`<div class="ie" style="text-align:center">${itemIcon(it)}</div><h2 style="text-align:center">${it.n}</h2><p style="font-size:1.3rem">🪙 ${it.p} で かいますか？</p>
       <div class="modal-btns"><button class="btn" data-act="closeModal">やめる</button><button class="btn gold" data-act="buyOK" data-arg="${id}">かう！</button></div>`);
     speak(`${it.n}を かいますか？`);
   };
