@@ -25,7 +25,7 @@ const ONOFF = { sound: ['ならす', 'ならさない'] };
 // えらぶ 設定（えらべる あたい）
 const CHOICES = { kana: ['もじカード', '50おんひょう'], mihon: ['なし', 'じゅんばん', 'なぞる', 'うすい'], judge: ['やさしい', 'ふつう'] };
 // 先生が 変える フラグ
-const FLAGS = ['unlockAll'];
+const FLAGS = ['unlockAll', 'open_g2', 'open_g3'];
 
 // ---------------------------------------------------------------------
 // 画面を表示する
@@ -427,6 +427,6 @@ function writeSummary_(agg, names) {
       return r.map(function (v) { return v === '' ? null : v < 0.6 ? '#fecaca' : v < 0.8 ? '#fef08a' : '#bbf7d0'; });
     }));
   }
-  sh.getRange(out.length + 2, 1).setValue('※ 赤：60%未満　黄：60〜79%　緑：80%以上。ステージ：s1〜s16＝ステージ、r1〜r4＝エリアの ボス（まとめ ふくしゅう）。にがてな かんじ：2回いじょう といて、まちがえずに できた わりあいが 60%未満。　更新：' +
+  sh.getRange(out.length + 2, 1).setValue('※ 赤：60%未満　黄：60〜79%　緑：80%以上。ステージ：s1〜＝ステージ、r1〜＝エリアの ボス（まとめ ふくしゅう）。1年生は s1・r1、2年生は 2-s1・2-r1、3年生は 3-s1・3-r1 の ように 学年を つけます。にがてな かんじ：2回いじょう といて、まちがえずに できた わりあいが 60%未満。　更新：' +
     Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy/MM/dd HH:mm'));
 }
