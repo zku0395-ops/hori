@@ -56,7 +56,7 @@ ok(sheets['きろく'].data[0].join(',') === '日時,なまえ,ステージ,か�
 sheets['名簿'].getRange(2, 1, 2, 1).setValues([['たろう'], ['はなこ']]);
 const init = ctx.getInitData();
 const s0 = init.settings;
-ok(init.students.length === 2 && s0.count === 5 && s0.rate === 0.8 && s0.sound === true && s0.kana === 'もじカード' && s0.mihon === 'じゅんばん' && s0.judge === 'やさしい', 'はじめの 設定');
+ok(init.students.length === 2 && s0.count === 5 && s0.rate === 0.8 && s0.sound === true && s0.kana === 'もじカード' && s0.mihon === 'なし' && s0.judge === 'やさしい', 'はじめの 設定');
 
 // 2. きろくを うけとる
 const rec = (id, o = {}) => Object.assign({ id, time: Date.now(), stage: 's1', k: '一', problem: 'りんごが 一つ あります。', waza: 'よみ・えらぶ', mihon: '', result: '○', miss: 0, hint: 0, wrong: '', secs: 4 }, o);
@@ -94,7 +94,7 @@ ctx.saveResult({ name: 'たろう', progress: JSON.stringify({ t: 300 - 1e9, gol
 ok(JSON.parse(sheets['名簿'].data[1][1]).gold === g, '先生が 足した ゴールドは のこる');
 ctx.saveSettings('1234', { count: 3, kana: '50おんひょう', mihon: 'へんな あたい', sound: false, newPin: '5678' });
 const s1 = ctx.getInitData().settings;
-ok(s1.count === 3 && s1.kana === '50おんひょう' && s1.mihon === 'じゅんばん' && s1.sound === false, '設定を 保存する（へんな あたいは 入れない）');
+ok(s1.count === 3 && s1.kana === '50おんひょう' && s1.mihon === 'なし' && s1.sound === false, '設定を 保存する（へんな あたいは 入れない）');
 ok(ctx.getTeacherData('5678').ok === true, '暗証番号を かえる');
 ok(ctx.getBackup('5678').data.app === 'kanjiquest', 'バックアップ');
 ctx.clearRecords('5678', 'たろう');

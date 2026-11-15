@@ -345,7 +345,7 @@ ruby rt { font-family: var(--ui); }
 <script>
 (function () {
   'use strict';
-  const APP_VERSION = '1.0.0';
+  const APP_VERSION = '1.0.1';
   const app = document.getElementById('app');
   const modal = document.getElementById('modal');
   const $ = (s) => document.querySelector(s);
@@ -382,7 +382,7 @@ ruby rt { font-family: var(--ui); }
     google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
   });
   const LOG_HEADER = ['日時', 'なまえ', 'ステージ', 'かんじ', 'もんだい', 'わざ', 'みほん', 'けっか', 'まちがい', 'ヒント', 'まちがえた こたえ', 'びょう', 'ID'];
-  const DEFAULT_SETTINGS = { rate: 0.8, font: 1, count: 5, kana: 'もじカード', mihon: 'じゅんばん', judge: 'やさしい', sound: true };
+  const DEFAULT_SETTINGS = { rate: 0.8, font: 1, count: 5, kana: 'もじカード', mihon: 'なし', judge: 'やさしい', sound: true };
   let SET = { ...DEFAULT_SETTINGS };
 
   // まとめ（先生用）— コード.gs の aggregate_ と おなじ しくみ
@@ -1091,9 +1091,9 @@ ruby rt { font-family: var(--ui); }
     B.q = makeQ(B.queue[B.idx], type, B.sid);
     renderQ();
     const q = B.q;
-    const inst = { yomiSelect: 'あかい かんじの よみかたを えらぼう。', kanjiSelect: 'しかくに はいる かんじを えらぼう。', yomiWrite: 'あかい かんじの よみかたを かこう。', kanjiWrite: 'しかくに はいる かんじを かこう。' }[type];
+    const inst = { yomiSelect: 'あかい かんじの よみかたを えらぼう。', kanjiSelect: 'しかくに はいる かんじを えらぼう。', yomiWrite: 'あかい かんじの よみかたを かこう。', kanjiWrite: 'しかくに はいる かんじを かこう。わからない ときは ヒントを おしてね。' }[type];
     const isYomi = type === 'yomiSelect' || type === 'yomiWrite';
-    say(inst.replace('。', ''), inst + ' ' + speakText(q.ex.s, q.ex.y, isYomi));
+    say(inst.replace(/。$/, ''), inst + ' ' + speakText(q.ex.s, q.ex.y, isYomi));
   };
 
   const INST = { yomiSelect: 'あかい かんじの よみかたを えらぼう', kanjiSelect: '□に はいる かんじを えらぼう', yomiWrite: 'あかい かんじの よみかたを かこう', kanjiWrite: '□に はいる かんじを かこう' };
@@ -1245,9 +1245,10 @@ ruby rt { font-family: var(--ui); }
   }
   let W = null; // かく ときの じょうたい
   const MIHON_LABEL = { trace: 'なぞる', ghost: 'うすい みほん', none: 'みほん なし' };
+  const MIHON_TAG = { trace: 'なぞって かこう', ghost: 'うすい みほんを みて かこう', none: 'じぶんで かこう（わからない ときは 💡ヒント で 1かくずつ でるよ）' };
   function renderWrite() {
     const q = B.q;
-    $('#qbody').innerHTML = `<div class="mihon-tag">✏️ ${MIHON_LABEL[q.mihon]}</div>
+    $('#qbody').innerHTML = `<div class="mihon-tag">✏️ ${MIHON_TAG[q.mihon]}</div>
       <div class="write-area"><div class="wbox" id="wbox"><svg id="wsvg" viewBox="0 0 ${VB} ${VB}" xmlns="http://www.w3.org/2000/svg"><g id="wmeasure"></g><g id="wlayer"></g></svg></div>
       <div class="wside"><button class="btn blue" data-act="wDemo">👀 おてほん</button><button class="btn hint" id="whint" data-act="wHint">💡 ヒント</button><button class="btn" data-act="wClear">🧽 けす</button></div></div>`;
     const paths = STROKES[q.k] || [];
@@ -1258,7 +1259,7 @@ ruby rt { font-family: var(--ui); }
       for (let k = 0; k <= 24; k++) { const p = el.getPointAtLength((len * k) / 24); pts.push({ x: p.x, y: p.y }); }
       return { len, pts };
     });
-    W = { paths, geo, si: 0, fails: 0, total: 0, phase: 'draw', demoIdx: -1, showNext: false, force: false, usedHint: 0, done: false, line: [], drawing: null, timers: [], hintKey: 0, sw: paths.length >= 13 ? 0.6 : paths.length >= 10 ? 0.78 : 1 };
+    W = { paths, geo, si: 0, fails: 0, total: 0, phase: 'draw', demoIdx: -1, showNext: false, force: false, usedHint: 0, reveal: 0, done: false, line: [], drawing: null, timers: [], hintKey: 0, sw: paths.length >= 13 ? 0.6 : paths.length >= 10 ? 0.78 : 1 };
     const svg = $('#wsvg');
     const toPt = (e) => { const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY; const m = svg.getScreenCTM(); const r = pt.matrixTransform(m.inverse()); return { x: r.x, y: r.y }; };
     svg.addEventListener('pointerdown', (e) => { if (W.phase !== 'draw' || W.done || B.busy) return; e.preventDefault(); try { svg.setPointerCapture(e.pointerId); } catch (x) { /* noop */ } W.drawing = [toPt(e)]; W.line = W.drawing; drawW(); });
@@ -1280,19 +1281,21 @@ ruby rt { font-family: var(--ui); }
     const P_ = (d, stroke, w, extra = '') => `<path d="${d}" fill="none" stroke="${stroke}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" ${extra}/>`;
     if (m === 'trace') paths.forEach((d) => { h += P_(d, '#e7e1d8', 9 * sw); });
     if (m === 'ghost') paths.forEach((d) => { h += P_(d, '#f1ece4', 8 * sw); });
+    // ヒントで だした 画（まだ かいて いない ぶん）を うすく だす
+    if (W.phase === 'draw' && !W.done) for (let i = si; i < W.reveal && i < paths.length; i++) h += P_(paths[i], '#fde68a', 9 * sw);
     const showCur = m === 'trace' || W.fails >= 2 || W.showNext;
     if (W.phase === 'draw' && !W.done && showCur && paths[si]) h += P_(paths[si], m === 'trace' ? '#fde68a' : '#fef3c7', 9 * sw);
     if (W.phase === 'demo') paths.forEach((d, i) => { if (i <= W.demoIdx) h += P_(d, '#0284c7', 6 * sw, i === W.demoIdx ? `class="draw-stroke" style="stroke-dasharray:${geo[i].len};stroke-dashoffset:${geo[i].len};--dur:${Math.max(550, geo[i].len * 11)}ms"` : ''); });
     if (W.phase === 'draw' && !W.done && (W.fails > 0 || W.showNext) && g) h += P_(paths[si], '#fb923c', 4, `opacity=".85" class="draw-stroke" style="stroke-dasharray:${g.len};stroke-dashoffset:${g.len};--dur:${Math.max(600, g.len * 12)}ms"`);
     if (W.phase === 'draw' || W.done) paths.forEach((d, i) => { if (i < si) h += P_(d, '#3f2d1d', 6 * sw); });
-    const showDot = W.phase === 'draw' && !W.done && si < paths.length && (m === 'trace' || W.fails >= 1);
+    const showDot = W.phase === 'draw' && !W.done && si < paths.length && (m === 'trace' || W.fails >= 1 || W.reveal > si);
     if (showDot && g) {
       const a = g.pts[0], b = g.pts[Math.min(3, g.pts.length - 1)], ang = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
       h += `<circle cx="${a.x}" cy="${a.y}" r="5.5" fill="#22c55e" stroke="#fff" stroke-width="1.2"/><text x="${a.x}" y="${a.y + 2.2}" text-anchor="middle" font-size="6.5" font-weight="bold" fill="#fff">${si + 1}</text><g transform="translate(${a.x} ${a.y}) rotate(${ang})"><path d="M10 -4 L17 0 L10 4 Z" fill="#16a34a"/></g>`;
     }
     h += `<polyline id="wline" points="${W.line.map((p) => `${p.x},${p.y}`).join(' ')}" fill="none" stroke="#ef4444" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity=".75"/>`;
     L.innerHTML = h;
-    const hb = $('#whint'); if (hb) hb.classList.toggle('glow', W.total >= 2 && !W.force);
+    const hb = $('#whint'); if (hb) hb.classList.toggle('glow', W.fails >= 1 && W.reveal <= si && !W.force);
     const box = $('#wbox'); const dn = box && box.querySelector('.done');
     if (W.done && box && !dn) box.insertAdjacentHTML('beforeend', '<div class="done">◎</div>');
   }
@@ -1312,8 +1315,16 @@ ruby rt { font-family: var(--ui); }
     else { say('かきじゅんを みてから、なぞって みよう。'); W.force = true; runDemo(); return; }
     drawW();
   }
-  ACT.wDemo = () => { if (W && !W.done) { say('よく みてね。'); runDemo(); } };
-  ACT.wHint = () => { if (!W || W.done || W.phase !== 'draw') return; wHintSay(Math.min(3, (W.showNext ? 2 : W.usedHint ? 1 : 0) + 1)); };
+  ACT.wDemo = () => { if (W && !W.done) { W.usedHint = 3; say('よく みてね。'); runDemo(); } };
+  // ヒント：おすたびに、つぎの 1かくを うすく だす（なぞって かける）
+  function revealNext() {
+    if (W.reveal >= W.paths.length) { say('ぜんぶ でて いるよ。うすい ところを なぞってね。'); return; }
+    W.reveal = Math.min(W.paths.length, Math.max(W.reveal, W.si) + 1);
+    W.usedHint = Math.min(3, W.usedHint + 1);
+    say(`${W.reveal}かくめを うすく だしたよ。みどりの まるから なぞって みよう。`);
+    drawW();
+  }
+  ACT.wHint = () => { if (!W || W.done || W.phase !== 'draw') return; SE.tap(); revealNext(); };
   ACT.wClear = () => { if (!W || W.done || W.phase !== 'draw') return; W.si = 0; W.fails = 0; W.showNext = false; drawW(); };
   function strokeUp(tr) {
     const g = W.geo[W.si];
@@ -1340,7 +1351,7 @@ ruby rt { font-family: var(--ui); }
       text = other >= 0 ? 'かく じゅんばんが ちがうよ。みどりの まるから かこう。' : 'みどりの まるから かいて みよう。';
     }
     B.q.wrong.push(res === 'reverse' ? 'むき' : res === 'start' ? 'かきはじめ・じゅんばん' : 'かたち');
-    if (W.total >= 3 && !W.force) { wHintSay(3); return; }
+    if (W.fails >= 3 && W.reveal <= W.si) { revealNext(); return; }
     say(text);
     drawW();
   }
@@ -1610,7 +1621,7 @@ ruby rt { font-family: var(--ui); }
         <div>もじの おおきさ</div><div>${radio('font', [0.9, 1, 1.15, 1.3], ['ちいさめ', 'ふつう', 'おおきめ', 'とても おおきい'])}</div>
         <div>1回の もんだいの かず</div><div>${radio('count', [3, 5, 10])}</div>
         <div>よみを かく ときの 入力</div><div>${radio('kana', ['もじカード', '50おんひょう'], ['もじカード（こたえの もじ＋すこしの ダミー）', '50おんひょう'])}</div>
-        <div>かんじを かく ときの みほん</div><div>${radio('mihon', ['じゅんばん', 'なぞる', 'うすい', 'なし'], ['じゅんばん（なぞる→うすい→なし）', 'なぞる', 'うすい みほん', 'みほん なし'])}</div>
+        <div>かんじを かく ときの みほん</div><div>${radio('mihon', ['なし', 'じゅんばん', 'なぞる', 'うすい'], ['じぶんで かく（はじめ。ヒントで 1かくずつ でる）', 'じゅんばん（なぞる→うすい→じぶんで）', 'なぞる', 'うすい みほん'])}</div>
         <div>かく ときの はんてい</div><div>${radio('judge', ['やさしい', 'ふつう'])}</div>
         <div>こうかおん</div><div>${radio('sound', ['true', 'false'], ['ならす', 'ならさない'])}</div>
         <div>暗証番号を かえる</div><div><input type="text" id="newPin" inputmode="numeric" maxlength="4" placeholder="4けた"></div>
