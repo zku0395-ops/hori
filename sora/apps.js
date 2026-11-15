@@ -40,6 +40,7 @@ window.SORA = {
           { id: 'kanjitest1', emoji: '💯', name: 'かんじテスト（1ねん）', url: 'https://sites.google.com/view/kannjitestnew/%E3%83%9B%E3%83%BC%E3%83%A0' },
           { id: 'kanjiquiz1', emoji: '❓', name: 'かんじクイズ①', say: 'かんじクイズ いち', url: 'https://sites.google.com/view/kanjikuizu1/%E3%83%9B%E3%83%BC%E3%83%A0' },
           { id: 'kanjiquiz2', emoji: '❓', name: 'かんじクイズ②', say: 'かんじクイズ に', url: 'https://sites.google.com/view/kanjijkuizu2/%E3%83%9B%E3%83%BC%E3%83%A0' },
+          { id: 'kanjiquest', emoji: '🐲', name: 'フデリュウと かんじの ぼうけん', say: 'フデリュウと かんじの ぼうけん', url: 'https://script.google.com/macros/s/AKfycbyBHM4Viiawbpit8QeuuMxeiD6tZOGPBXWzH9vPbu3PhM_6alVab8jZKB-EyyMC5fQP/exec' },
         ] },
         { id: 'kotoba', name: 'ことばと ぶん', emoji: '💬', apps: [
           { id: 'kuttsuki', emoji: '🔗', name: 'くっつきことばマスター', url: 'https://sites.google.com/view/kuttukikotobamaster/%E3%83%9B%E3%83%BC%E3%83%A0' },
