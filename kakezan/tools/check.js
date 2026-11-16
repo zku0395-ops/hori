@@ -29,7 +29,7 @@ Object.entries(D.POOL).forEach(([spec, list]) => list.forEach(([x, y]) => {
 // 2. てじゅんで こたえを つくる
 function solve(h) {
   const cells = {};
-  h.steps.forEach(s => { cells[(s.memo ? s.row + 'm' : s.row) + ':' + s.place] = s.val; });
+  h.steps.forEach(s => { if (!s.memo) cells[s.row + ':' + s.place] = s.val; });
   const read = (row) => { let v = 0; for (let p = 0; p < 8; p++) if (cells[row + ':' + p] !== undefined) v += cells[row + ':' + p] * 10 ** p; return v; };
   return h.two ? { p1: read('p1'), p2: read('p2'), ans: read('sum'), cells } : { ans: read('ans'), cells };
 }
@@ -49,9 +49,15 @@ const check = (x, y) => {
     if (ps.some((p, i) => i && p < ps[i - 1])) ng('みぎから じゅんばんに なって いない', `${x}×${y}`, row);
   });
   h.steps.forEach(s => {
-    if (s.val < 0 || s.val > 9) ng('マスに 2けたの かず', `${x}×${y}`, s.kind);
+    if (s.kind === 'prod') { if (s.val !== s.x * s.y) ng('かけ算の メモが ちがう', `${x}×${y}`); }
+    else if (s.val < 0 || s.val > 9) ng('マスに 2けたの かず', `${x}×${y}`, s.kind);
+    if (s.kind === 'mul' && s.carry) {
+      const pi = h.steps.indexOf(s);
+      if (!(h.steps[pi - 1].kind === 'prod' && h.steps[pi - 1].place === s.place)) ng('かけ算の メモが たし算の まえに ない', `${x}×${y}`);
+      if (s.tot !== s.prod + s.carry) ng('メモの たし算が ちがう', `${x}×${y}`);
+    }
     if (!H.stepPrompt(s) || !H.hintText(s) || !H.hintCalc(s).length) ng('ことばが ない', s.kind);
-    H.operandCells(s).forEach(k => { if (!/^(a|b|p1|p2|sum|ans|summ|p1m|p2m|ansm):\d$/.test(k)) ng('ひからせる マスが おかしい', k); });
+    H.operandCells(s).forEach(k => { if (!/^(a|b|p1|p2|sum|ans|summ|p1m|p2m|ansm|p1p|p2p|ansp):\d$/.test(k)) ng('ひからせる マスが おかしい', k); });
   });
   return h;
 };
@@ -71,13 +77,16 @@ for (let x = 10; x <= 99; x++) for (let y = 2; y <= 99; y++) check(x, y);
 // 3. スライドと おなじ かきかた
 const h343 = H.buildHissan(34, 3);
 const s0 = h343.steps;
-if (!(s0[0].kind === 'mul' && s0[0].val === 2 && s0[1].kind === 'memo' && s0[1].val === 1 && s0[2].kind === 'mul' && s0[2].val === 0 && s0[2].carry === 1 && s0[3].kind === 'mulhi' && s0[3].val === 1))
-  ng('34×3 の てじゅんが スライドと ちがう', JSON.stringify(s0.map(s => [s.kind, s.val])));
+if (!(s0[0].kind === 'mul' && s0[0].val === 2 && s0[1].kind === 'memo' && s0[1].val === 1 && s0[1].place === 0 && s0[2].kind === 'prod' && s0[2].val === 9 && s0[3].kind === 'mul' && s0[3].val === 0 && s0[3].carry === 1 && s0[4].kind === 'mulhi' && s0[4].val === 1))
+  ng('34×3 の てじゅんが ちがう', JSON.stringify(s0.map(s => [s.kind, s.val])));
+// 先生の 図（47×3）：1の位 1 → くりあがり 2 を 1の位の したに メモ → 4×3＝12 を 10の位の したに メモ → 12＋2＝14 の 4 → 1
+const s47 = H.buildHissan(47, 3).steps.map(s => [s.kind, s.val, s.place].join(':')).join(' ');
+if (s47 !== 'mul:1:0 memo:2:0 prod:12:1 mul:4:1 mulhi:1:2') ng('47×3 の てじゅんが 図と ちがう', s47);
 const h2326 = solve(H.buildHissan(23, 26));
 if (h2326.p1 !== 138 || h2326.p2 !== 460 || h2326.ans !== 598) ng('23×26 が プリントと ちがう');
 
 // 4. まちがいの しゅるい
-const st27 = H.buildHissan(27, 3).steps; // 7×3=21 → 1, メモ 2, 2×3+2=8
+const st27 = H.buildHissan(27, 3).steps.filter(s => s.kind !== 'prod'); // 7×3=21 → 1, メモ 2, 2×3+2=8
 if (H.mistakeKind(st27[0], 2) !== 'くらいの まちがい') ng('21 の 2 を かいたら くらいの まちがい');
 if (H.mistakeKind(st27[0], 3) !== 'くくの まちがい') ng('ちがう かずは くくの まちがい');
 if (H.mistakeKind(st27[2], 6) !== 'くりあがりの たしわすれ') ng('2×3 の 6 は くりあがりの たしわすれ');

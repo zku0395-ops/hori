@@ -72,7 +72,7 @@ ok(['名簿', 'きろく', 'まとめ', 'せってい'].every(n => sheets[n]), '
 ok(sheets['きろく'].data[0].join(',') === '日時,なまえ,ばしょ,たたかい,もんだい,こたえ,けっか,まちがい,ヒント,まちがいの しゅるい,まちがえて いれた かず,びょう,ID', 'きろくの 見出し');
 sheets['名簿'].getRange(2, 1, 2, 1).setValues([['たろう'], ['はなこ']]);
 const init = ctx.getInitData();
-ok(init.students.length === 2 && init.settings.count === 10 && init.settings.count2 === 10 && init.settings.kakashi === 10 && init.settings.rate === 0.8 && init.settings.hint === true && init.settings.yomi === true && init.settings.sound === true, 'はじめの 設定（10もん・10もん・10もん・0.8倍・ヒント・よみあげ・おと）');
+ok(init.students.length === 2 && init.settings.count === 10 && init.settings.count2 === 5 && init.settings.kakashi === 10 && init.settings.rate === 0.8 && init.settings.hint === true && init.settings.yomi === true && init.settings.sound === true, 'はじめの 設定（1けた 10もん・2けた 5もん・かかし 10もん・0.8倍・ヒント・よみあげ・おと）');
 
 // 前の版の せってい シート（5もん・3もん）は 10もんに なる。先生が かえた かずは のこす
 {
@@ -83,6 +83,9 @@ ok(init.students.length === 2 && init.settings.count === 10 && init.settings.cou
   set.data[r2][1] = '2'; set.data[r2][2] = '2・3・5';
   const m = ctx.getInitData().settings;
   ok(m.count === 10 && m.count2 === 2 && String(set.data[r1][2]).indexOf('10') >= 0, '前の版の 5もんは 10もんに、先生が かえた 2もんは そのまま');
+  // 1つ前の版（2けたも 10もん）は 5もんに なる
+  set.data[r2][1] = '10'; set.data[r2][2] = '2・3・5・10（モンスター 1ぴきに この かず）';
+  ok(ctx.getInitData().settings.count2 === 5, '1つ前の版の 2けた 10もんは 5もんに');
   set.data[r2][1] = '10';
 }
 
