@@ -100,6 +100,7 @@ window.SORA = {
           { id: 'hikimaster', emoji: '➖', name: 'ひきざんマスター', url: 'https://tadashi-hori.my.canva.site/c73hahewarmzp1m7' },
           { id: 'hikihissan', emoji: '➖', name: 'ひきざん（ひっさん）マスター', url: 'https://sites.google.com/view/hikizanhissann/%E3%83%9B%E3%83%BC%E3%83%A0' },
           { id: 'kurisagari', emoji: '🐿️', name: 'くりさがりの ある ひきざんマスター', url: 'https://sites.google.com/view/kurisagariarihissann/%E3%83%9B%E3%83%BC%E3%83%A0' },
+          { id: 'donguriginkou', emoji: '🌰', name: 'クルミせんせいの どんぐり ぎんこう', say: 'クルミせんせいの どんぐり ぎんこう', url: 'https://zku0395-ops.github.io/hori/hissan/' },
           { id: 'bunshoumondai', emoji: '📝', name: 'ぶんしょうもんだいマスター（たしざん・ひきざん）', url: 'https://sites.google.com/view/bunsyoumondai1/%E3%83%9B%E3%83%BC%E3%83%A0' },
           { id: 'kaimono', emoji: '🛒', name: 'かいものマスター', url: 'https://sites.google.com/view/kaimonomasternew/%E3%83%9B%E3%83%BC%E3%83%A0' },
           { id: 'tsurimaster', emoji: '🎣', name: 'ゲンじいの つりマスター への みち', url: 'https://script.google.com/macros/s/AKfycbzPdlp3vc2V6KOM0Mta6P4qFObfaGoxYf97l-aUhhF-kwrglbW7iX3OJ7D6ZPCrzNnR/exec' },
