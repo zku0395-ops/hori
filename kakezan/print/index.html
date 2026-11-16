@@ -241,13 +241,19 @@
     yy += c;
     out += `<line x1="${X(W - 1)}" y1="${yy}" x2="${X(0) + c}" y2="${yy}" stroke="${C.ink}" stroke-width=".6"/>`;
     const memoRow = (row, places) => {
+      const rect = (x, w) => `<rect x="${x}" y="${yy + .5}" width="${w}" height="${mh - 1}" rx=".8" fill="${C.memo}" stroke="${C.memoLine}" stroke-width=".3"/>`;
       places.forEach(pl => {
-        out += `<rect x="${X(pl) + .5}" y="${yy + .4}" width="${c - 1}" height="${mh - .8}" rx=".8" fill="${C.memo}" stroke="${C.memoLine}" stroke-width=".25" stroke-dasharray=".9 .6"/>`;
         const m = key && S.memo[row + ':' + pl];
-        if (m) {
-          if (m[0] === null) out += T(X(pl) + c * .72, yy + mh / 2 + .1, m[1], mh * .72, C.red);
-          else { out += T(X(pl) + c * .34, yy + mh / 2 + .1, m[0], mh * .62, C.red); out += T(X(pl) + c * .82, yy + mh / 2 + .1, m[1], mh * .62, C.red); }
+        if (row === 'sum') {
+          // たし算の くりあがりは 1つの わく
+          out += `<rect x="${X(pl) + .5}" y="${yy + .4}" width="${c - 1}" height="${mh - .8}" rx=".8" fill="${C.memo}" stroke="${C.memoLine}" stroke-width=".25" stroke-dasharray=".9 .6"/>`;
+          if (m) out += T(X(pl) + c * .72, yy + mh / 2 + .1, m[1], mh * .72, C.red);
+          return;
         }
+        // アプリと おなじ：ひだりの わくに かけ算の こたえ（12）、みぎしたの わくに くりあがり（2）
+        const lw = c * .58, rw = c * .34, lx = X(pl) + c * .03, rx = X(pl) + c - rw - c * .03;
+        out += rect(lx, lw) + rect(rx, rw);
+        if (m) { out += T(lx + lw / 2, yy + mh / 2 + .1, m[0], mh * .62, C.red); out += T(rx + rw / 2, yy + mh / 2 + .1, m[1], mh * .62, C.red); }
       });
       yy += mh;
     };
@@ -308,13 +314,13 @@
       'みぎから じゅんばんに けいさんしよう。'];
     if (['p2', 'p3', 'p4'].includes(g.id)) return [
       `① 1の${KURAI}（<b style="color:#a16207">${Y}</b>）を かけて、1の${KURAI}を かく。`,
-      `② 10の${KURAI}を かけた こたえと、くりあがりを <b style="color:#dc2626">メモ</b> する。`,
+      `② くりあがりを 10の${KURAI}の みぎしたの わくに、10の${KURAI}を かけた こたえを その ひだりの わくに <b style="color:#dc2626">メモ</b> する。`,
       '③ メモの 2つを たして かく。'];
     return [
       `① 1だんめ：1の${KURAI}（<b style="color:#a16207">${Y}</b>）を かける。`,
       `② 2だんめ：10の${KURAI}（<b style="color:#15803d">${G}</b>）を かける。<br>　 ✕の マスは 0。`,
       '③ 1だんめと 2だんめを たす。',
-      `くりあがりは、かけ<ruby>算<rt>ざん</rt></ruby>の こたえと いっしょに <b style="color:#dc2626">メモ</b> しよう。`];
+      `くりあがりは みぎの わく、かけ<ruby>算<rt>ざん</rt></ruby>の こたえは ひだりの わくに <b style="color:#dc2626">メモ</b> しよう。`];
   }
   const EXAMPLE = { p0: [6, 3], p1: [23, 3], p2: [27, 3], p3: [54, 4], p4: [34, 3], p5: [34, 10], p6: [34, 12], p7: [23, 26], p8: [27, 3], test: [27, 3] };
 
