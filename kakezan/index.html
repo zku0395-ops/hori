@@ -66,7 +66,7 @@
       var h = location.hostname;
       var local = location.protocol === 'file:' || /github\.io$/.test(h) || h === 'localhost' || h === '127.0.0.1';
       window.KAKE_BASE = local ? '' : 'https://zku0395-ops.github.io/hori/kakezan/';
-      var V = '3'; // data.js を かえたら 1 ふやす（ふるい データを つかわないように）
+      var V = '5'; // data.js を かえたら 1 ふやす（ふるい データを つかわないように）
       window.KAKE_READY = new Promise(function (ok, ng) {
         var s = document.createElement('script');
         s.src = window.KAKE_BASE + 'data/data.js?v=' + V;
@@ -78,7 +78,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.9.0';
+    const APP_VERSION = '1.11.0';
     const BASE = window.KAKE_BASE;
     const IMG = BASE + 'img/';
     let D = {}, PLACES = [], MONSTERS = [], JOBS = [], FORMS = [], SHOPS = [], SHUGYO = [], ALL_ITEMS = [];
@@ -304,25 +304,30 @@
       used.add(key(p));
       return p;
     }
-    const problemCount = (spec, s) => TWO_DIGIT_SPECS.includes(spec) ? (Number(s.count2) || 10) : (Number(s.count) || 10);
+    const problemCount = (spec, s) => TWO_DIGIT_SPECS.includes(spec) ? (Number(s.count2) || 5) : (Number(s.count) || 10);
     function makeSet(spec, n) { const used = new Set(); return Array.from({ length: n }, () => makeProblem(spec, used)); }
 
+    const keyOf = (s) => (s.memo === 'p' ? s.row + 'p' : s.memo ? s.row + 'm' : s.row) + ':' + s.place;
     // a × b の ひっ算を 1マスずつの てじゅんに する
     // rows：'ans'（かける かずが 1けた）または 'p1'・'p2'・'sum'
     function buildHissan(a, b) {
       const A = digits(a), B = digits(b);
       const steps = [];
-      const vals = {}; // `${row}:${place}` → 正しい かず（メモは `${row}m:${place}`）
-      const add = (s) => { steps.push(s); vals[(s.memo ? s.row + 'm' : s.row) + ':' + s.place] = s.val; };
+      // vals：`${row}:${place}` → 正しい かず。メモは くりあがり `${row}m:${place}`、かけ算の こたえ `${row}p:${place}`
+      const vals = {};
+      const add = (s) => { steps.push(s); vals[keyOf(s)] = s.val; };
+      // かけ算の だん：くりあがりが ある けたは、① かけ算の こたえを ちいさな わくに メモ（12）→ ② メモの 2つを たして かく（12＋2）
+      // くりあがりの メモは、つぎの けたの みぎしたの わくに かく（3×7＝21 の 2 は 10の位の みぎしたに。12 は その ひだり）
       const mulRow = (row, d, bPlace, shift) => {
         let carry = 0; const out = [];
         for (let i = 0; i < A.length; i++) {
           const prod = A[i] * d, tot = prod + carry, place = i + shift, last = i === A.length - 1;
+          if (carry > 0) add({ kind: 'prod', row, memo: 'p', place, val: prod, aPlace: i, bPlace, x: A[i], y: d });
           add({ kind: 'mul', row, place, val: tot % 10, aPlace: i, bPlace, x: A[i], y: d, prod, carry, tot });
           out[place] = tot % 10;
           carry = Math.floor(tot / 10);
-          if (carry > 0 && !last) add({ kind: 'memo', row, memo: true, place: place + 1, val: carry, tot, from: place });
-          if (carry > 0 && last) { add({ kind: 'mulhi', row, place: place + 1, val: carry, tot, from: place }); out[place + 1] = carry; }
+          if (carry > 0 && !last) add({ kind: 'memo', row, memo: 'c', place: place + 1, val: carry, tot, from: place, x: A[i], y: d });
+          if (carry > 0 && last) { add({ kind: 'mulhi', row, place: place + 1, val: carry, tot, from: place, x: A[i], y: d }); out[place + 1] = carry; }
         }
         return out;
       };
@@ -350,10 +355,11 @@
     // まちがいの しゅるい
     const KINDS = ['くくの まちがい', 'くりあがりの たしわすれ', 'くらいの まちがい', 'くりあがりの メモ', '0の かきわすれ', 'たし算の まちがい', 'たし算の くりあがり わすれ'];
     function mistakeKind(st, v) {
+      if (st.kind === 'prod') return 'くくの まちがい';
       if (st.kind === 'mul') {
         if (st.carry > 0 && v === st.prod % 10) return 'くりあがりの たしわすれ';
         if (st.tot >= 10 && v === Math.floor(st.tot / 10)) return 'くらいの まちがい';
-        return 'くくの まちがい';
+        return st.carry > 0 ? 'たし算の まちがい' : 'くくの まちがい';
       }
       if (st.kind === 'memo' || st.kind === 'mulhi') return 'くりあがりの メモ';
       if (st.kind === 'zero') return '0の かきわすれ';
@@ -364,8 +370,9 @@
     function stepPrompt(st) {
       const pn = PLACE_NAME[st.place];
       switch (st.kind) {
-        case 'mul': return `${st.x} × ${st.y}${st.carry ? `、メモの ${st.carry} を たす` : ''}。${pn}に かこう`;
-        case 'memo': return 'くりあがりを となりの うえに メモしよう';
+        case 'prod': return `${st.x} × ${st.y} の こたえを ちいさな わくに メモしよう`;
+        case 'mul': return st.carry ? `メモの ${st.prod} と ${st.carry} を たそう。${pn}に かこう` : `${st.x} × ${st.y}。${pn}に かこう`;
+        case 'memo': return `${st.tot} の 10の位を、${PLACE_NAME[st.place]}の みぎしたの ちいさな わくに メモしよう`;
         case 'mulhi': return `のこりの かずを ${pn}に かこう`;
         case 'zero': return '✕の マスには なにを かくかな';
         case 'add': return `${st.x} ＋ ${st.y}${st.carry ? `、メモの ${st.carry} も たす` : ''}。${pn}に かこう`;
@@ -378,8 +385,9 @@
     function hintText(st) {
       const pn = PLACE_NAME[st.place];
       switch (st.kind) {
-        case 'mul': return `${st.x} × ${st.y} を けいさんしよう。${st.carry ? `そのあと メモの ${st.carry} を たすよ。` : ''}${st.tot >= 10 ? 'こたえの 1の位の かずだけ かくよ。' : ''}`;
-        case 'memo': return 'さっきの こたえの 10の位の かずを、となりの マスの うえに ちいさく メモするよ。';
+        case 'prod': return `${st.x} × ${st.y} を けいさんして、ちいさな わくに メモするよ。${st.val >= 10 ? '2けたの ときは、10の位から じゅんに おすよ。' : ''}`;
+        case 'mul': return st.carry ? `メモの ${st.prod} と ${st.carry} を たそう。${st.tot >= 10 ? 'こたえの 1の位の かずだけ かくよ。' : ''}` : `${st.x} × ${st.y} を けいさんしよう。${st.tot >= 10 ? 'こたえの 1の位の かずだけ かくよ。' : ''}`;
+        case 'memo': return `いま かいた こたえの 10の位の かずを、${PLACE_NAME[st.place]}の みぎしたの ちいさな わくに メモするよ。`;
         case 'mulhi': return `さっきの こたえの 10の位の かずを、ひだりの ${pn}に かくよ。`;
         case 'zero': return '2だんめは 10の位の かけ算だよ。1の位の ✕の マスには 0 を かくよ。';
         case 'add': return `${st.x} ＋ ${st.y} を けいさんしよう。${st.carry ? `メモの ${st.carry} も たすよ。` : ''}`;
@@ -391,7 +399,8 @@
     // ヒント②（しき）
     function hintCalc(st) {
       switch (st.kind) {
-        case 'mul': return [`${st.x} × ${st.y} ＝ ${st.prod}`].concat(st.carry ? [`${st.prod} ＋ ${st.carry} ＝ ${st.tot}`] : []);
+        case 'prod': return [`${st.x} × ${st.y} ＝ ${st.val}`];
+        case 'mul': return st.carry ? [`${st.prod} ＋ ${st.carry} ＝ ${st.tot}`] : [`${st.x} × ${st.y} ＝ ${st.prod}`];
         case 'memo': case 'mulhi': case 'addmemo': case 'addhi': return [`${st.tot} の 10の位は ${Math.floor(st.tot / 10)}`];
         case 'zero': return ['✕の マスは 0'];
         case 'add': return [`${st.x} ＋ ${st.y} ＝ ${st.x + st.y}`].concat(st.carry ? [`${st.x + st.y} ＋ ${st.carry} ＝ ${st.tot}`] : []);
@@ -407,12 +416,13 @@
         case 'くりあがりの メモ': return 'うえの こたえの 10の位の かずを かくよ。';
         case '0の かきわすれ': return '2だんめは 10の位の かけ算。1の位には 0 を かこう。';
         case 'たし算の くりあがり わすれ': return st.kind === 'add' ? `メモの ${st.carry} も たそう。` : 'たし算の こたえの 10の位の かずを かくよ。';
-        default: return `${st.x} ＋ ${st.y} を もういちど かぞえて みよう。`;
+        default: return st.kind === 'mul' ? `${st.prod} ＋ ${st.carry} を もういちど かぞえて みよう。` : `${st.x} ＋ ${st.y} を もういちど かぞえて みよう。`;
       }
     }
     // ヒント②で ひからせる マス
     function operandCells(st) {
-      if (st.kind === 'mul') return [`a:${st.aPlace}`, `b:${st.bPlace}`].concat(st.carry ? [`${st.row}m:${st.place}`] : []);
+      if (st.kind === 'prod') return [`a:${st.aPlace}`, `b:${st.bPlace}`];
+      if (st.kind === 'mul') return st.carry ? [`${st.row}p:${st.place}`, `${st.row}m:${st.place}`] : [`a:${st.aPlace}`, `b:${st.bPlace}`];
       if (st.kind === 'add') return [`p1:${st.place}`, `p2:${st.place}`].concat(st.carry ? [`summ:${st.place}`] : []);
       if (st.kind === 'zero') return ['b:1'];
       return [`${st.row}:${st.from}`];
@@ -481,6 +491,7 @@
     const partyOf = (p) => p.comps.slice(-3).map(id => compById(p.hero, id)).filter(Boolean);
     const COMP_LINES = {
       memo: 'くりあがりを メモ しよう！ わすれないでね。',
+      prod: 'かけ算の こたえを メモして おけば、あとで たすだけ だよ！',
       mulhi: 'のこりの かずを ひだりに かこう！',
       zero: '2だんめの ✕の マス、なにを かくか おぼえてる？',
       add: 'さいごは たし算だよ。1だんめと 2だんめを たそう！',
@@ -492,7 +503,7 @@
     //  6. データの ほぞん（スプレッドシート／おためしモード）
     // =====================================================================
     const LOG_HEADER = ['日時', 'なまえ', 'ばしょ', 'たたかい', 'もんだい', 'こたえ', 'けっか', 'まちがい', 'ヒント', 'まちがいの しゅるい', 'まちがえて いれた かず', 'びょう', 'ID'];
-    const DEFAULT_SETTINGS = { rate: 0.8, font: 1, count: 10, count2: 10, kakashi: 10, hint: true, yomi: true, sound: true };
+    const DEFAULT_SETTINGS = { rate: 0.8, font: 1, count: 10, count2: 5, kakashi: 10, hint: true, kuku: true, yomi: true, sound: true };
 
     // まとめ（先生用）— コード.gs の aggregate_ と おなじ しくみ
     const emptyStu = () => ({ count: 0, ok: 0, miss: 0, hint: 0, last: '', places: {}, kinds: {}, wrongs: [] });
@@ -1396,7 +1407,7 @@
             <div className="font-bold text-amber-300 mb-1">ひっ算の やくそく</div>
             <div>① みぎ（1の位）から じゅんばんに けいさんする。</div>
             <div>② <span className="bg-yellow-300 text-slate-900 px-1 rounded">きいろ</span>は 1の位の かけ算、<span className="bg-green-400 text-slate-900 px-1 rounded">みどり</span>は 10の位の かけ算。</div>
-            <div>③ くりあがりは、となりの うえに <span className="text-rose-400 font-bold">ちいさく メモ</span>して、あとで たす。</div>
+            <div>③ くりあがりは、つぎの 位の みぎしたの <span className="text-rose-400 font-bold">ちいさな わくに メモ</span>。その ひだりに つぎの かけ算の こたえ（12 など）も メモして、2つを たす。</div>
             <div>④ 2だんめの 1の位（✕の マス）には 0 を かく。さいごに たし算。</div>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 w-full max-w-4xl">
@@ -1410,7 +1421,6 @@
     // =====================================================================
     // 15. ひっ算の ばん（マス・すうじボタン・ヒント）
     // =====================================================================
-    const keyOf = (s) => (s.memo ? s.row + 'm' : s.row) + ':' + s.place;
     const ROW_NAME = { ans: '', p1: '1だんめ ', p2: '2だんめ ', sum: 'たし算 ' };
 
     function Board({ h, vals, cur, ops = [], ghost, S = 62 }) {
@@ -1440,6 +1450,21 @@
                 continue;
               }
               if (c === 0) { out.push(<div key={c} style={{ width: S }} />); continue; }
+              if (row.t === 'memo' && row.r !== 'sum') {
+                // かけ算の だんの メモ：ひだりに かけ算の こたえ（12）、みぎに くりあがり（2）
+                const box = (k, w) => {
+                  if (!targets.has(k)) return null;
+                  const v = vals[k], isCur = curKey === k;
+                  if (v === undefined && !isCur) return null; // メモの わくは、かく ときに はじめて だす
+                  return <div className={`flex items-center justify-center rounded-md font-bold ${isCur ? 'cellglow bg-amber-50' : 'bg-white'} ${ops.includes(k) ? 'opglow' : ''}`}
+                    style={{ width: w, height: S * 0.46, border: '2px solid #e11d48', color: '#e11d48', fontSize: S * 0.34 }}>
+                    {v !== undefined ? v : isCur && ghost !== null && ghost !== undefined ? <span className="ghost">{ghost}</span> : ''}</div>;
+                };
+                const pb = box(`${row.r}p:${pl}`, S * 0.58), cb = box(`${row.r}m:${pl}`, S * 0.36);
+                out.push(<div key={c} style={{ width: S, height: S * 0.56 }} className="flex items-center justify-between px-[1px]">
+                  {pb || <span />}{cb || <span />}</div>);
+                continue;
+              }
               if (row.t === 'memo') {
                 const k = `${row.r}m:${pl}`;
                 if (!targets.has(k)) { out.push(<div key={c} style={{ width: S, height: S * 0.46 }} />); continue; }
@@ -1466,11 +1491,12 @@
       );
     }
 
-    function NumPad({ onPress, bad = [], glow = null, disabled, extra = null }) {
+    function NumPad({ onPress, bad = [], glow = null, disabled, extra = null, extra2 = null }) {
       return (
         <div className="numpad grid grid-cols-3 gap-2">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 'h', 0].map(d => {
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 'h', 0, 'k'].map(d => {
             if (d === 'h') return <div key="h" className="flex">{extra}</div>;
+            if (d === 'k') return <div key="k" className="flex">{extra2}</div>;
             const off = bad.includes(d);
             return <button key={d} disabled={disabled || off} onClick={() => onPress(d)}
               className={`btn3d rounded-2xl border-4 font-bold ${off ? 'bg-slate-200 border-slate-300 text-slate-300' : glow === d ? 'bg-amber-300 border-amber-600 glow' : 'bg-white border-sky-500 text-slate-800'}`}
@@ -1480,19 +1506,39 @@
       );
     }
 
+    // 九九の ひょう（1つの だん）。いま かけて いる ところを ひからせる
+    const KUKU_YOMI = ['', 'いち', 'に', 'さん', 'し', 'ご', 'ろく', 'しち', 'はち', 'く'];
+    function KukuTable({ y, x, onClose }) {
+      return (
+        <div className="pop w-full bg-violet-50 border-4 border-violet-400 rounded-2xl p-2">
+          <div className="flex items-center justify-between mb-1">
+            <div className="text-xl font-bold text-violet-800">📖 {y}の だん（{KUKU_YOMI[y]}の だん）</div>
+            <button onClick={onClose} className="rounded-lg border-2 border-violet-400 bg-white px-2 text-base font-bold">とじる</button>
+          </div>
+          <div className="grid grid-cols-3 gap-1">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => (
+              <div key={n} className={`rounded-lg text-center font-bold text-lg py-0.5 ${n === x ? 'bg-amber-300 ring-4 ring-amber-500' : 'bg-white'}`}>{y} × {n} ＝ {y * n}</div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
     function StepExpr({ st, hint }) {
       if (!st) return null;
       const big = 'text-3xl font-bold';
       const y = <span className="px-1 rounded" style={{ background: st.row === 'p2' ? '#4ade80' : '#fde047' }}>{st.y}</span>;
       let main;
-      if (st.kind === 'mul') main = <span className={big}>{st.x} × {y}{st.carry ? <> ＋ <span className="text-rose-600">{st.carry}</span></> : null} ＝ ？</span>;
+      if (st.kind === 'prod') main = <span className={big}>{st.x} × {y} ＝ ？<span className="text-base text-rose-600 block">✏️ ちいさな わくに メモ</span></span>;
+      else if (st.kind === 'mul' && st.carry) main = <span className={big}><span className="text-rose-600">{st.prod}</span> ＋ <span className="text-rose-600">{st.carry}</span> ＝ ？</span>;
+      else if (st.kind === 'mul') main = <span className={big}>{st.x} × {y} ＝ ？</span>;
       else if (st.kind === 'add') main = <span className={big}>{st.x} ＋ {st.y}{st.carry ? <> ＋ <span className="text-rose-600">{st.carry}</span></> : null} ＝ ？</span>;
       else if (st.kind === 'memo' || st.kind === 'addmemo') main = <span className="text-3xl font-bold text-rose-600">✏️ くりあがりを メモ</span>;
       else if (st.kind === 'zero') main = <span className="text-3xl font-bold">✕の マスは なに？</span>;
       else main = <span className="text-3xl font-bold">⬅️ のこりを {PLACE_NAME[st.place]}に</span>;
       return (
         <div className="bg-sky-50 border-4 border-sky-300 rounded-2xl px-3 py-2 text-center w-full">
-          <div className="text-sm text-sky-700 font-bold">{ROW_NAME[st.row]}{st.memo ? 'メモ' : PLACE_NAME[st.place]}</div>
+          <div className="text-sm text-sky-700 font-bold">{ROW_NAME[st.row]}{st.memo === 'p' ? 'かけ算の メモ' : st.memo ? 'くりあがりの メモ' : PLACE_NAME[st.place]}</div>
           <div>{main}</div>
           {hint >= 1 && <div className="text-lg text-slate-700 mt-1">💡 {hintText(st)}</div>}
           {hint >= 2 && <div className="text-2xl font-bold text-indigo-700">{hintCalc(st).map((l, i) => <div key={i}>{l}</div>)}</div>}
@@ -1510,6 +1556,8 @@
       const [bad, setBad] = useState([]);
       const [hint, setHint] = useState(0);
       const [shake, setShake] = useState(0);
+      const [typed, setTyped] = useState('');   // 2けたの メモを うって いる とちゅう（12 の 1 まで など）
+      const [kukuOpen, setKukuOpen] = useState(false);
       const stats = useRef({ miss: 0, hint: 0, kinds: [], inputs: [], t0: Date.now() });
       const usedLines = useRef(new Set());
       const st = h.steps[i];
@@ -1522,7 +1570,9 @@
         }
         if (settings.yomi === false) talk.show(stepPrompt(s), { who: 'kakeru' }); else talk.say(stepPrompt(s), { who: 'kakeru' });
       };
-      useEffect(() => { if (!demo && st) sayStep(st); }, [i]);
+      useEffect(() => { if (!demo && st) sayStep(st); setTyped(''); }, [i]);
+      // いま おす かず（2けたの メモは 10の位 → 1の位 の じゅん）
+      const need = st ? (st.val >= 10 ? Number(String(st.val)[typed.length]) : st.val) : null;
       // おてほん：カケルさまが 1マスずつ といて みせる
       useEffect(() => {
         if (!demo) return;
@@ -1546,10 +1596,16 @@
       }, [demo, a, b]);
       const press = (v) => {
         if (demo || !st || bad.includes(v)) return;
-        if (v === st.val) {
+        if (st.val >= 10 && v === need && typed.length + 1 < String(st.val).length) {
           Sound.tap();
-          setVals(x => ({ ...x, [keyOf(st)]: v }));
-          setMiss(0); setBad([]); setHint(0);
+          const t = typed + v;
+          setTyped(t); setVals(x => ({ ...x, [keyOf(st)]: t })); setBad([]);
+          return;
+        }
+        if (v === need) {
+          Sound.tap();
+          setVals(x => ({ ...x, [keyOf(st)]: st.val }));
+          setMiss(0); setBad([]); setHint(0); setTyped('');
           if (i + 1 >= h.steps.length) {
             setI(i + 1); Sound.ok();
             const s = stats.current;
@@ -1562,7 +1618,7 @@
         Sound.retry();
         const kind = mistakeKind(st, v);
         const s = stats.current;
-        s.miss++; s.kinds.push(kind); s.inputs.push(`${ROW_NAME[st.row]}${st.memo ? 'メモ' : PLACE_NAME[st.place]}:${v}→${st.val}`);
+        s.miss++; s.kinds.push(kind); s.inputs.push(`${ROW_NAME[st.row]}${st.memo === 'p' ? 'かけ算メモ' : st.memo ? 'メモ' : PLACE_NAME[st.place]}:${typed}${v}→${st.val}`);
         const m = miss + 1;
         setMiss(m); setBad([...bad, v]); setShake(x => x + 1);
         if (m >= 3) { setHint(3); s.hint = Math.max(s.hint, 3); talk.say(`${missText(kind, st)} ひかって いる かずを おしてね。`, { who: 'kakeru', mood: 'think' }); }
@@ -1576,16 +1632,22 @@
         else talk.say('ひかって いる かずを おしてね。', { who: 'kakeru', mood: 'think' });
       };
       const done = i >= h.steps.length;
+      // 九九ボタン：いま かけて いる かずの だん（12×4 なら 4の だん）。たし算の ときは さいごに かけた だん
+      const lastY = st && st.y ? st.y : (h.steps.slice(0, i).reverse().find(s => s.y) || h.steps.find(s => s.y) || { y: h.B[0] }).y;
+      const kukuDan = lastY || h.B[0] || 1;
       return (
         <div className="flex flex-wrap items-start justify-center gap-3">
           <div key={shake} className={shake ? 'shake' : ''}>
-            <Board h={h} vals={vals} cur={done ? null : st} ops={hint >= 2 && st ? operandCells(st) : []} ghost={hint >= 3 && st ? st.val : null} S={S || (h.two ? 52 : 64)} />
+            <Board h={h} vals={vals} cur={done ? null : st} ops={hint >= 2 && st ? operandCells(st) : []} ghost={hint >= 3 && st && !typed ? st.val : null} S={S || (h.two ? 52 : 64)} />
           </div>
           <div className="flex flex-col items-center gap-2" style={{ width: 330 }}>
             {done ? <div className="pop text-3xl font-bold text-emerald-600 bg-emerald-50 border-4 border-emerald-400 rounded-2xl px-4 py-3 text-center">⭐ できた！<br />{a} × {b} ＝ {a * b}</div>
               : <StepExpr st={st} hint={hint} />}
+            {!demo && !done && kukuOpen && <KukuTable y={kukuDan} x={st && st.y ? st.x : null} onClose={() => setKukuOpen(false)} />}
             {!demo && !done && (
-              <NumPad onPress={press} bad={bad} glow={hint >= 3 ? st.val : null}
+              <NumPad onPress={press} bad={bad} glow={hint >= 3 ? need : null}
+                extra2={settings.kuku !== false ? <button onClick={() => { Sound.tap(); if (!kukuOpen) { stats.current.kuku = (stats.current.kuku || 0) + 1; talk.say(`${kukuDan}の だんの 九九だよ。`, { who: 'kakeru' }); } setKukuOpen(!kukuOpen); }}
+                  className={`btn3d rounded-2xl border-4 border-violet-500 font-bold text-lg leading-tight ${kukuOpen ? 'bg-violet-300' : 'bg-violet-100'}`} style={{ width: 74, height: 62 }}>📖<ruby>九九<rt>くく</rt></ruby></button> : null}
                 extra={hintOn ? <button onClick={moreHint} disabled={hint >= 3} className={`btn3d rounded-2xl border-4 border-amber-500 bg-amber-100 font-bold text-lg leading-tight ${miss >= 2 && hint < 3 ? 'glow' : ''}`} style={{ width: 74, height: 62 }}>💡ヒント<div className="text-xs">{hint}/3</div></button> : null} />
             )}
           </div>
@@ -2109,6 +2171,7 @@
                 <div>1回の たたかいの 問題数（かける数が 1けた）：{opt('count', [[3, '3もん'], [5, '5もん'], [10, '10もん']])}</div>
                 <div>1回の たたかいの 問題数（かける数が 2けた）：{opt('count2', [[2, '2もん'], [3, '3もん'], [5, '5もん'], [10, '10もん']])}</div>
                 <div>かかし れんぞくの 問題数：{opt('kakashi', [[5, '5もん'], [10, '10もん']])}</div>
+                <div>九九ボタン：{opt('kuku', [[true, 'だす'], [false, 'ださない']])} <span className="text-sm text-slate-500">（いま かけて いる かずの だんの 九九を 出します）</span></div>
                 <div>ヒントボタン：{opt('hint', [[true, 'だす'], [false, 'ださない']])} <span className="text-sm text-slate-500">（ださないときも、3回まちがえると答えのマスがうすく出ます）</span></div>
                 <div>1マスごとの よみあげ：{opt('yomi', [[true, 'する'], [false, 'しない']])} <span className="text-sm text-slate-500">（しないときは、文字だけ出します）</span></div>
                 <div>こうかおん：{opt('sound', [[true, 'ならす'], [false, 'ならさない']])}</div>
@@ -2201,7 +2264,7 @@
 
       const applySettings = (s) => {
         const v = { ...DEFAULT_SETTINGS, ...s };
-        ['sound', 'hint', 'yomi'].forEach(k => { v[k] = v[k] !== false && v[k] !== 'false'; });
+        ['sound', 'hint', 'yomi', 'kuku'].forEach(k => { v[k] = v[k] !== false && v[k] !== 'false'; });
         ['count', 'count2', 'kakashi'].forEach(k => { v[k] = Number(v[k]); if (isNaN(v[k]) || !v[k]) v[k] = DEFAULT_SETTINGS[k]; });
         setSettings(v);
         Speech.rate = Number(v.rate) || 0.8;
