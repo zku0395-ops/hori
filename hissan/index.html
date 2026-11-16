@@ -525,8 +525,8 @@
       }, [src]);
       return ok;
     }
-    const animalSrc = b => `img/bouken/${b.key}.webp`;
-    const bgSrc = b => `img/bouken/bg_${b.key}.webp`;   // その ばしょの 背景（ないときは うすい みどり）
+    const animalSrc = b => `${WORLDS[b.world].dir}${b.key}.webp`;
+    const bgSrc = b => `${WORLDS[b.world].dir}bg_${b.key}.webp`;   // その ばしょの 背景（ないときは うすい いろ）
     function AnimalPic({ b, size = 120, className = '' }) {
       const ok = useImgOk(animalSrc(b));
       if (ok) return <img src={animalSrc(b)} alt={b.full} draggable="false" className={className} style={{ height: size, width: 'auto', flex: 'none', userSelect: 'none' }} />;
@@ -983,11 +983,41 @@
       { id: 'b8', key: 'lion', e: '🦁', full: 'もりの おうさま ライオン', call: 'おうさま', place: 'もりの おしろ', takara: ['👑', 'おうかん'], mix: 's',
         meet: 'よく きたね。わたしは もりの おうさま ライオンだ。\nここまで よく がんばった。\nさいごの 10もんを といて みせて おくれ。' },
     ];
+    /* ---- うみの ぼうけん（もりの ぼうけんを ぜんぶ クリアすると ひらく。問題は もりの ⑥⑦⑧と おなじ）---- */
+    const UMI = [
+      { id: 'u1', key: 'kani', e: '🦀', full: 'かにの チョキくん', call: 'チョキくん', place: 'すなはま', takara: ['🦪', 'しんじゅ'], mix: 'a',
+        meet: 'うみへ ようこそ！ かにの チョキくんだよ。\nすなはまで ひろった かいがらを かぞえて いるんだ。\nひきざんで てつだって くれる？' },
+      { id: 'u2', key: 'tako', e: '🐙', full: 'たこの タッコちゃん', call: 'タッコちゃん', place: 'いわば', takara: ['🏺', 'たこつぼ'], mix: 'a',
+        meet: 'こんにちは！ たこの タッコちゃんよ。\n8ほんの あしでも かぞえきれないの。\nいっしょに けいさん して くれる？' },
+      { id: 'u3', key: 'kumanomi', e: '🐠', full: 'クマノミの マリンちゃん', call: 'マリンちゃん', place: 'さんごしょう', takara: ['🪸', 'さんご'], mix: 'a',
+        meet: 'さんごしょうへ ようこそ！ クマノミの マリンだよ。\nなかまの さかなが なんびき のこって いるか しりたいの。\nひく かずが 1けたの もんだいも あるよ。' },
+      { id: 'u4', key: 'iruka', e: '🐬', full: 'いるかの ルカくん', call: 'ルカくん', place: 'うみの まんなか', takara: ['💧', 'うみの しずく'], mix: 'a',
+        meet: 'やあ！ いるかの ルカくんだよ。\nジャンプした かいすうを けいさん しよう。\nこたえが 1けたに なる もんだいも あるよ。' },
+      { id: 'u5', key: 'kurage', e: '🪼', alt: ['🫧', 'くらげの ゆらちゃん'], full: 'くらげの ゆらちゃん', call: 'ゆらちゃん', place: 'ふわふわの うみ', takara: ['🔮', 'ひかる たま'], mix: 's',
+        meet: 'ふわふわ〜。くらげの ゆらちゃんだよ。\nうみの おはなしの もんだいも あるよ。\nゆっくり よんで ね。' },
+      { id: 'u6', key: 'rakko', e: '🦦', full: 'ラッコの ラッキーくん', call: 'ラッキーくん', place: 'こんぶの もり', takara: ['🪨', 'たいせつな いし'], mix: 's',
+        meet: 'ラッコの ラッキーくんだよ。\nこんぶの もりで、かいを いくつ たべたか わすれちゃった。\nおはなしの もんだいも あるよ。' },
+      { id: 'u7', key: 'kujira', e: '🐳', full: 'くじらの ザブンじいさん', call: 'ザブンじいさん', place: 'ふかい うみ', takara: ['🌈', 'しおふきの にじ'], mix: 's',
+        meet: 'ほっほっほ。くじらの ザブンじいさんじゃ。\nふかい うみの そこまで よく きたのう。\nおはなしの もんだいも といて おくれ。' },
+      { id: 'u8', key: 'tatsu', e: '🔱', full: 'うみの おうさま タツノオトシゴ', call: 'おうさま', place: 'うみの そこの おしろ', takara: ['🎁', 'たまてばこ'], mix: 's',
+        meet: 'りゅうぐうじょうへ ようこそ。\nわしは うみの おうさま、タツノオトシゴじゃ。\nさいごの 10もんを といて みせて おくれ。' },
+    ];
+    UMI.forEach(b => { if (b.alt && !emojiSupported(b.e)) b.e = b.alt[0]; });
+    BOUKEN.forEach(b => { b.world = 'mori'; });
+    UMI.forEach(b => { b.world = 'umi'; });
     const BOUKEN_IDS = BOUKEN.map(b => b.id);
+    const UMI_IDS = UMI.map(b => b.id);
+    const ALL_BOUKEN = BOUKEN.concat(UMI);
+    const UMI_TITLE = { name: 'うみの ぼうけん マスター', icon: '🐳' };   // うみの ぼうけんを ぜんぶ クリア
     const BOUKEN_REWARD = 20;   // 10もん おえた ときの どんぐり
     const NUM_MARK = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧'];
-    BOUKEN.forEach((b, i) => STAGES.push({ id: b.id, grp: 'bouken', label: `ぼうけん ${NUM_MARK[i]}`, name: b.full, sub: b.place, kind: 'hissan', form: 'none', decInput: true, mix: b.mix, animal: b }));
-    const BOUKEN_MAP = Object.fromEntries(BOUKEN.map(b => [b.id, b]));
+    // もりと うみの ちがい（絵の フォルダ・地図の ばしょ・しょうごう など）
+    const WORLDS = {
+      mori: { key: 'mori', name: 'もり', list: BOUKEN, ids: BOUKEN_IDS, dir: 'img/bouken/', title: BOUKEN_TITLE, mark: 'ぼうけん', short: '冒', bg: '#f0fdf4', icon: '🌲' },
+      umi: { key: 'umi', name: 'うみ', list: UMI, ids: UMI_IDS, dir: 'img/umi/', title: UMI_TITLE, mark: 'うみ', short: '海', bg: '#eff6ff', icon: '🌊' },
+    };
+    ALL_BOUKEN.forEach(b => { const ids = WORLDS[b.world].ids, i = ids.indexOf(b.id); STAGES.push({ id: b.id, grp: 'bouken', world: b.world, label: `${WORLDS[b.world].mark} ${NUM_MARK[i]}`, name: b.full, sub: b.place, kind: 'hissan', form: 'none', decInput: true, mix: b.mix, animal: b }); });
+    const BOUKEN_MAP = Object.fromEntries(ALL_BOUKEN.map(b => [b.id, b]));
     const STAGE_MAP = Object.fromEntries(STAGES.map(s => [s.id, s]));
     const MAIN_IDS = ['j1', 'j2', 'j3', 's1', 's2', 's3', 's4', 's5', 's6'];
     const ADV_IDS = ['h1', 'h2', 'h3'];
@@ -1036,7 +1066,7 @@
     FRIENDS.forEach(f => { if (f.alt && !emojiSupported(f.e)) { f.e = f.alt[0]; f.name = f.alt[1]; } });
     const FRIEND_MAP = Object.fromEntries(FRIENDS.map(f => [f.id, f]));
     const ALL_ITEMS = SHOP.flatMap(c => c.list);
-    const TAKARA_ITEMS = BOUKEN.map(b => ({ id: `takara-${b.key}`, cat: 'takara', e: b.takara[0], name: b.takara[1], price: 0, stage: b.id }));
+    const TAKARA_ITEMS = ALL_BOUKEN.map(b => ({ id: `takara-${b.key}`, cat: 'takara', e: b.takara[0], name: b.takara[1], price: 0, stage: b.id }));
     const ITEM_MAP = Object.fromEntries(ALL_ITEMS.concat(TAKARA_ITEMS).map(it => [it.id, it]));
 
     /* =========================================================
@@ -1055,6 +1085,14 @@
       { t: 'きのみが {a}こ あります。\n{b}こ つかって ケーキを つくりました。\nのこりは なんこですか。', u: 'こ' },
       { t: 'はっぱが {a}まい あります。\nかぜで {b}まい とんで いきました。\nのこりは なんまいですか。', u: 'まい' },
       { t: 'どんぐりを {a}こ ひろいました。\nぎんこうに {b}こ あずけました。\nてもとに のこった どんぐりは なんこですか。', u: 'こ' },
+    ];
+    const STORIES_UMI = [
+      { t: 'すなはまに かいがらが {a}こ あります。\nなみが {b}こ さらって いきました。\nのこりは なんこですか。', u: 'こ' },
+      { t: 'うきわが {a}こ あります。\nともだちに {b}こ かしました。\nのこりは なんこですか。', u: 'こ' },
+      { t: 'ひとでが {a}こ います。\n{b}こ うみへ かえりました。\nのこりは なんこですか。', u: 'こ' },
+      { t: 'しんじゅが {a}こ あります。\nおうさまに {b}こ わたしました。\nのこりは なんこですか。', u: 'こ' },
+      { t: 'こんぶが {a}ほん あります。\nラッコが {b}ほん たべました。\nのこりは なんぼんですか。', u: 'ほん' },
+      { t: 'あわが {a}こ でて います。\n{b}こ はじけました。\nのこりは なんこですか。', u: 'こ' },
     ];
     function genOne(stage, i, zeroAt) {
       if (stage.kind === 'ten') return null;
@@ -1082,7 +1120,7 @@
         let q;
         for (let t = 0; t < 40; t++) { q = genMixOne(k); if (!seen.has(q.a + '-' + q.b)) break; }
         seen.add(q.a + '-' + q.b);
-        if (k === 's') { const st = pick(STORIES); q = { ...q, story: st.t, unit: st.u }; }
+        if (k === 's') { const st = pick(stage.world === 'umi' ? STORIES_UMI : STORIES); q = { ...q, story: st.t, unit: st.u }; }
         out.push({ ...q, key: q.a + '-' + q.b });
       });
       return out;
@@ -1144,6 +1182,7 @@
     const isSkipped = (id, st) => { const i = MAIN_IDS.indexOf(id); return i >= 0 && i < startIndex(st); };
     const isDone = (id, st) => isCleared(id, st) || isSkipped(id, st);
     function titleOf(st) {
+      if (UMI_IDS.every(id => isCleared(id, st))) return UMI_TITLE;
       if (BOUKEN_IDS.every(id => isCleared(id, st))) return BOUKEN_TITLE;
       const n = MAIN_IDS.filter(id => isDone(id, st)).length;
       let t = TITLES[0]; TITLES.forEach(x => { if (n >= x.min) t = x; });
@@ -1154,11 +1193,15 @@
       const s = st.settings;
       return !!s.bouken || !!s.unlockAll || (s.advanced ? isCleared('h3', st) : isDone('s6', st));
     }
+    // うみの ぼうけん（もりの ⑧を クリアすると ひらく）
+    const umiOpen = st => boukenOpen(st) && (!!st.settings.unlockAll || BOUKEN_IDS.every(id => isCleared(id, st)));
+    const worldOpen = (w, st) => w === 'umi' ? umiOpen(st) : boukenOpen(st);
+    const allCleared = (w, st) => WORLDS[w].ids.every(id => isCleared(id, st));
     function isStageOpen(stage, st) {
       if (stage.grp === 'bouken') {
-        if (!boukenOpen(st)) return false;
-        const i = BOUKEN_IDS.indexOf(stage.id);
-        return i === 0 || !!st.settings.unlockAll || isCleared(BOUKEN_IDS[i - 1], st);
+        if (!worldOpen(stage.world, st)) return false;
+        const ids = WORLDS[stage.world].ids, i = ids.indexOf(stage.id);
+        return i === 0 || !!st.settings.unlockAll || isCleared(ids[i - 1], st);
       }
       if (stage.grp === 'adv') return !!st.settings.advanced;
       if (st.settings.unlockAll) return true;
@@ -1168,9 +1211,10 @@
     function boukenLockText(st) { return st.settings.advanced ? 'はってん ウを クリアすると ひらくよ' : 'ステップ6を クリアすると ひらくよ'; }
     function lockHint(stage, st) {
       if (stage.grp === 'bouken') {
+        if (st && stage.world === 'umi' && !umiOpen(st)) return boukenOpen(st) ? 'もりの ぼうけんを クリアすると ひらくよ' : boukenLockText(st);
         if (st && !boukenOpen(st)) return boukenLockText(st);
-        const i = BOUKEN_IDS.indexOf(stage.id);
-        return `${STAGE_MAP[BOUKEN_IDS[i - 1]].name}に あうと ひらくよ`;
+        const ids = WORLDS[stage.world].ids, i = ids.indexOf(stage.id);
+        return `${STAGE_MAP[ids[i - 1]].name}に あうと ひらくよ`;
       }
       if (stage.grp === 'adv') return 'せんせいが ひらいて くれるよ';
       const i = MAIN_IDS.indexOf(stage.id);
@@ -1190,7 +1234,7 @@
     const SYNC_BATCH = 200;
     const stageName = s => `${s.label} ${stripMarkup(s.name)}`;
     function syncColumns() {
-      return STAGES.map(s => ({ id: s.id, short: s.grp === 'bouken' ? `冒${BOUKEN_IDS.indexOf(s.id) + 1}` : s.label.replace('じゅんび', 'じ').replace('ステップ', 'S').replace('はってん ', '発'), label: stageName(s) }));
+      return STAGES.map(s => ({ id: s.id, short: s.grp === 'bouken' ? `${WORLDS[s.world].short}${WORLDS[s.world].ids.indexOf(s.id) + 1}` : s.label.replace('じゅんび', 'じ').replace('ステップ', 'S').replace('はってん ', '発'), label: stageName(s) }));
     }
     async function buildSummary(st) {
       const hist = await DB.getAll('history');
@@ -1857,7 +1901,7 @@
         h1: <>{bg}{txt('42', 30, 22)}{txt('− 7', 54, 20)}</>,
         h2: <>{bg}{txt('43', 26, 20)}{txt('−36', 46, 18)}{txt('7', 66, 16, '#059669')}</>,
         h3: <>{bg}{txt('📖', 42, 34)}</>,
-        ...Object.fromEntries(BOUKEN.map(b => [b.id, <>{bg}<text x="40" y="44" textAnchor="middle" dominantBaseline="central" fontSize="40" className="emoji">{b.e}</text></>])),
+        ...Object.fromEntries(ALL_BOUKEN.map(b => [b.id, <>{bg}<text x="40" y="44" textAnchor="middle" dominantBaseline="central" fontSize="40" className="emoji">{b.e}</text></>])),
       }[id];
       return <svg viewBox="0 0 80 80" width={size} height={size} aria-hidden="true" style={{ flex: 'none' }}>{body}</svg>;
     }
@@ -1867,6 +1911,22 @@
        ========================================================= */
     // 地図の 上の 8つの ばしょ（1000×750 の 中の 位置。ChatGPT の 地図に あわせて なおす）
     const MAP_SPOTS = [[142, 653], [397, 604], [525, 514], [756, 459], [459, 290], [697, 304], [836, 207], [912, 117]];
+    // うみの 地図（うみべ → うみの なか → うみの そこ へ もぐって いく。ChatGPT の 地図の 広場に あわせて ある）
+    const UMI_SPOTS = [[240, 110], [632, 200], [278, 275], [724, 340], [260, 417], [720, 482], [282, 580], [638, 668]];
+    WORLDS.mori.spots = MAP_SPOTS; WORLDS.umi.spots = UMI_SPOTS;
+    function UmiMapFallback() {
+      // ChatGPT の 地図が とどくまでの かりの 地図
+      const areas = [['🏖️', '#fde68a'], ['🪨', '#cbd5e1'], ['🪸', '#fda4af'], ['🌊', '#7dd3fc'], ['🫧', '#c4b5fd'], ['🌿', '#86efac'], ['🌑', '#60a5fa'], ['🏯', '#fcd34d']];
+      return (
+        <g>
+          <defs><linearGradient id="umiSea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#7dd3fc" /><stop offset="1" stopColor="#1e3a8a" /></linearGradient></defs>
+          <rect x="0" y="0" width="1000" height="750" fill="url(#umiSea)" />
+          <rect x="0" y="0" width="1000" height="90" fill="#bae6fd" />
+          <path d="M 0 90 Q 250 60 500 95 Q 750 130 1000 85 L 1000 230 Q 700 260 500 230 Q 250 200 0 240 Z" fill="#fde68a" opacity=".9" />
+          {UMI_SPOTS.map(([x, y], i) => <g key={i}><circle cx={x} cy={y} r="78" fill={areas[i][1]} opacity=".6" /><text x={x + 62} y={y - 52} fontSize="44" className="emoji" textAnchor="middle" dominantBaseline="central">{areas[i][0]}</text></g>)}
+        </g>
+      );
+    }
     function MapFallback() {
       // ChatGPT の 地図が とどくまでの かりの 地図
       const areas = [['🕳️', '#d6b48a'], ['💧', '#bae6fd'], ['🌾', '#bbf7d0'], ['🎋', '#86efac'], ['🧊', '#e0f2fe'], ['🌴', '#4ade80'], ['🌊', '#93c5fd'], ['🏰', '#fde68a']];
@@ -1878,37 +1938,41 @@
         </g>
       );
     }
-    function MapScreen({ app, onGo, from }) {
+    function MapScreen({ app, onGo, from, world = 'mori', onWorld }) {
       const st = app.state;
+      const W = WORLDS[world];
+      const LIST = W.list, IDS = W.ids, SPOTS = W.spots, mapSrc = W.dir + 'map.webp';
       const name = st.profile ? st.profile.name : '';
-      const curI = BOUKEN_IDS.findIndex(id => !isCleared(id, st));
-      const target = curI < 0 ? BOUKEN.length - 1 : curI;
+      const curI = IDS.findIndex(id => !isCleared(id, st));
+      const target = curI < 0 ? LIST.length - 1 : curI;
       const [pos, setPos] = useState(from != null && from >= 0 ? from : target);
       const [talking, setTalking] = useState(false);
-      const mapOk = useImgOk('img/bouken/map.webp');
-      const tb = BOUKEN[target];
+      const mapOk = useImgOk(mapSrc);
+      const tb = LIST[target];
       const tStage = STAGE_MAP[tb.id];
       const open = isStageOpen(tStage, st);
-      const met = BOUKEN_IDS.filter(id => isCleared(id, st)).length;
-      const msg = curI < 0
-        ? 'ぼうけん クリア！ もりの なかまが みんな ともだちに なったよ。\nすきな ばしょに また あそびに いこう。'
-        : `つぎは「${tb.place}」の ${tb.full}に あいに いこう！`;
+      const met = IDS.filter(id => isCleared(id, st)).length;
+      const toUmi = world === 'mori' && umiOpen(st);
+      const msg = curI >= 0 ? `つぎは「${tb.place}」の ${tb.full}に あいに いこう！`
+        : world === 'umi' ? 'うみの ぼうけん クリア！ うみの なかまが みんな ともだちに なったよ。\nすきな ばしょに また あそびに いこう。'
+        : toUmi && !allCleared('umi', st) ? 'もりの ぼうけん クリア！ もりの なかまが みんな ともだちに なったよ。\nこんどは うみの ぼうけんに いこう！'
+        : 'ぼうけん クリア！ もりの なかまが みんな ともだちに なったよ。\nすきな ばしょに また あそびに いこう。';
       const say = async (force = false) => { setTalking(true); await TTS.speak(msg, { force }); setTalking(false); };
       useEffect(() => {
         const t1 = setTimeout(() => setPos(target), 600);
         const t2 = setTimeout(() => say(), pos !== target ? 1800 : 300);
         return () => { clearTimeout(t1); clearTimeout(t2); TTS.cancel(); };
       }, []);
-      const [px, py] = MAP_SPOTS[pos];
-      const path = 'M ' + MAP_SPOTS.map(([x, y]) => `${x} ${y}`).join(' L ');
+      const [px, py] = SPOTS[pos];
+      const path = 'M ' + SPOTS.map(([x, y]) => `${x} ${y}`).join(' L ');
       return (
         <div className="home">
           <div className="home-scene">
-            <svg viewBox="0 0 1000 750" preserveAspectRatio="xMidYMid meet" aria-hidden="true" style={{ background: '#dcfce7' }}>
-              {mapOk ? <image href="img/bouken/map.webp" x="0" y="0" width="1000" height="750" preserveAspectRatio="xMidYMid slice" /> : <MapFallback />}
+            <svg viewBox="0 0 1000 750" preserveAspectRatio="xMidYMid meet" aria-hidden="true" style={{ background: world === 'umi' ? '#bae6fd' : '#dcfce7' }} data-world={world}>
+              {mapOk ? <image href={mapSrc} x="0" y="0" width="1000" height="750" preserveAspectRatio="xMidYMid slice" /> : world === 'umi' ? <UmiMapFallback /> : <MapFallback />}
               {!mapOk && <path d={path} fill="none" stroke="#fff" strokeWidth="12" strokeDasharray="4 22" strokeLinecap="round" opacity=".9" />}
-              {BOUKEN.map((b, i) => {
-                const [x, y] = MAP_SPOTS[i];
+              {LIST.map((b, i) => {
+                const [x, y] = SPOTS[i];
                 const s2 = STAGE_MAP[b.id];
                 const cleared = isCleared(b.id, st);
                 const isOpen = isStageOpen(s2, st);
@@ -1940,10 +2004,12 @@
               <Btn color="green" size="xl" onClick={() => onGo(tStage)} data-go="1">▶ {tb.call}に あいに いく</Btn>
             )}
             {curI >= 0 && !open && <div className="card tc bold">🔒 <R t={lockHint(tStage, st)} /></div>}
+            {toUmi && <Btn color={curI < 0 ? 'green' : 'sky'} size={curI < 0 ? 'xl' : 'lg'} className={curI < 0 && !allCleared('umi', st) ? 'pulse' : undefined} onClick={() => onWorld && onWorld('umi')} data-world-go="umi">🌊 うみへ いく</Btn>}
+            {world === 'umi' && <Btn color="wood" size="lg" onClick={() => onWorld && onWorld('mori')} data-world-go="mori">🌲 もりへ もどる</Btn>}
             <div className="card">
-              <div className="bold" style={{ fontSize: '1.2rem', marginBottom: '.4rem' }}>🎒 たからもの {met} / {BOUKEN.length}</div>
+              <div className="bold" style={{ fontSize: '1.2rem', marginBottom: '.4rem' }}>🎒 {W.name}の たからもの {met} / {LIST.length}</div>
               <div className="row wrapflex" style={{ gap: '.4rem' }}>
-                {BOUKEN.map(b => {
+                {LIST.map(b => {
                   const got = isCleared(b.id, st);
                   return <div key={b.id} className="tc" style={{ width: 64, padding: '.2rem', borderRadius: '.8rem', border: `3px solid ${got ? '#fcd34d' : '#e2e8f0'}`, background: got ? '#fffbeb' : '#f8fafc' }}>
                     <div className="emoji" style={{ fontSize: '1.9rem', filter: got ? 'none' : 'grayscale(1)', opacity: got ? 1 : .3 }}>{b.takara[0]}</div>
@@ -1967,7 +2033,7 @@
       }, []);
       return (
         <div className="play">
-          <div className="work" style={{ alignItems: 'center', justifyContent: 'center', background: bgOk ? `#f0fdf4 url(${bgSrc(b)}) center bottom / cover no-repeat` : '#f0fdf4' }}>
+          <div className="work" style={{ alignItems: 'center', justifyContent: 'center', background: bgOk ? `${WORLDS[b.world].bg} url(${bgSrc(b)}) center bottom / cover no-repeat` : WORLDS[b.world].bg }}>
             <div className="qhead" style={{ alignSelf: 'stretch', ...(bgOk ? { background: 'rgba(255,255,255,.85)', borderRadius: 12, padding: '.2rem .6rem' } : {}) }}><span>{stage.label}</span><R t={b.place} /></div>
             <div className="grow col" style={{ alignItems: 'center', justifyContent: bgOk ? 'flex-end' : 'center', paddingBottom: bgOk ? '1rem' : 0 }}>
               <div className={talking ? 'wiggle' : ''} style={bgOk ? { filter: 'drop-shadow(0 6px 4px rgba(0,0,0,.25))' } : null}><AnimalPic b={b} size={300} /></div>
@@ -2000,6 +2066,7 @@
       const msg = next
         ? `どんぐり ぎんこうへ ようこそ！\nきょうは「${next.label} ${next.name}」に ちょうせん しよう。`
         : boukenOpen(st) && !BOUKEN_IDS.every(id => isCleared(id, st)) ? 'ステップは ぜんぶ クリア！ すごいね！\nこんどは ぼうけんに でかけよう。'
+        : umiOpen(st) && !allCleared('umi', st) ? 'もりの ぼうけんも クリア！ すごいね！\nこんどは うみの ぼうけんに でかけよう。'
         : 'ぜんぶ クリア！ すごいね！\nすきな ステップで あそぼう。';
       const say = async (force = false) => { setTalking(true); await TTS.speak(`${name}さん、${msg}`, { force }); setTalking(false); };
       useEffect(() => { if (!GREETED) { GREETED = true; say(); } return () => TTS.cancel(); }, []);
@@ -2025,7 +2092,7 @@
             {next && <div className="tc muted bold" style={{ marginTop: '-.3rem' }}><R t={`${next.label}　${next.name}（${pos + 1}もんめから）`} /></div>}
             <Btn color="amber" size="lg" onClick={onMenu} data-menu="1">📋 メニュー（ステップ）</Btn>
             {boukenOpen(st)
-              ? <Btn color="orange" size="lg" onClick={onBouken} data-bouken="1">🗺️ ぼうけんに でかける</Btn>
+              ? <Btn color="orange" size="lg" onClick={onBouken} data-bouken="1">{umiOpen(st) ? '🌊 うみの ぼうけんへ' : '🗺️ ぼうけんに でかける'}</Btn>
               : <div className="card tc muted bold" style={{ padding: '.5rem' }}>🗺️ ぼうけん：<R t={boukenLockText(st)} /></div>}
             <div className="row">
               <Btn color="wood" size="lg" className="grow" onClick={onHouse} data-house="1">🏠 もりの おうち</Btn>
@@ -2077,8 +2144,10 @@
             <div className="menu-grid">{STAGES.filter(s => s.grp === 'main').map(item)}</div>
             <div className="grp-title">はってん</div>
             <div className="menu-grid">{STAGES.filter(s => s.grp === 'adv').map(item)}</div>
-            <div className="grp-title">ぼうけん</div>
-            <div className="menu-grid">{STAGES.filter(s => s.grp === 'bouken').map(item)}</div>
+            <div className="grp-title">ぼうけん（もり）</div>
+            <div className="menu-grid">{STAGES.filter(s => s.grp === 'bouken' && s.world === 'mori').map(item)}</div>
+            <div className="grp-title">ぼうけん（うみ）</div>
+            <div className="menu-grid">{STAGES.filter(s => s.grp === 'bouken' && s.world === 'umi').map(item)}</div>
           </div>
         </div>
       );
@@ -2180,7 +2249,7 @@
     /* =========================================================
        1かい（5問）クリア・ステップ クリア
        ========================================================= */
-    function SetClearScreen({ app, stage, res, titleUp, onContinue, onHouse, onHome, onNextStage, onMap }) {
+    function SetClearScreen({ app, stage, res, titleUp, onContinue, onHouse, onHome, onNextStage, onMap, onUmi }) {
       const stageClear = res.stageClear;
       const friend = res.firstClear && stage.friend ? FRIEND_MAP[stage.friend] : null;
       const animal = stage.animal && stageClear ? stage.animal : null;   // ぼうけんの おれい
@@ -2253,6 +2322,7 @@
           <div className="col" style={{ maxWidth: 560, margin: '0 auto' }}>
             {!stageClear && <Btn color="green" size="xl" onClick={onContinue} data-continue="1"><R t="つぎの 5もんへ ▶" /></Btn>}
             {stageClear && stage.grp === 'bouken' && <Btn color="green" size="xl" onClick={onMap} data-continue="1"><R t="🗺️ ちずに もどる ▶" /></Btn>}
+            {stageClear && stage.id === BOUKEN_IDS[BOUKEN_IDS.length - 1] && umiOpen(app.state) && !allCleared('umi', app.state) && <Btn color="sky" size="xl" className="pulse" onClick={onUmi} data-to-umi="1"><R t="🌊 うみの ぼうけんへ ▶" /></Btn>}
             {stageClear && stage.grp !== 'bouken' && nextStage && <Btn color="green" size="xl" onClick={() => onNextStage(nextStage)} data-continue="1"><R t="つぎの ステップへ ▶" /></Btn>}
             {stageClear && stage.grp !== 'bouken' && !nextStage && boukenOpen(app.state) && !BOUKEN_IDS.every(id => isCleared(id, app.state)) && <Btn color="orange" size="xl" onClick={onMap} data-continue="1"><R t="🗺️ ぼうけんに でかける ▶" /></Btn>}
             <div className="row">
@@ -2422,16 +2492,17 @@
               })}
             </div>
           </div>
-          <div className="card" style={{ marginBottom: '.8rem' }}>
+          {[['mori', '🗺️ ぼうけんで あった なかま', '#c2410c', '#fdba74'], ['umi', '🌊 うみで あった なかま', '#0369a1', '#7dd3fc']].map(([w, ttl, c, bc]) => (
+          <div key={w} className="card" style={{ marginBottom: '.8rem' }} data-album-world={w}>
             <div className="row between wrapflex">
-              <div className="bold" style={{ fontSize: '1.6rem', color: '#c2410c' }}>🗺️ ぼうけんで あった なかま</div>
-              <div className="bold" style={{ fontSize: '1.3rem' }}>{BOUKEN_IDS.filter(id => isCleared(id, st)).length} / {BOUKEN.length}</div>
+              <div className="bold" style={{ fontSize: '1.6rem', color: c }}>{ttl}</div>
+              <div className="bold" style={{ fontSize: '1.3rem' }}>{WORLDS[w].ids.filter(id => isCleared(id, st)).length} / {WORLDS[w].list.length}</div>
             </div>
             <div className="friend-grid" style={{ marginTop: '.7rem' }}>
-              {BOUKEN.map(b => {
+              {WORLDS[w].list.map(b => {
                 const got = isCleared(b.id, st);
                 return (
-                  <div key={b.id} className={`friend ${got ? '' : 'empty'}`} style={got ? { borderColor: '#fdba74' } : undefined}>
+                  <div key={b.id} className={`friend ${got ? '' : 'empty'}`} style={got ? { borderColor: bc } : undefined}>
                     <div style={{ height: 76, display: 'flex', alignItems: 'center', justifyContent: 'center', filter: got ? 'none' : 'grayscale(1) brightness(0)', opacity: got ? 1 : .14 }}><AnimalPic b={b} size={72} /></div>
                     <div style={{ fontSize: '1.05rem' }}>{got ? b.full : '？'}</div>
                     <div className="muted" style={{ fontSize: '.85rem' }}>{got ? <>{b.takara[0]} {b.takara[1]}</> : `${b.place}に いるよ`}</div>
@@ -2440,6 +2511,7 @@
               })}
             </div>
           </div>
+          ))}
           <div className="card">
             <div className="bold" style={{ fontSize: '1.5rem', marginBottom: '.5rem' }}>🎖️ しょうごう</div>
             <div className="col" style={{ gap: '.4rem' }}>
@@ -2451,13 +2523,13 @@
                   {x.name === t.name && <span className="tag" style={{ background: '#facc15', color: '#451a03' }}>いま</span>}
                 </div>
               ))}
-              {(() => { const x = BOUKEN_TITLE, on = t.name === x.name; return (
-                <div className="row" style={{ padding: '.4rem .7rem', borderRadius: '1rem', background: on ? '#fef9c3' : '#f8fafc', border: `3px solid ${on ? '#facc15' : '#e2e8f0'}`, opacity: on ? 1 : 0.45 }}>
+              {[[BOUKEN_TITLE, 'もりの ぼうけんを ぜんぶ クリア', allCleared('mori', st)], [UMI_TITLE, 'うみの ぼうけんを ぜんぶ クリア', allCleared('umi', st)]].map(([x, cond, got]) => { const on = t.name === x.name; return (
+                <div key={x.name} className="row" style={{ padding: '.4rem .7rem', borderRadius: '1rem', background: on ? '#fef9c3' : '#f8fafc', border: `3px solid ${on ? '#facc15' : '#e2e8f0'}`, opacity: on || got ? 1 : 0.45 }}>
                   <span className="emoji" style={{ fontSize: '1.8rem' }}>{x.icon}</span>
                   <span className="bold grow" style={{ fontSize: '1.3rem' }}>{x.name}</span>
-                  <span className="muted bold">ぼうけんを ぜんぶ クリア</span>
+                  <span className="muted bold">{cond}</span>
                   {on && <span className="tag" style={{ background: '#facc15', color: '#451a03' }}>いま</span>}
-                </div>); })()}
+                </div>); })}
             </div>
           </div>
         </div>
@@ -2685,7 +2757,7 @@
           <TRow label="じゅんび①〜③" desc="「とばす」にすると、ステップ1から始めます（じゅんびはメニューから選べば練習できます）。"><Choice k="skipPrep" options={[[false, 'する'], [true, 'とばす']]} /></TRow>
           <TRow label="すべてのステップを開く" desc="オンにすると、前のステップをクリアしていなくても挑戦できます。"><Choice k="unlockAll" options={[[false, 'オフ'], [true, 'オン']]} /></TRow>
           <TRow label="発展" desc="発展ア（2けた−1けた）、発展イ（答えが1けた）、発展ウ（お話の問題）です。開くと子どもの画面のメニューに出ます。"><Choice k="advanced" options={[[false, '閉じる'], [true, '開く']]} /></TRow>
-          <TRow label="ぼうけん" desc="8ぴきの動物に会いながら10問ずつとく、まとめのステージです。ふつうは、発展を開いているときは発展ウ、開いていないときはステップ6をクリアすると開きます。「開く」にすると、すぐに挑戦できます（動物は1ぴきずつ順に開きます）。"><Choice k="bouken" options={[[false, 'クリアで開く'], [true, '開く']]} /></TRow>
+          <TRow label="ぼうけん" desc="8ぴきの動物に会いながら10問ずつとく、まとめのステージです。ふつうは、発展を開いているときは発展ウ、開いていないときはステップ6をクリアすると開きます。「開く」にすると、すぐに挑戦できます（動物は1ぴきずつ順に開きます）。もりの⑧をクリアすると、うみの ぼうけん（8ぴきの海の生き物）が開きます。"><Choice k="bouken" options={[[false, 'クリアで開く'], [true, '開く']]} /></TRow>
           <div className="bold" style={{ marginTop: '.6rem', color: '#0369a1' }}>画面と音</div>
           <TRow label="色分け" desc="ひかれる数を赤、ひく数を青、10を緑で表示します。式の中の数字も同じ色にします。色が気になる児童は「出さない」にします。"><Choice k="color" options={[[true, '出す'], [false, '出さない']]} /></TRow>
           <TRow label="10のふくろの絵" desc="じゅんび①・②の絵と、ヒントの2〜3段階目に出す「10こ入りのふくろ・ばらのどんぐり」の絵です。「出さない」にすると、ヒントでは数字を光らせます。"><Choice k="bag" options={[[true, '出す'], [false, '出さない']]} /></TRow>
@@ -2905,9 +2977,12 @@
         go(fresh && INTRO[stage.id] ? { name: 'intro', stageId: stage.id } : { name: 'play', stageId: stage.id, titleBefore: titleOf(stateRef.current), k: Date.now() });
       };
       const stage = view.stageId ? STAGE_MAP[view.stageId] : null;
-      const goMap = (fromId) => go({ name: 'bouken', from: fromId ? BOUKEN_IDS.indexOf(fromId) : null });
+      const goMap = (fromId, world) => {
+        const w = fromId ? STAGE_MAP[fromId].world : world || (umiOpen(stateRef.current) ? 'umi' : 'mori');
+        go({ name: 'bouken', world: w, from: fromId ? WORLDS[w].ids.indexOf(fromId) : null, k: Date.now() });
+      };
       const back = () => {
-        if ((view.name === 'play' || view.name === 'meet') && stage && stage.grp === 'bouken') go({ name: 'bouken' });
+        if ((view.name === 'play' || view.name === 'meet') && stage && stage.grp === 'bouken') go({ name: 'bouken', world: stage.world });
         else if (view.name === 'play' || view.name === 'intro') go({ name: 'menu' });
         else go({ name: 'home' });
       };
@@ -2918,7 +2993,7 @@
                   onTeacher={() => setPinOpen(true)} onHouse={() => !['setup', 'teacher'].includes(view.name) && go({ name: 'house' })} />
           {view.name === 'setup' && <SetupScreen onDone={(profile) => { update(s => ({ ...s, profile })); Sync.run(app); go({ name: 'home' }); }} />}
           {view.name === 'home' && <HomeScreen app={app} onPlay={openStage} onMenu={() => go({ name: 'menu' })} onHouse={() => go({ name: 'house' })} onAlbum={() => go({ name: 'album' })} onBouken={() => goMap()} />}
-          {view.name === 'bouken' && <MapScreen key={view.k || 'map'} app={app} from={view.from} onGo={openStage} />}
+          {view.name === 'bouken' && <MapScreen key={view.k || 'map'} app={app} from={view.from} world={view.world || 'mori'} onGo={openStage} onWorld={w => goMap(null, w)} />}
           {view.name === 'meet' && stage && <MeetScreen key={stage.id} stage={stage} onStart={() => go({ name: 'play', stageId: stage.id, titleBefore: titleOf(stateRef.current), k: Date.now() })} />}
           {view.name === 'menu' && <MenuScreen app={app} onOpen={openStage} />}
           {view.name === 'intro' && stage && <IntroScreen key={stage.id} stage={stage} onStart={() => go({ name: 'play', stageId: stage.id, titleBefore: titleOf(stateRef.current), k: Date.now() })} />}
@@ -2933,7 +3008,7 @@
             <SetClearScreen key={JSON.stringify(view.res)} app={app} stage={stage} res={view.res} titleUp={view.titleUp}
                             onContinue={() => go({ name: 'play', stageId: stage.id, titleBefore: titleOf(stateRef.current), k: Date.now() })}
                             onNextStage={openStage} onHouse={() => go({ name: 'house' })} onHome={() => go({ name: 'home' })}
-                            onMap={() => goMap(stage.grp === 'bouken' ? stage.id : null)} />
+                            onMap={() => goMap(stage.grp === 'bouken' ? stage.id : null)} onUmi={() => goMap(null, 'umi')} />
           )}
           {view.name === 'house' && <HouseScreen app={app} />}
           {view.name === 'album' && <AlbumScreen app={app} />}
