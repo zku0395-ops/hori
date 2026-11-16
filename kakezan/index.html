@@ -66,7 +66,7 @@
       var h = location.hostname;
       var local = location.protocol === 'file:' || /github\.io$/.test(h) || h === 'localhost' || h === '127.0.0.1';
       window.KAKE_BASE = local ? '' : 'https://zku0395-ops.github.io/hori/kakezan/';
-      var V = '4'; // data.js を かえたら 1 ふやす（ふるい データを つかわないように）
+      var V = '5'; // data.js を かえたら 1 ふやす（ふるい データを つかわないように）
       window.KAKE_READY = new Promise(function (ok, ng) {
         var s = document.createElement('script');
         s.src = window.KAKE_BASE + 'data/data.js?v=' + V;
@@ -317,7 +317,7 @@
       const vals = {};
       const add = (s) => { steps.push(s); vals[keyOf(s)] = s.val; };
       // かけ算の だん：くりあがりが ある けたは、① かけ算の こたえを ちいさな わくに メモ（12）→ ② メモの 2つを たして かく（12＋2）
-      // くりあがりの メモは、その かけ算を した けたの したに かく（3×7＝21 の 2 は 1の位の したに）
+      // くりあがりの メモは、つぎの けたの みぎしたの わくに かく（3×7＝21 の 2 は 10の位の みぎしたに。12 は その ひだり）
       const mulRow = (row, d, bPlace, shift) => {
         let carry = 0; const out = [];
         for (let i = 0; i < A.length; i++) {
@@ -326,7 +326,7 @@
           add({ kind: 'mul', row, place, val: tot % 10, aPlace: i, bPlace, x: A[i], y: d, prod, carry, tot });
           out[place] = tot % 10;
           carry = Math.floor(tot / 10);
-          if (carry > 0 && !last) add({ kind: 'memo', row, memo: 'c', place, val: carry, tot, from: place, x: A[i], y: d });
+          if (carry > 0 && !last) add({ kind: 'memo', row, memo: 'c', place: place + 1, val: carry, tot, from: place, x: A[i], y: d });
           if (carry > 0 && last) { add({ kind: 'mulhi', row, place: place + 1, val: carry, tot, from: place, x: A[i], y: d }); out[place + 1] = carry; }
         }
         return out;
@@ -372,7 +372,7 @@
       switch (st.kind) {
         case 'prod': return `${st.x} × ${st.y} の こたえを ちいさな わくに メモしよう`;
         case 'mul': return st.carry ? `メモの ${st.prod} と ${st.carry} を たそう。${pn}に かこう` : `${st.x} × ${st.y}。${pn}に かこう`;
-        case 'memo': return `${st.tot} の 10の位を ちいさな わくに メモしよう`;
+        case 'memo': return `${st.tot} の 10の位を、${PLACE_NAME[st.place]}の みぎしたの ちいさな わくに メモしよう`;
         case 'mulhi': return `のこりの かずを ${pn}に かこう`;
         case 'zero': return '✕の マスには なにを かくかな';
         case 'add': return `${st.x} ＋ ${st.y}${st.carry ? `、メモの ${st.carry} も たす` : ''}。${pn}に かこう`;
@@ -387,7 +387,7 @@
       switch (st.kind) {
         case 'prod': return `${st.x} × ${st.y} を けいさんして、ちいさな わくに メモするよ。${st.val >= 10 ? '2けたの ときは、10の位から じゅんに おすよ。' : ''}`;
         case 'mul': return st.carry ? `メモの ${st.prod} と ${st.carry} を たそう。${st.tot >= 10 ? 'こたえの 1の位の かずだけ かくよ。' : ''}` : `${st.x} × ${st.y} を けいさんしよう。${st.tot >= 10 ? 'こたえの 1の位の かずだけ かくよ。' : ''}`;
-        case 'memo': return 'いま かいた こたえの 10の位の かずを、すぐ したの ちいさな わくに メモするよ。';
+        case 'memo': return `いま かいた こたえの 10の位の かずを、${PLACE_NAME[st.place]}の みぎしたの ちいさな わくに メモするよ。`;
         case 'mulhi': return `さっきの こたえの 10の位の かずを、ひだりの ${pn}に かくよ。`;
         case 'zero': return '2だんめは 10の位の かけ算だよ。1の位の ✕の マスには 0 を かくよ。';
         case 'add': return `${st.x} ＋ ${st.y} を けいさんしよう。${st.carry ? `メモの ${st.carry} も たすよ。` : ''}`;
@@ -422,7 +422,7 @@
     // ヒント②で ひからせる マス
     function operandCells(st) {
       if (st.kind === 'prod') return [`a:${st.aPlace}`, `b:${st.bPlace}`];
-      if (st.kind === 'mul') return st.carry ? [`${st.row}p:${st.place}`, `${st.row}m:${st.place - 1}`] : [`a:${st.aPlace}`, `b:${st.bPlace}`];
+      if (st.kind === 'mul') return st.carry ? [`${st.row}p:${st.place}`, `${st.row}m:${st.place}`] : [`a:${st.aPlace}`, `b:${st.bPlace}`];
       if (st.kind === 'add') return [`p1:${st.place}`, `p2:${st.place}`].concat(st.carry ? [`summ:${st.place}`] : []);
       if (st.kind === 'zero') return ['b:1'];
       return [`${st.row}:${st.from}`];
@@ -1407,7 +1407,7 @@
             <div className="font-bold text-amber-300 mb-1">ひっ算の やくそく</div>
             <div>① みぎ（1の位）から じゅんばんに けいさんする。</div>
             <div>② <span className="bg-yellow-300 text-slate-900 px-1 rounded">きいろ</span>は 1の位の かけ算、<span className="bg-green-400 text-slate-900 px-1 rounded">みどり</span>は 10の位の かけ算。</div>
-            <div>③ くりあがりは、こたえの うえの <span className="text-rose-400 font-bold">ちいさな わくに メモ</span>。つぎの かけ算の こたえ（12 など）も メモして、2つを たす。</div>
+            <div>③ くりあがりは、つぎの 位の みぎしたの <span className="text-rose-400 font-bold">ちいさな わくに メモ</span>。その ひだりに つぎの かけ算の こたえ（12 など）も メモして、2つを たす。</div>
             <div>④ 2だんめの 1の位（✕の マス）には 0 を かく。さいごに たし算。</div>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 w-full max-w-4xl">

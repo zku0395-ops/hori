@@ -77,11 +77,11 @@ for (let x = 10; x <= 99; x++) for (let y = 2; y <= 99; y++) check(x, y);
 // 3. スライドと おなじ かきかた
 const h343 = H.buildHissan(34, 3);
 const s0 = h343.steps;
-if (!(s0[0].kind === 'mul' && s0[0].val === 2 && s0[1].kind === 'memo' && s0[1].val === 1 && s0[1].place === 0 && s0[2].kind === 'prod' && s0[2].val === 9 && s0[3].kind === 'mul' && s0[3].val === 0 && s0[3].carry === 1 && s0[4].kind === 'mulhi' && s0[4].val === 1))
+if (!(s0[0].kind === 'mul' && s0[0].val === 2 && s0[1].kind === 'memo' && s0[1].val === 1 && s0[1].place === 1 && s0[2].kind === 'prod' && s0[2].val === 9 && s0[3].kind === 'mul' && s0[3].val === 0 && s0[3].carry === 1 && s0[4].kind === 'mulhi' && s0[4].val === 1))
   ng('34×3 の てじゅんが ちがう', JSON.stringify(s0.map(s => [s.kind, s.val])));
-// 先生の 図（47×3）：1の位 1 → くりあがり 2 を 1の位の したに メモ → 4×3＝12 を 10の位の したに メモ → 12＋2＝14 の 4 → 1
+// 先生の 図（47×3）：1の位 1 → くりあがり 2 を 10の位の みぎしたに メモ → 4×3＝12 を その ひだりに メモ → 12＋2＝14 の 4 → 1
 const s47 = H.buildHissan(47, 3).steps.map(s => [s.kind, s.val, s.place].join(':')).join(' ');
-if (s47 !== 'mul:1:0 memo:2:0 prod:12:1 mul:4:1 mulhi:1:2') ng('47×3 の てじゅんが 図と ちがう', s47);
+if (s47 !== 'mul:1:0 memo:2:1 prod:12:1 mul:4:1 mulhi:1:2') ng('47×3 の てじゅんが 図と ちがう', s47);
 const h2326 = solve(H.buildHissan(23, 26));
 if (h2326.p1 !== 138 || h2326.p2 !== 460 || h2326.ans !== 598) ng('23×26 が プリントと ちがう');
 
