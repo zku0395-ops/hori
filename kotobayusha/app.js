@@ -12,8 +12,9 @@ let DB = (() => {
 })();
 function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(DB)); } catch (e) {} }
 const me = () => DB.players.find(p => p.id === DB.cur);
+DB.players.forEach(p => { if (!p.judge) p.judge = 'auto'; });
 function newPlayer(name, look) {
-  return { id: 'p' + Date.now(), name, look, level: 1, input: 'kana', unlockAll: false,
+  return { id: 'p' + Date.now(), name, look, level: 1, input: 'kana', judge: 'auto', unlockAll: false,
     done: AREAS.map(() => Array(10).fill(false)), treasures: [], monsters: [], log: [] };
 }
 
@@ -355,6 +356,7 @@ function check() {
     if (!t) { Q.msg = 'かいてみよう！'; Q.msgc = ''; return quiz(); }
     if (PART_P[k] && t.endsWith(PART_P[k]) && !norm(q[k]).endsWith(PART_P[k])) t = t.slice(0, -1);
     allOk = (k === 'what' ? normEnd(t) : t) === norm(q[k]);
+    if (me().judge === 'teacher') return askTeacher(allOk);
     logWrite(Q.typed, allOk);
   } else {
     const t = normEnd(norm(Q.typed));
@@ -366,9 +368,10 @@ function check() {
       what: t.endsWith(wt),
     };
     allOk = PARTS.every(k => Q.ok[k]);
+    if (me().judge === 'teacher') { Q.ok = {}; return askTeacher(allOk); }
     logWrite(Q.typed, allOk);
   }
-  if (allOk) return success();
+  if (allOk) { if (level >= 3) Q.judgeEntry = me().log[me().log.length - 1]; return success(); }
   Q.tries++;
   sNG();
   const nearly = level === 4 ? PARTS.filter(k => !Q.ok[k]).map(k => `<span class="tag ${k}">${PART_LABEL[k]}</span>`).join(' ') + ' を もういちど みてみよう' : 'おしい！ もういちど えを よく みてみよう';
@@ -376,11 +379,60 @@ function check() {
   if (Q.tries >= 2 && Q.hint === 0 && level >= 3) { Q.hint = 1; Q.msg += '（ヒントを だしたよ）'; }
   quiz();
 }
-function logWrite(text, ok) {
+function logWrite(text, ok, auto = ok) {
   const p = me();
-  p.log.push({ a: Q.a, i: Q.idx, lv: Q.level, t: text, ok, d: new Date().toISOString() });
+  const e = { a: Q.a, i: Q.idx, lv: Q.level, t: text, ok, auto, by: ok === null ? '' : 'app', d: new Date().toISOString() };
+  p.log.push(e);
   if (p.log.length > 500) p.log = p.log.slice(-500);
   save();
+  return e;
+}
+
+// ---------- 先生が その場で はんてい ----------
+// ながおしで おす ボタン（子どもが うっかり おさないように）
+function holdBtn(el, fn) {
+  let tm;
+  const down = e => { e.preventDefault(); el.classList.add('down'); tm = setTimeout(() => { el.classList.remove('down'); fn(); }, 1500); };
+  const up = () => { el.classList.remove('down'); clearTimeout(tm); };
+  el.addEventListener('pointerdown', down); ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => el.addEventListener(ev, up));
+}
+function lv3Sentence(typed) {
+  return PARTS.map(x => (x === Q.blank ? typed : Q.q[x]) + PART_P[x]).join(' ') + '。';
+}
+function askTeacher(auto) {
+  const e = logWrite(Q.typed, null, auto);
+  const q = Q.q;
+  const ov = document.createElement('div'); ov.className = 'overlay';
+  ov.innerHTML = `<div class="reward judge">
+    <h2 style="color:#1e6fd9">せんせいに みて もらおう</h2>
+    <div class="sentence">${esc(Q.level === 3 ? lv3Sentence(Q.typed) : Q.typed)}</div>
+    <div class="jnote">こたえの れい：${esc(sentence(q))}<br>アプリの はんてい：${auto ? '○ あっている' : '△ ちがう ところが ある'}</div>
+    <div style="font-size:16px;font-weight:500">せんせいが ボタンを ながおし してください</div>
+    <div class="row" style="justify-content:center;gap:18px">
+      <button class="btn green hold jbtn" id="jok"><span class="fill"></span><span style="position:relative">○ せいかい</span></button>
+      <button class="btn hold jng jbtn" id="jng"><span class="fill"></span><span style="position:relative">× もういちど</span></button>
+    </div>
+    <button class="btn sub" data-act="judgeLater">あとで みて もらう</button></div>`;
+  document.body.appendChild(ov);
+  Q.judgeEntry = e;
+  say('せんせいに みて もらおう。');
+  holdBtn($('#jok'), () => { e.ok = true; e.by = 't'; save(); closeOverlay(); success(); });
+  holdBtn($('#jng'), () => {
+    e.ok = false; e.by = 't'; Q.judgeEntry = null; save(); closeOverlay();
+    Q.tries++; sNG();
+    Q.msg = 'もういちど かいて みよう'; Q.msgc = 'ng';
+    if (Q.tries >= 2 && Q.hint === 0) { Q.hint = 1; Q.msg += '（ヒントを だしたよ）'; }
+    quiz(); say('もういちど かいて みよう。');
+  });
+}
+function judgeLater() {
+  closeOverlay(); Q.judgeEntry = null;
+  const last = Q.idx >= 9;
+  const ov = document.createElement('div'); ov.className = 'overlay';
+  ov.innerHTML = `<div class="reward"><div style="font-size:26px;line-height:1.6">せんせいが あとで みて くれるよ。<br>${last ? 'マップに もどろう。' : 'つぎの もんだいへ すすもう。'}</div>
+    <button class="btn big green" data-act="${last ? 'map' : 'next'}">${last ? 'マップへ ▶' : 'つぎの もんだい ▶'}</button></div>`;
+  document.body.appendChild(ov);
+  say('せんせいが あとで みて くれるよ。');
 }
 
 function hint() {
@@ -401,24 +453,32 @@ function hint() {
   quiz();
 }
 
-function success() {
-  const p = me(); const { a, idx, q } = Q; const A = AREAS[a];
-  const first = !p.done[a][idx];
+// もんだいを クリアにして、はじめての ときは たからものや なかまを あげる
+function clearQ(p, a, idx) {
+  const A = AREAS[a]; const first = !p.done[a][idx];
   p.done[a][idx] = true;
-  let rewardHtml = '', sayExtra = '';
+  const r = { first, html: '', say: '', got: [] };
   if (first && TREASURE_AT[idx] != null) {
     const t = A.treasures[TREASURE_AT[idx]]; const id = `a${a}t${TREASURE_AT[idx]}`;
-    if (!p.treasures.includes(id)) p.treasures.push(id);
-    rewardHtml = `<div style="font-size:26px">たからばこが あらわれた！</div><div class="big">${t.e}</div><div style="font-size:28px">「${t.n}」を てに いれた！</div>`;
-    sayExtra = `${t.n}を てに いれた！`;
+    if (!p.treasures.includes(id)) { p.treasures.push(id); r.got.push(id); }
+    r.html = `<div style="font-size:26px">たからばこが あらわれた！</div><div class="big">${t.e}</div><div style="font-size:28px">「${t.n}」を てに いれた！</div>`;
+    r.say = `${t.n}を てに いれた！`;
   }
   if (first && MONSTER_AT[idx] != null) {
     const m = A.monsters[MONSTER_AT[idx]]; const id = `a${a}m${MONSTER_AT[idx]}`;
-    if (!p.monsters.includes(id)) p.monsters.push(id);
-    rewardHtml = `<div style="font-size:26px">きりの なかから ${idx === 9 ? 'ボス' : 'モンスター'}が でてきた！</div>
+    if (!p.monsters.includes(id)) { p.monsters.push(id); r.got.push(id); }
+    r.html = `<div style="font-size:26px">きりの なかから ${idx === 9 ? 'ボス' : 'モンスター'}が でてきた！</div>
       <div class="big">${pic(IMG.mon(a, MONSTER_AT[idx]), m.e)}</div><div style="font-size:28px">${m.n}が なかまに なった！</div>`;
-    sayExtra = `${m.n}が なかまに なった！`;
+    r.say = `${m.n}が なかまに なった！`;
   }
+  return r;
+}
+function success() {
+  const p = me(); const { a, idx, q } = Q;
+  const r = clearQ(p, a, idx); const first = r.first;
+  if (Q.judgeEntry && first) { Q.judgeEntry.cl = true; Q.judgeEntry.got = r.got; }
+  Q.judgeEntry = null;
+  const rewardHtml = r.html, sayExtra = r.say;
   save();
   sOK(); confetti();
   const s = PARTS.map(k => `<span class="w ${k}">${esc(q[k])}</span>${PART_P[k]}`).join(' ');
@@ -489,20 +549,25 @@ function teacher() {
     return `<tr><td>${lookOf(p.look).e} ${esc(p.name)}</td>
       <td><select data-tset="level" data-id="${p.id}">${[1, 2, 3, 4].map(l => `<option value="${l}" ${p.level === l ? 'selected' : ''}>${LEVELS[l]}</option>`).join('')}</select></td>
       <td><select data-tset="input" data-id="${p.id}"><option value="kana" ${p.input === 'kana' ? 'selected' : ''}>ひらがな表</option><option value="romaji" ${p.input === 'romaji' ? 'selected' : ''}>ローマ字</option></select></td>
+      <td><select data-tset="judge" data-id="${p.id}"><option value="auto" ${p.judge !== 'teacher' ? 'selected' : ''}>じどう</option><option value="teacher" ${p.judge === 'teacher' ? 'selected' : ''}>せんせいが はんてい</option></select></td>
       <td><label><input type="checkbox" data-tset="unlockAll" data-id="${p.id}" ${p.unlockAll ? 'checked' : ''}> 全エリア開放</label></td>
       <td>${n}/100<br><small>${areas}</small></td>
-      <td><button class="tbtn" data-act="tlog" data-id="${p.id}">記録</button> <button class="tbtn" data-act="tdel" data-id="${p.id}">削除</button></td></tr>`;
-  }).join('') || '<tr><td colspan="6">まだ児童が登録されていません</td></tr>';
+      <td><button class="tbtn" data-act="tlog" data-id="${p.id}">記録${pend(p) ? ` <b class="pend">未判定 ${pend(p)}</b>` : ''}</button> <button class="tbtn" data-act="tdel" data-id="${p.id}">削除</button></td></tr>`;
+  }).join('') || '<tr><td colspan="7">まだ児童が登録されていません</td></tr>';
   let logHtml = '';
   if (view.log) {
     const p = DB.players.find(x => x.id === view.log);
     if (p) {
-      const items = p.log.slice().reverse().map(l => {
+      const items = p.log.map((l, li) => [l, li]).reverse().map(([l, li]) => {
         const q = AREAS[l.a].qs[l.i];
-        return `<tr><td>${new Date(l.d).toLocaleString('ja-JP')}</td><td>${l.a + 1}-${l.i + 1}</td><td>Lv${l.lv}</td><td>${esc(l.t)}</td><td>${l.ok ? '○' : '△'}</td><td>${esc(sentence(q))}</td></tr>`;
-      }).join('') || '<tr><td colspan="6">Lv3・Lv4で書いた文がここに残ります</td></tr>';
+        const st = l.ok == null ? '<b class="pend">未判定</b>'
+          : (l.ok ? '○' : (l.by === 't' ? '×' : '△')) + `<small>（${l.by === 't' ? '先生' : 'アプリ'}）</small>`;
+        const btn = `<button class="tbtn jb ${l.ok === true ? 'on' : ''}" data-act="tjudge" data-id="${p.id}" data-li="${li}" data-v="1">○</button>
+          <button class="tbtn jb ${l.ok === false && l.by === 't' ? 'on' : ''}" data-act="tjudge" data-id="${p.id}" data-li="${li}" data-v="0">×</button>`;
+        return `<tr class="${l.ok == null ? 'pendrow' : ''}"><td>${new Date(l.d).toLocaleString('ja-JP')}</td><td>${l.a + 1}-${l.i + 1}</td><td>Lv${l.lv}</td><td>${esc(l.t)}</td><td>${st}</td><td style="white-space:nowrap">${btn}</td><td>${esc(sentence(q))}</td></tr>`;
+      }).join('') || '<tr><td colspan="7">Lv3・Lv4で書いた文がここに残ります</td></tr>';
       logHtml = `<div class="panel tpanel"><h3 style="margin-top:0">${esc(p.name)} さんの 書いた文</h3>
-        <table><tr><th>日時</th><th>問題</th><th>レベル</th><th>書いた文</th><th>判定</th><th>正答例</th></tr>${items}</table></div>`;
+        <table><tr><th>日時</th><th>問題</th><th>レベル</th><th>書いた文</th><th>判定</th><th>判定を直す</th><th>正答例</th></tr>${items}</table></div>`;
     }
   }
   app.innerHTML = `<div class="screen">
@@ -510,9 +575,28 @@ function teacher() {
       <span class="spacer"></span><button class="btn sub" data-act="prompts">🎨 イラスト一覧（ChatGPT用）</button></div>
     <div class="panel tpanel">
       <p style="margin-top:0">レベル：Lv1 えらぶ（3択）→ Lv2 ならべる（カードと助詞）→ Lv3 うめる（1か所を書く）→ Lv4 かく（文をまるごと書く）<br>
+      書いた文の判定：「じどう」はアプリが判定します。「せんせいが はんてい」は、子どもが「できた！」を押すと先生を呼ぶ画面が出ます。○か×を長押しして判定します。<br>
+      どちらの場合も、「記録」で あとから ○・× を直せます。○にすると、その問題はクリアになります。<br>
       記録はこの端末（ブラウザ）の中に保存されます。</p>
-      <table><tr><th>児童</th><th>レベル</th><th>入力方法</th><th>エリア</th><th>進み具合（エリア別）</th><th></th></tr>${rows}</table>
+      <table><tr><th>児童</th><th>レベル</th><th>入力方法</th><th>書いた文の判定</th><th>エリア</th><th>進み具合（エリア別）</th><th></th></tr>${rows}</table>
     </div>${logHtml}</div>`;
+}
+const pend = p => p.log.filter(l => l.ok === null).length;
+// 先生が「記録」で ○・× を つける（あとから直す）
+function teacherJudge(pid, li, ok) {
+  const p = DB.players.find(x => x.id === pid); const l = p && p.log[li]; if (!l) return;
+  if (l.ok === ok && l.by === 't') return;
+  l.ok = ok; l.by = 't';
+  if (ok && !p.done[l.a][l.i]) {
+    const r = clearQ(p, l.a, l.i); l.cl = true; l.got = r.got;
+  } else if (!ok && l.cl) {
+    // この記録で クリアにした ときだけ もとに もどす
+    p.done[l.a][l.i] = false;
+    p.treasures = p.treasures.filter(id => !(l.got || []).includes(id));
+    p.monsters = p.monsters.filter(id => !(l.got || []).includes(id));
+    l.cl = false; l.got = [];
+  }
+  save(); teacher();
 }
 function prompts() {
   const sec = [];
@@ -590,6 +674,8 @@ document.addEventListener('click', e => {
     case 'teacher': go('teacher'); break;
     case 'prompts': go('prompts'); break;
     case 'tlog': view.log = b.dataset.id; teacher(); break;
+    case 'tjudge': teacherJudge(b.dataset.id, +b.dataset.li, b.dataset.v === '1'); break;
+    case 'judgeLater': judgeLater(); break;
     case 'tdel': {
       const p = DB.players.find(x => x.id === b.dataset.id);
       if (p && confirm(`${p.name} さんのデータを削除します。元に戻せません。よろしいですか？`)) {
