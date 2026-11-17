@@ -451,6 +451,12 @@ function wavBytes_(pcm, rate) {
   return h.map(function (b) { return b > 127 ? b - 256 : b; }).concat(pcm);
 }
 
+// その 文を ゆっくり 読んでも かかる じかんの 上限（びょう）
+function ttsMaxSecs_(text) {
+  const n = String(text).replace(/[\s　、。「」！？!?…・ー〜]/g, '').length;
+  return 4 + n * 0.55;
+}
+
 function ttsCountKey_() { return 'TTS_COUNT_' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd'); }
 
 function callGemini_(key, model, text, voice) {
@@ -469,7 +475,11 @@ function callGemini_(key, model, text, voice) {
   const inl = part.filter(function (x) { return x.inlineData && x.inlineData.data; })[0];
   if (!inl) return { code: 500, error: 'こえが ありません' };
   const m = /rate=(\d+)/.exec(inl.inlineData.mimeType || '');
-  return { code: 200, pcm: Utilities.base64Decode(inl.inlineData.data), rate: m ? Number(m[1]) : 24000 };
+  const pcm = Utilities.base64Decode(inl.inlineData.data), rate = m ? Number(m[1]) : 24000;
+  // Gemini が ほかの ことばを 足して 読んだ ときは、こえが ながく なるので つかわない
+  const secs = pcm.length / 2 / rate;
+  if (secs > ttsMaxSecs_(text)) return { code: 422, error: 'こえが ながすぎます（' + Math.round(secs) + 'びょう。ほかの ことばを 読んだ かも しれません）' };
+  return { code: 200, pcm: pcm, rate: rate };
 }
 
 // アプリから よぶ：こえ（WAV の base64）を かえす。だめな ときは ok:false（アプリは ブラウザの こえで 読む）
@@ -501,7 +511,8 @@ function getVoice(text, voice, prep) {
   const start = Math.max(0, models.indexOf(props.getProperty('TTS_MODEL_OK') || ''));
   let last = null;
   for (let i = start; i < models.length; i++) {
-    const r = callGemini_(key, models[i], text, voice);
+    let r = callGemini_(key, models[i], text, voice);
+    if (r.code === 422) r = callGemini_(key, models[i], text, voice); // ながすぎる ときは もう1かい
     if (r.code === 200) {
       props.setProperty('TTS_MODEL_OK', models[i]);
       const ck = ttsCountKey_();
@@ -513,7 +524,7 @@ function getVoice(text, voice, prep) {
     }
     last = r;
     if (r.code === 429) { props.setProperty('TTS_PAUSE_UNTIL', String(Date.now() + 10 * 60 * 1000)); break; } // つかいすぎ：10ぷん やすむ
-    if (r.code !== 404 && r.code !== 400) break;
+    if (r.code !== 404 && r.code !== 400 && r.code !== 422) break;
   }
   props.setProperty('TTS_LAST_ERROR', last ? (new Date().toISOString() + ' ' + last.code + ' ' + last.error) : '');
   return { ok: false, reason: last && last.code === 429 ? 'pause' : 'error' };
