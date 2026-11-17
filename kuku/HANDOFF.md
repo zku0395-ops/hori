@@ -46,7 +46,7 @@
 #### デスクトップ版で 進んだこと（2026年11月17日）
 - ②きのこの もり の あいて6たいは、案のまま OK。絵（`enemy_mr_odorikinoko.webp` など）と 背景（`mori_2.webp`）も OK をもらって `main` に入れた。
 - ③ほたるの たに の あいて6たいも、案のまま OK。絵（`enemy_mr_hotarubouzu.webp` など）と 背景（`mori_3.webp`）も `main` に入れた。
-- ④くらやみの ぬま の あいて6たいも、案のまま OK。
+- ④くらやみの ぬま の あいて6たいも、案のまま OK。絵も `main` に入れた（`enemy_mr_dorotabou.webp` など）。
 - ①の あいて6たい（`enemy_mr_kodama.webp` など）と 背景（`mori_1.webp`）を ChatGPT で作り、OK をもらって `main` に入れた。
   - 背景は `rooms.js 入力 60 出力.webp 見本.png`（下から60px あけて 4:1 に切る）で、地面が ちょうどよく見えた。見本の絵（ぼうけんの背景 `bouken_1.webp`）も添付して頼んだ。
 - ダウンロードは、Claude の画面が 最小化されていると止まる。先生に 画面を出したままに してもらう。
