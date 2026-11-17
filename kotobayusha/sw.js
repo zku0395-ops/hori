@@ -1,4 +1,4 @@
-const CACHE = 'kotoba-202611171750';
+const CACHE = 'kotoba-202611171824';
 const FILES = [
   './', 'index.html', 'app.js', 'data.js', 'manifest.json',
   'images/area/a01.jpg',
