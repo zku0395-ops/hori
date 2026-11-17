@@ -89,7 +89,7 @@ kuku/tools/check.js      問題データの点検（node kuku/tools/check.js）
 kuku/tools/test_gas.js   コード.gs のテスト（node kuku/tools/test_gas.js）
 kuku/tools/e/            Canva の絵を切り分ける道具（Python）
 kuku/tools/browser/      ブラウザで動かして確かめる道具（Playwright）
-kuku/HANDOFF.md          別の Claude に作業を引き継ぐためのメモ
+kuku/HANDOFF.md          別の Claude に作業を引き継ぐためのメモ（HANDOFF_first_message.txt は最初に送る文）
 ```
 
 - `data/` と `img/` は、GitHub Pages から読みこみます。唱え方や品物を直したときは、`data/mondai.js` を直して `main` に入れるだけで、Apps Script を貼り直さなくても全員の画面に反映されます。
