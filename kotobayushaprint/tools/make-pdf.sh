@@ -10,11 +10,11 @@ TMP="$(mktemp -d)"
 TMPW="$(cd "$TMP" && (pwd -W 2>/dev/null || pwd))"
 mkdir -p pdf
 # ファイル名には 記号を 使わない（メールや ほかの パソコンで 文字化け しないように）
-for v in "color 1_カラー" "mono 2_しろくろ" "key 3_こたえ"; do
+for v in "color yoko 1_カラー" "mono yoko 2_しろくろ" "key yoko 3_こたえ" "color tate 4_たてカラー" "mono tate 5_たてしろくろ" "key tate 6_たてこたえ"; do
   set -- $v
   rm -f "$TMP/out.pdf"
-  "$BROWSER" --headless --disable-gpu --no-pdf-header-footer --user-data-dir="$TMPW/prof$1" \
-    --virtual-time-budget=60000 --print-to-pdf="$TMPW/out.pdf" "file:///$DIR/index.html?print=1&v=$1"
+  "$BROWSER" --headless --disable-gpu --no-pdf-header-footer --user-data-dir="$TMPW/prof$1$2" \
+    --virtual-time-budget=60000 --print-to-pdf="$TMPW/out.pdf" "file:///$DIR/index.html?print=1&v=$1&d=$2"
   # Edge は すぐ もどって、うしろで PDF を 書くので、できあがるまで まつ
   n=0; last=-1
   while [ $n -lt 300 ]; do
@@ -22,8 +22,8 @@ for v in "color 1_カラー" "mono 2_しろくろ" "key 3_こたえ"; do
     if [ "$sz" -gt 0 ] && [ "$sz" = "$last" ]; then break; fi
     last=$sz; n=$((n+3)); sleep 3
   done
-  if [ ! -s "$TMP/out.pdf" ]; then echo "できませんでした：$2"; exit 1; fi
-  mv "$TMP/out.pdf" "pdf/ことばのゆうしゃワークシート_$2.pdf"
-  echo "できました：pdf/ことばのゆうしゃワークシート_$2.pdf"
+  if [ ! -s "$TMP/out.pdf" ]; then echo "できませんでした：$3"; exit 1; fi
+  mv "$TMP/out.pdf" "pdf/ことばのゆうしゃワークシート_$3.pdf"
+  echo "できました：pdf/ことばのゆうしゃワークシート_$3.pdf"
 done
 rm -rf "$TMP"
