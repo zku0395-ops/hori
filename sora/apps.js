@@ -208,6 +208,7 @@ window.SORA = {
     { id: 'p-kanji3', emoji: '3️⃣', name: '漢字（3年）プリント', url: 'https://zku0395-ops.github.io/hori/kanjiprint/?g=3' },
     { id: 'p-nazotoki', emoji: '🐶', name: '文の読解（いつ・だれが）プリント', url: 'https://zku0395-ops.github.io/hori/nazotokiprint/' },
     { id: 'p-kotoba', emoji: '🐉', name: 'ことばの いみ ワークシート（1〜4年）', url: 'https://zku0395-ops.github.io/hori/kotobaprint/' },
+    { id: 'p-kotobayusha', emoji: '⚔️', name: 'ことばの ゆうしゃ ワークシート（絵を見て 文を書く）', url: 'https://zku0395-ops.github.io/hori/kotobayushaprint/' },
     { id: 'p-monogatari', emoji: '🌸', name: '物語の読み取り（ものがたりの もり）文章プリント', url: 'https://zku0395-ops.github.io/hori/monogatari/print.html' },
   ],
 
