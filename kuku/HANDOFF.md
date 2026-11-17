@@ -45,7 +45,9 @@
 
 #### デスクトップ版で 進んだこと（2026年11月17日）
 - ②きのこの もり の あいて6たいは、案のまま OK。
-- ①の あいて6たいを ChatGPT で作り、OK をもらって `main` に入れた（`enemy_mr_kodama.webp` など）。
+- ①の あいて6たい（`enemy_mr_kodama.webp` など）と 背景（`mori_1.webp`）を ChatGPT で作り、OK をもらって `main` に入れた。
+  - 背景は `rooms.js 入力 60 出力.webp 見本.png`（下から60px あけて 4:1 に切る）で、地面が ちょうどよく見えた。見本の絵（ぼうけんの背景 `bouken_1.webp`）も添付して頼んだ。
+- ダウンロードは、Claude の画面が 最小化されていると止まる。先生に 画面を出したままに してもらう。
 - 進め方は「1か所ずつ：あいて → 背景 → つぎの場所の表の OK → …」。
 - ChatGPT は、デスクトップアプリの中のブラウザ（`mcp__Claude_Browser__*`）で開く。先生が ログインずみ。
   - 見本の絵を入れる：ChatGPT の画面では github.io への fetch は止められるが、`<img crossOrigin>` で読んで canvas → File にし、`input[type=file]`（accept が image/*）に DataTransfer で入れると添付できる。
@@ -87,7 +89,7 @@
 | `specks.py` | `python3 specks.py 入力 出力 0.004` となりの絵の はしなど、小さな かけらを消す |
 | `panels.py` | `python3 panels.py 入力.png` 2×2 などの パネルの わくの位置を調べる |
 | `rooms.py` | `python3 rooms.py 入力 x0,y0,x1,y1:下の余白:出力.webp` 背景を 1600×400 に切る（たたかいの場面用。ゆかが見える高さにする） |
-| `cut6.js`・`sheet.js`・`rooms.js` | Python が ない パソコン用（node と sharp）。上の4章の「デスクトップ版で 進んだこと」を見る |
+| `cut6.js`・`sheet.js`・`rooms.js` | Python が ない パソコン用（node と sharp）。1章の「デスクトップ版で 進んだこと」を見る |
 
 - あいてが くっついているときは、列の すきま（白の多い列）を調べて切るか、さかいめを見て多角形で消す。
 - 切ったら、紺色の背景の上に6たい並べた見本を作って、目で確かめる。
