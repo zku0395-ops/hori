@@ -5,7 +5,7 @@
 
 ## 1. いまの状態（2026年11月）
 
-- 画面の版：`APP_VERSION = '1.2.1'`（`kuku/index.html`）。`main` に入っています。
+- 画面の版：`APP_VERSION = '1.3.0'`（`kuku/index.html`）。1.3.0 で「まおうの もり」を足しました。
 - 先生は Apps Script に `index.html` と `コード.gs` を貼って使っています（形B）。
   - `index.html` を直したら、先生に貼り直してもらいます。`.txt` の「貼り付け用」ファイルを SendUserFile で渡すと喜ばれます。
   - `data/mondai.js` と `img/` は GitHub Pages から読みこむので、`main` に入れるだけで反映されます（貼り直し不要）。
@@ -17,6 +17,7 @@
 | お城 | しのびの いりぐち → 1〜9かい（5→2→3→4→6→7→8→9→1の段）→ てんしゅかく。各階 ⓪であう〜④にんじゃ しけん |
 | たたかい | ④しけん と てんしゅかく は、へやの絵の中で あいて（10たい）と たたかう。子どもは負けない |
 | ぼうけん | てんしゅかくの あと。8か所×（ふつう5たい＋ボス）＝48たい。九九81こから10問で勝ち。こばん（10・ボス30）と おみやげ48こ（ぼうけん ずかん）。ステージ id は `B1-1`〜`B8-6` |
+| まおうの もり | ぼうけんの あと。8か所×（ふつう5たい＋ボス）＋まおう＝49たい。ステージ id は `M1-1`〜`M8-6` と `M9`（まおう）。ボスは 文章題（`StoryQ`）・□・しきさがし の6問、まおうは まぜて10問。データは `data/mondai.js` の MORI_* 。絵は まだ（絵文字で出る） |
 | ぜんぶクリア | しょうごう「くく でんせつの にんじゃ」、とくべつな いろ「でんせつの よろい」（`data/mondai.js` の `BOUKEN_COLOR`） |
 | 絵 | Canva で全部作成ずみ（カゲマルせんせい・子どもの忍者・お城・ろうか・たからもの・あいて58たい・へや10まい・ぼうけん背景8まい） |
 | 読み上げ | 「ごは しじゅう」の「は」や「3つ分」は `fmtSpeech` でカタカナ・ひらがなに直してから読ませている |
@@ -64,7 +65,7 @@
 
 - データの点検：`node kuku/tools/check.js`（ステージ・あいて・ぼうけん・おみやげの数）
 - `コード.gs` のテスト：`node kuku/tools/test_gas.js`
-- ブラウザ：`kuku/tools/browser/bouken_test.js`（Playwright）
+- ブラウザ：`kuku/tools/browser/bouken_test.js`・`mori_test.js`（Playwright）
   - クラウドの環境では unpkg などに つながらないので、`pw.js` が CDN を手元のファイルに おきかえる。
   - `kuku/tools/browser/vendor/` に、npm の `react@18.3.1`・`react-dom@18.3.1`・`@babel/standalone@7.24.7` を展開し、
     `npx tailwindcss@3.4.17 -i in.css -o tw.css --content ../../index.html` で `tw.css` を作っておく（`vendor/` はコミットしない）。

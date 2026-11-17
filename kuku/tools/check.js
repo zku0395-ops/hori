@@ -74,6 +74,32 @@ D.BOUKEN.forEach(en => {
 });
 D.SOUVENIRS.forEach(x => { if (!x.e || !x.name) ng(`${x.id}：なまえか 絵文字が ありません`); if (/[一-鿿]/.test(x.name)) ng(`${x.id}：なまえに 漢字が あります`); });
 
+// 3d. まおうの もり（8かしょ × ふつう5たい＋ボス、⑧の さいごに まおう。おみやげ 49こ）
+if (D.MORI_PLACES.length !== 8) ng(`もりの ばしょは 8かしょ の はずです（${D.MORI_PLACES.length}）`);
+const mid = new Set(), msid = new Set(D.MORI_SOUVENIRS.map(x => x.id)), mused = new Set();
+if (msid.size !== 49 || D.MORI_SOUVENIRS.length !== 49) ng(`もりの おみやげは 49こ（id が かさならない）の はずです（${D.MORI_SOUVENIRS.length}）`);
+D.MORI_SOUVENIRS.forEach(x => { if (sid.has(x.id)) ng(`もりの おみやげ ${x.id} が ぼうけんと かさなって います`); if (!x.e || !x.name || /[一-鿿]/.test(x.name)) ng(`${x.id}：なまえ・絵文字が ないか、漢字が あります`); });
+D.MORI_PLACES.forEach(pl => {
+  if (!pl.name || !pl.intro || !pl.bg) ng(`もり ${pl.p}：なまえ・せつめい・はいけいが たりません`);
+  if (/[一-鿿]/.test(pl.name + pl.intro)) ng(`もり ${pl.p}：ふりがなの ない 漢字が あります`);
+  const list = D.MORI.filter(en => en.p === pl.p && !en.maou);
+  if (list.map(en => en.n).join(',') !== '1,2,3,4,5,6' || !list[5].boss || list.filter(en => en.boss).length !== 1) ng(`もり ${pl.p}：あいてが 1〜6（6たいめが ボス）に なって いません`);
+});
+const maou = D.MORI.filter(en => en.maou);
+if (maou.length !== 1 || maou[0].p !== 8 || maou[0].n !== 7 || !maou[0].lose) ng('まおうは ⑧の 7たいめに 1たい（lose の ことばも）');
+D.MORI.forEach(en => {
+  if (mid.has(en.id) || bid.has(en.id) || eid.has(en.id)) ng(`もりの あいての id が かさなって いる：${en.id}`);
+  mid.add(en.id);
+  if (!en.name || !en.e || !en.hello) ng(`${en.id}：なまえ・絵文字・ことばが たりません`);
+  if (/[一-鿿]/.test(en.name + en.hello + (en.lose || ''))) ng(`${en.id}：ことばに ふりがなの ない 漢字が あります`);
+  if (!msid.has(en.item) || mused.has(en.item)) ng(`${en.id}：おみやげ ${en.item} が ないか、かさなって います`);
+  mused.add(en.item);
+  const it = D.MORI_SOUVENIRS.find(x => x.id === en.item);
+  if (it && !!it.sp !== !!en.boss) ng(`${en.id}：ボスには とくべつな おみやげ（sp）を つけます`);
+});
+D.MORI_STORY.forEach((t, i) => { if (!t.thing || !t.e || !t.u || !t.box || !t.bu || /[一-鿿]/.test(t.thing + t.box)) ng(`ぶんしょうだい ${i}：たりない ものか 漢字が あります`); });
+if (!D.MORI_COLOR || !D.MORI_AIBOU || !D.TITLES.some(t => t.mori)) ng('もりの いろ・あいぼう・しょうごうが ありません');
+
 // 4. いろ・よろずや・しょうごう
 if (D.COLORS.length !== 6) ng(`はじめの いろは 6しゅるいの はずです（${D.COLORS.length}）`);
 const P = [5, 5, 5, 5, 15, 15, 15, 30, 30, 60];
@@ -90,5 +116,5 @@ D.ITEM_CATS.forEach(c => {
 });
 if (!D.TITLES.some(t => t.all)) ng('はってん ぜんぶの しょうごうが ありません');
 
-console.log(bad ? `✖ ${bad}けん` : `✔ ステージ ${D.STAGES.length}・あいて ${D.ENEMIES.length}・ぼうけん ${D.PLACES.length}かしょ ${D.BOUKEN.length}たい・おみやげ ${D.SOUVENIRS.length}こ・たからもの ${D.TREASURES.length}・よろずや ${iid.size}こ・となえかた 81こ。もんだい なし`);
+console.log(bad ? `✖ ${bad}けん` : `✔ ステージ ${D.STAGES.length}・あいて ${D.ENEMIES.length}・ぼうけん ${D.PLACES.length}かしょ ${D.BOUKEN.length}たい・おみやげ ${D.SOUVENIRS.length}こ・まおうの もり ${D.MORI_PLACES.length}かしょ ${D.MORI.length}たい・もりの おみやげ ${D.MORI_SOUVENIRS.length}こ・たからもの ${D.TREASURES.length}・よろずや ${iid.size}こ・となえかた 81こ。もんだい なし`);
 process.exit(bad ? 1 : 0);
