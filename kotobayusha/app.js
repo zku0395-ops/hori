@@ -145,7 +145,9 @@ const KANA_COLS = [
 function inputBox(text, mode, target) {
   const switcher = `<div class="row"><span style="font-size:16px">にゅうりょく：</span>
     <button class="modebtn" data-act="mode" data-m="kana" data-t="${target}" style="${mode === 'kana' ? 'background:#ffe58a' : ''}">あ ひらがな表</button>
-    <button class="modebtn" data-act="mode" data-m="romaji" data-t="${target}" style="${mode === 'romaji' ? 'background:#ffe58a' : ''}">A ローマ字</button></div>`;
+    <button class="modebtn" data-act="mode" data-m="romaji" data-t="${target}" style="${mode === 'romaji' ? 'background:#ffe58a' : ''}">A ローマ字</button>
+    <button class="modebtn" data-act="mode" data-m="tegaki" data-t="${target}" style="${mode === 'tegaki' ? 'background:#ffe58a' : ''}">✍ てがき</button></div>`;
+  if (mode === 'tegaki') return switcher + tegakiBox(text);
   if (mode === 'romaji') {
     return `${switcher}<input id="romaji" class="typed-input" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(text)}" placeholder="ここに かこう">`;
   }
@@ -178,6 +180,101 @@ function applyKey(text, k) {
   const next = map[base] && map[base] !== last ? map[base] : base;
   return text.slice(0, -1) + next;
 }
+// ---------- てがき（Chromebook の 文字を よみとる しくみを つかう） ----------
+// TG.state: 'wait'（しらべちゅう）/ 'ok'（つかえる）/ 'no'（つかえない → 画面キーボードの てがき）
+const TG = { state: 'wait', rec: null, drawing: null, strokes: 0, t0: 0, timer: null, cands: [] };
+async function tegakiInit() {
+  if (TG.started) return; TG.started = true;
+  try {
+    const n = navigator;
+    if (!n.createHandwritingRecognizer) throw 0;
+    if (n.queryHandwritingRecognizer) { const q = await n.queryHandwritingRecognizer({ languages: ['ja'] }); if (!q) throw 0; }
+    else if (n.queryHandwritingRecognizerSupport) { const q = await n.queryHandwritingRecognizerSupport({ languages: ['ja'] }); if (!q || !q.languages) throw 0; }
+    TG.rec = await n.createHandwritingRecognizer({ languages: ['ja'] });
+    TG.state = 'ok';
+  } catch (e) { TG.state = 'no'; }
+  if (screen === 'quiz' && Q && me() && me().input === 'tegaki') quiz();
+  if (screen === 'create' && view.mode === 'tegaki') create();
+}
+function tegakiBox(text) {
+  if (TG.state === 'wait') { setTimeout(tegakiInit, 0); return `<div class="typed" id="typed">${esc(text)}<span class="caret"></span></div><div class="ghost">てがきの じゅんびを して います…</div>`; }
+  if (TG.state === 'no') {
+    return `<div class="tgnote">この Chromebook では、アプリの てがきが つかえません。<br>したの らんを タッチして、がめんの キーボードの ✍（てがき）で かいてね。</div>
+      <input id="romaji" class="typed-input" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(text)}" placeholder="ここを タッチして かこう">`;
+  }
+  return `<div class="typed" id="typed">${esc(text)}<span class="caret"></span></div>
+    <div class="tegaki">
+      <div class="padwrap"><canvas id="pad"></canvas><span class="padhint">ここに 1もじ かこう</span></div>
+      <div class="tside">
+        <div class="cands" id="cands"></div>
+        <div class="trow"><button class="modebtn" data-act="padclear">✋ かきなおす</button></div>
+        <div class="trow tfn"><button data-k="daku">゛</button><button data-k="handaku">゜</button><button data-k="small">小</button><button class="del" data-k="del">⌫</button></div>
+        <div class="trow"><button class="modebtn" data-k="ch: ">␣ あける</button><button class="modebtn" data-k="ch:。">。</button><button class="modebtn" data-k="clear">ぜんぶ けす</button></div>
+      </div>
+    </div>`;
+}
+function bindTegaki(target) {
+  const cv = $('#pad'); if (!cv || TG.state !== 'ok') return;
+  const dpr = window.devicePixelRatio || 1; const r = cv.getBoundingClientRect();
+  cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+  const g = cv.getContext('2d'); g.scale(dpr, dpr);
+  g.lineWidth = Math.max(6, r.width / 28); g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = '#2b2340';
+  TG.target = target; TG.cands = []; TG.strokes = 0;
+  try { if (TG.drawing) TG.drawing.clear(); } catch (e) {}
+  TG.drawing = TG.rec.startDrawing({ recognitionType: 'text', inputType: 'touch', alternatives: 8, textContext: getText(target) });
+  showCands();
+  let stroke = null, last = null;
+  const pt = e => { const b = cv.getBoundingClientRect(); return { x: e.clientX - b.left, y: e.clientY - b.top }; };
+  cv.addEventListener('pointerdown', e => {
+    e.preventDefault(); cv.setPointerCapture(e.pointerId); clearTimeout(TG.timer);
+    if (!TG.t0) TG.t0 = Date.now();
+    const p = pt(e); last = p; stroke = new HandwritingStroke(); stroke.addPoint({ x: p.x, y: p.y, t: Date.now() - TG.t0 });
+    g.beginPath(); g.arc(p.x, p.y, g.lineWidth / 2, 0, Math.PI * 2); g.fillStyle = g.strokeStyle; g.fill();
+    $('.padhint') && $('.padhint').remove();
+  });
+  cv.addEventListener('pointermove', e => {
+    if (!stroke) return; const p = pt(e);
+    stroke.addPoint({ x: p.x, y: p.y, t: Date.now() - TG.t0 });
+    g.beginPath(); g.moveTo(last.x, last.y); g.lineTo(p.x, p.y); g.stroke(); last = p;
+  });
+  const end = () => {
+    if (!stroke) return; TG.drawing.addStroke(stroke); stroke = null; TG.strokes++;
+    clearTimeout(TG.timer); TG.timer = setTimeout(predict, 450);
+  };
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+}
+const toHira = t => t.replace(/[\u30a1-\u30f6]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+async function predict() {
+  if (!TG.drawing || !TG.strokes) return;
+  let list = [];
+  try { list = (await TG.drawing.getPrediction()).map(p => p.text.trim()).filter(Boolean); } catch (e) {}
+  // ひらがなを さきに。カタカナは ひらがなにも して ならべる
+  const kana = t => /^[\u3041-\u309f\u30a1-\u30ff\u30fc]+$/.test(t);
+  const out = [];
+  const add = t => { if (t && !out.includes(t)) out.push(t); };
+  list.filter(kana).forEach(t => { add(toHira(t)); add(t); });
+  list.filter(t => !kana(t)).forEach(add);
+  TG.cands = out.slice(0, 4);
+  showCands();
+}
+function showCands() {
+  const el = $('#cands'); if (!el) return;
+  el.innerHTML = TG.cands.length
+    ? TG.cands.map((c, i) => `<button class="cand" data-act="cand" data-i="${i}">${esc(c)}</button>`).join('')
+    : `<span class="ghost" style="font-size:20px">${TG.strokes ? 'よみとって います…' : 'かいた もじが ここに でるよ。<br>タッチして えらんでね'}</span>`;
+}
+function padClear() {
+  clearTimeout(TG.timer); TG.cands = []; TG.strokes = 0; TG.t0 = 0;
+  const cv = $('#pad'); if (cv) cv.getContext('2d').clearRect(0, 0, cv.width, cv.height);
+  try { TG.drawing.clear(); } catch (e) {}
+  showCands();
+}
+function pickCand(i) {
+  const c = TG.cands[i]; if (!c) return;
+  sTap(); say(c);
+  setText(TG.target, applyKey(getText(TG.target), 'ch:' + c));
+  padClear();
+}
 function getText(target) { return target === 'name' ? view.name : Q.typed; }
 function setText(target, t) {
   if (target === 'name') { view.name = t; const b = $('[data-act=makep]'); if (b) b.disabled = !t.trim(); }
@@ -185,6 +282,7 @@ function setText(target, t) {
   const box = $('#typed'); if (box) box.innerHTML = esc(t) + '<span class="caret"></span>';
 }
 function bindRomaji(target) {
+  bindTegaki(target);
   const el = $('#romaji'); if (!el) return;
   el.addEventListener('input', () => setText(target, el.value));
   el.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing && target !== 'name') check(); });
@@ -548,7 +646,7 @@ function teacher() {
     const areas = p.done.map(d => d.filter(Boolean).length).join(' / ');
     return `<tr><td>${lookOf(p.look).e} ${esc(p.name)}</td>
       <td><select data-tset="level" data-id="${p.id}">${[1, 2, 3, 4].map(l => `<option value="${l}" ${p.level === l ? 'selected' : ''}>${LEVELS[l]}</option>`).join('')}</select></td>
-      <td><select data-tset="input" data-id="${p.id}"><option value="kana" ${p.input === 'kana' ? 'selected' : ''}>ひらがな表</option><option value="romaji" ${p.input === 'romaji' ? 'selected' : ''}>ローマ字</option></select></td>
+      <td><select data-tset="input" data-id="${p.id}"><option value="kana" ${p.input === 'kana' ? 'selected' : ''}>ひらがな表</option><option value="romaji" ${p.input === 'romaji' ? 'selected' : ''}>ローマ字</option><option value="tegaki" ${p.input === 'tegaki' ? 'selected' : ''}>てがき</option></select></td>
       <td><select data-tset="judge" data-id="${p.id}"><option value="auto" ${p.judge !== 'teacher' ? 'selected' : ''}>じどう</option><option value="teacher" ${p.judge === 'teacher' ? 'selected' : ''}>せんせいが はんてい</option></select></td>
       <td><label><input type="checkbox" data-tset="unlockAll" data-id="${p.id}" ${p.unlockAll ? 'checked' : ''}> 全エリア開放</label></td>
       <td>${n}/100<br><small>${areas}</small></td>
@@ -639,6 +737,8 @@ document.addEventListener('click', e => {
     case 'back-players': go('players'); break;
     case 'pick': DB.cur = b.dataset.id; save(); go('map'); break;
     case 'look': view.look = b.dataset.id; sTap(); say(lookOf(b.dataset.id).n); create(); break;
+    case 'cand': pickCand(+b.dataset.i); break;
+    case 'padclear': sTap(); padClear(); break;
     case 'mode': {
       const m = b.dataset.m;
       if (b.dataset.t === 'name') { view.mode = m; create(); }
