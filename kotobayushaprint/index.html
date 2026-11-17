@@ -95,6 +95,25 @@
     .masu span:after { content: ''; position: absolute; top: 0; bottom: 0; left: 50%; border-left: .25mm dashed #e7e5e4; }
     .masu span i { position: relative; z-index: 1; font-style: normal; }
     .masu span:nth-child(12n+1) { border-left: .5mm solid #57534e; }
+    /* ---- たて書き ---- */
+    .tt { position: absolute; writing-mode: vertical-rl; }
+    .tate .num { left: auto; right: 3mm; }
+    .tate .q { left: auto; right: 3mm; top: 15mm; width: auto; height: 38mm; line-height: 1.5; }
+    .tate .pic { left: 46mm; width: 50mm; height: 50mm; }
+    .tate .sensei { right: auto; left: 3mm; }
+    .tagv { width: 7mm; border: .5mm solid; border-radius: 2mm; display: flex; align-items: center; justify-content: flex-start; padding-top: 1.6mm; font-size: 4.2mm; font-weight: 700; white-space: nowrap; letter-spacing: .2mm; }
+    .mono .tagv { color: #1c1917; border-color: #44403c; background: #fff; }
+    .boxv { position: absolute; width: 12mm; border: .5mm solid #57534e; border-radius: 2mm; background: #fff; }
+    .boxv:after { content: ''; position: absolute; top: 2mm; bottom: 2mm; left: 50%; border-left: .3mm dashed #d6d3d1; }
+    .boxv .a { position: absolute; top: 1.6mm; left: 0; right: 0; writing-mode: vertical-rl; display: flex; align-items: center; font-size: 6.2mm; font-weight: 700; color: #dc2626; white-space: nowrap; z-index: 1; line-height: 1; }
+    .josiv { position: absolute; width: 12mm; text-align: center; font-size: 7mm; font-weight: 700; }
+    .bunv { width: 7mm; font-size: 4.2mm; font-weight: 700; color: #fff; background: #1d4ed8; border-radius: 2mm; padding: 1.6mm 0; display: flex; align-items: center; white-space: nowrap; }
+    .mono .bunv { background: #44403c; }
+    .mv { position: absolute; width: 10mm; height: 10mm; border: .5mm solid #57534e; display: flex; align-items: center; justify-content: center; font-size: 7mm; font-weight: 700; color: #dc2626; }
+    .mv.n { border-top: none; }
+    .mv:before { content: ''; position: absolute; left: 0; right: 0; top: 50%; border-top: .25mm dashed #e7e5e4; }
+    .mv:after { content: ''; position: absolute; top: 0; bottom: 0; left: 50%; border-left: .25mm dashed #e7e5e4; }
+    .mv i { position: relative; z-index: 1; font-style: normal; }
     .foot { position: absolute; left: 8mm; right: 8mm; bottom: 1.8mm; font-size: 2.8mm; color: #a8a29e; display: flex; justify-content: space-between; }
 
     @media print {
@@ -109,12 +128,13 @@
   <div class="controls" id="controls">
     <div class="panel">
       <h1><img src="../kotobayusha/images/hero/h1.png" alt="" onerror="this.remove()">ことばの ゆうしゃ ワークシート</h1>
-      <p>アプリ「ことばの勇者」と おなじ絵と問題で、「だれが」「どこで」「なにを している」を書いてから、文を書く ワークシートです。A4よこ。1まいに2問です。</p>
+      <p>アプリ「ことばの勇者」と おなじ絵と問題で、「だれが」「どこで」「なにを している」を書いてから、文を書く ワークシートです。A4よこ。1まいに2問です。よこ書きと たて書きが あります。</p>
       <p class="note">印刷するときは、用紙を「A4」「よこ」、余白を「なし」、「背景のグラフィック」に チェックを入れてください。</p>
     </div>
     <div class="panel">
       <h2>① どの ワークシートを つくりますか</h2>
       <div class="opt" id="vers"></div>
+      <div class="opt" id="dirs" style="margin-top:8px"></div>
     </div>
     <div class="panel">
       <h2>② エリア（1エリア＝5まい・10問）</h2>
@@ -152,6 +172,11 @@
         <a class="btn small" href="pdf/ことばのゆうしゃワークシート_2_しろくろ.pdf" download>⬛ しろくろ（50まい）</a>
         <a class="btn small" href="pdf/ことばのゆうしゃワークシート_3_こたえ.pdf" download>🔴 こたえ（50まい）</a>
       </div>
+      <div class="opt" style="margin-top:8px">
+        <a class="btn small" href="pdf/ことばのゆうしゃワークシート_4_たてカラー.pdf" download>🎨 たて書き カラー（50まい）</a>
+        <a class="btn small" href="pdf/ことばのゆうしゃワークシート_5_たてしろくろ.pdf" download>⬛ たて書き しろくろ（50まい）</a>
+        <a class="btn small" href="pdf/ことばのゆうしゃワークシート_6_たてこたえ.pdf" download>🔴 たて書き こたえ（50まい）</a>
+      </div>
       <p class="note">ダウンロード できない ときは、<a href="https://github.com/zku0395-ops/hori/tree/main/kotobayushaprint/pdf" target="_blank" rel="noopener">pdf フォルダ（GitHub）</a> から ファイルを えらび、「…」→「Download」を 押します。</p>
     </div>
   </div>
@@ -163,7 +188,9 @@
     const APP = '../kotobayusha/';
     const qp = new URLSearchParams(location.search);
     const VERS = [['color', '🎨 カラー（色わけ・れんしゅう用）'], ['mono', '⬛ しろくろ（テスト用）'], ['key', '🔴 こたえ']];
+    const DIRS = [['yoko', '➡ よこ書き'], ['tate', '⬇ たて書き']];
     const st = {
+      d: qp.get('d') === 'tate' ? 'tate' : 'yoko',
       v: VERS.some(v => v[0] === qp.get('v')) ? qp.get('v') : 'color',
       areas: qp.get('areas') ? qp.get('areas').split(',').map(Number).filter(n => n >= 1 && n <= AREAS.length) : AREAS.map(a => a.no),
       nen: (qp.get('nen') || '').slice(0, 3),
@@ -173,7 +200,7 @@
     const COLS = 12, ROWS = 4;
 
     // 文を ます目に 入れる。ことばの とちゅうで ぎょうを かえない。ぎょうの はじめの あきは つめる
-    function cells(text) {
+    function cells(text, COLS) {
       const out = [];
       text.split(' ').forEach((w, i) => {
         const ch = [...w];
@@ -193,7 +220,7 @@
     function prob(q, side, key) {
       const a = AREAS[q.area];
       const s = `${q.who}が ${q.where}で ${q.what}。`;
-      const cs = cells(s);
+      const cs = cells(s, COLS);
       let m = '';
       for (let i = 0; i < COLS * ROWS; i++) m += `<span>${key && cs[i] ? `<i>${esc(cs[i])}</i>` : ''}</span>`;
       return `<div class="prob ${side}">
@@ -208,10 +235,37 @@
         <div class="masu">${m}</div>
       </div>`;
     }
+    // たて書き：右から「だれが」「どこで」「なにを している」、そして「ぶんを かこう」（1行10ます × 5行）
+    const TROWS = 10, TCOLS = 5;
+    function probTate(q, side, key) {
+      const s = `${q.who}が ${q.where}で ${q.what}。`;
+      const cs = cells(s, TROWS);
+      const parts = [['c-who', 'だれが', q.who, 'が'], ['c-where', 'どこで', q.where, 'で'], ['c-what', 'なにを している', q.what, '']];
+      let h = '';
+      parts.forEach(([cls, label, ans, josi], i) => {
+        const R = 133.5 - i * 21;   // この ことばの いちばん 右（mm）
+        h += `<div class="tt tagv ${cls}" style="left:${R - 7}mm;top:57mm;height:${label.length > 4 ? 36 : 22}mm">${label}</div>
+          <div class="boxv" style="left:${R - 19}mm;top:57mm;height:98mm">${key ? `<div class="a">${esc(ans)}</div>` : ''}</div>
+          ${josi ? `<div class="tt josiv" style="left:${R - 19}mm;top:156mm">${josi}</div>` : ''}`;
+      });
+      h += `<div class="tt bunv" style="left:64mm;top:57mm">✏ ぶんを かこう</div>`;
+      for (let c = 0; c < TCOLS; c++) for (let r = 0; r < TROWS; r++) {
+        const ch = cs[c * TROWS + r];
+        h += `<div class="mv${r ? ' n' : ''}" style="left:${53 - c * 12.5}mm;top:${57 + r * 10}mm">${key && ch ? `<i>${esc(ch)}</i>` : ''}</div>`;
+      }
+      return `<div class="prob ${side}">
+        <div class="num">${q.idx + 1}</div>
+        <div class="tt q">えを みて、<br>だれが<br>どこで<br>なにを している<br>かを かこう。</div>
+        <div class="pic"><img src="${APP}${IMG.q(q.area, q.idx)}" data-emo="${esc(q.ew + q.ep + q.et)}" alt=""></div>
+        <div class="sensei">せんせい<div class="${key ? 'ok' : 'maru'}"></div></div>
+        ${h}
+      </div>`;
+    }
     function page(a, i, n) {
       const key = st.v === 'key';
       const q1 = a.qs[i * 2], q2 = a.qs[i * 2 + 1];
-      return `<div class="page ${st.v === 'mono' ? 'mono' : ''}">
+      const tate = st.d === 'tate';
+      return `<div class="page ${st.v === 'mono' ? 'mono' : ''} ${tate ? 'tate' : ''}">
         <div class="hd">
           <div class="title"><div class="t1">ことばの ゆうしゃ ワークシート</div>
             <div class="t2">${a.emoji} エリア${a.no}　${esc(a.name)}</div>
@@ -226,8 +280,8 @@
               <div class="nm"><span class="lab">なまえ</span><b>${esc(st.name)}</b></div></div>
           </div>
         </div>
-        ${prob(q1, 'l', key)}${prob(q2, 'r', key)}
-        <div class="foot"><span>ことばの ゆうしゃ ワークシート</span><span>${a.no}-${i + 1}</span></div>
+        ${tate ? probTate(q1, 'r', key) + probTate(q2, 'l', key) : prob(q1, 'l', key) + prob(q2, 'r', key)}
+        <div class="foot"><span>ことばの ゆうしゃ ワークシート</span><span>${tate ? 'たて ' : ''}${a.no}-${i + 1}</span></div>
       </div>`;
     }
     function render() {
@@ -251,6 +305,9 @@
       const vers = document.getElementById('vers');
       vers.innerHTML = VERS.map(([id, t]) => `<label class="${st.v === id ? 'on' : ''}"><input type="radio" name="v" value="${id}" ${st.v === id ? 'checked' : ''}>${t}</label>`).join('');
       vers.onchange = (e) => { st.v = e.target.value; controls(); render(); };
+      const dirs = document.getElementById('dirs');
+      dirs.innerHTML = DIRS.map(([id, t]) => `<label class="${st.d === id ? 'on' : ''}"><input type="radio" name="d" value="${id}" ${st.d === id ? 'checked' : ''}>${t}</label>`).join('');
+      dirs.onchange = (e) => { st.d = e.target.value; controls(); render(); };
       const ar = document.getElementById('areas');
       ar.innerHTML = AREAS.map(a => { const on = st.areas.includes(a.no); return `<label class="${on ? 'on' : ''}"><input type="checkbox" value="${a.no}" ${on ? 'checked' : ''}>${a.emoji} ${a.no} ${esc(a.name)}</label>`; }).join('');
       ar.onchange = (e) => { const id = Number(e.target.value); st.areas = e.target.checked ? [...st.areas, id].sort((x, y) => x - y) : st.areas.filter(x => x !== id); controls(); render(); };
@@ -268,7 +325,7 @@
     const inFrame = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
     const selfUrl = () => {
       const u = new URL(location.href.split('#')[0]); u.search = '';
-      const set = { v: st.v, areas: st.areas.join(','), nen: st.nen, name: st.name, auto: '1' };
+      const set = { v: st.v, d: st.d, areas: st.areas.join(','), nen: st.nen, name: st.name, auto: '1' };
       Object.entries(set).forEach(([k, v2]) => { if (v2) u.searchParams.set(k, v2); });
       return u.toString();
     };
@@ -293,7 +350,7 @@
       const kind = { color: 'カラー', mono: 'しろくろ', key: 'こたえ' }[st.v];
       const all = st.areas.length === AREAS.length;
       const ar = all ? 'ぜんぶ' : st.areas.length === 1 ? AREAS[st.areas[0] - 1].name.replace(/ /g, '') : 'エリア' + st.areas.join('-');
-      return ['ことばのゆうしゃワークシート', kind, ar, st.name ? st.name.replace(/[\\/:*?"<>|]/g, '') : ''].filter(Boolean).join('_');
+      return ['ことばのゆうしゃワークシート', (st.d === 'tate' ? 'たて' : '') + kind, ar, st.name ? st.name.replace(/[\\/:*?"<>|]/g, '') : ''].filter(Boolean).join('_');
     };
     document.getElementById('print').onclick = () => { if (!st.areas.length) { alert('エリアを えらんで ください。'); return; } openPrint(''); };
     document.getElementById('savepdf').onclick = () => {
