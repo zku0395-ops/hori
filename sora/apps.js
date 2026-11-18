@@ -63,6 +63,7 @@ window.SORA = {
           { id: 'sukiwake', emoji: '📺', name: 'ペラリさんの すきの わけ テレビきょく', say: 'ペラリさんの すきの わけ テレビきょく', url: 'https://script.google.com/macros/s/AKfycbw8kUP_NuwnsVz48ukZfkCjZ_Ei1hH3vPsvCLVXCp01PLrzm7U9wCPSVK90j2oMhTq8/exec' },
           { id: 'yumefusen', emoji: '🎈', name: 'フワリさんの ゆめの ふうせんやさん', say: 'フワリさんの ゆめの ふうせんやさん', url: 'https://script.google.com/macros/s/AKfycbzvPFIVDDZWYIhLTlFMdnCxQkI9prTrckJMme062okV8iO14fTcP7u7enSNZPF7PYQzaw/exec' },
           { id: 'kotobayusha', emoji: '⚔️', name: 'ことばの ゆうしゃ', say: 'ことばの ゆうしゃ', url: 'https://zku0395-ops.github.io/hori/kotobayusha/' },
+          { id: 'kotobayushaprint', emoji: '📝', name: 'ことばの ゆうしゃ ワークシート', say: 'ことばの ゆうしゃ ワークシート', url: 'https://zku0395-ops.github.io/hori/kotobayushaprint/' },
         ] },
         { id: 'yomu', name: 'よむ', emoji: '📗', apps: [
           { id: 'ondokumaster', emoji: '🗣️', name: 'おんどくマスター', url: 'https://sites.google.com/view/ondokumasterda/%E3%83%9B%E3%83%BC%E3%83%A0' },
