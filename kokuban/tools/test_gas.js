@@ -45,6 +45,7 @@ const ctx = {
 };
 vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'コード.gs'), 'utf8'), ctx);
+vm.runInContext('function SAMPLE_TEXTS_FOR_TEST() { return SAMPLE_TEXTS; } function OLD_S1_ANS_FOR_TEST() { return OLD_S1_ANS; }', ctx); // const は 外から 見えないので、テスト用に 取り出す
 
 let bad = 0;
 const ok = (c, msg) => { console.log((c ? '✔ ' : '✖ ') + msg); if (!c) bad++; };
@@ -118,6 +119,21 @@ ok(sheets['まとめ'].getLastRow() === 1 && sheets['ぶんしょう'].getLastRo
 ctx.restoreBackup('0420', bk);
 ok(sheets['まとめ'].getLastRow() === 3 && ctx.getWork('たろう', 's1') === small && JSON.parse(sheets['名簿'].data[1][1]).t === 100, 'バックアップから もどす');
 ok(ctx.restoreBackup('0420', { app: 'ほか' }).ok === false, 'ほかの アプリの バックアップは 入れない');
+
+// ものがたりの 型：れんしゅう用の「くもの ぼうし」の こたえを 入れかえる
+{
+  const sh = sheets['ぶんしょう'], row = sh.data.findIndex(r => r[0] === 's1'), NEW = ctx.SAMPLE_TEXTS_FOR_TEST()[0][10], OLD = ctx.OLD_S1_ANS_FOR_TEST();
+  const f = JSON.parse(NEW).flow;
+  ok(f.on === true && f.who === 'ポル' && f.quiz.length === 3 && f.quiz.every(q => q.q && q.o.length === 3) && f.sp['7'] === 'ポル', 'くもの ぼうしに ものがたりの 型が 入って いる');
+  ok(!JSON.parse(OLD).flow && JSON.parse(OLD).n === JSON.parse(NEW).n && JSON.stringify(JSON.parse(OLD).cats) === JSON.stringify(JSON.parse(NEW).cats), '前の こたえと 印は 同じ（型だけ 足した）');
+  sh.data[row][10] = OLD; ctx.doGet();
+  ok(sh.data[row][10] === NEW, '前の 版の ままの「くもの ぼうし」は、新しい こたえに 入れかわる');
+  sh.data[row][10] = OLD.replace('"paraShow":true', '"paraShow":false'); const keep = sh.data[row][10]; ctx.doGet();
+  ok(sh.data[row][10] === keep, '先生が こたえを 直して いたら、入れかえない');
+  sh.data[row][10] = OLD; const body = sh.data[row][4]; sh.data[row][4] = body + 'あ'; ctx.doGet();
+  ok(sh.data[row][10] === OLD, '先生が 本文を 直して いたら、入れかえない');
+  sh.data[row][4] = body; sh.data[row][10] = NEW;
+}
 
 console.log(bad ? `\n✖ ${bad}こ しっぱい` : '\n✔ ぜんぶ OK');
 process.exit(bad ? 1 : 0);
