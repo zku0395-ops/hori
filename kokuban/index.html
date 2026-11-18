@@ -63,6 +63,9 @@
     .tscroll.paint { touch-action: none; }
     .tscroll.v.over { padding-bottom: 4.4rem; }
     .tbody { font-family: 'BIZ UDGothic', 'BIZ UDPGothic', sans-serif; font-size: 1.7rem; line-height: 2.5; letter-spacing: .04em; }
+    .tpic { display: block; inline-size: auto; max-inline-size: 100%; block-size: 13rem; border-radius: 16px; border: 4px solid #e7c98f; margin-block-end: 1rem; background: #fff; }
+    .tscroll.v .tpic { block-size: 15rem; inline-size: auto; max-block-size: none; }
+    .cardpic { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 12px; border: 3px solid #e7c98f; }
     .ttitle { font-size: 2rem; font-weight: 700; margin: 0; padding-block-end: .6em; padding-inline-start: 1.5em; }
     .ln { margin: 0; }
     .ln.blank { block-size: .9em; }
@@ -177,7 +180,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, useCallback } = React;
-    const APP_VERSION = '1.3.1';
+    const APP_VERSION = '1.4.0';
 
     // =====================================================================
     //  1. 小さな道具
@@ -391,6 +394,14 @@
       ['かなしい', 'さびしい', 'がっかり', 'しょんぼり', 'くやしい', 'こまった', 'しんぱい', 'ふあん', 'こわい', 'はずかしい', 'つらい', 'もやもや'],
       ['おこった', 'いらいら', 'びっくり', 'ふしぎ', 'つまらない'],
     ];
+    // ---- 文章の 絵（れんしゅう用の 2つ）。GitHub Pages から 読みこむので、絵を 入れかえても 貼り直しは いりません ----
+    const PIC_BASE = (location.protocol === 'file:' || /github\.io$/.test(location.hostname) || location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'img/' : 'https://zku0395-ops.github.io/hori/kokuban/img/';
+    const PICS = { s1: 's1.webp', s2: 's2.webp' };
+    function Pic({ id, className }) { // 絵が まだ ない ときは、何も 出さない
+      const [ok, setOk] = useState(true);
+      if (!PICS[id] || !ok) return null;
+      return <img className={className} src={PIC_BASE + PICS[id] + '?v=1'} alt="" draggable={false} onError={() => setOk(false)} />;
+    }
     const MARK_KEYS = ['r', 'b', 'g', 'y'];
     const MARKS = { r: { name: 'あか', bg: '#ff8f8f' }, b: { name: 'あお', bg: '#7dbdff' }, g: { name: 'みどり', bg: '#7fe083' }, y: { name: 'きいろ', bg: '#ffe44d' } };
     const FCOL = { w: { name: 'しろ', bg: '#ffffff' }, y: { name: 'きいろ', bg: '#fff3a6' }, p: { name: 'ピンク', bg: '#ffc9d6' }, b: { name: 'みずいろ', bg: '#bfe3ff' }, g: { name: 'みどり', bg: '#c6f3c0' } };
@@ -568,7 +579,7 @@
     // =====================================================================
     //  5. 文章の 画面
     // =====================================================================
-    function TextPane({ title, doc, marks, sel, reading, vertical, paint, heat, preview, onTap, onPaint, ansSet, glow, maybe, okStart, hl, para }) {
+    function TextPane({ title, doc, marks, sel, reading, vertical, paint, heat, preview, onTap, onPaint, ansSet, glow, maybe, okStart, hl, para, picId }) {
       const ref = useRef(null), painting = useRef(false);
       const unitAt = (e) => { const el = document.elementFromPoint(e.clientX, e.clientY); const u = el && el.closest && el.closest('[data-i]'); return u ? Number(u.dataset.i) : -1; };
       const down = (e) => { if (!paint || !onPaint) return; const i = unitAt(e); if (i < 0) return; painting.current = true; onPaint('start', i); };
@@ -586,6 +597,7 @@
         <>
           <div ref={ref} className={'tscroll' + (vertical ? ' v' : '') + (paint ? ' paint' : '') + (over ? ' over' : '')} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerLeave={up} onClick={click}>
             <div className={'tbody' + (preview ? ' preview' : '')}>
+              {picId ? <Pic id={picId} className="tpic" /> : null}
               {title ? <h2 className="ttitle">{rubyNodes(title)}</h2> : null}
               {doc.lines.map((ln, k) => ln.blank ? <p key={k} className="ln blank" /> : (
                 <p key={k} className={'ln' + (hl && ln.units.some(u => hl.has(u.i)) ? ' hl' : '') + (para && ln.units.length && para.indexOf(ln.units[0].i) > 0 ? ' pstart' : '')}>
@@ -1049,7 +1061,7 @@
                     <div className="qmsg">{qmsg}</div>
                   </div>
                 ) : null}
-                <TextPane title={text.title} doc={doc} marks={work.marks} sel={sel} reading={reading} vertical={settings.vertical} paint={tool !== 'sel'} onTap={onTap} onPaint={onPaint}
+                <TextPane picId={text.id} title={text.title} doc={doc} marks={work.marks} sel={sel} reading={reading} vertical={settings.vertical} paint={tool !== 'sel'} onTap={onTap} onPaint={onPaint}
                   hl={A && lv >= 2 ? new Set(A.u) : null} glow={A && lv >= 3 ? new Set(A.u) : null} okStart={chk ? chk.ok : null} maybe={chk ? chk.maybe : null} para={ANS.paraShow && ANS.para.length ? ANS.para : null} />
                 {sel ? (
                   <div className="selbar">
@@ -1214,6 +1226,7 @@
                 const w = works[t.id], got = progress.stickers.filter(s => s.x === t.id);
                 return (
                   <button key={t.id} className="tcard" onClick={() => onOpen(t)}>
+                    <Pic id={t.id} className="cardpic" />
                     <span className="tag" style={{ background: t.kind === 'せつめいぶん' ? '#bfdbfe' : '#fbcfe8' }}>{t.kind === 'せつめいぶん' ? '🔍 せつめいぶん' : '📖 ものがたり'}</span>
                     <span style={{ fontSize: '1.5rem', fontWeight: 700, lineHeight: 1.9 }}>{rubyNodes(t.title)}</span>
                     <span className="tag" style={{ background: !w ? '#e2e8f0' : w.done ? '#86efac' : '#fde68a' }}>{!w ? 'はじめて' : w.done ? '✅ できた' : '✏️ つづきから'}</span>
