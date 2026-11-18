@@ -1,0 +1,1551 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>チョークんの マイこくばん</title>
+
+  <script crossorigin="anonymous" src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin="anonymous" src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    html { font-size: 16px; }
+    * { box-sizing: border-box; }
+    body { font-family: 'BIZ UDPGothic', 'BIZ UDGothic', sans-serif; background: #f4efe2; margin: 0; color: #1f2937; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; }
+    button { font-family: inherit; color: inherit; cursor: pointer; }
+    ruby rt { font-size: .45em; font-weight: 700; }
+    .app { height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+    .page { flex: 1; overflow: auto; padding: 1.2rem; }
+
+    /* ボタン（押すと しずむ） */
+    .btn { color: #1f2937; border: 2px solid #94a3b8; border-bottom-width: 6px; border-radius: 14px; background: #fff; font-weight: 700; font-size: 1.1rem; padding: .5rem .9rem; min-height: 3rem; display: inline-flex; align-items: center; justify-content: center; gap: .35rem; transition: transform .08s, border-bottom-width .08s; white-space: nowrap; }
+    .btn:active { transform: translateY(4px); border-bottom-width: 2px; }
+    .btn:disabled { opacity: .4; }
+    .btn.big { font-size: 1.5rem; padding: .8rem 1.6rem; border-radius: 18px; }
+    .btn.sm { font-size: .95rem; min-height: 2.5rem; padding: .3rem .6rem; border-bottom-width: 5px; }
+    .btn.on { background: #fde68a; border-color: #d97706; }
+    .btn.green { background: #4ade80; border-color: #15803d; }
+    .btn.orange { background: #fdba74; border-color: #c2410c; }
+    .btn.blue { background: #93c5fd; border-color: #1d4ed8; }
+    .btn.red { background: #fca5a5; border-color: #b91c1c; }
+    .btn.dark { background: #334155; border-color: #0f172a; color: #fff; }
+    .btn.ghost { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.5); color: #fff; }
+    .row { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+    .grow { flex: 1; min-width: 0; }
+
+    /* 上の おび */
+    .top { display: flex; align-items: center; gap: .6rem; padding: .4rem .7rem; background: #7c5a35; color: #fff; }
+    .qbox { flex: 1; min-width: 0; display: flex; align-items: center; gap: .5rem; background: #fffdf4; color: #1f2937; border-radius: 16px; padding: .25rem .7rem .25rem .3rem; border: 3px solid #e7c98f; cursor: pointer; }
+    .qtext { flex: 1; min-width: 0; font-size: 1.15rem; font-weight: 700; line-height: 1.9; }
+    .qnav { border: 0; background: #fde68a; border-radius: 10px; width: 2.4rem; height: 2.4rem; font-size: 1.1rem; font-weight: 700; }
+    .seg { display: inline-flex; border-radius: 12px; overflow: hidden; border: 2px solid #e7c98f; }
+    .seg button { border: 0; background: #a37c4e; color: #fff; font-weight: 700; font-size: 1rem; padding: .45rem .6rem; min-height: 2.6rem; }
+    .seg button.on { background: #fde68a; color: #7c2d12; }
+    .seg.light { border-color: #94a3b8; }
+    .seg.light button { background: #fff; color: #334155; }
+    .seg.light button.on { background: #fde68a; color: #7c2d12; }
+
+    /* しごとの 画面 */
+    .work { flex: 1; display: flex; min-height: 0; }
+    .pane { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; }
+    .pane-text { background: #fffdf4; border-right: 6px solid #7c5a35; }
+    .pane-board { background: #3f2f1c; }
+    .tbar { display: flex; align-items: center; gap: .3rem; padding: .4rem .4rem; background: #f1e7cf; flex-wrap: wrap; }
+    .pen { width: 2.7rem; height: 2.7rem; padding: 0; flex: none; border-radius: 50%; border: 3px solid #64748b; border-bottom-width: 6px; font-size: 1.3rem; display: inline-flex; align-items: center; justify-content: center; }
+    .pen:active { transform: translateY(3px); border-bottom-width: 3px; }
+    .pen.on { outline: 4px solid #f59e0b; outline-offset: 2px; }
+
+    .tscroll { flex: 1; min-height: 0; overflow: auto; padding: 1.2rem 1.4rem; }
+    .tscroll.v { writing-mode: vertical-rl; overflow-x: auto; overflow-y: hidden; }
+    .tscroll.paint { touch-action: none; }
+    .tscroll.v.over { padding-bottom: 4.4rem; }
+    .tbody { font-family: 'BIZ UDGothic', 'BIZ UDPGothic', sans-serif; font-size: 1.7rem; line-height: 2.5; letter-spacing: .04em; }
+    .ttitle { font-size: 2rem; font-weight: 700; margin: 0; padding-block-end: .6em; padding-inline-start: 1.5em; }
+    .ln { margin: 0; }
+    .ln.blank { block-size: .9em; }
+    .u { cursor: pointer; border-radius: 8px; padding-block: .12em; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+    .u.gap { margin-inline-start: .5em; }
+    .u.m-r { background: #ffb3b3; } .u.m-b { background: #a5d2ff; } .u.m-g { background: #a8eeaa; } .u.m-y { background: #ffee70; }
+    .u.sel { outline: 4px solid #f59e0b; outline-offset: -1px; background: #fff3c4; }
+    .u.sel.m-r { background: #ffb3b3; } .u.sel.m-b { background: #a5d2ff; } .u.sel.m-g { background: #a8eeaa; } .u.sel.m-y { background: #ffee70; }
+    .u.ans { box-shadow: 0 0 0 3px #7c3aed inset; }
+    .u.maybe { outline: 3px dotted #ea580c; outline-offset: -1px; }
+    .u.glow { animation: glowu 1.1s ease-in-out infinite; }
+    @keyframes glowu { 0%,100% { background-color: #fff7c2; box-shadow: 0 0 0 3px #facc15 inset; } 50% { background-color: #fde047; box-shadow: 0 0 0 5px #f59e0b inset; } }
+    .u .ok { color: #dc2626; font-weight: 700; font-size: .8em; }
+    .ln.hl { background: #fff3b0; border-radius: 10px; }
+    .qtools { display: flex; align-items: center; gap: .4rem; padding: .3rem .5rem; background: #fff7d6; border-bottom: 3px solid #f1e7cf; min-height: 3.2rem; }
+    .qmsg { flex: 1; min-width: 0; font-weight: 700; font-size: 1.05rem; line-height: 1.5; }
+    .btn.glowb { animation: hintb 1.1s ease-in-out infinite; }
+    @keyframes hintb { 0%,100% { box-shadow: 0 0 0 0 rgba(250,204,21,.95); } 50% { box-shadow: 0 0 0 10px rgba(250,204,21,0); } }
+    .chip { border: 2px solid #94a3b8; border-radius: 999px; background: #fff; padding: .25rem .8rem; font-size: 1rem; font-weight: 700; margin: .15rem; }
+    .chip.on { background: #fbcfe8; border-color: #db2777; }
+    .u.reading { outline: 3px dashed #0ea5e9; outline-offset: -1px; }
+    .u .cnt { font-size: .5em; font-weight: 700; color: #7c2d12; writing-mode: horizontal-tb; }
+    .preview .u { outline: 2px dashed #94a3b8; outline-offset: -3px; }
+    .scrollbtn { position: absolute; bottom: .5rem; width: 3.2rem; height: 3.2rem; border-radius: 50%; border: 3px solid #a37c4e; border-bottom-width: 6px; background: #fff; font-size: 1.3rem; z-index: 3; opacity: .92; }
+    .scrollbtn:active { transform: translateY(3px); border-bottom-width: 3px; }
+    .selbar { display: flex; align-items: center; gap: .45rem; padding: .45rem .6rem; background: #fde68a; border-top: 4px solid #f59e0b; flex-wrap: wrap; }
+    .selword { flex: 1 1 8rem; min-width: 0; font-weight: 700; font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* マイこくばん */
+    .boardwrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: .5rem; overflow: hidden; }
+    .board { position: relative; flex: none; }
+    .boardin { position: absolute; left: 0; top: 0; width: 1000px; height: 700px; transform-origin: 0 0; background: #1f5a3d; background-image: radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px); background-size: 9px 9px; border: 10px solid #b98a52; border-radius: 12px; overflow: hidden; touch-action: none; }
+    .it { position: absolute; touch-action: none; cursor: grab; }
+    .fusen { padding: 12px 14px; border-radius: 6px; box-shadow: 3px 4px 0 rgba(0,0,0,.28); font-family: 'BIZ UDGothic', sans-serif; font-weight: 700; line-height: 2.1; color: #1f2937; min-width: 60px; min-height: 60px; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .fusen.c-w { background: #fff; } .fusen.c-y { background: #fff3a6; } .fusen.c-p { background: #ffc9d6; } .fusen.c-b { background: #bfe3ff; } .fusen.c-g { background: #c6f3c0; }
+    .fusen .tab { position: absolute; left: -6px; top: -14px; font-size: 20px; writing-mode: horizontal-tb; line-height: 1; }
+    .it.on { outline: 5px solid #fbbf24; outline-offset: 3px; z-index: 5; }
+    .frame { border: 7px solid #fff; border-radius: 18px; }
+    .stamp { line-height: 1; padding: 4px; border-radius: 12px; }
+    .handle { position: absolute; width: 44px; height: 44px; border-radius: 50%; background: #fbbf24; border: 4px solid #fff; touch-action: none; cursor: pointer; z-index: 6; box-shadow: 0 2px 4px rgba(0,0,0,.4); }
+    .bbar { display: flex; flex-direction: column; gap: .35rem; padding: .4rem .5rem; background: #5b452b; }
+    .brow { display: flex; align-items: center; gap: .4rem; height: 2.9rem; white-space: nowrap; overflow: hidden; font-size: .95rem; }
+    .dot { width: 2.6rem; height: 2.6rem; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px #334155; }
+    .dot:active { transform: scale(.9); }
+    .dot.on { box-shadow: 0 0 0 4px #f59e0b; }
+    .empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.55); font-size: 30px; font-weight: 700; text-align: center; line-height: 2; pointer-events: none; }
+
+    /* まどの 上に かさねる もの */
+    .ov { position: fixed; inset: 0; background: rgba(15,23,42,.55); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 1rem; }
+    .card { background: #fffdf4; border-radius: 22px; padding: 1.2rem; max-width: 100%; max-height: 100%; overflow: auto; box-shadow: 0 10px 30px rgba(0,0,0,.35); border: 4px solid #e7c98f; }
+    .toast { position: fixed; top: .5rem; left: 50%; transform: translateX(-50%); background: #fff; border: 4px solid #f59e0b; border-radius: 999px; padding: .5rem 1.4rem; font-weight: 700; font-size: 1.25rem; z-index: 60; display: flex; align-items: center; gap: .6rem; box-shadow: 0 6px 14px rgba(0,0,0,.25); animation: pop .45s cubic-bezier(.2,1.5,.4,1); pointer-events: none; white-space: nowrap; }
+    @keyframes pop { 0% { transform: translateX(-50%) scale(.4); opacity: 0; } 100% { transform: translateX(-50%) scale(1); opacity: 1; } }
+    .bubble { background: #fff; border: 3px solid #e7c98f; border-radius: 20px; padding: .7rem 1.1rem; font-size: 1.3rem; font-weight: 700; line-height: 1.9; }
+    .kkey { width: 3rem; height: 3rem; font-size: 1.5rem; font-weight: 700; border-radius: 12px; border: 2px solid #94a3b8; background: #fff; border-bottom-width: 5px; padding: 0; }
+    .kkey:active { transform: translateY(3px); border-bottom-width: 2px; }
+    .kkey.fn { background: #e2e8f0; font-size: 1rem; width: auto; padding: 0 .6rem; }
+    .kkey.none { visibility: hidden; }
+    .winput { width: 100%; font-family: 'BIZ UDGothic', sans-serif; font-size: 1.6rem; font-weight: 700; padding: .5rem .7rem; border: 3px solid #f59e0b; border-radius: 14px; background: #fff; resize: none; line-height: 1.6; -webkit-user-select: text; user-select: text; }
+    .float { animation: float 3s ease-in-out infinite; }
+    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+    .confetti { position: fixed; top: -3rem; font-size: 2.2rem; animation: fall linear forwards; z-index: 55; pointer-events: none; }
+    @keyframes fall { to { transform: translateY(115vh) rotate(540deg); } }
+
+    /* ホーム・アルバム */
+    .tcard { background: #fff; border: 3px solid #d6c29a; border-bottom-width: 8px; border-radius: 20px; padding: 1rem; display: flex; flex-direction: column; gap: .5rem; align-items: flex-start; text-align: left; font-size: 1.1rem; }
+    .tcard:active { transform: translateY(4px); border-bottom-width: 4px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: 1rem; }
+    .tag { display: inline-block; border-radius: 999px; padding: .1rem .7rem; font-size: .95rem; font-weight: 700; }
+    .slot { width: 4.2rem; height: 4.2rem; border-radius: 16px; background: #fff; border: 3px dashed #d6c29a; display: flex; align-items: center; justify-content: center; font-size: 2.4rem; }
+    .slot.got { border-style: solid; border-color: #f59e0b; background: #fffbeb; }
+
+    /* 先生用 */
+    .tch { -webkit-user-select: text; user-select: text; }
+    .tch table { border-collapse: collapse; background: #fff; }
+    .tch th, .tch td { border: 1px solid #cbd5e1; padding: .4rem .6rem; text-align: center; font-size: .95rem; }
+    .tch th { background: #e0f2fe; }
+    .tch input[type=text], .tch textarea, .tch select { font-family: inherit; font-size: 1rem; padding: .4rem .5rem; border: 2px solid #94a3b8; border-radius: 8px; width: 100%; background: #fff; }
+    .tch textarea { font-family: 'BIZ UDGothic', monospace; line-height: 1.7; }
+    .tch h2 { font-size: 1.25rem; margin: 1rem 0 .5rem; }
+    .note { background: #fef9c3; border-left: 6px solid #eab308; padding: .5rem .8rem; border-radius: 8px; font-size: .95rem; line-height: 1.8; }
+    .cellbtn { border: 2px solid #94a3b8; border-radius: 10px; background: #fff; padding: .3rem .5rem; font-size: .9rem; line-height: 1.5; min-width: 6.5rem; }
+    .viewer { display: flex; gap: 1rem; align-items: stretch; }
+    .viewer > .vt { flex: 1; min-width: 0; height: 30rem; background: #fffdf4; border: 3px solid #d6c29a; border-radius: 12px; display: flex; flex-direction: column; position: relative; }
+    .viewer > .vb { flex: 1.2; min-width: 0; height: 30rem; background: #3f2f1c; border-radius: 12px; display: flex; }
+    @media print {
+      body { background: #fff; }
+      .noprint { display: none !important; }
+      .app { height: auto; overflow: visible; display: block; }
+      .page { overflow: visible; padding: 0; }
+      .viewer { display: block; }
+      /* 印刷では、文章を よこ書きに して ぜんぶ 出す */
+      .viewer > .vt { height: auto; margin-bottom: 4mm; border-width: 1px; display: block; }
+      .viewer .tscroll, .viewer .tscroll.v { writing-mode: horizontal-tb; overflow: visible; padding: 3mm 5mm; }
+      .viewer .tbody { font-size: 12pt; line-height: 2.2; }
+      .viewer .ttitle { font-size: 14pt; padding: 0 0 .3em; }
+      .tch table { break-inside: avoid; }
+      .viewer > .vb { height: 92mm; background: #fff; }
+      .boardin { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .u, .fusen { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      @page { size: A4 landscape; margin: 8mm; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div style="padding:60px;text-align:center;font-size:28px;color:#7c5a35;font-weight:bold;">じゅんび ちゅう…</div>
+  </div>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef, useMemo, useCallback } = React;
+    const APP_VERSION = '1.1.0';
+
+    // =====================================================================
+    //  1. 小さな道具
+    // =====================================================================
+    const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    const pad = (n) => String(n).padStart(2, '0');
+    const nowStr = (d = new Date()) => `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    const store = {
+      get(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
+      set(k, v) { try { window.localStorage.setItem(k, v); } catch (e) {} },
+      del(k) { try { window.localStorage.removeItem(k); } catch (e) {} },
+      json(k, d) { try { const v = JSON.parse(this.get(k)); return v == null ? d : v; } catch (e) { return d; } },
+    };
+    const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+    // ---- こえ（少し ゆっくりめ）----
+    let SPEAK_RATE = 0.8, SOUND_ON = true, speakToken = 0;
+    function jaVoice() {
+      try { const vs = window.speechSynthesis.getVoices(); return vs.find(v => v.lang === 'ja-JP') || vs.find(v => (v.lang || '').startsWith('ja')) || null; } catch (e) { return null; }
+    }
+    function stopSpeak() { speakToken++; try { window.speechSynthesis.cancel(); } catch (e) {} }
+    // list を じゅんばんに 読む。onIndex(i) で いま 読んでいる ところを 知らせる
+    function speakSeq(list, onIndex, onDone) {
+      stopSpeak();
+      const token = speakToken;
+      const next = (i) => {
+        if (token !== speakToken) return;
+        if (i >= list.length) { onIndex && onIndex(-1); onDone && onDone(); return; }
+        onIndex && onIndex(i);
+        try {
+          const u = new SpeechSynthesisUtterance(list[i]);
+          u.lang = 'ja-JP'; u.rate = SPEAK_RATE; u.pitch = 1.15;
+          const v = jaVoice(); if (v) u.voice = v;
+          u.onend = () => next(i + 1); u.onerror = () => next(i + 1);
+          window.speechSynthesis.speak(u);
+        } catch (e) { onIndex && onIndex(-1); onDone && onDone(); }
+      };
+      next(0);
+    }
+    const speak = (text, onDone) => speakSeq([text], null, onDone);
+
+    // ---- おと（小さな 音）----
+    let actx = null;
+    function tone(freqs, len = 0.12, vol = 0.07) {
+      if (!SOUND_ON) return;
+      try {
+        actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+        freqs.forEach((f, i) => {
+          const o = actx.createOscillator(), g = actx.createGain();
+          o.type = 'sine'; o.frequency.value = f;
+          const t = actx.currentTime + i * len;
+          g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.02); g.gain.exponentialRampToValueAtTime(0.001, t + len * 1.6);
+          o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + len * 1.7);
+        });
+      } catch (e) {}
+    }
+    const sfx = { tap: () => tone([660], 0.06, 0.04), put: () => tone([520, 780], 0.08), sticker: () => tone([784, 988, 1175, 1568], 0.11, 0.08), done: () => tone([523, 659, 784, 1047, 1319], 0.14, 0.09) };
+
+    // =====================================================================
+    //  2. 文章を 読みとる（ふりがな・ことばの くぎり・文）
+    // =====================================================================
+    //  手紙（てがみ） → ふりがな ／ 空白 → くぎる（すきまを あける）／「／」→ くぎる（すきまは あけない）
+    const RE_ATOM = /[｜|]?([一-龠々〆ヵヶ]+)[（(]([ぁ-ゖァ-ヺー]+)[）)]|([ 　\t]+)|(／)|([\s\S])/gu;
+    const PUNCT = '、。！？!?，．…', CLOSE = '」』）)', OPEN = '「『（(';
+    function atomsOf(line) {
+      const out = []; let m; RE_ATOM.lastIndex = 0;
+      while ((m = RE_ATOM.exec(line))) {
+        if (m[1]) out.push({ b: m[1], r: m[2] });
+        else if (m[3]) out.push({ sep: 'gap' });
+        else if (m[4]) out.push({ sep: 'cut' });
+        else out.push({ b: m[5] });
+      }
+      return out;
+    }
+    const plainOf = (text) => atomsOf(text).map(a => a.sep ? (a.sep === 'gap' ? ' ' : '') : a.b).join('');
+    const readOf = (text) => atomsOf(text).map(a => a.sep ? (a.sep === 'gap' ? ' ' : '') : (a.r || a.b)).join('');
+    function rubyNodes(text) {
+      return atomsOf(text).map((a, i) => a.sep ? (a.sep === 'gap' ? ' ' : null) : a.r ? <ruby key={i}>{a.b}<rt>{a.r}</rt></ruby> : a.b);
+    }
+
+    // くぎりの ない 1行を 分ける ところ（文字の 位置）を かえす。
+    // 「、」「。」の あとと、ひらがなから 漢字・カタカナ・数字に かわる ところで くぎる（例：ポルは｜森へ｜歩いて いきました。）
+    const isHira = (c) => /[ぁ-ゖ]/.test(c || '');
+    const isHead = (c) => /[一-龠々〆ヵヶァ-ヺ0-9０-９A-Za-zＡ-Ｚａ-ｚ]/.test(c || '');
+    function autoBreaks(plain) {
+      const br = new Set([0]), end = PUNCT + CLOSE;
+      for (let i = 1; i < plain.length; i++) {
+        const a = plain[i - 1], c = plain[i];
+        if (end.includes(c)) continue;
+        if (end.includes(a)) { if (!(CLOSE.includes(a) && isHira(c))) br.add(i); continue; } // 「…。」と は はなさない
+        if (isHira(a) && (isHead(c) || OPEN.includes(c))) br.add(i);
+      }
+      return br;
+    }
+    function unitsOfLine(line) {
+      const atoms = atomsOf(line);
+      const units = []; let cur = [], gap = false;
+      const flush = (nextGap) => { if (cur.length) units.push({ atoms: cur, gap }); if (cur.length || nextGap) gap = nextGap; cur = []; };
+      const isEnd = (a) => a && !a.sep && (PUNCT + CLOSE).includes(a.b);
+      if (atoms.some(a => a.sep)) {
+        atoms.forEach((a, i) => {
+          if (a.sep) { flush(a.sep === 'gap'); return; }
+          cur.push(a);
+          const n = atoms[i + 1];
+          if (isEnd(a) && n && !n.sep && !isEnd(n)) flush(false);
+        });
+        flush(false);
+      } else {
+        const br = autoBreaks(atoms.map(a => a.b).join(''));
+        let pos = 0;
+        atoms.forEach(a => { if (pos > 0 && br.has(pos)) flush(false); cur.push(a); pos += a.b.length; });
+        flush(false);
+      }
+      return units;
+    }
+    const srcOfAtoms = (atoms) => atoms.map(a => a.r ? `${a.b}（${a.r}）` : a.b).join('');
+    function hashOf(s) { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return String(h); }
+    function parseDoc(body) {
+      const lines = [], units = []; let sent = 0;
+      String(body || '').replace(/\r\n?/g, '\n').split('\n').forEach(raw => {
+        if (!raw.trim()) { lines.push({ blank: true }); return; }
+        const us = unitsOfLine(raw.trim());
+        us.forEach(u => {
+          u.i = units.length; u.s = sent;
+          u.plain = u.atoms.map(a => a.b).join('');
+          u.read = u.atoms.map(a => a.r || a.b).join('');
+          u.src = srcOfAtoms(u.atoms);
+          units.push(u);
+          if (/[。！？!?][」』）)]*$/.test(u.plain)) sent++;
+        });
+        if (us.length && units[units.length - 1].s === sent) sent++; // 行の おわりで 文も おわる
+        lines.push({ units: us });
+      });
+      return { lines, units, hash: hashOf(String(body || '')) };
+    }
+    const sentRange = (doc, i) => {
+      const s = doc.units[i].s; let a = i, b = i;
+      while (a > 0 && doc.units[a - 1].s === s) a--;
+      while (b < doc.units.length - 1 && doc.units[b + 1].s === s) b++;
+      return [a, b];
+    };
+    const joinUnits = (doc, a, b, key) => { let s = ''; for (let i = a; i <= b; i++) { const u = doc.units[i]; s += (i > a && u.gap ? ' ' : '') + u[key]; } return s; };
+    // じどうで くぎった ところに「／」を 入れる（先生用）
+    function autoCut(body) {
+      return String(body || '').split('\n').map(line => {
+        if (!line.trim() || /[ 　\t／]/.test(line.trim())) return line;
+        return unitsOfLine(line.trim()).map(u => srcOfAtoms(u.atoms)).join('／');
+      }).join('\n');
+    }
+
+    // ---- 先生が 決めた こたえ ----
+    //  ans = { th, n, q: [{ u: [ことばの 番号], hint, check, c: 色 }], feel: [番号], words: [文章に ない きもちの ことば] }
+    const emptyQ = () => ({ u: [], hint: true, check: true, c: '' });
+    function parseAns(str, doc) {
+      let a = null; try { a = JSON.parse(str || 'null'); } catch (e) { a = null; }
+      if (!a || typeof a !== 'object') a = {};
+      const ok = a.th === doc.hash || a.n === doc.units.length; // 本文が 変わって ことばの 数が ちがう ときは、印を つかわない
+      const nums = (v) => ok && Array.isArray(v) ? v.map(Number).filter(i => i >= 0 && i < doc.units.length).sort((x, y) => x - y) : [];
+      return {
+        stale: !ok && ((a.q || []).some(q => q && q.u && q.u.length) || (a.feel || []).length > 0),
+        q: (Array.isArray(a.q) ? a.q : []).map(q => q ? { u: nums(q.u), hint: q.hint !== false, check: q.check !== false, c: MARK_KEYS.includes(q.c) ? q.c : '' } : emptyQ()),
+        feel: nums(a.feel), words: Array.isArray(a.words) ? a.words.map(String).filter(String).slice(0, 40) : [],
+      };
+    }
+    const runsOf = (list) => { const out = []; list.forEach(i => { const l = out[out.length - 1]; if (l && l[1] === i - 1) l[1] = i; else out.push([i, i]); }); return out; };
+    // 子どもの せん・はった ふせんを、こたえと くらべる
+    function evaluate(A, work) {
+      const got = new Set(), set = new Set(A.u);
+      Object.keys(work.marks).forEach(i => { if (!A.c || work.marks[i] === A.c) got.add(Number(i)); });
+      work.items.forEach(x => { if (x.t === 'f' && x.src && Array.isArray(x.u)) for (let i = x.u[0]; i <= x.u[1]; i++) got.add(i); });
+      const runs = runsOf(A.u).map(r => { let n = 0; for (let i = r[0]; i <= r[1]; i++) if (got.has(i)) n++; return { a: r[0], b: r[1], found: n * 2 >= r[1] - r[0] + 1 }; });
+      const extra = A.c ? Object.keys(work.marks).map(Number).filter(i => work.marks[i] === A.c && !set.has(i)) : [];
+      return { runs, found: runs.filter(r => r.found).length, extra };
+    }
+    const FEEL_WORDS = [
+      ['うれしい', 'たのしい', 'わくわく', 'どきどき', 'ほっと した', 'あんしん', 'しあわせ', 'だいすき', 'やさしい きもち', 'とくいな きもち', 'ありがとうの きもち', 'おもしろい', 'すっきり'],
+      ['かなしい', 'さびしい', 'がっかり', 'しょんぼり', 'くやしい', 'こまった', 'しんぱい', 'ふあん', 'こわい', 'はずかしい', 'つらい', 'もやもや'],
+      ['おこった', 'いらいら', 'びっくり', 'ふしぎ', 'つまらない'],
+    ];
+    const MARK_KEYS = ['r', 'b', 'g', 'y'];
+    const MARKS = { r: { name: 'あか', bg: '#ff8f8f' }, b: { name: 'あお', bg: '#7dbdff' }, g: { name: 'みどり', bg: '#7fe083' }, y: { name: 'きいろ', bg: '#ffe44d' } };
+    const FCOL = { w: { name: 'しろ', bg: '#ffffff' }, y: { name: 'きいろ', bg: '#fff3a6' }, p: { name: 'ピンク', bg: '#ffc9d6' }, b: { name: 'みずいろ', bg: '#bfe3ff' }, g: { name: 'みどり', bg: '#c6f3c0' } };
+    const CHALK = { w: { name: 'しろ', bg: '#ffffff' }, y: { name: 'きいろ', bg: '#fde047' }, p: { name: 'ピンク', bg: '#fda4af' }, b: { name: 'みずいろ', bg: '#7dd3fc' } };
+    const STAMPS = [
+      ['😊', 'うれしい'], ['😄', 'たのしい'], ['😢', 'かなしい'], ['😠', 'おこる'], ['😨', 'こわい'], ['😲', 'びっくり'], ['🥰', 'だいすき'], ['😔', 'しょんぼり'], ['🤔', 'かんがえる'], ['😌', 'ほっと'],
+      ['⭐', 'だいじ'], ['❗', 'ここ！'], ['❓', 'はてな'], ['💡', 'わかった'], ['❤️', 'すき'], ['👍', 'いいね'], ['⭕', 'まる'], ['🔑', 'かぎ'],
+    ];
+    const STICKERS = '🍎 🍊 🍋 🍇 🍓 🍑 🍒 🍉 🥝 🍌 🌷 🌻 🌸 🍀 🌈 ☀️ 🌙 ⛄ 🐶 🐱 🐰 🐻 🐼 🐨 🦊 🐸 🐧 🐥 🦋 🐞 🐠 🐳 🚗 🚌 🚂 ✈️ 🚀 ⛵ 🎈 🎁 🎵 ⚽ 🎨 📚 ✏️ 🍩 🍰 🍙'.split(' ');
+    const GOLD = '🏆 👑 🌟 💎 🥇 🎖️ 🏅 🎉 🦄 🐉 🎆 🌠'.split(' ');
+    const STICKER_KIND = { check: 'こたえを ぜんぶ みつけた', line: 'せんを ひいた', paste: 'こくばんに はった', write: 'じぶんの ことばを かいた', mark: 'しるしを つけた', done: 'こくばんが できた' };
+    const TITLES = [[0, 'こくばん みならい'], [5, 'せんひき めいじん'], [10, 'ふせん はかせ'], [20, 'まとめ せんせい'], [35, 'こくばん マスター'], [50, 'こくばん チャンピオン']];
+    const titleOf = (n) => TITLES.filter(t => n >= t[0]).pop()[1];
+    const parseProgress = (s) => { let p = {}; try { p = JSON.parse(s || '{}') || {}; } catch (e) { p = {}; } if (!Array.isArray(p.stickers)) p.stickers = []; return p; };
+    const parseWork = (s) => { let w = null; try { w = JSON.parse(s || 'null'); } catch (e) { w = null; } if (!w || typeof w !== 'object') w = {}; return { marks: w.marks && typeof w.marks === 'object' ? w.marks : {}, items: Array.isArray(w.items) ? w.items : [], th: w.th || '', qi: w.qi || 0 }; };
+
+    // 先生が 読める「まとめ」の ことば
+    function summarize(doc, work) {
+      const runs = { r: [], b: [], g: [], y: [] };
+      let i = 0;
+      while (i < doc.units.length) {
+        const c = work.marks[i];
+        if (!c || !runs[c]) { i++; continue; }
+        let j = i; while (j + 1 < doc.units.length && work.marks[j + 1] === c) j++;
+        runs[c].push(joinUnits(doc, i, j, 'plain')); i = j + 1;
+      }
+      const lines = Object.keys(runs).filter(c => runs[c].length).map(c => MARKS[c].name + '：' + runs[c].join(' ／ ')).join('　');
+      const f = work.items.filter(x => x.t === 'f');
+      const count = (t) => work.items.filter(x => x.t === t).length;
+      const etc = [work.items.filter(x => x.t === 's').map(x => x.e).join(''), count('a') ? 'やじるし×' + count('a') : '', count('w') ? 'わく×' + count('w') : ''].filter(String).join(' ');
+      return { lines, pasted: f.filter(x => x.src).map(x => plainOf(x.text)).join(' ／ '), own: f.filter(x => !x.src).map(x => (x.fw ? '💗' : '') + plainOf(x.text)).join(' ／ '), etc };
+    }
+
+    // =====================================================================
+    //  3. データの ほぞん（スプレッドシート／おためしモード）
+    // =====================================================================
+    const HAS_GAS = typeof google !== 'undefined' && google.script && google.script.run;
+    const gas = (fn, ...args) => new Promise((resolve, reject) => {
+      google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
+    });
+    const LOG_HEADER = ['日時', 'なまえ', 'ぶんしょう', 'とい', 'したこと', 'いろ', 'ことば', 'ID'];
+    const DEFAULT_SETTINGS = { rate: 0.8, font: 1, vertical: true, sound: true };
+    // おためしモードの 文章（コード.gs の SAMPLE_TEXTS と おなじ）
+    const DEMO_TEXTS = [
+      { id: 's1', title: 'くもの ぼうし', kind: 'ものがたり', use: true,
+        body: 'あさ、こぐまの ポルは、のはらで 白（しろ）い ぼうしを ひろいました。\n「だれの ぼうしかな。」\nポルは、ぼうしを もって、森（もり）へ あるいて いきました。\n\nはじめに、りすに あいました。\n「この ぼうしは、きみのかい。」\n「ううん、ぼくのじゃ ないよ。ぼくには 大（おお）きすぎるもの。」\n\nつぎに、うさぎに あいました。\n「この ぼうしは、きみのかい。」\n「ううん、わたしのじゃ ないわ。耳（みみ）が 入（はい）らないもの。」\nポルは、こまって しまいました。\n\nその とき、つよい 風（かぜ）が ふきました。\nぼうしは、ふわりと 空（そら）へ とんで いきました。\n見（み）あげると、小（ちい）さな 雲（くも）が、ぼうしを かぶって わらって いました。\n「ありがとう。さがして いたんだ。」\nポルは、うれしく なって、大（おお）きく 手（て）を ふりました。',
+        qs: ['ポルが あった どうぶつに、あかい せんを ひこう。', 'ポルの きもちが わかる ぶんを、こくばんに はろう。', 'ぼうしは、だれの ものだったかな。じぶんの ことばで かこう。'],
+        ans: '{"th":"1988752360","n":66,"q":[{"u":[16,27],"hint":true,"check":true,"c":"r"},{"u":[37,38,39,60,61,62,63,64,65],"hint":true,"check":true,"c":""},{"u":[],"hint":true,"check":true,"c":""}],"feel":[38,39,61,62],"words":["こまった","ふしぎ","びっくり","うれしい","ほっと した"]}' },
+      { id: 's2', title: 'だんごむしの ひみつ', kind: 'せつめいぶん', use: true,
+        body: 'だんごむしは、にわの 石（いし）の 下（した）や、おちばの 下（した）に います。\n\nだんごむしは、どうして まるく なるのでしょうか。\nだんごむしは、てきに おそわれると、からだを まるく します。\nせなかは、かたい からで できて います。\nまるく なると、やわらかい おなかを まもる ことが できます。\n\nだんごむしは、何（なに）を たべるのでしょうか。\nだんごむしは、おちばを たべます。\nたべた おちばは、ふんに なって、土（つち）の えいように なります。\nだから、だんごむしは、土（つち）を げんきに する いきものなのです。',
+        qs: ['「とい」の ぶんに、あおい せんを ひこう。', '「こたえ」の ぶんに、あかい せんを ひこう。', 'わかった ことを、こくばんに まとめよう。'],
+        ans: '{"th":"-1750929336","n":48,"q":[{"u":[7,8,9,10,29,30,31],"hint":true,"check":true,"c":"b"},{"u":[11,12,13,14,15,16,32,33,34],"hint":true,"check":true,"c":"r"},{"u":[],"hint":true,"check":true,"c":""}],"feel":[],"words":[]}' },
+    ];
+    const DEMO_KEY = 'kokuban_demo';
+    const demo = {
+      load() {
+        const d = store.json(DEMO_KEY, null) || {};
+        return { roster: d.roster || { たろう: '', はなこ: '', けんた: '' }, texts: d.texts || DEMO_TEXTS, works: d.works || {}, log: d.log || [], settings: Object.assign({}, DEFAULT_SETTINGS, d.settings), pin: d.pin || '1234' };
+      },
+      save(d) { store.set(DEMO_KEY, JSON.stringify(d)); },
+    };
+    const api = {
+      async init() {
+        if (HAS_GAS) return gas('getInitData');
+        const d = demo.load();
+        return { students: Object.keys(d.roster), settings: d.settings, texts: d.texts.filter(t => t.use !== false) };
+      },
+      async student(name) {
+        if (HAS_GAS) return gas('getStudent', name);
+        const d = demo.load(); const works = {};
+        Object.values(d.works).filter(w => w.name === name).forEach(w => { works[w.id] = { updated: w.updated, done: w.done }; });
+        return { progress: d.roster[name] || '', works };
+      },
+      async getWork(name, id) {
+        if (HAS_GAS) return gas('getWork', name, id);
+        const w = demo.load().works[name + '|' + id]; return w ? w.data : '';
+      },
+      async saveWork(p) {
+        if (HAS_GAS) return gas('saveWork', p);
+        const d = demo.load();
+        if (!(p.name in d.roster)) return { ok: false };
+        if (p.progress) d.roster[p.name] = p.progress;
+        if (p.textId && p.data) d.works[p.name + '|' + p.textId] = Object.assign({ name: p.name, id: p.textId, title: p.title, updated: nowStr(), done: !!p.done, data: p.data }, p.summary || {});
+        const known = new Set(d.log.map(r => r[7]));
+        (p.records || []).forEach(r => { if (!known.has(r.id)) d.log.push([nowStr(new Date(r.time || Date.now())), p.name, r.text, r.q, r.act, r.color, r.word, r.id]); });
+        demo.save(d); return { ok: true };
+      },
+      async teacher(pin) {
+        if (HAS_GAS) return gas('getTeacherData', pin);
+        const d = demo.load();
+        if (String(pin) !== d.pin) return { ok: false };
+        return { ok: true, isDefaultPin: d.pin === '1234', settings: d.settings, students: Object.keys(d.roster).map(n => ({ name: n, progress: d.roster[n] })), texts: d.texts,
+          works: Object.values(d.works).map(w => Object.assign({}, w, { data: undefined })) };
+      },
+      async works(pin, id, name) {
+        if (HAS_GAS) return gas('getWorks', pin, id, name || '');
+        const d = demo.load();
+        return { ok: true, works: Object.values(d.works).filter(w => w.id === id && (!name || w.name === name)) };
+      },
+      async saveText(pin, t) {
+        if (HAS_GAS) return gas('saveText', pin, t);
+        const d = demo.load();
+        if (!String(t.title || '').trim() || !String(t.body || '').trim()) return { ok: false, reason: 'empty' };
+        const neu = { id: t.id || 't' + uid(), title: t.title.trim(), kind: t.kind, use: t.use !== false, body: t.body, qs: (t.qs || []).map(q => q.trim()).filter(String), ans: t.ans || '' };
+        const i = d.texts.findIndex(x => x.id === neu.id);
+        if (i < 0) d.texts = d.texts.concat([neu]); else d.texts = d.texts.map(x => x.id === neu.id ? neu : x);
+        demo.save(d); return { ok: true, id: neu.id, texts: d.texts };
+      },
+      async deleteText(pin, id) {
+        if (HAS_GAS) return gas('deleteText', pin, id);
+        const d = demo.load(); d.texts = d.texts.filter(x => x.id !== id); demo.save(d); return { ok: true, texts: d.texts };
+      },
+      async saveSettings(pin, s) {
+        if (HAS_GAS) return gas('saveSettings', pin, s);
+        const d = demo.load();
+        ['rate', 'font', 'vertical', 'sound'].forEach(k => { if (s[k] !== undefined) d.settings[k] = s[k]; });
+        if (/^\d{4}$/.test(String(s.newPin || ''))) d.pin = String(s.newPin);
+        demo.save(d); return { ok: true, settings: d.settings };
+      },
+      async logRows(pin) {
+        if (HAS_GAS) return gas('getLogRows', pin);
+        return { ok: true, rows: [LOG_HEADER].concat(demo.load().log) };
+      },
+      async backup(pin) {
+        if (HAS_GAS) return gas('getBackup', pin);
+        const d = demo.load();
+        return { ok: true, data: { app: 'kokuban', time: new Date().toISOString(), roster: Object.keys(d.roster).map(n => [n, d.roster[n]]), texts: d.texts, works: Object.values(d.works) } };
+      },
+      async restore(pin, data) {
+        if (HAS_GAS) return gas('restoreBackup', pin, data);
+        if (!data || data.app !== 'kokuban') return { ok: false };
+        const d = demo.load();
+        (data.roster || []).forEach(r => { d.roster[r[0]] = r[1]; });
+        (data.texts || []).forEach(t => { if (!d.texts.find(x => x.id === t.id)) d.texts.push(t); });
+        (data.works || []).forEach(w => { d.works[w.name + '|' + w.id] = w; });
+        demo.save(d); return { ok: true };
+      },
+      async clear(pin, name) {
+        if (HAS_GAS) return gas('clearRecords', pin, name);
+        const d = demo.load();
+        Object.keys(d.roster).forEach(n => { if (!name || n === name) d.roster[n] = ''; });
+        Object.keys(d.works).forEach(k => { if (!name || d.works[k].name === name) delete d.works[k]; });
+        d.log = name ? d.log.filter(r => r[1] !== name) : [];
+        demo.save(d); return { ok: true };
+      },
+    };
+
+    // =====================================================================
+    //  4. チョークん（オリジナルの キャラクター）
+    // =====================================================================
+    function Chalkun({ size = 80, mood = 'normal', onClick, className = '' }) {
+      return (
+        <svg viewBox="0 0 120 150" width={size} height={size * 1.25} onClick={onClick} className={className} style={{ flex: 'none', cursor: onClick ? 'pointer' : 'default' }} aria-label="チョークん">
+          <ellipse cx="60" cy="143" rx="32" ry="5" fill="rgba(0,0,0,.13)" />
+          <g transform="rotate(-6 60 80)">
+            <path d="M22 96 L8 82" stroke="#64748b" strokeWidth="5" strokeLinecap="round" />
+            <path d={mood === 'happy' ? 'M98 92 L114 72' : 'M98 96 L112 104'} stroke="#64748b" strokeWidth="5" strokeLinecap="round" />
+            <path d="M48 130 L46 142 M72 130 L74 142" stroke="#64748b" strokeWidth="5" strokeLinecap="round" />
+            <rect x="30" y="12" width="60" height="120" rx="16" fill="#ffffff" stroke="#94a3b8" strokeWidth="3" />
+            <path d="M30 86h60v30a16 16 0 0 1-16 16H46a16 16 0 0 1-16-16z" fill="#38bdf8" stroke="#0284c7" strokeWidth="3" />
+            <path d="M60 97l3.5 7.5 8 .9-6 5.5 1.7 8-7.2-4.2-7.2 4.2 1.7-8-6-5.500 8-.9z" fill="#fef08a" />
+            <circle cx="47" cy="50" r="6" fill="#1e293b" /><circle cx="73" cy="50" r="6" fill="#1e293b" />
+            <circle cx="49" cy="48" r="2" fill="#fff" /><circle cx="75" cy="48" r="2" fill="#fff" />
+            <circle cx="39" cy="63" r="6" fill="#fda4af" opacity=".7" /><circle cx="81" cy="63" r="6" fill="#fda4af" opacity=".7" />
+            {mood === 'happy' ? <path d="M50 62q10 14 20 0z" fill="#f87171" stroke="#1e293b" strokeWidth="2.5" strokeLinejoin="round" />
+              : <path d="M52 64q8 7 16 0" fill="none" stroke="#1e293b" strokeWidth="3" strokeLinecap="round" />}
+          </g>
+        </svg>
+      );
+    }
+    function Dots({ colors, value, onPick }) {
+      return <>{Object.keys(colors).map(c => <button key={c} className={'dot' + (value === c ? ' on' : '')} style={{ background: colors[c].bg }} onClick={() => onPick(c)} aria-label={colors[c].name} title={colors[c].name} />)}</>;
+    }
+
+    // =====================================================================
+    //  5. 文章の 画面
+    // =====================================================================
+    function TextPane({ title, doc, marks, sel, reading, vertical, paint, heat, preview, onTap, onPaint, ansSet, glow, maybe, okStart, hl }) {
+      const ref = useRef(null), painting = useRef(false);
+      const unitAt = (e) => { const el = document.elementFromPoint(e.clientX, e.clientY); const u = el && el.closest && el.closest('[data-i]'); return u ? Number(u.dataset.i) : -1; };
+      const down = (e) => { if (!paint || !onPaint) return; const i = unitAt(e); if (i < 0) return; painting.current = true; onPaint('start', i); };
+      const move = (e) => { if (!painting.current) return; const i = unitAt(e); if (i >= 0) onPaint('move', i); };
+      const up = () => { if (!painting.current) return; painting.current = false; onPaint('end', -1); };
+      const click = (e) => { if (paint || !onTap) return; const u = e.target.closest('[data-i]'); if (u) onTap(Number(u.dataset.i)); };
+      const scroll = (dir) => { const el = ref.current; if (!el) return; vertical ? el.scrollBy({ left: -dir * el.clientWidth * 0.7, behavior: 'smooth' }) : el.scrollBy({ top: dir * el.clientHeight * 0.7, behavior: 'smooth' }); };
+      const [over, setOver] = useState(false);
+      useEffect(() => {
+        const el = ref.current; if (!el) return;
+        const check = () => setOver(vertical ? el.scrollWidth > el.clientWidth + 4 : el.scrollHeight > el.clientHeight + 4);
+        check(); const ro = new ResizeObserver(check); ro.observe(el); return () => ro.disconnect();
+      }, [doc, vertical]);
+      return (
+        <>
+          <div ref={ref} className={'tscroll' + (vertical ? ' v' : '') + (paint ? ' paint' : '') + (over ? ' over' : '')} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerLeave={up} onClick={click}>
+            <div className={'tbody' + (preview ? ' preview' : '')}>
+              {title ? <h2 className="ttitle">{rubyNodes(title)}</h2> : null}
+              {doc.lines.map((ln, k) => ln.blank ? <p key={k} className="ln blank" /> : (
+                <p key={k} className={'ln' + (hl && ln.units.some(u => hl.has(u.i)) ? ' hl' : '')}>
+                  {ln.units.map(u => {
+                    const h = heat && heat[u.i];
+                    const c = h ? h.c : marks && marks[u.i];
+                    const on = sel && u.i >= sel.a && u.i <= sel.b;
+                    return (
+                      <span key={u.i} data-i={u.i} title={h ? h.names : undefined} className={'u' + (u.gap ? ' gap' : '') + (c ? ' m-' + c : '') + (on ? ' sel' : '') + (reading === u.s ? ' reading' : '') + (ansSet && ansSet.has(u.i) ? ' ans' : '') + (glow && glow.has(u.i) ? ' glow' : '') + (maybe && maybe.has(u.i) ? ' maybe' : '')}>
+                        {okStart && okStart.has(u.i) ? <span className="ok">◎</span> : null}
+                        {u.atoms.map((a, j) => a.r ? <ruby key={j}>{a.b}<rt>{a.r}</rt></ruby> : a.b)}
+                        {h && h.n > 1 ? <span className="cnt">{h.n}</span> : null}
+                      </span>
+                    );
+                  })}
+                </p>
+              ))}
+            </div>
+          </div>
+          {over ? <>
+            <button className="scrollbtn noprint" style={vertical ? { left: '.5rem' } : { right: '.5rem', bottom: '4.2rem' }} onClick={() => scroll(1)} aria-label="つぎへ">{vertical ? '◀' : '▼'}</button>
+            <button className="scrollbtn noprint" style={vertical ? { left: '4.2rem' } : { right: '.5rem' }} onClick={() => scroll(-1)} aria-label="まえへ">{vertical ? '▶' : '▲'}</button>
+          </> : null}
+        </>
+      );
+    }
+
+    // =====================================================================
+    //  6. マイこくばん
+    // =====================================================================
+    const BW = 1000, BH = 700;
+    function Board({ items, selId, readOnly, onSelect, onBegin, onPatch }) {
+      const wrap = useRef(null), drag = useRef(null);
+      const [scale, setScale] = useState(0.6);
+      useEffect(() => {
+        const el = wrap.current; if (!el) return;
+        const fit = () => { const r = el.getBoundingClientRect(); if (r.width > 20 && r.height > 20) setScale(Math.min((r.width - 16) / BW, (r.height - 16) / BH)); };
+        fit(); const ro = new ResizeObserver(fit); ro.observe(el); return () => ro.disconnect();
+      }, []);
+      const down = (e, it, part) => {
+        if (readOnly) return;
+        e.stopPropagation();
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+        onSelect(it.id);
+        drag.current = { id: it.id, part, sx: e.clientX, sy: e.clientY, o: Object.assign({}, it), moved: false };
+      };
+      const move = (e) => {
+        const d = drag.current; if (!d) return;
+        const dx = (e.clientX - d.sx) / scale, dy = (e.clientY - d.sy) / scale, o = d.o;
+        if (!d.moved) { if (Math.hypot(dx, dy) < 5) return; d.moved = true; onBegin(); }
+        const cx = (v) => clamp(Math.round(v), -20, BW - 50), cy = (v) => clamp(Math.round(v), -10, BH - 50);
+        if (o.t === 'a') {
+          if (d.part === 'p1') onPatch(d.id, { x1: cx(o.x1 + dx), y1: cy(o.y1 + dy) });
+          else if (d.part === 'p2') onPatch(d.id, { x2: cx(o.x2 + dx), y2: cy(o.y2 + dy) });
+          else onPatch(d.id, { x1: cx(o.x1 + dx), y1: cy(o.y1 + dy), x2: cx(o.x2 + dx), y2: cy(o.y2 + dy) });
+        } else if (d.part === 'rs') onPatch(d.id, { w: clamp(Math.round(o.w + dx), 80, BW), h: clamp(Math.round(o.h + dy), 80, BH) });
+        else onPatch(d.id, { x: cx(o.x + dx), y: cy(o.y + dy) });
+      };
+      const up = () => { drag.current = null; };
+      const sel = items.find(x => x.id === selId);
+      const arrow = (a) => {
+        const ang = Math.atan2(a.y2 - a.y1, a.x2 - a.x1), L = 30, col = (CHALK[a.c] || CHALK.w).bg;
+        const p = (d) => `${a.x2 - L * Math.cos(ang + d)},${a.y2 - L * Math.sin(ang + d)}`;
+        return (
+          <g key={a.id}>
+            <line x1={a.x1} y1={a.y1} x2={a.x2 - 14 * Math.cos(ang)} y2={a.y2 - 14 * Math.sin(ang)} stroke={col} strokeWidth="9" strokeLinecap="round" />
+            <polygon points={`${a.x2},${a.y2} ${p(0.45)} ${p(-0.45)}`} fill={col} />
+            {a.id === selId ? <line x1={a.x1} y1={a.y1} x2={a.x2} y2={a.y2} stroke="#fbbf24" strokeWidth="3" strokeDasharray="10 8" /> : null}
+            <line x1={a.x1} y1={a.y1} x2={a.x2} y2={a.y2} stroke="transparent" strokeWidth="44" strokeLinecap="round" style={{ pointerEvents: readOnly ? 'none' : 'stroke', touchAction: 'none', cursor: 'grab' }} onPointerDown={(e) => down(e, a, 'body')} />
+          </g>
+        );
+      };
+      return (
+        <div ref={wrap} className="boardwrap">
+          <div className="board" style={{ width: BW * scale, height: BH * scale }}>
+            <div className="boardin" style={{ transform: `scale(${scale})` }} onPointerDown={() => !readOnly && onSelect(null)} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
+              {!items.length && !readOnly ? <div className="empty">ここが マイこくばん<br />ことばを はったり、かいたり しよう</div> : null}
+              {items.filter(x => x.t === 'w').map(w => (
+                <div key={w.id} className={'it frame' + (w.id === selId ? ' on' : '')} style={{ left: w.x, top: w.y, width: w.w, height: w.h, borderColor: (CHALK[w.c] || CHALK.w).bg }} onPointerDown={(e) => down(e, w, 'body')} />
+              ))}
+              <svg width={BW} height={BH} style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none' }}>{items.filter(x => x.t === 'a').map(arrow)}</svg>
+              {items.filter(x => x.t === 'f' || x.t === 's').map(it => it.t === 's' ? (
+                <div key={it.id} className={'it stamp' + (it.id === selId ? ' on' : '')} style={{ left: it.x, top: it.y, fontSize: 64 * (it.z || 1) }} onPointerDown={(e) => down(e, it, 'body')}>{it.e}</div>
+              ) : (
+                <div key={it.id} className={'it fusen c-' + (FCOL[it.c] ? it.c : 'w') + (it.id === selId ? ' on' : '')} onPointerDown={(e) => down(e, it, 'body')}
+                  style={Object.assign({ left: it.x, top: it.y, fontSize: 28 * (it.z || 1) }, it.v ? { writingMode: 'vertical-rl', maxHeight: 420 } : { maxWidth: 360 })}>
+                  {it.src ? <span className="tab">📖</span> : null}{rubyNodes(it.text)}
+                </div>
+              ))}
+              {sel && !readOnly && sel.t === 'a' ? <>
+                <div className="handle" style={{ left: sel.x1 - 22, top: sel.y1 - 22 }} onPointerDown={(e) => down(e, sel, 'p1')} />
+                <div className="handle" style={{ left: sel.x2 - 22, top: sel.y2 - 22 }} onPointerDown={(e) => down(e, sel, 'p2')} />
+              </> : null}
+              {sel && !readOnly && sel.t === 'w' ? <div className="handle" style={{ left: sel.x + sel.w - 22, top: sel.y + sel.h - 22 }} onPointerDown={(e) => down(e, sel, 'rs')} /> : null}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ---- 50音の ボタンで かく ----
+    const KANA = ['あいうえお', 'かきくけこ', 'さしすせそ', 'たちつてと', 'なにぬねの', 'はひふへほ', 'まみむめも', 'や　ゆ　よ', 'らりるれろ', 'わ　を　ん'];
+    const DAKU = { か: 'が', き: 'ぎ', く: 'ぐ', け: 'げ', こ: 'ご', さ: 'ざ', し: 'じ', す: 'ず', せ: 'ぜ', そ: 'ぞ', た: 'だ', ち: 'ぢ', つ: 'づ', て: 'で', と: 'ど', は: 'ば', ひ: 'び', ふ: 'ぶ', へ: 'べ', ほ: 'ぼ', う: 'ゔ' };
+    const HANDAKU = { は: 'ぱ', ひ: 'ぴ', ふ: 'ぷ', へ: 'ぺ', ほ: 'ぽ' };
+    const SMALL = { あ: 'ぁ', い: 'ぃ', う: 'ぅ', え: 'ぇ', お: 'ぉ', つ: 'っ', や: 'ゃ', ゆ: 'ゅ', よ: 'ょ', わ: 'ゎ' };
+    const toKata = (s) => s.replace(/[ぁ-ゖ]/g, c => String.fromCharCode(c.charCodeAt(0) + 0x60));
+    const toHira = (s) => s.replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+    function cycle(ch, map) { // さいごの 文字を かえる（もう一度 おすと もどる）
+      const kata = /[ァ-ヶ]/.test(ch), h = kata ? toHira(ch) : ch;
+      const find = (m) => Object.keys(m).find(k => m[k] === h);
+      const base = find(DAKU) || find(HANDAKU) || find(SMALL) || h;
+      if (!map[base]) return null;
+      const r = map[base] === h ? base : map[base];
+      return kata ? toKata(r) : r;
+    }
+    function Writer({ initial, onOK, onCancel }) {
+      const [text, setText] = useState(initial || '');
+      const [kata, setKata] = useState(false);
+      const MAX = 80;
+      const add = (c) => { sfx.tap(); setText(t => (t + c).slice(0, MAX)); };
+      const mod = (map) => { sfx.tap(); setText(t => { if (!t) return t; const r = cycle(t[t.length - 1], map); return r ? t.slice(0, -1) + r : t; }); };
+      const fn = (label, f, w) => <button className="kkey fn" style={w ? { minWidth: w } : null} onClick={f}>{label}</button>;
+      return (
+        <div className="ov">
+          <div className="card" style={{ width: '46rem' }}>
+            <div className="row" style={{ marginBottom: '.6rem' }}>
+              <Chalkun size={52} />
+              <div className="bubble grow" style={{ fontSize: '1.1rem', padding: '.4rem .9rem' }}>じぶんの ことばを かこう</div>
+            </div>
+            <textarea className="winput" rows={2} value={text} inputMode="none" maxLength={MAX} autoFocus onChange={(e) => setText(e.target.value.replace(/\n/g, '').slice(0, MAX))} placeholder="ここに かいた ことばが でるよ" />
+            <div style={{ display: 'flex', flexDirection: 'row-reverse', gap: '.3rem', justifyContent: 'center', margin: '.7rem 0 .5rem' }}>
+              {KANA.map((col, i) => (
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '.3rem' }}>
+                  {[...col].map((c, j) => c === '　' ? <button key={j} className="kkey none" disabled /> : <button key={j} className="kkey" onClick={() => add(kata ? toKata(c) : c)}>{kata ? toKata(c) : c}</button>)}
+                </div>
+              ))}
+            </div>
+            <div className="row" style={{ justifyContent: 'center', gap: '.3rem' }}>
+              {fn('゛ てんてん', () => mod(DAKU))}{fn('゜ まる', () => mod(HANDAKU))}{fn('ちいさく', () => mod(SMALL))}
+              {['ー', '、', '。', '「', '」', '？', '！'].map(c => <button key={c} className="kkey" onClick={() => add(c)}>{c}</button>)}
+              {fn('あける', () => add(' '))}
+              {fn(kata ? 'ひらがな' : 'カタカナ', () => setKata(k => !k))}
+              {fn('⌫ けす', () => { sfx.tap(); setText(t => t.slice(0, -1)); }, '5rem')}
+            </div>
+            <div className="row" style={{ justifyContent: 'center', marginTop: '.9rem', gap: '1rem' }}>
+              <button className="btn" onClick={onCancel}>やめる</button>
+              <button className="btn big green" disabled={!text.trim()} onClick={() => onOK(text.trim())}>📌 こくばんに はる</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    //  7. よんで、せんを ひいて、こくばんに まとめる 画面
+    // =====================================================================
+    function Work({ name, text, settings, progress, onProgress, onExit }) {
+      const doc = useMemo(() => parseDoc(text.body), [text.body]);
+      const [work, setWork] = useState(null);
+      const [done, setDone] = useState(false);
+      const [sel, setSel] = useState(null);
+      const [tool, setTool] = useState('sel');
+      const [gran, setGran] = useState('u');
+      const [layout, setLayout] = useState('both');
+      const [selId, setSelId] = useState(null);
+      const [qi, setQi] = useState(0);
+      const [writer, setWriter] = useState(null);
+      const [stampOpen, setStampOpen] = useState(false);
+      const [toast, setToast] = useState(null);
+      const [saved, setSaved] = useState('ok');
+      const [reading, setReading] = useState(-1);
+      const [readAll, setReadAll] = useState(false);
+      const [finish, setFinish] = useState(null); // 'ask' | 'party'
+      const workRef = useRef(null), doneRef = useRef(false), progRef = useRef(progress), undo = useRef([]), timer = useRef(null), busy = useRef(false), again = useRef(false), paintRef = useRef(null), toastT = useRef(null);
+      const wkey = `kokuban_w_${name}_${text.id}`, qkey = `kokuban_q_${name}`;
+      const qs = text.qs || [];
+      const [undoN, setUndoN] = useState(0);
+      // 先生が 決めた こたえ（ヒント・たしかめる・きもちの ことば）
+      const ANS = useMemo(() => parseAns(text.ans, doc), [text.ans, doc]);
+      const [hints, setHints] = useState({}), [chk, setChk] = useState(null), [qmsg, setQmsg] = useState(''), [feelOpen, setFeelOpen] = useState(false), [missN, setMissN] = useState({});
+
+      // ---- よみこむ ----
+      useEffect(() => {
+        let live = true;
+        (async () => {
+          const local = store.json(wkey, null);
+          let data = '';
+          if (local && local.unsent && local.data) data = local.data;
+          else { try { data = await api.getWork(name, text.id); } catch (e) { data = local && local.data || ''; } }
+          if (!live) return;
+          const w = parseWork(data);
+          if (w.th && w.th !== doc.hash) w.marks = {}; // 文章が かわった ときは、せんを けす（こくばんは のこす）
+          const first = { marks: w.marks, items: w.items };
+          workRef.current = first; setWork(first);
+          let d = false; try { d = !!JSON.parse(data).done; } catch (e) {}
+          doneRef.current = d; setDone(d);
+          setQi(clamp(w.qi || 0, 0, Math.max(0, qs.length - 1)));
+          if (local && local.unsent) schedule(300);
+        })();
+        return () => { live = false; stopSpeak(); clearTimeout(timer.current); clearTimeout(toastT.current); };
+      }, []);
+      const question = qs[qi] || '';
+      const sayQ = () => speak(readOf(question || 'よんで、だいじな ところに せんを ひこう。'));
+      useEffect(() => { if (work) sayQ(); setChk(null); setQmsg(''); }, [qi, !!work]);
+
+      // ---- ほぞん ----
+      const pack = (w) => JSON.stringify({ v: 1, th: doc.hash, marks: w.marks, items: w.items, qi, done: doneRef.current });
+      const saveNow = async () => {
+        clearTimeout(timer.current);
+        const w = workRef.current; if (!w) return;
+        if (busy.current) { again.current = true; return; }
+        busy.current = true; setSaved('saving');
+        const data = pack(w), recs = store.json(qkey, []);
+        try {
+          const r = await api.saveWork({ name, textId: text.id, title: text.title, data, done: doneRef.current, summary: summarize(doc, w), progress: JSON.stringify(progRef.current), records: recs, time: Date.now() });
+          if (!r || !r.ok) throw new Error('ng');
+          const ids = new Set(recs.map(x => x.id));
+          store.set(qkey, JSON.stringify(store.json(qkey, []).filter(x => !ids.has(x.id))));
+          if (workRef.current === w) store.set(wkey, JSON.stringify({ unsent: false, data }));
+          setSaved('ok');
+        } catch (e) { setSaved('ng'); }
+        busy.current = false;
+        if (again.current) { again.current = false; await saveNow(); }
+      };
+      const saveRef = useRef(saveNow); saveRef.current = saveNow;
+      const schedule = (ms = 2500) => { clearTimeout(timer.current); timer.current = setTimeout(() => saveRef.current(), ms); };
+      const touched = useRef(false);
+      const touch = () => { touched.current = true; store.set(wkey, JSON.stringify({ unsent: true, data: pack(workRef.current) })); setSaved('wait'); schedule(); };
+      useEffect(() => {
+        const f = () => { if (document.visibilityState === 'hidden') saveRef.current(); };
+        const on = () => saveRef.current();
+        document.addEventListener('visibilitychange', f); window.addEventListener('online', on);
+        return () => { document.removeEventListener('visibilitychange', f); window.removeEventListener('online', on); };
+      }, []);
+      const apply = (next, withUndo = true) => {
+        if (withUndo) { undo.current.push(workRef.current); if (undo.current.length > 40) undo.current.shift(); setUndoN(undo.current.length); }
+        workRef.current = next; setWork(next); touch(); setChk(null);
+      };
+      const pushUndo = () => { undo.current.push(workRef.current); if (undo.current.length > 40) undo.current.shift(); setUndoN(undo.current.length); };
+      const doUndo = () => { const p = undo.current.pop(); if (!p) return; setUndoN(undo.current.length); setSelId(null); setSel(null); apply(p, false); sfx.tap(); };
+      const log = (act, color, word) => {
+        const q = store.json(qkey, []);
+        q.push({ id: uid(), time: Date.now(), text: text.title, q: plainOf(question), act, color: color || '', word: String(word || '').slice(0, 300) });
+        store.set(qkey, JSON.stringify(q.slice(-400)));
+      };
+      const say = (e, msg) => { setToast({ e, msg }); clearTimeout(toastT.current); toastT.current = setTimeout(() => setToast(null), 2600); };
+      // ---- シール ----
+      const award = (kind) => {
+        const p = progRef.current;
+        if (p.stickers.some(s => s.x === text.id && s.k === kind)) return false;
+        const pool = kind === 'done' ? GOLD : STICKERS, have = new Set(p.stickers.map(s => s.e));
+        const rest = pool.filter(e => !have.has(e)), from = rest.length ? rest : pool;
+        const e = from[Math.floor(Math.random() * from.length)];
+        const np = Object.assign({}, p, { t: Date.now(), stickers: p.stickers.concat([{ e, k: kind, x: text.id, d: nowStr().slice(0, 10) }]) });
+        progRef.current = np; onProgress(np);
+        if (kind !== 'done') { sfx.sticker(); say(e, 'シール ゲット！ ' + STICKER_KIND[kind]); }
+        return e;
+      };
+
+      // ---- ぶんしょう：えらぶ・せんを ひく ----
+      const range = (i) => gran === 's' ? sentRange(doc, i) : [i, i];
+      const onTap = (i) => {
+        sfx.tap();
+        const [a, b] = range(i);
+        if (!sel) setSel({ a, b, one: true });
+        else if (i >= sel.a && i <= sel.b) setSel(null);
+        else if (sel.one) setSel({ a: Math.min(sel.a, a), b: Math.max(sel.b, b), one: false });
+        else setSel({ a, b, one: true });
+      };
+      const paintMarks = (base, lo, hi) => { const m = Object.assign({}, base); for (let i = lo; i <= hi; i++) { if (tool === 'erase') delete m[i]; else m[i] = tool; } return m; };
+      const onPaint = (ph, i) => {
+        if (ph === 'start') {
+          const [a, b] = range(i);
+          pushUndo();
+          paintRef.current = { a, b, lo: a, hi: b, base: workRef.current.marks, one: true };
+          apply(Object.assign({}, workRef.current, { marks: paintMarks(workRef.current.marks, a, b) }), false);
+        } else if (ph === 'move') {
+          const p = paintRef.current; if (!p) return;
+          const [a, b] = range(i), lo = Math.min(p.a, a), hi = Math.max(p.b, b);
+          if (lo >= p.lo && hi <= p.hi) return;
+          p.one = false; p.lo = Math.min(p.lo, lo); p.hi = Math.max(p.hi, hi);
+          apply(Object.assign({}, workRef.current, { marks: paintMarks(p.base, p.lo, p.hi) }), false);
+        } else {
+          const p = paintRef.current; paintRef.current = null; if (!p) return;
+          const word = joinUnits(doc, p.lo, p.hi, 'plain');
+          let same = true, any = false;
+          for (let k = p.lo; k <= p.hi; k++) { if (p.base[k] !== tool) same = false; if (p.base[k]) any = true; }
+          if (tool === 'erase') { if (any) log('せんを けす', '', word); else { undo.current.pop(); setUndoN(undo.current.length); } return; }
+          if (p.one && same) { // おなじ 色の ところを もう一度 おすと、きえる
+            const m = Object.assign({}, p.base); for (let k = p.lo; k <= p.hi; k++) delete m[k];
+            apply(Object.assign({}, workRef.current, { marks: m }), false); log('せんを けす', '', word); return;
+          }
+          sfx.put(); log('せんを ひく', MARKS[tool].name, word); award('line');
+        }
+      };
+      const selWord = sel ? joinUnits(doc, sel.a, sel.b, 'plain') : '';
+      const selMarked = sel && work ? (() => { for (let k = sel.a; k <= sel.b; k++) if (work.marks[k]) return true; return false; })() : false;
+      const markSel = (c) => {
+        const m = Object.assign({}, workRef.current.marks);
+        for (let k = sel.a; k <= sel.b; k++) { if (c) m[k] = c; else delete m[k]; }
+        apply(Object.assign({}, workRef.current, { marks: m }));
+        if (c) { sfx.put(); log('せんを ひく', MARKS[c].name, selWord); award('line'); } else log('せんを けす', '', selWord);
+        setSel(null);
+      };
+      // ---- こくばん ----
+      const spot = () => {
+        const n = workRef.current.items.filter(x => x.t === 'f').length;
+        return settings.vertical ? { x: 830 - (n % 6) * 140, y: 30 + (Math.floor(n / 6) % 2) * 340 } : { x: 30 + (n % 3) * 320, y: 30 + (Math.floor(n / 3) % 5) * 130 };
+      };
+      const addItem = (it) => { const item = Object.assign({ id: uid() }, it); apply(Object.assign({}, workRef.current, { items: workRef.current.items.concat([item]) })); setSelId(item.id); sfx.put(); return item; };
+      const pasteSel = () => {
+        const c = work.marks[sel.a], fc = { r: 'p', b: 'b', g: 'g', y: 'y' }[c] || 'w';
+        addItem(Object.assign({ t: 'f', src: 1, u: [sel.a, sel.b], text: joinUnits(doc, sel.a, sel.b, 'src'), c: fc, v: !!settings.vertical, z: 1 }, spot()));
+        log('こくばんに はる', '', selWord);
+        if (!award('paste')) say('📌', 'こくばんに はったよ');
+        setSel(null);
+      };
+      const speakSel = () => speak(joinUnits(doc, sel.a, sel.b, 'read'));
+      const toggleReadAll = () => {
+        if (readAll) { stopSpeak(); setReadAll(false); setReading(-1); return; }
+        const list = []; doc.units.forEach(u => { list[u.s] = (list[u.s] || '') + u.read; });
+        setReadAll(true);
+        speakSeq([readOf(text.title)].concat(list), (k) => setReading(k - 1), () => { setReadAll(false); setReading(-1); });
+      };
+      const writeOK = (t) => {
+        if (writer.id) { patchItem(writer.id, { text: t }, true); log('かきなおす', '', t); }
+        else { addItem(Object.assign({ t: 'f', text: t, c: 'y', v: !!settings.vertical, z: 1 }, spot())); log('じぶんで かく', '', t); award('write'); }
+        setWriter(null);
+      };
+      const patchItem = (id, patch, withUndo) => apply(Object.assign({}, workRef.current, { items: workRef.current.items.map(x => x.id === id ? Object.assign({}, x, patch) : x) }), !!withUndo);
+      const cur = work && work.items.find(x => x.id === selId);
+      const patchCur = (patch) => patchItem(cur.id, patch, true);
+      const delCur = () => { log('けす', '', cur.t === 'f' ? plainOf(cur.text) : cur.t === 's' ? cur.e : cur.t === 'a' ? 'やじるし' : 'わく'); apply(Object.assign({}, workRef.current, { items: workRef.current.items.filter(x => x.id !== cur.id) })); setSelId(null); };
+      const nudge = (dx, dy) => cur.t === 'a' ? patchCur({ x1: cur.x1 + dx, y1: cur.y1 + dy, x2: cur.x2 + dx, y2: cur.y2 + dy }) : patchCur({ x: clamp(cur.x + dx, -20, BW - 50), y: clamp(cur.y + dy, -10, BH - 50) });
+      const resize = (up) => {
+        if (cur.t === 'w') { const k = up ? 1.2 : 1 / 1.2; patchCur({ w: clamp(Math.round(cur.w * k), 80, BW), h: clamp(Math.round(cur.h * k), 80, BH) }); return; }
+        const zs = [0.75, 1, 1.3, 1.7], at = zs.indexOf(cur.z || 1), n = clamp((at < 0 ? 1 : at) + (up ? 1 : -1), 0, zs.length - 1);
+        patchCur({ z: zs[n] });
+      };
+      const addStamp = (s) => { const n = workRef.current.items.filter(x => x.t === 's').length; addItem({ t: 's', e: s[0], x: 440 + (n % 5) * 30, y: 300 + (n % 5) * 30, z: 1 }); log('スタンプ', '', s[0] + s[1]); award('mark'); setStampOpen(false); };
+      const addArrow = () => { addItem({ t: 'a', x1: 380, y1: 350, x2: 620, y2: 350, c: 'w' }); log('やじるし', '', ''); award('mark'); };
+      const addFrame = () => { addItem({ t: 'w', x: 340, y: 220, w: 320, h: 240, c: 'y' }); log('わく', '', ''); award('mark'); };
+      // ---- ヒント・たしかめる・きもちの ことば ----
+      const A = ANS.q[qi] && ANS.q[qi].u.length && question ? ANS.q[qi] : null;
+      const lv = hints[qi] || 0;
+      const showHint = (n) => {
+        const k = runsOf(A.u).length, col = A.c ? MARKS[A.c].name + 'の せんを ひく ところが、' : 'こたえが、';
+        const m = n === 1 ? `${col}${k}つ あるよ。よく よんで さがそう。` : n === 2 ? 'きいろく ひかって いる ぎょうを、よく よんで みよう。' : 'ひかって いる ことばを みて みよう。';
+        setHints(h => Object.assign({}, h, { [qi]: n })); setQmsg('💡 ' + m); speak(m); log('ヒント', '', 'ヒント' + n);
+      };
+      const doCheck = () => {
+        const r = evaluate(A, workRef.current), all = r.found === r.runs.length && !r.extra.length;
+        log('たしかめる', '', `${r.found}／${r.runs.length}` + (r.extra.length ? ` ほかの ところ${r.extra.length}` : ''));
+        let m = '';
+        if (all) { m = 'ぜんぶ みつけたね！ すごい！'; sfx.sticker(); award('check'); }
+        else {
+          const n = (missN[qi] || 0) + 1; setMissN(o => Object.assign({}, o, { [qi]: n })); sfx.tap();
+          m = (r.found ? `◎が ${r.found}つ。` : '') + (r.found < r.runs.length ? 'もう すこし あるよ。' : '') + (r.extra.length ? 'てんせんの ところは、どうかな？' : '');
+          if (n >= 3 && A.hint && lv < 3) setHints(h => Object.assign({}, h, { [qi]: 3 })); // 3回めは、いちばん くわしい ヒントを 出す
+        }
+        setChk({ ok: new Set(r.runs.filter(x => x.found).map(x => x.a)), maybe: new Set(r.extra) }); setQmsg((all ? '🎉 ' : '') + m); speak(m);
+      };
+      const addFeel = (w) => { addItem(Object.assign({ t: 'f', fw: 1, text: w, c: 'p', v: !!settings.vertical, z: 1 }, spot())); log('きもちの ことば', '', w); award('write'); setFeelOpen(false); };
+      // ---- できた！ ----
+      const submit = async () => {
+        doneRef.current = true; setDone(true);
+        const e = award('done'); log('できた', '', '');
+        touch(); saveNow();
+        sfx.done(); setFinish({ party: true, e });
+        speak('こくばんが できたね。せんせいに だしたよ。');
+      };
+      const exit = async () => { stopSpeak(); if (!touched.current) { onExit(null); return; } await saveNow(); onExit({ id: text.id, done: doneRef.current, updated: nowStr() }); };
+
+      if (!work) return <div className="app"><div className="page" style={{ textAlign: 'center', fontSize: '1.6rem', fontWeight: 700, paddingTop: '4rem' }}>よみこんで います…</div></div>;
+      const showText = layout !== 'board', showBoard = layout !== 'text';
+      const cols = cur ? (cur.t === 'f' ? FCOL : cur.t === 's' ? null : CHALK) : null;
+      return (
+        <div className="app">
+          <div className="top">
+            <button className="btn sm" onClick={exit} aria-label="ホームへ">🏠 もどる</button>
+            <div className="qbox" onClick={sayQ}>
+              <Chalkun size={38} />
+              <div className="qtext">{question ? rubyNodes(question) : <>{rubyNodes(text.title)} を よもう</>}</div>
+              {qs.length > 1 ? <>
+                <button className="qnav" disabled={qi <= 0} onClick={(e) => { e.stopPropagation(); setQi(qi - 1); }} aria-label="まえの とい">◀</button>
+                <b style={{ whiteSpace: 'nowrap' }}>{qi + 1}／{qs.length}</b>
+                <button className="qnav" disabled={qi >= qs.length - 1} onClick={(e) => { e.stopPropagation(); setQi(qi + 1); }} aria-label="つぎの とい">▶</button>
+              </> : null}
+              <span style={{ fontSize: '1.3rem' }}>🔊</span>
+            </div>
+            <div className="seg" role="group" aria-label="がめんの わけかた">
+              <button className={layout === 'text' ? 'on' : ''} onClick={() => setLayout('text')}>📖 おおきく</button>
+              <button className={layout === 'both' ? 'on' : ''} onClick={() => setLayout('both')}>はんぶん</button>
+              <button className={layout === 'board' ? 'on' : ''} onClick={() => setLayout('board')}>🟩 おおきく</button>
+            </div>
+            <span style={{ fontSize: '.85rem', width: '4.6rem', textAlign: 'center' }}>{saved === 'ok' ? '✓ ほぞん' : saved === 'ng' ? '⚠ あとで おくる' : '…'}</span>
+            <button className="btn orange" onClick={() => setFinish({ ask: true })}>{done ? '✅ できた' : '🙌 できた！'}</button>
+          </div>
+
+          <div className="work">
+            {showText ? (
+              <div className="pane pane-text">
+                <div className="tbar">
+                  <button className={'btn sm' + (tool === 'sel' ? ' on' : '')} onClick={() => { setTool('sel'); }}>👆 えらぶ</button>
+                  {Object.keys(MARKS).map(c => <button key={c} className={'pen' + (tool === c ? ' on' : '')} style={{ background: MARKS[c].bg }} onClick={() => { setTool(c); setSel(null); }} aria-label={MARKS[c].name + 'の ペン'} title={MARKS[c].name + 'の ペン'}>🖍️</button>)}
+                  <button className={'btn sm' + (tool === 'erase' ? ' on' : '')} onClick={() => { setTool('erase'); setSel(null); }}>🧽 けしゴム</button>
+                  <div className="seg light" role="group" aria-label="えらぶ おおきさ">
+                    <button className={gran === 'u' ? 'on' : ''} onClick={() => { setGran('u'); setSel(null); }}>ことば</button>
+                    <button className={gran === 's' ? 'on' : ''} onClick={() => { setGran('s'); setSel(null); }}>ぶん</button>
+                  </div>
+                  <span className="grow" />
+                  <button className={'btn sm' + (readAll ? ' on' : '')} onClick={toggleReadAll}>{readAll ? '⏹ とめる' : '🔊 ぜんぶ'}</button>
+                </div>
+                {A && (A.hint || A.check) ? (
+                  <div className="qtools">
+                    {A.hint ? <button className={'btn sm' + ((missN[qi] || 0) >= 2 && lv < 3 ? ' glowb on' : '')} disabled={lv >= 3} onClick={() => showHint(lv + 1)}>💡 ヒント{lv ? '①②③'[lv - 1] : ''}</button> : null}
+                    {A.check ? <button className="btn sm blue" onClick={doCheck}>✔ たしかめる</button> : null}
+                    <div className="qmsg">{qmsg}</div>
+                  </div>
+                ) : null}
+                <TextPane title={text.title} doc={doc} marks={work.marks} sel={sel} reading={reading} vertical={settings.vertical} paint={tool !== 'sel'} onTap={onTap} onPaint={onPaint}
+                  hl={A && lv >= 2 ? new Set(A.u) : null} glow={A && lv >= 3 ? new Set(A.u) : null} okStart={chk ? chk.ok : null} maybe={chk ? chk.maybe : null} />
+                {sel ? (
+                  <div className="selbar">
+                    <div className="selword">「{selWord}」</div>
+                    <button className="btn sm" onClick={speakSel}>🔊 よむ</button>
+                    <Dots colors={MARKS} onPick={markSel} />
+                    {selMarked ? <button className="btn sm" onClick={() => markSel(null)}>🧽 せんを けす</button> : null}
+                    <button className="btn sm green" onClick={pasteSel}>📌 こくばんに はる</button>
+                    <button className="btn sm" onClick={() => setSel(null)} aria-label="やめる">✖</button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+            {showBoard ? (
+              <div className="pane pane-board">
+                <Board items={work.items} selId={selId} onSelect={setSelId} onBegin={pushUndo} onPatch={(id, p) => patchItem(id, p, false)} />
+                {cur ? (
+                  <div className="bbar">
+                    <div className="brow">
+                      {cols ? <Dots colors={cols} value={cur.c} onPick={(c) => patchCur({ c })} /> : null}
+                      {cur.t !== 'a' ? <><button className="btn sm" onClick={() => resize(true)}>＋ おおきく</button><button className="btn sm" onClick={() => resize(false)}>－ ちいさく</button></> : <b style={{ color: '#fff' }}>まるい つまみで、むきと ながさを かえられるよ</b>}
+                      {cur.t === 'f' ? <button className="btn sm" onClick={() => patchCur({ v: !cur.v })}>{cur.v ? 'よこがき' : 'たてがき'}</button> : null}
+                      {cur.t === 'f' ? <button className="btn sm" onClick={() => speak(readOf(cur.text))} aria-label="よむ">🔊</button> : null}
+                    </div>
+                    <div className="brow">
+                      {[['◀', -30, 0], ['▲', 0, -30], ['▼', 0, 30], ['▶', 30, 0]].map(n => <button key={n[0]} className="btn sm" style={{ minWidth: '2.8rem' }} onClick={() => nudge(n[1], n[2])} aria-label="うごかす">{n[0]}</button>)}
+                      {cur.t === 'f' && !cur.src ? <button className="btn sm" onClick={() => setWriter({ id: cur.id, text: cur.text })}>✏️ かきなおす</button> : null}
+                      <span className="grow" />
+                      <button className="btn sm red" onClick={delCur}>🗑 けす</button>
+                      <button className="btn sm green" onClick={() => setSelId(null)}>✔ おわり</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bbar">
+                    <div className="brow">
+                      <button className="btn sm" onClick={() => setWriter({ text: '' })}>✏️ かく</button>
+                      <button className="btn sm" onClick={addArrow}>➡️ やじるし</button>
+                      <button className="btn sm" onClick={addFrame}>⬜ わく</button>
+                      <button className="btn sm" onClick={() => setStampOpen(true)}>😊 スタンプ</button>
+                      {ANS.words.length ? <button className="btn sm" onClick={() => setFeelOpen(true)}>💗 きもち</button> : null}
+                    </div>
+                    <div className="brow">
+                      <b style={{ color: '#fde68a' }}>ふせんを おすと、うごかしたり いろを かえたり できるよ</b>
+                      <span className="grow" />
+                      <button className="btn sm" disabled={!undoN} onClick={doUndo}>↩️ もどす</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
+
+          {toast ? <div className="toast"><span style={{ fontSize: '2rem' }}>{toast.e}</span>{toast.msg}</div> : null}
+          {writer ? <Writer initial={writer.text} onOK={writeOK} onCancel={() => setWriter(null)} /> : null}
+          {stampOpen ? (
+            <div className="ov" onClick={() => setStampOpen(false)}>
+              <div className="card" style={{ width: '40rem' }} onClick={(e) => e.stopPropagation()}>
+                <div className="bubble" style={{ marginBottom: '.8rem', fontSize: '1.1rem' }}>どの スタンプを はる？</div>
+                <div className="row" style={{ justifyContent: 'center' }}>
+                  {STAMPS.map(s => <button key={s[0]} className="btn" style={{ flexDirection: 'column', width: '6.2rem', gap: 0 }} onClick={() => addStamp(s)}><span style={{ fontSize: '2.2rem', lineHeight: 1.2 }}>{s[0]}</span><span style={{ fontSize: '.85rem' }}>{s[1]}</span></button>)}
+                </div>
+                <div style={{ textAlign: 'center', marginTop: '.8rem' }}><button className="btn" onClick={() => setStampOpen(false)}>やめる</button></div>
+              </div>
+            </div>
+          ) : null}
+          {feelOpen ? (
+            <div className="ov" onClick={() => setFeelOpen(false)}>
+              <div className="card" style={{ width: '40rem' }} onClick={(e) => e.stopPropagation()}>
+                <div className="row" style={{ marginBottom: '.8rem' }}><Chalkun size={52} /><div className="bubble grow" style={{ fontSize: '1.1rem' }}>どんな きもちかな？ ことばを えらんで はろう</div></div>
+                <div className="row" style={{ justifyContent: 'center' }}>
+                  {ANS.words.map(w => <button key={w} className="btn" style={{ background: '#ffc9d6', fontSize: '1.3rem' }} onClick={() => addFeel(w)}>{rubyNodes(w)}</button>)}
+                </div>
+                <div style={{ textAlign: 'center', marginTop: '.8rem' }}><button className="btn" onClick={() => setFeelOpen(false)}>やめる</button></div>
+              </div>
+            </div>
+          ) : null}
+          {finish && finish.ask ? (
+            <div className="ov">
+              <div className="card" style={{ textAlign: 'center', width: '32rem' }}>
+                <Chalkun size={90} className="float" />
+                <div className="bubble" style={{ margin: '.6rem 0 1rem' }}>{done ? 'もう いちど せんせいに だす？' : 'こくばんを せんせいに だす？'}</div>
+                <div className="row" style={{ justifyContent: 'center', gap: '1rem' }}>
+                  <button className="btn big" onClick={() => setFinish(null)}>まだ つづける</button>
+                  <button className="btn big orange" onClick={submit}>🙌 だす</button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+          {finish && finish.party ? (
+            <div className="ov">
+              {Array.from({ length: 18 }).map((_, i) => <span key={i} className="confetti" style={{ left: (i * 5.7 + 2) + '%', animationDuration: (2.4 + (i % 5) * 0.5) + 's', animationDelay: (i % 6) * 0.15 + 's' }}>{['🎉', '⭐', '🌸', '✨', '🎈'][i % 5]}</span>)}
+              <div className="card" style={{ textAlign: 'center', width: '34rem' }}>
+                <Chalkun size={110} mood="happy" className="float" />
+                <div className="bubble" style={{ margin: '.6rem 0' }}>こくばんが できたね！<br />せんせいに だしたよ。</div>
+                {finish.e ? <div style={{ fontSize: '1.2rem', fontWeight: 700, margin: '.6rem 0' }}><span style={{ fontSize: '4rem', display: 'block', lineHeight: 1.2 }}>{finish.e}</span>とくべつな シールを もらったよ！</div> : null}
+                <div className="row" style={{ justifyContent: 'center', gap: '1rem', marginTop: '.6rem' }}>
+                  <button className="btn big" onClick={() => setFinish(null)}>もっと つづける</button>
+                  <button className="btn big green" onClick={exit}>🏠 おわる</button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      );
+    }
+
+    // =====================================================================
+    //  8. なまえ・ホーム・アルバム
+    // =====================================================================
+    function Names({ students, onPick, onTeacher }) {
+      return (
+        <div className="app"><div className="page" style={{ textAlign: 'center' }}>
+          <div className="row" style={{ justifyContent: 'center', margin: '1rem 0' }}>
+            <Chalkun size={110} className="float" onClick={() => speak('じぶんの なまえを おしてね。')} />
+            <div>
+              <h1 style={{ fontSize: '2.2rem', margin: '0 0 .6rem', color: '#7c5a35' }}>チョークんの マイこくばん</h1>
+              <div className="bubble">じぶんの なまえを おしてね</div>
+            </div>
+          </div>
+          {!HAS_GAS ? <div className="note" style={{ display: 'inline-block', margin: '.5rem 0' }}>おためしモードです（スプレッドシートには つながって いません。きろくは この たんまつの 中だけに のこります）</div> : null}
+          <div className="row" style={{ justifyContent: 'center', gap: '1rem', margin: '1.5rem auto', maxWidth: '60rem' }}>
+            {students.map(n => <button key={n} className="btn big" style={{ minWidth: '11rem' }} onClick={() => onPick(n)}>{n}</button>)}
+            {!students.length ? <div className="note">「名簿」シートに 子どもの 名前を 入れて、ひらきなおして ください。</div> : null}
+          </div>
+          <button className="btn sm" style={{ position: 'fixed', right: '1rem', bottom: '1rem' }} onClick={onTeacher}>🔒 せんせい</button>
+          <div style={{ position: 'fixed', left: '1rem', bottom: '1rem', fontSize: '.8rem', color: '#a8a29e' }}>v{APP_VERSION}</div>
+        </div></div>
+      );
+    }
+    function Home({ name, texts, works, progress, onOpen, onAlbum, onBack }) {
+      const hello = `${name}さん、きょうは どれを よむ？`;
+      useEffect(() => { speak(hello); return stopSpeak; }, []);
+      const n = progress.stickers.length;
+      return (
+        <div className="app">
+          <div className="top">
+            <button className="btn sm" onClick={onBack}>◀ なまえを かえる</button>
+            <span className="grow" style={{ fontWeight: 700, fontSize: '1.2rem' }}>{name}さん　<span style={{ fontSize: '1rem' }}>🎖 {titleOf(n)}</span></span>
+            <button className="btn sm on" onClick={onAlbum}>📒 シール アルバム（{n}まい）</button>
+          </div>
+          <div className="page">
+            <div className="row" style={{ marginBottom: '1rem' }}>
+              <Chalkun size={84} className="float" onClick={() => speak(hello)} />
+              <div className="bubble">{hello}</div>
+            </div>
+            <div className="grid">
+              {texts.map(t => {
+                const w = works[t.id], got = progress.stickers.filter(s => s.x === t.id);
+                return (
+                  <button key={t.id} className="tcard" onClick={() => onOpen(t)}>
+                    <span className="tag" style={{ background: t.kind === 'せつめいぶん' ? '#bfdbfe' : '#fbcfe8' }}>{t.kind === 'せつめいぶん' ? '🔍 せつめいぶん' : '📖 ものがたり'}</span>
+                    <span style={{ fontSize: '1.5rem', fontWeight: 700, lineHeight: 1.9 }}>{rubyNodes(t.title)}</span>
+                    <span className="tag" style={{ background: !w ? '#e2e8f0' : w.done ? '#86efac' : '#fde68a' }}>{!w ? 'はじめて' : w.done ? '✅ できた' : '✏️ つづきから'}</span>
+                    <span style={{ fontSize: '1.5rem', minHeight: '2rem' }}>{got.map(s => s.e).join('')}</span>
+                  </button>
+                );
+              })}
+              {!texts.length ? <div className="note">まだ ぶんしょうが ありません。せんせいに きいてね。</div> : null}
+            </div>
+          </div>
+        </div>
+      );
+    }
+    function Album({ progress, onBack }) {
+      const have = {}; progress.stickers.forEach(s => { have[s.e] = (have[s.e] || 0) + 1; });
+      const n = progress.stickers.length, next = TITLES.find(t => t[0] > n);
+      const row = (list) => <div className="row" style={{ gap: '.6rem' }}>{list.map(e => <div key={e} className={'slot' + (have[e] ? ' got' : '')}>{have[e] ? e : '？'}</div>)}</div>;
+      return (
+        <div className="app">
+          <div className="top"><button className="btn sm" onClick={onBack}>◀ もどる</button><span className="grow" style={{ fontWeight: 700, fontSize: '1.3rem' }}>📒 シール アルバム</span></div>
+          <div className="page">
+            <div className="row" style={{ marginBottom: '1rem' }}>
+              <Chalkun size={84} mood="happy" />
+              <div className="bubble">シールは {n}まい。「{titleOf(n)}」だよ！{next ? <><br />あと {next[0] - n}まいで「{next[1]}」</> : null}</div>
+            </div>
+            <h2 style={{ fontSize: '1.2rem' }}>👑 とくべつな シール（こくばんが できた とき）</h2>
+            {row(GOLD)}
+            <h2 style={{ fontSize: '1.2rem' }}>🌈 シール（せんを ひく・はる・かく・しるしを つける）</h2>
+            {row(STICKERS)}
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    //  9. 先生用画面
+    // =====================================================================
+    function download(name, text, type) {
+      const blob = new Blob([text], { type: type || 'text/plain' }), a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    }
+    const toCSV = (rows) => '﻿' + rows.map(r => r.map(v => { let s = String(v == null ? '' : v); if (/^[=+\-@]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g, '""') + '"'; }).join(',')).join('\r\n');
+
+    function PinGate({ onOK, onBack }) {
+      const [pin, setPin] = useState(''), [msg, setMsg] = useState(''), [busy, setBusy] = useState(false);
+      const go = async (p) => {
+        setBusy(true); setMsg('');
+        try { const d = await api.teacher(p); if (d && d.ok) { onOK(p, d); return; } setMsg('暗証番号が ちがいます'); } catch (e) { setMsg('つながりませんでした。もう一度 ためして ください'); }
+        setPin(''); setBusy(false);
+      };
+      const press = (k) => { if (busy) return; const p = (pin + k).slice(0, 4); setPin(p); if (p.length === 4) go(p); };
+      return (
+        <div className="app"><div className="page" style={{ textAlign: 'center' }}>
+          <h1 style={{ fontSize: '1.6rem' }}>🔒 先生用画面</h1>
+          <p>暗証番号（4けた）を 入れて ください</p>
+          <div style={{ fontSize: '2.4rem', letterSpacing: '.6rem', height: '3.4rem' }}>{'●'.repeat(pin.length)}{'○'.repeat(4 - pin.length)}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 4.4rem)', gap: '.5rem', justifyContent: 'center', margin: '1rem 0' }}>
+            {'123456789'.split('').map(k => <button key={k} className="btn big" onClick={() => press(k)}>{k}</button>)}
+            <button className="btn" onClick={() => setPin('')}>けす</button>
+            <button className="btn big" onClick={() => press('0')}>0</button>
+            <span />
+          </div>
+          <div style={{ color: '#b91c1c', fontWeight: 700, minHeight: '1.6rem' }}>{busy ? '…' : msg}</div>
+          <button className="btn" onClick={onBack}>◀ もどる</button>
+        </div></div>
+      );
+    }
+
+    // ひとりの マイこくばん／みんなの せん を 見る
+    function Viewer({ pin, text, name, settings, onBack }) {
+      const [works, setWorks] = useState(null);
+      const doc = useMemo(() => parseDoc(text.body), [text.body]);
+      useEffect(() => { api.works(pin, text.id, name || '').then(r => setWorks(r && r.ok ? r.works : [])).catch(() => setWorks([])); }, []);
+      // 先生が 決めた こたえと くらべる
+      const ANS = useMemo(() => parseAns(text.ans, doc), [text.ans, doc]);
+      const keys = ANS.q.map((q, i) => q.u.length ? i : -1).filter(i => i >= 0).concat(ANS.feel.length ? ['feel'] : []);
+      const [aq, setAq] = useState(() => keys.length ? keys[0] : null);
+      const ansOf = (k) => k === 'feel' ? { u: ANS.feel, c: '' } : ANS.q[k];
+      const label = (k) => k === 'feel' ? '💗 きもちの ことば' : 'とい' + (k + 1);
+      const compare = (w) => keys.map(k => { const r = evaluate(ansOf(k), w); return `${label(k)}：◎ ${r.found}／${r.runs.length}` + (r.extra.length ? `（ほかの ところ ${runsOf(r.extra.sort((a, b) => a - b)).length}）` : ''); }).join('　');
+      const ansSet = aq === null ? null : new Set(ansOf(aq).u);
+      const picker = keys.length ? (
+        <div className="row noprint" style={{ margin: '.3rem 0' }}>
+          <b>むらさきの わく ＝ 先生が 決めた こたえ：</b>
+          <div className="seg light">{keys.map(k => <button key={k} className={aq === k ? 'on' : ''} onClick={() => setAq(k)}>{label(k)}</button>)}<button className={aq === null ? 'on' : ''} onClick={() => setAq(null)}>出さない</button></div>
+        </div>
+      ) : null;
+      if (!works) return <p>よみこんで います…</p>;
+      const parsed = works.map(w => Object.assign({}, w, { w: parseWork(w.data) })).map(x => { if (x.w.th && x.w.th !== doc.hash) x.stale = true; return x; });
+      const head = (
+        <div className="row noprint" style={{ marginBottom: '.6rem' }}>
+          <button className="btn sm" onClick={onBack}>◀ もどる</button>
+          <button className="btn sm blue" onClick={() => window.print()}>🖨 いんさつ</button>
+        </div>
+      );
+      if (name) {
+        const x = parsed[0];
+        if (!x) return <div>{head}<p>まだ きろくが ありません。</p></div>;
+        return (
+          <div>
+            {head}
+            <h2 style={{ margin: '.2rem 0 .5rem' }}>{name}さん ／ {plainOf(text.title)}　<small style={{ fontWeight: 400 }}>{x.done ? '✅ できた' : '✏️ とちゅう'}・{x.updated}</small></h2>
+            {x.stale ? <div className="note noprint">この子が 書いた あとで、本文が 変わりました。せんの 位置は 出していません（こくばんは そのままです）。</div> : null}
+            {picker}
+            <div className="viewer">
+              <div className="vt"><TextPane title={text.title} doc={doc} marks={x.stale ? {} : x.w.marks} vertical={settings.vertical} ansSet={ansSet} /></div>
+              <div className="vb"><Board items={x.w.items} readOnly /></div>
+            </div>
+            <table style={{ marginTop: '.8rem', width: '100%' }}><tbody>
+              {keys.length && !x.stale ? <tr><th>こたえと くらべる</th><td style={{ textAlign: 'left' }}>{compare(x.w)}</td></tr> : null}
+              <tr><th style={{ width: '12rem' }}>せんを ひいた ことば</th><td style={{ textAlign: 'left' }}>{x.lines || '—'}</td></tr>
+              <tr><th>こくばんに はった ことば</th><td style={{ textAlign: 'left' }}>{x.pasted || '—'}</td></tr>
+              <tr><th>じぶんで かいた ことば</th><td style={{ textAlign: 'left' }}>{x.own || '—'}</td></tr>
+              <tr><th>スタンプ・やじるし・わく</th><td style={{ textAlign: 'left' }}>{x.etc || '—'}</td></tr>
+            </tbody></table>
+          </div>
+        );
+      }
+      // みんなの せん：ことばごとに、せんを ひいた 人数
+      const heat = {};
+      parsed.filter(x => !x.stale).forEach(x => Object.keys(x.w.marks).forEach(i => {
+        const h = heat[i] || (heat[i] = { by: {}, who: [] }); const c = x.w.marks[i];
+        h.by[c] = (h.by[c] || 0) + 1; h.who.push(x.name + '（' + (MARKS[c] ? MARKS[c].name : c) + '）');
+      }));
+      Object.keys(heat).forEach(i => { const h = heat[i]; h.c = Object.keys(h.by).sort((a, b) => h.by[b] - h.by[a])[0]; h.n = h.who.length; h.names = h.who.join('・'); });
+      return (
+        <div>
+          {head}
+          <h2 style={{ margin: '.2rem 0 .5rem' }}>みんなの せん ／ {plainOf(text.title)}（{parsed.length}人）</h2>
+          <div className="note noprint">色は、いちばん 多かった 色です。小さい 数字は、せんを ひいた 人数です。ことばに マウスを のせると、名前が 出ます。</div>
+          {picker}
+          <div className="viewer" style={{ marginTop: '.5rem' }}><div className="vt"><TextPane title={text.title} doc={doc} heat={heat} vertical={settings.vertical} ansSet={ansSet} /></div></div>
+          <table style={{ marginTop: '.8rem', width: '100%' }}>
+            <thead><tr><th>なまえ</th>{keys.length ? <th>こたえと くらべる</th> : null}<th>せんを ひいた ことば</th><th>こくばんに はった ことば</th><th>じぶんで かいた ことば</th></tr></thead>
+            <tbody>{parsed.map(x => <tr key={x.name}><td>{x.name}{x.done ? ' ✅' : ''}</td>{keys.length ? <td style={{ textAlign: 'left' }}>{x.stale ? '—' : compare(x.w)}</td> : null}<td style={{ textAlign: 'left' }}>{x.lines}</td><td style={{ textAlign: 'left' }}>{x.pasted}</td><td style={{ textAlign: 'left' }}>{x.own}</td></tr>)}</tbody>
+          </table>
+        </div>
+      );
+    }
+
+    function TextEditor({ pin, initial, settings, onSaved, onCancel }) {
+      const [t, setT] = useState(() => Object.assign({ title: '', kind: 'ものがたり', use: true, body: '', qs: [] }, initial, { qs: (initial && initial.qs || []).concat(['', '', '', '', '']).slice(0, 5) }));
+      const [msg, setMsg] = useState('');
+      const [step, setStep] = useState(1);
+      const doc = useMemo(() => parseDoc(t.body.replace(/\r\n?/g, '\n').trim()), [t.body]);
+      const [ans, setAns] = useState(() => {
+        const d0 = parseDoc(String(initial && initial.body || '').replace(/\r\n?/g, '\n').trim()), a = parseAns(initial && initial.ans, d0);
+        return { q: [0, 1, 2, 3, 4].map(i => a.q[i] || emptyQ()), feel: a.feel, words: a.words, n: d0.units.length, stale: a.stale };
+      });
+      const [target, setTarget] = useState(0); // 0〜4 = とい、'feel' = きもちの ことば
+      const [gran, setGran] = useState('u');
+      const [word, setWord] = useState('');
+      const set = (k, v) => setT(o => Object.assign({}, o, { [k]: v }));
+      const marked = ans.q.some(q => q.u.length) || ans.feel.length > 0;
+      const goStep = (n) => {
+        if (n === 2 && ans.n !== doc.units.length && marked) { // 本文を 直して ことばの 数が 変わった
+          setAns(a => Object.assign({}, a, { q: a.q.map(q => Object.assign({}, q, { u: [] })), feel: [], n: doc.units.length, stale: true }));
+        } else if (n === 2) setAns(a => Object.assign({}, a, { n: doc.units.length }));
+        if (n === 2 && target !== 'feel' && !t.qs[target].trim()) { const f = t.qs.findIndex(q => q.trim()); setTarget(f < 0 ? 'feel' : f); }
+        setStep(n); setMsg('');
+      };
+      const curList = target === 'feel' ? ans.feel : ans.q[target].u;
+      const setList = (list) => setAns(a => target === 'feel' ? Object.assign({}, a, { feel: list, stale: false }) : Object.assign({}, a, { stale: false, q: a.q.map((q, i) => i === target ? Object.assign({}, q, { u: list }) : q) }));
+      const setQ = (patch) => setAns(a => Object.assign({}, a, { q: a.q.map((q, i) => i === target ? Object.assign({}, q, patch) : q) }));
+      const tap = (i) => {
+        const [a, b] = gran === 's' ? sentRange(doc, i) : [i, i], has = new Set(curList);
+        let all = true; for (let k = a; k <= b; k++) if (!has.has(k)) all = false;
+        for (let k = a; k <= b; k++) { if (all) has.delete(k); else has.add(k); }
+        setList([...has].sort((x, y) => x - y));
+      };
+      const toggleWord = (w) => setAns(a => Object.assign({}, a, { words: a.words.includes(w) ? a.words.filter(x => x !== w) : a.words.concat([w]).slice(0, 40) }));
+      const save = async () => {
+        if (!t.title.trim() || !t.body.trim()) { setMsg('だいめいと ほんぶんを 入れて ください'); return; }
+        setMsg('ほぞん ちゅう…');
+        const body = t.body.replace(/\r\n?/g, '\n').trim(), keep = [0, 1, 2, 3, 4].filter(i => t.qs[i].trim());
+        const ok = ans.n === doc.units.length; // 本文を 直しても、ことばの 数が 同じなら 印は そのまま 使う
+        const out = { th: doc.hash, n: doc.units.length, q: keep.map(i => ok ? ans.q[i] : Object.assign({}, ans.q[i], { u: [] })), feel: ok ? ans.feel : [], words: ans.words };
+        try { const r = await api.saveText(pin, Object.assign({}, t, { body, qs: keep.map(i => t.qs[i]), ans: JSON.stringify(out) })); if (r && r.ok) onSaved(r.texts); else setMsg('ほぞん できませんでした'); } catch (e) { setMsg('ほぞん できませんでした（つながりを 確かめて ください）'); }
+      };
+      const box = { height: '30rem', background: '#fffdf4', border: '3px solid #d6c29a', borderRadius: 12, display: 'flex', flexDirection: 'column', position: 'relative', marginTop: '.3rem' };
+      return (
+        <div>
+          <div className="row">
+            <h2 style={{ margin: '.3rem 1rem .3rem 0' }}>{initial && initial.id ? '文章を 直す' : '新しい 文章'}</h2>
+            <div className="seg light">
+              <button className={step === 1 ? 'on' : ''} onClick={() => goStep(1)}>① 文章と とい</button>
+              <button className={step === 2 ? 'on' : ''} onClick={() => goStep(2)}>② こたえを きめる</button>
+            </div>
+          </div>
+          {step === 1 ? <>
+          {initial && initial.id ? <div className="note">子どもが 使いはじめた あとで 本文を 変えると、その子が ひいた せんは 消えます（こくばんは 残ります）。ことばの 数が 変わると、② で 決めた こたえも 付け直しに なります。</div> : null}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', alignItems: 'start' }}>
+            <div>
+              <label><b>だいめい</b><input type="text" value={t.title} onChange={e => set('title', e.target.value)} /></label>
+              <div className="row" style={{ margin: '.5rem 0' }}>
+                <b>しゅるい</b>
+                <select style={{ width: 'auto' }} value={t.kind} onChange={e => set('kind', e.target.value)}><option>ものがたり</option><option>せつめいぶん</option></select>
+                <label><input type="checkbox" checked={t.use !== false} onChange={e => set('use', e.target.checked)} /> 子どもに 見せる</label>
+              </div>
+              <b>ほんぶん</b>
+              <textarea rows={13} value={t.body} onChange={e => set('body', e.target.value)} placeholder={'ここに 文章を 貼り付けます。\n例：かえるが 手紙（てがみ）を 書（か）きました。'} />
+              <div className="row" style={{ margin: '.4rem 0' }}>
+                <button className="btn sm" onClick={() => set('body', autoCut(t.body))}>✂️ 自動で 区切る（「／」を 入れる）</button>
+              </div>
+              <div className="note">
+                ・ふりがな：漢字の すぐ あとに かっこで 読みを 書きます。例 <b>手紙（てがみ）</b><br />
+                ・区切り：<b>空白</b>（すきまが あく）か <b>／</b>（すきまは あかない）で、タップで 選ぶ「ことば」に 分かれます。<br />
+                ・空白も ／も ない 行は、アプリが 自動で 区切ります。右の 点線の わくで 確かめて、合わない ところは「自動で 区切る」を 押してから ／を 足したり 消したり して ください。<br />
+                ・行を 変えると 段落が 変わります。空の 行で 間が あきます。
+              </div>
+              <b>とい（めあて）</b>　<small>5つまで。空で かまいません。こたえは ② で 決めます</small>
+              {t.qs.map((q, i) => <input key={i} type="text" style={{ marginTop: '.3rem' }} value={q} placeholder={`とい${i + 1}`} onChange={e => set('qs', t.qs.map((x, j) => j === i ? e.target.value : x))} />)}
+            </div>
+            <div>
+              <b>子どもの 画面での 見え方</b>　<small>点線の わく ＝ 1つの「ことば」</small>
+              <div style={box}><TextPane title={t.title} doc={doc} vertical={settings.vertical} preview /></div>
+            </div>
+          </div>
+          </> : <>
+          <div className="note">問いの こたえに なる ことばや 文を、右の 文章の 上で タップして 印を 付けます（もう一度 タップで 外れます）。「💾 ほぞんする」を 押すまでは、子どもの 画面に 出ません。こたえを 付けない 問いは、今までどおり 使えます。</div>
+          {ans.stale ? <div className="note" style={{ background: '#fee2e2', borderColor: '#dc2626', marginTop: '.4rem' }}>⚠ 本文が 変わって ことばの 数が 変わったので、前の 印は 消しました。こたえを 付け直して ください。</div> : null}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', alignItems: 'start', marginTop: '.6rem' }}>
+            <div>
+              <b>どの 印を 付けますか</b>
+              {t.qs.map((q, i) => q.trim() ? (
+                <label key={i} className="row" style={{ flexWrap: 'nowrap', margin: '.3rem 0', padding: '.3rem .5rem', borderRadius: 8, background: target === i ? '#ede9fe' : '#fff', border: '2px solid ' + (target === i ? '#7c3aed' : '#cbd5e1') }}>
+                  <input type="radio" checked={target === i} onChange={() => setTarget(i)} /><span className="grow">とい{i + 1}　{q}</span><b style={{ whiteSpace: 'nowrap' }}>{ans.q[i].u.length ? `印 ${runsOf(ans.q[i].u).length}かしょ` : 'こたえ なし'}</b>
+                </label>
+              ) : null)}
+              <label className="row" style={{ flexWrap: 'nowrap', margin: '.3rem 0', padding: '.3rem .5rem', borderRadius: 8, background: target === 'feel' ? '#fce7f3' : '#fff', border: '2px solid ' + (target === 'feel' ? '#db2777' : '#cbd5e1') }}>
+                <input type="radio" checked={target === 'feel'} onChange={() => setTarget('feel')} /><span className="grow">💗 きもちの ことば（文章の 中に ある もの）</span><b style={{ whiteSpace: 'nowrap' }}>{ans.feel.length ? `印 ${runsOf(ans.feel).length}かしょ` : 'なし'}</b>
+              </label>
+              {target !== 'feel' ? (
+                <div style={{ background: '#fff', border: '1px solid #cbd5e1', borderRadius: 8, padding: '.5rem .7rem', margin: '.4rem 0' }}>
+                  <b>とい{target + 1} の こたえの 使い方</b>
+                  <div className="row" style={{ marginTop: '.3rem' }}>
+                    <label><input type="checkbox" checked={ans.q[target].hint} onChange={e => setQ({ hint: e.target.checked })} /> 💡 ヒントを つかう</label>
+                    <label><input type="checkbox" checked={ans.q[target].check} onChange={e => setQ({ check: e.target.checked })} /> ✔ たしかめるを つかう</label>
+                  </div>
+                  <div className="row" style={{ marginTop: '.3rem' }}>
+                    <span>せんの 色</span>
+                    <select style={{ width: 'auto' }} value={ans.q[target].c} onChange={e => setQ({ c: e.target.value })}><option value="">どの 色でも よい</option>{MARK_KEYS.map(c => <option key={c} value={c}>{MARKS[c].name}</option>)}</select>
+                  </div>
+                  <small>色を 決めると、その 色の せんだけを こたえと くらべます（「あかい せんを ひこう」のような 問いに）。こたえの 文を こくばんに はった ときも、見つけた ことに なります。</small>
+                  {ans.feel.length ? <div style={{ marginTop: '.3rem' }}><button className="btn sm" onClick={() => setList(ans.feel.slice())}>💗 きもちの ことばの 印を、この 問いの こたえに する</button></div> : null}
+                </div>
+              ) : <div className="note" style={{ margin: '.4rem 0' }}>文章の 中の 気持ちを 表す ことば（例：こまって しまいました）に 印を 付けます。先生用画面で、子どもが そこに 線を ひいたかが 分かります。問いの こたえに 使う ときは、問いを 選んで「きもちの ことばの 印を、この 問いの こたえに する」を 押します。</div>}
+              <h2 style={{ marginTop: '1rem' }}>💗 文章に ない きもちの ことば</h2>
+              <small>選んだ ことばが、子どもの こくばんの「💗 きもち」に 出ます。子どもは 選んで、付せんに して はれます。この 文章の 人物に 合う ものを 選んで ください。</small>
+              {FEEL_WORDS.map((g, k) => <div key={k} style={{ margin: '.3rem 0' }}>{g.map(w => <button key={w} className={'chip' + (ans.words.includes(w) ? ' on' : '')} onClick={() => toggleWord(w)}>{w}</button>)}</div>)}
+              <div>{ans.words.filter(w => !FEEL_WORDS.some(g => g.includes(w))).map(w => <button key={w} className="chip on" onClick={() => toggleWord(w)}>{w} ✖</button>)}</div>
+              <div className="row" style={{ flexWrap: 'nowrap', marginTop: '.3rem' }}>
+                <input type="text" value={word} maxLength={20} placeholder="ほかの ことばを 足す（例：むねが いっぱい）" onChange={e => setWord(e.target.value)} />
+                <button className="btn sm" disabled={!word.trim() || ans.words.includes(word.trim())} onClick={() => { toggleWord(word.trim()); setWord(''); }}>＋ 足す</button>
+              </div>
+            </div>
+            <div>
+              <div className="row">
+                <b>{target === 'feel' ? '💗 きもちの ことば' : `とい${target + 1} の こたえ`}に タップで 印を 付ける</b>
+                <div className="seg light"><button className={gran === 'u' ? 'on' : ''} onClick={() => setGran('u')}>ことば</button><button className={gran === 's' ? 'on' : ''} onClick={() => setGran('s')}>文</button></div>
+                <button className="btn sm" disabled={!curList.length} onClick={() => setList([])}>印を ぜんぶ 外す</button>
+              </div>
+              <div style={box}><TextPane title={t.title} doc={doc} vertical={settings.vertical} preview marks={Object.fromEntries(curList.map(i => [i, target === 'feel' ? 'r' : 'y']))} ansSet={new Set(curList)} onTap={tap} /></div>
+            </div>
+          </div>
+          </>}
+          <div className="row" style={{ marginTop: '1rem' }}>
+            <button className="btn green" onClick={save}>💾 ほぞんする</button>
+            <button className="btn" onClick={onCancel}>やめる</button>
+            {step === 1 ? <button className="btn blue" onClick={() => goStep(2)}>つぎへ：② こたえを きめる ▶</button> : null}
+            <b style={{ color: '#b91c1c' }}>{msg}</b>
+          </div>
+        </div>
+      );
+    }
+
+    function Teacher({ pin, first, onSettings, onTexts, onBack }) {
+      const [d, setD] = useState(first);
+      const [tab, setTab] = useState('works');
+      const [view, setView] = useState(null);   // { text, name }
+      const [edit, setEdit] = useState(null);   // 文章
+      const [s, setS] = useState(Object.assign({ newPin: '' }, first.settings));
+      const [msg, setMsg] = useState('');
+      const [who, setWho] = useState('');
+      const reload = async () => { const r = await api.teacher(pin); if (r && r.ok) setD(r); };
+      const setTexts = (texts) => { setD(o => Object.assign({}, o, { texts })); onTexts(texts.filter(t => t.use !== false)); };
+      const textOf = (id) => d.texts.find(t => t.id === id);
+      const cell = (name, t) => {
+        const w = d.works.find(x => x.name === name && x.id === t.id);
+        if (!w) return <span style={{ color: '#94a3b8' }}>—</span>;
+        return <button className="cellbtn" style={{ background: w.done ? '#bbf7d0' : '#fef9c3' }} onClick={() => setView({ text: t, name })}>{w.done ? '✅ できた' : '✏️ とちゅう'}<br /><small>{String(w.updated).slice(5)}</small></button>;
+      };
+      const usedTexts = d.texts.filter(t => t.use !== false || d.works.some(w => w.id === t.id));
+      const saveSet = async () => {
+        if (s.newPin && !/^\d{4}$/.test(s.newPin)) { setMsg('暗証番号は 数字4けたで 入れて ください'); return; }
+        setMsg('ほぞん ちゅう…');
+        try { const r = await api.saveSettings(pin, s); if (r && r.ok) { onSettings(r.settings); setMsg(s.newPin ? 'ほぞん しました。暗証番号が 変わったので、次から 新しい 番号で 入って ください' : 'ほぞん しました'); } else setMsg('ほぞん できませんでした'); } catch (e) { setMsg('ほぞん できませんでした'); }
+      };
+      const act = async (f, okMsg) => { setMsg('…'); try { const r = await f(); setMsg(r && r.ok !== false ? okMsg : 'できませんでした'); await reload(); } catch (e) { setMsg('できませんでした（つながりを 確かめて ください）'); } };
+      const restore = (file) => {
+        const fr = new FileReader();
+        fr.onload = () => { let data = null; try { data = JSON.parse(fr.result); } catch (e) {} if (!data || data.app !== 'kokuban') { setMsg('この アプリの バックアップでは ありません'); return; } act(() => api.restore(pin, data), 'バックアップから もどしました'); };
+        fr.readAsText(file);
+      };
+      const tabs = [['works', '📋 こくばんを 見る'], ['texts', '📖 文章'], ['set', '⚙️ 設定'], ['data', '💾 データ']];
+      return (
+        <div className="app tch">
+          <div className="top noprint">
+            <button className="btn sm" onClick={onBack}>◀ おわる</button>
+            <b style={{ fontSize: '1.2rem' }}>先生用画面</b>
+            <div className="seg">{tabs.map(t => <button key={t[0]} className={tab === t[0] ? 'on' : ''} onClick={() => { setTab(t[0]); setView(null); setEdit(null); setMsg(''); }}>{t[1]}</button>)}</div>
+            <span className="grow" /><small>v{APP_VERSION}{HAS_GAS ? '' : '・おためしモード'}</small>
+          </div>
+          <div className="page">
+            {d.isDefaultPin ? <div className="note noprint" style={{ marginBottom: '.8rem' }}>⚠ 暗証番号が はじめの「1234」の ままです。「⚙️ 設定」で 変えて ください。</div> : null}
+
+            {tab === 'works' && view ? <Viewer key={view.text.id + (view.name || '')} pin={pin} text={view.text} name={view.name} settings={first.settings} onBack={() => setView(null)} /> : null}
+            {tab === 'works' && !view ? (
+              <div>
+                <h2>子どもの マイこくばん</h2>
+                <p>ボタンを 押すと、その子の マイこくばんと、せんを ひいた 文章が 出ます。</p>
+                <div style={{ overflowX: 'auto' }}>
+                  <table>
+                    <thead><tr><th>なまえ</th><th>シール</th>{usedTexts.map(t => <th key={t.id}>{plainOf(t.title)}<br /><button className="cellbtn" style={{ marginTop: '.2rem' }} onClick={() => setView({ text: t, name: '' })}>👥 みんなの せん</button></th>)}</tr></thead>
+                    <tbody>
+                      {d.students.map(st => { const n = parseProgress(st.progress).stickers.length; return <tr key={st.name}><th>{st.name}</th><td>{n}まい<br /><small>{titleOf(n)}</small></td>{usedTexts.map(t => <td key={t.id}>{cell(st.name, t)}</td>)}</tr>; })}
+                    </tbody>
+                  </table>
+                </div>
+                {!d.students.length ? <div className="note">「名簿」シートの A列（2行目から）に、子どもの 名前を ひらがなで 入れて ください。</div> : null}
+                <button className="btn sm" style={{ marginTop: '.8rem' }} onClick={reload}>🔄 新しく する</button>
+              </div>
+            ) : null}
+
+            {tab === 'texts' && edit ? <TextEditor pin={pin} initial={edit} settings={first.settings} onSaved={(texts) => { setTexts(texts); setEdit(null); }} onCancel={() => setEdit(null)} /> : null}
+            {tab === 'texts' && !edit ? (
+              <div>
+                <h2>文章</h2>
+                <button className="btn green" onClick={() => setEdit({})}>＋ 新しい 文章を 入れる</button>
+                <table style={{ marginTop: '.8rem', width: '100%' }}>
+                  <thead><tr><th>だいめい</th><th>しゅるい</th><th>子どもに 見せる</th><th>とい</th><th>文字数</th><th></th></tr></thead>
+                  <tbody>{d.texts.map(t => (
+                    <tr key={t.id}><td style={{ textAlign: 'left' }}>{plainOf(t.title)}</td><td>{t.kind}</td><td>{t.use !== false ? '○' : '×'}</td><td>{(t.qs || []).length}</td><td>{plainOf(t.body).length}</td>
+                      <td><button className="btn sm" onClick={() => setEdit(t)}>✏️ 直す</button> <button className="btn sm red" onClick={() => { if (window.confirm(`「${plainOf(t.title)}」を 消します。よろしいですか？\n（子どもの マイこくばんの 記録は 残ります）`)) api.deleteText(pin, t.id).then(r => r && r.ok && setTexts(r.texts)); }}>🗑 消す</button></td></tr>
+                  ))}</tbody>
+                </table>
+                <div className="note" style={{ marginTop: '.8rem' }}>教科書の 文章は 著作権が あります。ここに 入れた 文章は、先生の スプレッドシート（「ぶんしょう」シート）にだけ 保存されます。授業の 中で 使い、ほかの 人に 配らないで ください。</div>
+              </div>
+            ) : null}
+
+            {tab === 'set' ? (
+              <div style={{ maxWidth: '36rem' }}>
+                <h2>設定</h2>
+                <p><b>読み上げの 速さ</b><br /><select value={s.rate} onChange={e => setS(Object.assign({}, s, { rate: Number(e.target.value) }))}>{[[0.6, 'とても ゆっくり'], [0.7, 'ゆっくり'], [0.8, '少し ゆっくり（はじめの 設定）'], [0.9, 'やや ゆっくり'], [1, 'ふつう']].map(o => <option key={o[0]} value={o[0]}>{o[1]}（{o[0]}倍）</option>)}</select>
+                  <button className="btn sm" style={{ marginTop: '.3rem' }} onClick={() => { SPEAK_RATE = s.rate; speak('この はやさで よみます。'); }}>🔊 ためす</button></p>
+                <p><b>文字の 大きさ</b><br /><select value={s.font} onChange={e => setS(Object.assign({}, s, { font: Number(e.target.value) }))}>{[[0.85, '小さめ'], [1, 'ふつう'], [1.2, '大きめ'], [1.4, 'とても 大きい']].map(o => <option key={o[0]} value={o[0]}>{o[1]}</option>)}</select></p>
+                <p><b>文章の 向き</b><br /><select value={s.vertical ? 'v' : 'h'} onChange={e => setS(Object.assign({}, s, { vertical: e.target.value === 'v' }))}><option value="v">たて書き</option><option value="h">よこ書き</option></select></p>
+                <p><b>効果音</b><br /><select value={s.sound ? '1' : '0'} onChange={e => setS(Object.assign({}, s, { sound: e.target.value === '1' }))}><option value="1">鳴らす</option><option value="0">鳴らさない</option></select></p>
+                <p><b>暗証番号を 変える</b>（数字4けた。変えない ときは 空の まま）<br /><input type="text" inputMode="numeric" maxLength={4} value={s.newPin} onChange={e => setS(Object.assign({}, s, { newPin: e.target.value.replace(/\D/g, '') }))} /></p>
+                <button className="btn green" onClick={saveSet}>💾 ほぞんする</button> <b>{msg}</b>
+              </div>
+            ) : null}
+
+            {tab === 'data' ? (
+              <div style={{ maxWidth: '44rem' }}>
+                <h2>データ</h2>
+                <p>{HAS_GAS ? '記録は、先生の スプレッドシートに 入っています（「きろく」「まとめ」シート）。' : 'おためしモードです。記録は この 端末の 中だけに あります。'}</p>
+                <div className="row">
+                  <button className="btn sm" onClick={() => api.logRows(pin).then(r => r && r.ok && download(`マイこくばん_きろく_${nowStr().slice(0, 10).replace(/\//g, '')}.csv`, toCSV(r.rows), 'text/csv'))}>⬇ きろくを CSVで 書き出す</button>
+                  <button className="btn sm" onClick={() => download(`マイこくばん_まとめ_${nowStr().slice(0, 10).replace(/\//g, '')}.csv`, toCSV([['なまえ', 'ぶんしょう', 'こうしん', 'じょうたい', 'せんを ひいた ことば', 'こくばんに はった ことば', 'じぶんで かいた ことば', 'スタンプ・やじるし・わく']].concat(d.works.map(w => [w.name, w.title, w.updated, w.done ? 'できた' : 'とちゅう', w.lines, w.pasted, w.own, w.etc]))), 'text/csv')}>⬇ まとめを CSVで 書き出す</button>
+                </div>
+                <h2>バックアップ</h2>
+                <div className="row">
+                  <button className="btn sm" onClick={() => api.backup(pin).then(r => r && r.ok && download(`マイこくばん_バックアップ_${nowStr().slice(0, 10).replace(/\//g, '')}.json`, JSON.stringify(r.data), 'application/json'))}>⬇ バックアップを 保存する</button>
+                  <label className="btn sm">⬆ バックアップから もどす<input type="file" accept=".json" style={{ display: 'none' }} onChange={e => { if (e.target.files[0]) restore(e.target.files[0]); e.target.value = ''; }} /></label>
+                </div>
+                <h2>記録を 消す</h2>
+                <div className="row">
+                  <select style={{ width: 'auto' }} value={who} onChange={e => setWho(e.target.value)}><option value="">全員</option>{d.students.map(st => <option key={st.name}>{st.name}</option>)}</select>
+                  <button className="btn sm red" onClick={() => { if (window.confirm(`${who || '全員'}の マイこくばん・シール・きろくを 消します。元には もどせません。よろしいですか？`)) act(() => { d.students.forEach(st => { if (!who || st.name === who) try { Object.keys(window.localStorage).filter(k => k.startsWith(`kokuban_w_${st.name}_`) || k === `kokuban_q_${st.name}`).forEach(k => store.del(k)); } catch (e) {} }); return api.clear(pin, who); }, '消しました'); }}>🗑 消す</button>
+                </div>
+                <p><b>{msg}</b></p>
+                <div className="note">文章は 消えません。文章を 消す ときは「📖 文章」から 消します。</div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    //  10. ぜんたい
+    // =====================================================================
+    function App() {
+      const [init, setInit] = useState(null), [err, setErr] = useState('');
+      const [screen, setScreen] = useState('names');
+      const [name, setName] = useState(''), [progress, setProgress] = useState({ stickers: [] }), [works, setWorks] = useState({});
+      const [text, setText] = useState(null);
+      const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+      const [teacher, setTeacher] = useState(null);
+      const [busy, setBusy] = useState(false);
+      const useSettings = (s) => {
+        const n = Object.assign({}, DEFAULT_SETTINGS, s); setSettings(n);
+        SPEAK_RATE = n.rate; SOUND_ON = n.sound; document.documentElement.style.fontSize = (16 * n.font) + 'px';
+      };
+      useEffect(() => {
+        api.init().then(d => { setInit(d); useSettings(d.settings); }).catch(e => setErr(String(e && e.message || e)));
+        try { window.speechSynthesis.getVoices(); } catch (e) {}
+      }, []);
+      const pick = async (n) => {
+        setBusy(true);
+        try { const s = await api.student(n); setName(n); setProgress(parseProgress(s.progress)); setWorks(s.works || {}); setScreen('home'); }
+        catch (e) { setErr('よみこめませんでした。もう一度 ためして ください。'); }
+        setBusy(false);
+      };
+      if (err) return <div className="app"><div className="page" style={{ textAlign: 'center' }}><div className="note" style={{ display: 'inline-block', marginTop: '3rem', fontSize: '1.2rem' }}>{err}</div><br /><button className="btn big" style={{ marginTop: '1rem' }} onClick={() => location.reload()}>🔄 もう いちど</button></div></div>;
+      if (!init || busy) return <div className="app"><div className="page" style={{ textAlign: 'center', fontSize: '1.6rem', fontWeight: 700, paddingTop: '4rem', color: '#7c5a35' }}>じゅんび ちゅう…</div></div>;
+      if (screen === 'pin') return <PinGate onOK={(pin, d) => { setTeacher({ pin, d }); setScreen('teacher'); }} onBack={() => setScreen('names')} />;
+      if (screen === 'teacher') return <Teacher pin={teacher.pin} first={teacher.d} onSettings={useSettings} onTexts={(texts) => setInit(o => Object.assign({}, o, { texts }))} onBack={() => { setTeacher(null); setScreen('names'); }} />;
+      if (screen === 'home') return <Home name={name} texts={init.texts} works={works} progress={progress} onOpen={(t) => { setText(t); setScreen('work'); }} onAlbum={() => setScreen('album')} onBack={() => { stopSpeak(); setScreen('names'); }} />;
+      if (screen === 'album') return <Album progress={progress} onBack={() => setScreen('home')} />;
+      if (screen === 'work') return <Work key={name + text.id} name={name} text={text} settings={settings} progress={progress} onProgress={setProgress} onExit={(w) => { if (w) setWorks(o => Object.assign({}, o, { [w.id]: { done: w.done, updated: w.updated } })); setScreen('home'); }} />;
+      return <Names students={init.students} onPick={pick} onTeacher={() => setScreen('pin')} />;
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
