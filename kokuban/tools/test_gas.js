@@ -46,7 +46,7 @@ const ctx = {
 };
 vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'コード.gs'), 'utf8'), ctx);
-vm.runInContext('function SAMPLE_TEXTS_FOR_TEST() { return SAMPLE_TEXTS; } function OLD_S1_ANS_FOR_TEST() { return OLD_S1_ANS; } function OLD_S1_ANS_2_FOR_TEST() { return OLD_S1_ANS_2; }', ctx); // const は 外から 見えないので、テスト用に 取り出す
+vm.runInContext('function SAMPLE_TEXTS_FOR_TEST() { return SAMPLE_TEXTS; } function OLD_S1_ANS_FOR_TEST() { return OLD_S1_ANS; } function OLD_S1_ANS_2_FOR_TEST() { return OLD_S1_ANS_2; } function OLD_S1_3_FOR_TEST() { return [OLD_S1_BODY, OLD_S1_ANS_3]; }', ctx); // const は 外から 見えないので、テスト用に 取り出す
 
 let bad = 0;
 const ok = (c, msg) => { console.log((c ? '✔ ' : '✖ ') + msg); if (!c) bad++; };
@@ -131,7 +131,8 @@ ok(ctx.restoreBackup('0420', { app: 'ほか' }).ok === false, 'ほかの アプ�
     ok(f2.on === true && f2.quiz.length === 3 && JSON.stringify(f2.quiz) === JSON.stringify(f.quiz.slice(0, 3)), '1つ 前の こたえ（3問）と、はじめの 3問は 同じ');
     sh.data[row][10] = OLD2; ctx.doGet();
     ok(sh.data[row][10] === NEW, '1つ 前の 版の ままの「くもの ぼうし」も、新しい こたえ（4問）に 入れかわる'); }
-  ok(!JSON.parse(OLD).flow && JSON.parse(OLD).n === JSON.parse(NEW).n && JSON.stringify(JSON.parse(OLD).cats) === JSON.stringify(JSON.parse(NEW).cats), '前の こたえと 印は 同じ（型だけ 足した）');
+  { const P = JSON.parse(ctx.OLD_S1_3_FOR_TEST()[1]); // 本文を 変える 前の こたえ（4問）
+    ok(!JSON.parse(OLD).flow && JSON.parse(OLD).n === P.n && JSON.stringify(JSON.parse(OLD).cats) === JSON.stringify(P.cats) && JSON.stringify(P.flow) === JSON.stringify(JSON.parse(NEW).flow), '前の 本文の こたえは 印が 同じ（型だけ 足した）。新しい 本文でも 型は 同じ'); }
   sh.data[row][10] = OLD; ctx.doGet();
   ok(sh.data[row][10] === NEW, '前の 版の ままの「くもの ぼうし」は、新しい こたえに 入れかわる');
   sh.data[row][10] = OLD.replace('"paraShow":true', '"paraShow":false'); const keep = sh.data[row][10]; ctx.doGet();
@@ -139,6 +140,20 @@ ok(ctx.restoreBackup('0420', { app: 'ほか' }).ok === false, 'ほかの アプ�
   sh.data[row][10] = OLD; const body = sh.data[row][4]; sh.data[row][4] = body + 'あ'; ctx.doGet();
   ok(sh.data[row][10] === OLD, '先生が 本文を 直して いたら、入れかえない');
   sh.data[row][4] = body; sh.data[row][10] = NEW;
+}
+
+// 本文を「ありがとう。さがして いたんだ。」に 変えた 版
+{
+  const sh = sheets['ぶんしょう'], row = sh.data.findIndex(r => r[0] === 's1'), S = ctx.SAMPLE_TEXTS_FOR_TEST()[0], [OB, OA3] = ctx.OLD_S1_3_FOR_TEST();
+  const A = JSON.parse(S[10]);
+  ok(S[4].includes('「ありがとう。さがして いたんだ。」') && !OB.includes('さがして') && A.n === 42 && A.cats.hatsugen.join() === '7,8,12,13,14,33,34,35' && A.flow.sp['33'] === 'くも、雲' && A.fm['yosu:39'] && A.fm['kimochi:37'], '新しい 本文と、ずらした 印');
+  for (const [name, body, ans] of [['はじめの 版', OB, ctx.OLD_S1_ANS_FOR_TEST()], ['3問の 版', OB, ctx.OLD_S1_ANS_2_FOR_TEST()], ['4問の 版', OB, OA3]]) {
+    sh.data[row][4] = body; sh.data[row][10] = ans; ctx.doGet();
+    ok(JSON.stringify(sh.data[row]) === JSON.stringify(S), name + 'の ままなら、本文も こたえも 新しく なる');
+  }
+  sh.data[row][4] = OB + 'あ'; sh.data[row][10] = OA3; ctx.doGet();
+  ok(sh.data[row][10] === OA3 && sh.data[row][4] === OB + 'あ', '先生が 前の 本文を 直して いたら、入れかえない');
+  sh.data[row] = S.slice();
 }
 
 // メニュー：先生が 直した「くもの ぼうし」を 入れ直す
