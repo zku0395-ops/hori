@@ -99,13 +99,13 @@
 |---|---|
 | `index.html` | アプリ本体（Apps Script に `index` という名前で貼り付けます） |
 | `コード.gs` | スプレッドシートとつなぐプログラム |
-| `img/s1.webp`・`img/s2.webp` | れんしゅう用の文章の絵（ChatGPT で作ります。まだないときは、絵を出さずに動きます） |
+| `img/s1.webp`・`img/s2.webp` | れんしゅう用の文章の絵（ChatGPT で作りました。800 × 600 の WebP） |
 | `e_chatgpt.md` | ChatGPT に絵を頼むときの文と、絵を入れる手順 |
 | `tools/test_gas.js` | `コード.gs` のテスト（`node kokuban/tools/test_gas.js`） |
 
 チョークんと画面の絵は、絵文字と自作のSVGだけです。
 
-### 絵（ChatGPT で作ります）
+### 絵（ChatGPT で作りました）
 
 | 絵 | ファイル名 | 出る場所 |
 |---|---|---|
@@ -114,6 +114,7 @@
 
 - 絵は GitHub Pages から読みこみます。絵を入れたり入れかえたりしても、Apps Script に貼り直す必要はありません。
 - 絵を作る手順と、ChatGPT に貼る文は `e_chatgpt.md` にあります。
+- 元の絵（PNG）は、先生のパソコンの「アプリ用画像素材 → 02_ChatGPT生成 → 2026-11 → マイこくばん」にあります（`kokuban_s1_kumo.png`・`kokuban_s2_dango.png`）。
 - 絵が付くのは、れんしゅう用の2つの文章だけです。先生が入れた文章には付きません。
 
 ## 公開の手順
