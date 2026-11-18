@@ -82,6 +82,7 @@ window.SORA = {
           { id: 'shicookie', emoji: '🍪', name: '{詩|し}の {音読|おんどく}（クッキーを つくろう）', say: 'しの おんどく クッキーを つくろう', url: 'https://zku0395-ops.github.io/hori/shi/cookie/' },
           { id: 'shidensha', emoji: '🚃', name: '{詩|し}の {音読|おんどく}（でんしゃで おでかけ）', say: 'しの おんどく でんしゃで おでかけ', url: 'https://zku0395-ops.github.io/hori/shi/densha/' },
           { id: 'monogatari', emoji: '🌸', name: 'ピカリせんせいの ものがたりの もり', say: 'ピカリせんせいの ものがたりの もり', url: 'https://script.google.com/macros/s/AKfycbxuT2z3PhAXIhhxaWGg2bL0UPpnr1R0AXROsUQ9NDSFOG6X0cbw9dasZhA1Azdta4V5Bw/exec' },
+          { id: 'kokuban', emoji: '🖍️', name: 'チョークんの マイこくばん', say: 'チョークんの マイこくばん', url: 'https://script.google.com/macros/s/AKfycbzcWs4Korrmy003Ew_ymIUg5lmv0LlywokiQ3X5UViyjmAeHxgftrGpIWFFdhaOk_7JPg/exec' },
         ] },
       ],
     },
