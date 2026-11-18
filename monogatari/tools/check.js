@@ -26,7 +26,7 @@ D.STORIES.forEach((s, si) => {
   const lines = s.lines.map((l, li) => {
     if ((l.match(/\{/g) || []).length !== (l.match(/\}/g) || []).length) ng(`${where} ${li + 1}行め：{ } の かずが あいません`);
     if ((l.match(/\[/g) || []).length !== (l.match(/\]/g) || []).length) ng(`${where} ${li + 1}行め：[ ] の かずが あいません`);
-    if (/\{(?![tpkosn]\d?:)/.test(l)) ng(`${where} ${li + 1}行め：タグの しゅるいが ちがいます（t p k o s1 n1 …）`);
+    if (/\{(?![tpkosny]\d?:)/.test(l)) ng(`${where} ${li + 1}行め：タグの しゅるいが ちがいます（t p k y o s1 n1 …）`);
     const nodes = D.parse(l);
     const base = D.plain(nodes);
     const noRuby = l.replace(/\[[^\]]*\]/g, '');
@@ -39,6 +39,13 @@ D.STORIES.forEach((s, si) => {
   spans.forEach(sp => {
     if (sp.c === 'dare' && !(sp.n >= 1 && s.people && s.people[sp.n - 1])) ng(`${where}：「${sp.base}」の 人の ばんごう ${sp.n} が people に ありません`);
   });
+  // ① だれが いった：せりふを 言った 人の 名前が、ぶんしょうの どこかに 書いて あるか（子どもが さわって はりつける）
+  const whole = lines.map(n => D.plain(n)).join(' ');
+  [...new Set(spans.filter(sp => sp.c === 'dare' && sp.k === 's').map(sp => sp.n))].forEach(n => {
+    const who = s.people && s.people[n - 1];
+    if (who && !whole.includes(who.n)) ng(`${where}：せりふを 言った「${who.n}」の 名前が ぶんしょうに ありません`);
+  });
+  spans.forEach(sp => { if (sp.k === 'y' && !sp.m) console.log(`△ ${where}：ようす「${sp.base}」に、わかる きもち（|きもち）が 書いて ありません`); });
   if (chars > 260) console.log(`△ ${where}：${chars}もじ（200もじ くらいが めやす）`);
   buttons.forEach(b => { if (!spans.some(sp => sp.c === b)) console.log(`△ ${where}：「${b}」の ことばが ぶんしょうに ありません`); });
   (s.quiz || []).forEach((q, qi) => {

@@ -2,10 +2,10 @@
  * ピカリせんせいの ものがたりの もり（サーバー側）
  *
  * スプレッドシートの「拡張機能 → Apps Script」に貼り付けて使います。
- * シート：名簿・きろく・まとめ・せってい（なければ自動で作ります）
+ * シート：名簿・きろく・まとめ・せってい・いろ（なければ自動で作ります）
  */
 
-const SHEET = { ROSTER: '名簿', LOG: 'きろく', SUM: 'まとめ', SET: 'せってい' };
+const SHEET = { ROSTER: '名簿', LOG: 'きろく', SUM: 'まとめ', SET: 'せってい', IRO: 'いろ' };
 const LOG_HEADER = ['日時', 'なまえ', 'おはなし', 'だいめい', 'しゅるい', 'もんだい', 'こたえ', 'けっか', 'まちがい', 'ヒント', 'えらんだ こたえ', 'びょう', 'ID'];
 const DEFAULT_PIN = '1234';
 // 「せってい」シートの項目（アプリの設定名 と 見出し）
@@ -196,7 +196,68 @@ function parseProgress_(s) {
 // ---------------------------------------------------------------------
 function getInitData() {
   ensureSheets_();
-  return { students: rosterNames_(), settings: appSettings_() };
+  return { students: rosterNames_(), settings: appSettings_(), iro: iroMap_() };
+}
+
+// ---------------------------------------------------------------------
+// いろ（先生が たしかめた おはなし と、直した いろ）
+//   「いろ」シート：おはなし・だいめい・たしかめた・もとの文・いろ・こうしん
+//   ・「たしかめた」に 日時が 入って いる おはなし だけを、子どもの 画面に 出す
+//   ・「もとの文」は、たしかめた ときの 文の しるし。おはなしの 文が 変わったら、もう一度 たしかめる
+//   ・「いろ」は、1行ずつの 書き方（{t:…} など）を JSON で 入れる
+// ---------------------------------------------------------------------
+const IRO_HEADER = ['おはなし', 'だいめい', 'たしかめた', 'もとの文', 'いろ', 'こうしん'];
+function iroSheet_() {
+  const ss = ss_();
+  let sh = ss.getSheetByName(SHEET.IRO);
+  if (!sh) {
+    sh = ss.insertSheet(SHEET.IRO);
+    sh.getRange(1, 1, 1, IRO_HEADER.length).setValues([IRO_HEADER]).setFontWeight('bold').setBackground('#fce7f3');
+    sh.setFrozenRows(1);
+    sh.setColumnWidth(2, 260);
+  }
+  return sh;
+}
+function iroRows_() {
+  const sh = iroSheet_();
+  const last = sh.getLastRow();
+  return last < 2 ? [] : sh.getRange(2, 1, last - 1, IRO_HEADER.length).getDisplayValues();
+}
+function iroMap_() {
+  const map = {};
+  iroRows_().forEach(function (r) {
+    const id = Number(r[0]);
+    if (!id) return;
+    let lines = null;
+    try { const v = JSON.parse(r[4] || 'null'); if (Array.isArray(v)) lines = v.map(String); } catch (e) { lines = null; }
+    map[id] = { ok: !!String(r[2]).trim(), hash: String(r[3]).replace(/^'/, ''), lines: lines };
+  });
+  return map;
+}
+// 先生用画面：1つの おはなしの いろ と「たしかめた」を ほぞん
+function saveIro(pin, id, title, ok, hash, lines) {
+  if (!checkPin_(pin)) return { ok: false };
+  id = Number(id);
+  if (!id || id < 1 || id > 999) return { ok: false };
+  let json = '';
+  if (Array.isArray(lines)) {
+    if (lines.length > 60 || lines.some(function (l) { return typeof l !== 'string' || l.length > 400; })) return { ok: false };
+    json = JSON.stringify(lines);
+    if (json.length > 40000) return { ok: false };
+  }
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const sh = iroSheet_();
+    const now = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy/MM/dd HH:mm');
+    const rows = iroRows_();
+    let row = -1;
+    for (let i = 0; i < rows.length; i++) if (Number(rows[i][0]) === id) { row = i + 2; break; }
+    const oldTitle = row >= 0 ? rows[row - 2][1] : '';
+    const vals = [id, title ? safe_(String(title).slice(0, 80)) : oldTitle, ok ? now : '', "'" + String(hash || '').slice(0, 40), json, now];
+    if (row < 0) sh.appendRow(vals); else sh.getRange(row, 1, 1, IRO_HEADER.length).setValues([vals]);
+  } finally { lock.releaseLock(); }
+  return { ok: true, iro: iroMap_() };
 }
 
 function getStudent(name) {
@@ -314,7 +375,7 @@ function getLogRows(pin) {
 
 function getBackup(pin) {
   if (!checkPin_(pin)) return { ok: false };
-  return { ok: true, data: { app: 'monogatari', time: new Date().toISOString(), roster: rosterValues_().filter(function (r) { return String(r[0]).trim(); }).map(function (r) { return [String(r[0]).trim(), String(r[1] || '')]; }), settings: appSettings_() } };
+  return { ok: true, data: { app: 'monogatari', time: new Date().toISOString(), roster: rosterValues_().filter(function (r) { return String(r[0]).trim(); }).map(function (r) { return [String(r[0]).trim(), String(r[1] || '')]; }), settings: appSettings_(), iro: iroMap_() } };
 }
 
 function restoreBackup(pin, data) {
@@ -328,6 +389,9 @@ function restoreBackup(pin, data) {
     if (row < 0) { sh.appendRow([safe_(name), '']); row = sh.getLastRow(); }
     sh.getRange(row, 2).setValue(String(r[1] || ''));
   });
+  if (data.iro && typeof data.iro === 'object') {
+    Object.keys(data.iro).forEach(function (id) { const r = data.iro[id] || {}; saveIro(pin, id, '', !!r.ok, r.hash, r.lines); });
+  }
   return { ok: true };
 }
 
