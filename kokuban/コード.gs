@@ -27,12 +27,15 @@ const SAMPLE_TEXTS = [
   ['s1', 'くもの ぼうし', 'ものがたり', '○',
     'あさ、こぐまの ポルは、のはらで 白（しろ）い ぼうしを ひろいました。\n「だれの ぼうしかな。」\n\nポルは、りすに ききました。\n「ううん、ぼくのじゃ ないよ。」\nポルは、こまって しまいました。\n\nその とき、風（かぜ）が ふいて、ぼうしは ふわりと 空（そら）へ とんで いきました。\n小（ちい）さな 雲（くも）が、ぼうしを かぶって わらって います。\n「ありがとう。」\nポルは、うれしく なって、大（おお）きく 手（て）を ふりました。',
     'とうじょうじんぶつに、あかい せんを ひこう。', 'ポルの きもちが わかる ぶんを、こくばんに はろう。', 'ぼうしは、だれの ものだったかな。じぶんの ことばで かこう。', '', '',
-    '{"th":"-1907463431","n":40,"q":[{"u":[],"k":"jinbutsu","hint":true,"check":true,"c":"r"},{"u":[15,16,17,34,35,36,37,38,39],"k":"","hint":true,"check":true,"c":""},{"u":[],"k":"","hint":true,"check":true,"c":""}],"cats":{"hatsugen":[7,8,12,13,14,33],"jinbutsu":[2,10,28],"toki":[0,18,19],"basho":[3,24],"kimochi":[16,17,35,36],"yosu":[37,38,39],"ono":[23]},"fm":{"yosu:37":["うれしい","ありがとうの きもち"],"kimochi:16":["こまった"],"kimochi:35":["うれしい"]},"custom":[],"heads":["toki","basho","jinbutsu"],"para":[0,9,18],"paraShow":true,"words":["こまった","ふしぎ","びっくり","うれしい","ほっと した"]}'],
+    '{"th":"-1907463431","n":40,"q":[{"u":[],"k":"jinbutsu","hint":true,"check":true,"c":"r"},{"u":[15,16,17,34,35,36,37,38,39],"k":"","hint":true,"check":true,"c":""},{"u":[],"k":"","hint":true,"check":true,"c":""}],"cats":{"hatsugen":[7,8,12,13,14,33],"jinbutsu":[2,10,28],"toki":[0,18,19],"basho":[3,24],"kimochi":[16,17,35,36],"yosu":[37,38,39],"ono":[23]},"fm":{"yosu:37":["うれしい","ありがとうの きもち"],"kimochi:16":["こまった"],"kimochi:35":["うれしい"]},"custom":[],"heads":["toki","basho","jinbutsu"],"para":[0,9,18],"paraShow":true,"words":["こまった","ふしぎ","びっくり","うれしい","ほっと した"],"flow":{"on":true,"who":"ポル","off":[],"sp":{"7":"ポル","12":"りす","33":"くも、雲"},"quiz":[{"q":"「だれの ぼうしかな。」と いったのは、だれかな？","o":["ポル","りす","くも"]},{"q":"いつの はなしかな？","o":["あさ","ひる","よる"]},{"q":"さいごの ポルは、どんな きもちかな？","o":["うれしい","こまった","かなしい"]}]}}'],
   ['s2', 'だんごむしの ひみつ', 'せつめいぶん', '○',
     'だんごむしは、石（いし）や おちばの 下（した）に います。\n\nだんごむしは、どうして まるく なるのでしょうか。\nてきに おそわれると、からだを まるく します。\nかたい せなかで、やわらかい おなかを まもるのです。\n\nだんごむしは、何（なに）を たべるのでしょうか。\nだんごむしは、おちばを たべます。\nたべた おちばは、土（つち）の えいように なります。',
     '「とい」の ぶんに、あおい せんを ひこう。', '「こたえ」の ぶんに、あかい せんを ひこう。', 'わかった ことを、こくばんに まとめよう。', '', '',
     '{"th":"152608060","n":30,"q":[{"u":[],"k":"toi","hint":true,"check":true,"c":"b"},{"u":[],"k":"kotae","hint":true,"check":true,"c":"r"},{"u":[],"k":"","hint":true,"check":true,"c":""}],"cats":{"toi":[5,6,7,8,19,20,21],"kotae":[9,10,11,12,13,22,23,24]},"custom":[],"heads":["toi","kotae"],"para":[0,5,19],"paraShow":true,"words":[]}'],
 ];
+
+// 前の 版の「くもの ぼうし」の こたえ（ものがたりの 型が 入る 前）。先生が 何も 直して いない ときだけ、新しい ものに 入れかえる
+const OLD_S1_ANS = '{"th":"-1907463431","n":40,"q":[{"u":[],"k":"jinbutsu","hint":true,"check":true,"c":"r"},{"u":[15,16,17,34,35,36,37,38,39],"k":"","hint":true,"check":true,"c":""},{"u":[],"k":"","hint":true,"check":true,"c":""}],"cats":{"hatsugen":[7,8,12,13,14,33],"jinbutsu":[2,10,28],"toki":[0,18,19],"basho":[3,24],"kimochi":[16,17,35,36],"yosu":[37,38,39],"ono":[23]},"fm":{"yosu:37":["うれしい","ありがとうの きもち"],"kimochi:16":["こまった"],"kimochi:35":["うれしい"]},"custom":[],"heads":["toki","basho","jinbutsu"],"para":[0,9,18],"paraShow":true,"words":["こまった","ふしぎ","びっくり","うれしい","ほっと した"]}';
 
 // ---------------------------------------------------------------------
 // 画面を表示する
@@ -85,6 +88,7 @@ function ensureSheets_() {
   } else if (!String(sh.getRange(1, ANS_COL).getValue())) {
     sh.getRange(1, ANS_COL).setValue(TEXT_HEADER[ANS_COL - 1]).setFontWeight('bold').setBackground('#fef9c3'); // 前の 版の シートに 列を 足す
   }
+  upgradeSample_(sh);
   sh = ss.getSheetByName(SHEET.LOG);
   if (!sh) {
     sh = ss.insertSheet(SHEET.LOG);
@@ -114,6 +118,20 @@ function ensureSheets_() {
 }
 
 // 受け取った文字列が 式として うごかないように する（先頭が = + - @ のとき）
+// れんしゅう用の「くもの ぼうし」に、ものがたりの 型（発問・かくにん もんだい）を 入れる。
+// 本文も こたえも、はじめの ままの ときだけ 入れかえる（先生が 直した 文章には さわらない）。子どもの きろくは 変えない。
+function upgradeSample_(sh) {
+  const last = Math.min(sh.getLastRow(), 30);
+  if (last < 2) return;
+  const values = sh.getRange(2, 1, last - 1, TEXT_HEADER.length).getValues();
+  for (let i = 0; i < values.length; i++) {
+    const r = values[i];
+    if (String(r[0]) !== 's1') continue;
+    if (String(r[4]) === SAMPLE_TEXTS[0][4] && String(r[ANS_COL - 1]) === OLD_S1_ANS) sh.getRange(i + 2, ANS_COL).setValue(SAMPLE_TEXTS[0][ANS_COL - 1]);
+    return;
+  }
+}
+
 function safe_(v) {
   if (typeof v !== 'string') return v;
   return /^[=+\-@]/.test(v) ? "'" + v : v;

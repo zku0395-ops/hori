@@ -54,6 +54,7 @@
     .pane-text { background: #fffdf4; border-right: 6px solid #7c5a35; }
     .pane-board { background: #3f2f1c; }
     .tbar { display: flex; align-items: center; gap: .3rem; padding: .4rem .4rem; background: #f1e7cf; flex-wrap: wrap; }
+    .tbar .seg button { padding: .45rem .42rem; } /* 「もじ」を 足しても 1だんに 入るように */
     .pen { width: 2.7rem; height: 2.7rem; padding: 0; flex: none; border-radius: 50%; border: 3px solid #64748b; border-bottom-width: 6px; font-size: 1.3rem; display: inline-flex; align-items: center; justify-content: center; }
     .pen:active { transform: translateY(3px); border-bottom-width: 3px; }
     .pen.on { outline: 4px solid #f59e0b; outline-offset: 2px; }
@@ -90,6 +91,14 @@
     .pnum { color: #c2410c; font-weight: 700; font-size: 1.2em; margin-inline-end: .25em; }
     .ftag { position: absolute; left: 0; top: 100%; margin-top: 4px; writing-mode: horizontal-tb; white-space: nowrap; background: #ffc9d6; border: 2px solid #db2777; border-radius: 999px; padding: 0 12px; font-size: 20px; line-height: 1.7; box-shadow: 2px 3px 0 rgba(0,0,0,.25); }
     .head { color: #fff; font-weight: 700; font-size: 26px; line-height: 1.3; padding: 6px 16px; border: 4px dashed rgba(255,255,255,.75); border-radius: 14px; white-space: nowrap; background: rgba(255,255,255,.08); }
+    .head.v { writing-mode: vertical-rl; padding: 14px 6px; line-height: 1.25; }
+    .stag { position: absolute; left: 0; bottom: 100%; margin-bottom: 5px; white-space: nowrap; background: #fff7d6; border: 3px solid #b45309; border-radius: 10px; padding: 2px 10px; font-size: 24px; line-height: 1.6; box-shadow: 2px 3px 0 rgba(0,0,0,.25); writing-mode: horizontal-tb; }
+    .stag.v { left: auto; right: 0; writing-mode: vertical-rl; padding: 8px 4px; height: max-content; max-height: 76px; box-sizing: border-box; white-space: pre-wrap; line-height: 1.4; }
+    .stag .ok { color: #dc2626; }
+    .fusen.pickme { animation: pickme 1s ease-in-out infinite; cursor: pointer; z-index: 6; }
+    @keyframes pickme { 0%,100% { outline: 6px solid #fde047; outline-offset: 2px; } 50% { outline: 10px solid #f59e0b; outline-offset: 5px; } }
+    .fusen.fmaybe { outline: 5px dotted #ea580c; outline-offset: 3px; }
+    .u .csel { background: #ffd84d; box-shadow: 0 0 0 2px #f59e0b; border-radius: 4px; }
     .u.reading { outline: 3px dashed #0ea5e9; outline-offset: -1px; }
     .u .cnt { font-size: .5em; font-weight: 700; color: #7c2d12; writing-mode: horizontal-tb; }
     .preview .u { outline: 2px dashed #94a3b8; outline-offset: -3px; }
@@ -180,7 +189,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, useCallback } = React;
-    const APP_VERSION = '1.4.0';
+    const APP_VERSION = '1.5.0';
 
     // =====================================================================
     //  1. 小さな道具
@@ -314,7 +323,9 @@
         if (us.length && units[units.length - 1].s === sent) sent++; // 行の おわりで 文も おわる
         lines.push({ units: us });
       });
-      return { lines, units, hash: hashOf(String(body || '')) };
+      const cu = []; // もじ（1文字ずつ えらぶ とき）の 番号 → ことばの 番号
+      units.forEach(u => { u.c0 = cu.length; u.atoms.forEach(() => cu.push(u.i)); });
+      return { lines, units, cu, hash: hashOf(String(body || '')) };
     }
     const sentRange = (doc, i) => {
       const s = doc.units[i].s; let a = i, b = i;
@@ -323,6 +334,17 @@
       return [a, b];
     };
     const joinUnits = (doc, a, b, key) => { let s = ''; for (let i = a; i <= b; i++) { const u = doc.units[i]; s += (i > a && u.gap ? ' ' : '') + u[key]; } return s; };
+    // えらんだ ところの ことば（sel.ch ＝ もじで えらんだ とき：ca〜cb の もじだけ）
+    function joinSel(doc, sel, key) {
+      if (!sel.ch) return joinUnits(doc, sel.a, sel.b, key);
+      let s = '';
+      for (let i = sel.a; i <= sel.b; i++) {
+        const u = doc.units[i]; let part = '';
+        u.atoms.forEach((a, j) => { const p = u.c0 + j; if (p < sel.ca || p > sel.cb) return; part += key === 'read' ? (a.r || a.b) : key === 'src' && a.r ? `${a.b}（${a.r}）` : a.b; });
+        s += (s && part && u.gap ? ' ' : '') + part;
+      }
+      return s;
+    }
     // じどうで くぎった ところに「／」を 入れる（先生用）
     function autoCut(body) {
       return String(body || '').split('\n').map(line => {
@@ -340,13 +362,46 @@
       ['hatsugen', '💬', 'ことば（はつげん）', 's'], ['jinbutsu', '🧑', 'とうじょうじんぶつ', 's'], ['toki', '🕐', 'とき', 's'], ['basho', '📍', 'ばしょ', 's'], ['kimochi', '💗', 'きもちの ことば', 's'], ['yosu', '🎭', 'きもちが わかる ようす', 's'], ['shita', '🏃', 'したこと', 's'],
       ['toi', '❓', 'とい', 'e'], ['kotae', '💡', 'こたえ', 'e'], ['rei', '📝', 'れい', 'e'], ['riyu', '🔗', 'りゆう', 'e'], ['matome', '⭐', 'まとめ', 'e'], ['ono', '🎵', 'オノマトペ', 'se'],
     ];
+    // ---- ものがたりの 型：発問が 順に 出て、こくばんに 見出し（たて書き）が 1つずつ 出る ----
+    //  ans.flow = { on, who: きもちを 読み取る 人物, off: [出さない 発問], sp: { はつげんの はじめの 番号: 'だれが いったか' }, quiz: [{ q, o: [正しい 答え, ちがう 答え, ちがう 答え] }] }
+    //  cats ＝ その 発問の こたえに 使う 印の しゅるい。head ＝ こくばんに 出す 見出し（見出しの k は 'f_' + key）
+    const FLOW = [
+      { key: 'hatsugen', head: '💬 ことば（はつげん）', cats: ['hatsugen'], q: () => 'ことば（はつげん）は どれかな？ えらんで こくばんに はろう。' },
+      { key: 'dare', head: '', cats: ['jinbutsu'], q: () => 'その ことば（はつげん）は だれが いったのかな？ こくばんに はろう。' },
+      { key: 'itsu', head: '🕐 いつ', cats: ['toki'], q: () => 'いつの はなしかな？ こくばんに はろう。' },
+      { key: 'kimochi', head: '💗 きもち', cats: ['kimochi', 'yosu'], q: (who) => `${who || 'とうじょうじんぶつ'}の きもちが わかる ぶんや ことばを こくばんに はろう。` },
+      { key: 'ono', head: '🎵 オノマトペ', cats: ['ono'], q: () => 'オノマトペを こくばんに はろう。' },
+    ];
+    const FLOW_LABELS = {}; FLOW.forEach(s => { if (s.head) FLOW_LABELS['f_' + s.key] = s.head; });
+    const emptyFlow = () => ({ on: false, who: '', off: [], sp: {}, quiz: [0, 1, 2].map(() => ({ q: '', o: ['', '', ''] })) });
+    function parseFlow(f, ok) {
+      const out = emptyFlow(); if (!f || typeof f !== 'object') return out;
+      out.on = f.on === true; out.who = String(f.who || '').slice(0, 20);
+      out.off = Array.isArray(f.off) ? f.off.map(String).filter(k => FLOW.some(s => s.key === k)) : [];
+      if (ok && f.sp && typeof f.sp === 'object') Object.keys(f.sp).forEach(k => { const v = String(f.sp[k] || '').trim().slice(0, 40); if (v) out.sp[k] = v; });
+      if (Array.isArray(f.quiz)) out.quiz = out.quiz.map((e, i) => { const q = f.quiz[i]; return q && typeof q === 'object' ? { q: String(q.q || '').slice(0, 100), o: [0, 1, 2].map(j => String(Array.isArray(q.o) && q.o[j] || '').slice(0, 30)) } : e; });
+      return out;
+    }
+    // 子どもの 画面に 出す 発問（型を 使わない ときは null）
+    function flowSteps(a, kind) {
+      const f = a.flow; if (!f || !f.on || kind === 'せつめいぶん') return null;
+      const off = new Set(f.off); if (off.has('hatsugen')) off.add('dare');
+      const steps = FLOW.filter(s => !off.has(s.key)).map(s => {
+        const u = [...new Set(s.cats.flatMap(c => a.cats[c] || []))].sort((x, y) => x - y);
+        return { key: s.key, head: s.head ? 'f_' + s.key : '', q: s.q(f.who), u, hint: u.length > 0, check: u.length > 0 || s.key === 'dare', c: '' };
+      });
+      const quiz = f.quiz.filter(q => q.q.trim() && q.o.every(o => o.trim()));
+      if (quiz.length) steps.push({ key: 'quiz', head: '', q: 'さいごに、かくにん もんだいに こたえよう。', u: [], quiz });
+      return steps.length ? steps : null;
+    }
+    const nameList = (s) => String(s || '').split(/[、,，\/／・]/).map(x => x.trim()).filter(String);
     // その 文章で 使う しゅるい（文章の しゅるいに 合う もの・印の ある もの・先生が 足した もの）
     function catList(kind, a) {
       const e = kind === 'せつめいぶん' ? 'e' : 's';
       return CATS.filter(c => c[3].includes(e) || (a.cats[c[0]] || []).length).map(c => ({ key: c[0], icon: c[1], name: c[2] }))
         .concat((a.custom || []).map(c => ({ key: c.key, icon: '🏷️', name: c.name })));
     }
-    const catLabels = (kind, a) => { const o = {}; catList(kind, a).forEach(c => { o[c.key] = c.icon + ' ' + c.name; }); return o; };
+    const catLabels = (kind, a) => { const o = Object.assign({}, FLOW_LABELS); catList(kind, a).forEach(c => { o[c.key] = c.icon + ' ' + c.name; }); return o; };
     const NUMS = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳';
     const emptyQ = () => ({ u: [], raw: [], hint: true, check: true, c: '', k: '' });
     function parseAns(str, doc) {
@@ -369,6 +424,7 @@
         fm: (() => { const o = {}; if (ok && a.fm && typeof a.fm === 'object') Object.keys(a.fm).forEach(k => { const v = a.fm[k]; if (Array.isArray(v) && v.length) o[k] = v.map(String).filter(String).slice(0, 8); }); return o; })(),
         heads: Array.isArray(a.heads) ? a.heads.map(String).slice(0, 6) : [], para: nums(a.para), paraShow: a.paraShow !== false,
         words: Array.isArray(a.words) ? a.words.map(String).filter(String).slice(0, 40) : [],
+        flow: parseFlow(a.flow, ok),
       };
     }
     // 「 」で かこまれた ことば（はつげん）
@@ -388,6 +444,13 @@
       const runs = runsOf(A.u).map(r => { let n = 0; for (let i = r[0]; i <= r[1]; i++) if (got.has(i)) n++; return { a: r[0], b: r[1], found: n * 2 >= r[1] - r[0] + 1 }; });
       const extra = A.c ? Object.keys(work.marks).map(Number).filter(i => work.marks[i] === A.c && !set.has(i)) : [];
       return { runs, found: runs.filter(r => r.found).length, extra };
+    }
+    function evaluateFlow(A, work, key) {
+      const mine = work.items.filter(x => x.t === 'f' && x.g === key), got = new Set(), set = new Set(A.u);
+      const hit = (x) => { if (!x.src || !Array.isArray(x.u)) return false; for (let i = x.u[0]; i <= x.u[1]; i++) if (set.has(i)) return true; return false; };
+      mine.forEach(x => { if (hit(x)) for (let i = x.u[0]; i <= x.u[1]; i++) got.add(i); });
+      const runs = runsOf(A.u).map(r => { let n = 0; for (let i = r[0]; i <= r[1]; i++) if (got.has(i)) n++; return { a: r[0], b: r[1], found: n * 2 >= r[1] - r[0] + 1 }; });
+      return { runs, found: runs.filter(r => r.found).length, extra: [], fmaybe: mine.filter(x => x.src && !hit(x)).map(x => x.id) };
     }
     const FEEL_WORDS = [
       ['うれしい', 'たのしい', 'わくわく', 'どきどき', 'ほっと した', 'あんしん', 'しあわせ', 'だいすき', 'やさしい きもち', 'とくいな きもち', 'ありがとうの きもち', 'おもしろい', 'すっきり'],
@@ -412,11 +475,11 @@
     ];
     const STICKERS = '🍎 🍊 🍋 🍇 🍓 🍑 🍒 🍉 🥝 🍌 🌷 🌻 🌸 🍀 🌈 ☀️ 🌙 ⛄ 🐶 🐱 🐰 🐻 🐼 🐨 🦊 🐸 🐧 🐥 🦋 🐞 🐠 🐳 🚗 🚌 🚂 ✈️ 🚀 ⛵ 🎈 🎁 🎵 ⚽ 🎨 📚 ✏️ 🍩 🍰 🍙'.split(' ');
     const GOLD = '🏆 👑 🌟 💎 🥇 🎖️ 🏅 🎉 🦄 🐉 🎆 🌠'.split(' ');
-    const STICKER_KIND = { feel: 'きもちを よみとった', check: 'こたえを ぜんぶ みつけた', line: 'せんを ひいた', paste: 'こくばんに はった', write: 'じぶんの ことばを かいた', mark: 'しるしを つけた', done: 'こくばんが できた' };
+    const STICKER_KIND = { quiz: 'かくにん もんだいが できた', feel: 'きもちを よみとった', check: 'こたえを ぜんぶ みつけた', line: 'せんを ひいた', paste: 'こくばんに はった', write: 'じぶんの ことばを かいた', mark: 'しるしを つけた', done: 'こくばんが できた' };
     const TITLES = [[0, 'こくばん みならい'], [5, 'せんひき めいじん'], [10, 'ふせん はかせ'], [20, 'まとめ せんせい'], [35, 'こくばん マスター'], [50, 'こくばん チャンピオン']];
     const titleOf = (n) => TITLES.filter(t => n >= t[0]).pop()[1];
     const parseProgress = (s) => { let p = {}; try { p = JSON.parse(s || '{}') || {}; } catch (e) { p = {}; } if (!Array.isArray(p.stickers)) p.stickers = []; return p; };
-    const parseWork = (s) => { let w = null; try { w = JSON.parse(s || 'null'); } catch (e) { w = null; } if (!w || typeof w !== 'object') w = {}; return { marks: w.marks && typeof w.marks === 'object' ? w.marks : {}, items: Array.isArray(w.items) ? w.items : [], th: w.th || '', qi: w.qi || 0 }; };
+    const parseWork = (s) => { let w = null; try { w = JSON.parse(s || 'null'); } catch (e) { w = null; } if (!w || typeof w !== 'object') w = {}; return { marks: w.marks && typeof w.marks === 'object' ? w.marks : {}, items: Array.isArray(w.items) ? w.items : [], th: w.th || '', qi: w.qi || 0, quiz: w.quiz && typeof w.quiz === 'object' && Array.isArray(w.quiz.miss) ? w.quiz : null }; };
 
     // 先生が 読める「まとめ」の ことば
     function summarize(doc, work) {
@@ -431,8 +494,9 @@
       const lines = Object.keys(runs).filter(c => runs[c].length).map(c => MARKS[c].name + '：' + runs[c].join(' ／ ')).join('　');
       const f = work.items.filter(x => x.t === 'f');
       const count = (t) => work.items.filter(x => x.t === t).length;
-      const etc = [work.items.filter(x => x.t === 's').map(x => x.e).join(''), count('a') ? 'やじるし×' + count('a') : '', count('w') ? 'わく×' + count('w') : ''].filter(String).join(' ');
-      return { lines, pasted: f.filter(x => x.src).map(x => plainOf(x.text) + (x.fe ? '（💗' + x.fe + '）' : '')).join(' ／ '), own: f.filter(x => !x.src).map(x => (x.fw ? '💗' : '') + plainOf(x.text)).join(' ／ '), etc };
+      const qz = work.quiz && Array.isArray(work.quiz.miss) ? `かくにん：1かいで ${work.quiz.miss.filter(m => !m).length}／${work.quiz.miss.length}` : '';
+      const etc = [work.items.filter(x => x.t === 's').map(x => x.e).join(''), count('a') ? 'やじるし×' + count('a') : '', count('w') ? 'わく×' + count('w') : '', qz].filter(String).join(' ');
+      return { lines, pasted: f.filter(x => x.src).map(x => (x.sp ? '🧑' + plainOf(x.sp) + '：' : '') + plainOf(x.text) + (x.fe ? '（💗' + x.fe + '）' : '')).join(' ／ '), own: f.filter(x => !x.src).map(x => (x.fw ? '💗' : '') + plainOf(x.text)).join(' ／ '), etc };
     }
 
     // =====================================================================
@@ -449,7 +513,7 @@
       { id: 's1', title: 'くもの ぼうし', kind: 'ものがたり', use: true,
         body: 'あさ、こぐまの ポルは、のはらで 白（しろ）い ぼうしを ひろいました。\n「だれの ぼうしかな。」\n\nポルは、りすに ききました。\n「ううん、ぼくのじゃ ないよ。」\nポルは、こまって しまいました。\n\nその とき、風（かぜ）が ふいて、ぼうしは ふわりと 空（そら）へ とんで いきました。\n小（ちい）さな 雲（くも）が、ぼうしを かぶって わらって います。\n「ありがとう。」\nポルは、うれしく なって、大（おお）きく 手（て）を ふりました。',
         qs: ['とうじょうじんぶつに、あかい せんを ひこう。', 'ポルの きもちが わかる ぶんを、こくばんに はろう。', 'ぼうしは、だれの ものだったかな。じぶんの ことばで かこう。'],
-        ans: '{"th":"-1907463431","n":40,"q":[{"u":[],"k":"jinbutsu","hint":true,"check":true,"c":"r"},{"u":[15,16,17,34,35,36,37,38,39],"k":"","hint":true,"check":true,"c":""},{"u":[],"k":"","hint":true,"check":true,"c":""}],"cats":{"hatsugen":[7,8,12,13,14,33],"jinbutsu":[2,10,28],"toki":[0,18,19],"basho":[3,24],"kimochi":[16,17,35,36],"yosu":[37,38,39],"ono":[23]},"fm":{"yosu:37":["うれしい","ありがとうの きもち"],"kimochi:16":["こまった"],"kimochi:35":["うれしい"]},"custom":[],"heads":["toki","basho","jinbutsu"],"para":[0,9,18],"paraShow":true,"words":["こまった","ふしぎ","びっくり","うれしい","ほっと した"]}' },
+        ans: '{"th":"-1907463431","n":40,"q":[{"u":[],"k":"jinbutsu","hint":true,"check":true,"c":"r"},{"u":[15,16,17,34,35,36,37,38,39],"k":"","hint":true,"check":true,"c":""},{"u":[],"k":"","hint":true,"check":true,"c":""}],"cats":{"hatsugen":[7,8,12,13,14,33],"jinbutsu":[2,10,28],"toki":[0,18,19],"basho":[3,24],"kimochi":[16,17,35,36],"yosu":[37,38,39],"ono":[23]},"fm":{"yosu:37":["うれしい","ありがとうの きもち"],"kimochi:16":["こまった"],"kimochi:35":["うれしい"]},"custom":[],"heads":["toki","basho","jinbutsu"],"para":[0,9,18],"paraShow":true,"words":["こまった","ふしぎ","びっくり","うれしい","ほっと した"],"flow":{"on":true,"who":"ポル","off":[],"sp":{"7":"ポル","12":"りす","33":"くも、雲"},"quiz":[{"q":"「だれの ぼうしかな。」と いったのは、だれかな？","o":["ポル","りす","くも"]},{"q":"いつの はなしかな？","o":["あさ","ひる","よる"]},{"q":"さいごの ポルは、どんな きもちかな？","o":["うれしい","こまった","かなしい"]}]}}' },
       { id: 's2', title: 'だんごむしの ひみつ', kind: 'せつめいぶん', use: true,
         body: 'だんごむしは、石（いし）や おちばの 下（した）に います。\n\nだんごむしは、どうして まるく なるのでしょうか。\nてきに おそわれると、からだを まるく します。\nかたい せなかで、やわらかい おなかを まもるのです。\n\nだんごむしは、何（なに）を たべるのでしょうか。\nだんごむしは、おちばを たべます。\nたべた おちばは、土（つち）の えいように なります。',
         qs: ['「とい」の ぶんに、あおい せんを ひこう。', '「こたえ」の ぶんに、あかい せんを ひこう。', 'わかった ことを、こくばんに まとめよう。'],
@@ -579,13 +643,17 @@
     // =====================================================================
     //  5. 文章の 画面
     // =====================================================================
-    function TextPane({ title, doc, marks, sel, reading, vertical, paint, heat, preview, onTap, onPaint, ansSet, glow, maybe, okStart, hl, para, picId }) {
+    function TextPane({ title, doc, marks, sel, reading, vertical, paint, heat, preview, onTap, onPaint, ansSet, glow, maybe, okStart, hl, para, picId, charMode, onChar }) {
       const ref = useRef(null), painting = useRef(false);
       const unitAt = (e) => { const el = document.elementFromPoint(e.clientX, e.clientY); const u = el && el.closest && el.closest('[data-i]'); return u ? Number(u.dataset.i) : -1; };
-      const down = (e) => { if (!paint || !onPaint) return; const i = unitAt(e); if (i < 0) return; painting.current = true; onPaint('start', i); };
-      const move = (e) => { if (!painting.current) return; const i = unitAt(e); if (i >= 0) onPaint('move', i); };
-      const up = () => { if (!painting.current) return; painting.current = false; onPaint('end', -1); };
-      const click = (e) => { if (paint || !onTap) return; const u = e.target.closest('[data-i]'); if (u) onTap(Number(u.dataset.i)); };
+      const charAt = (e) => { const el = document.elementFromPoint(e.clientX, e.clientY); const c = el && el.closest && el.closest('[data-c]'); return c ? Number(c.dataset.c) : -1; };
+      const down = (e) => {
+        if (charMode && onChar) { const p = charAt(e); if (p < 0) return; painting.current = true; onChar('start', p); return; } // もじ：1文字ずつ なぞって えらぶ
+        if (!paint || !onPaint) return; const i = unitAt(e); if (i < 0) return; painting.current = true; onPaint('start', i);
+      };
+      const move = (e) => { if (!painting.current) return; if (charMode) { const p = charAt(e); if (p >= 0) onChar('move', p); return; } const i = unitAt(e); if (i >= 0) onPaint('move', i); };
+      const up = () => { if (!painting.current) return; painting.current = false; if (charMode) onChar('end', -1); else onPaint('end', -1); };
+      const click = (e) => { if (paint || charMode || !onTap) return; const u = e.target.closest('[data-i]'); if (u) onTap(Number(u.dataset.i)); };
       const scroll = (dir) => { const el = ref.current; if (!el) return; vertical ? el.scrollBy({ left: -dir * el.clientWidth * 0.7, behavior: 'smooth' }) : el.scrollBy({ top: dir * el.clientHeight * 0.7, behavior: 'smooth' }); };
       const [over, setOver] = useState(false);
       useEffect(() => {
@@ -595,7 +663,7 @@
       }, [doc, vertical]);
       return (
         <>
-          <div ref={ref} className={'tscroll' + (vertical ? ' v' : '') + (paint ? ' paint' : '') + (over ? ' over' : '')} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerLeave={up} onClick={click}>
+          <div ref={ref} className={'tscroll' + (vertical ? ' v' : '') + (paint || charMode ? ' paint' : '') + (over ? ' over' : '')} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerLeave={up} onClick={click}>
             <div className={'tbody' + (preview ? ' preview' : '')}>
               {picId ? <Pic id={picId} className="tpic" /> : null}
               {title ? <h2 className="ttitle">{rubyNodes(title)}</h2> : null}
@@ -605,11 +673,11 @@
                   {ln.units.map(u => {
                     const h = heat && heat[u.i];
                     const c = h ? h.c : marks && marks[u.i];
-                    const on = sel && u.i >= sel.a && u.i <= sel.b;
+                    const on = sel && !sel.ch && u.i >= sel.a && u.i <= sel.b;
                     return (
                       <span key={u.i} data-i={u.i} title={h ? h.names : undefined} className={'u' + (u.gap ? ' gap' : '') + (c ? ' m-' + c : '') + (on ? ' sel' : '') + (reading === u.s ? ' reading' : '') + (ansSet && ansSet.has(u.i) ? ' ans' : '') + (glow && glow.has(u.i) ? ' glow' : '') + (maybe && maybe.has(u.i) ? ' maybe' : '')}>
                         {okStart && okStart.has(u.i) ? <span className="ok">◎</span> : null}
-                        {u.atoms.map((a, j) => a.r ? <ruby key={j}>{a.b}<rt>{a.r}</rt></ruby> : a.b)}
+                        {u.atoms.map((a, j) => <span key={j} data-c={u.c0 + j} className={sel && sel.ch && u.c0 + j >= sel.ca && u.c0 + j <= sel.cb ? 'csel' : undefined}>{a.r ? <ruby>{a.b}<rt>{a.r}</rt></ruby> : a.b}</span>)}
                         {h && h.n > 1 ? <span className="cnt">{h.n}</span> : null}
                       </span>
                     );
@@ -630,8 +698,40 @@
     //  6. マイこくばん
     // =====================================================================
     const BW = 1000, BH = 700;
-    function Board({ items, selId, readOnly, onSelect, onBegin, onPatch, labels }) {
-      const wrap = useRef(null), drag = useRef(null);
+    // ---- ものがたりの 型：見出しと ふせんを、右から 左へ 自動で ならべる（2だん）----
+    const FLOW_BANDS = [8, 354], FLOW_BH = 338, FLOW_SP = 82; // FLOW_SP ＝ ことば（はつげん）の 上に「だれ」を はる すきま
+    const flowMaxH = (key) => FLOW_BH - (key === 'hatsugen' ? FLOW_SP : key === 'kimochi' ? 40 : 0) - 6; // きもち：下に「💗 こまった ◎」が 付く すきま
+    function fusenSize(it) {
+      const fs = 28 * (it.z || 1), n = Math.max(1, [...plainOf(it.text)].length), line = Math.round(fs * 2.1);
+      if (it.v) { const per = Math.max(1, Math.floor(((it.mh || 420) - 26) / fs)); return { w: Math.max(60, Math.ceil(n / per) * line + 30), h: Math.min(n, per) * fs + 26 }; }
+      const per = Math.max(1, Math.floor(330 / fs)); return { w: Math.max(60, Math.min(n, per) * fs + 30), h: Math.ceil(n / per) * line + 26 };
+    }
+    function flowLayout(items, sizes) { // sizes ＝ 画面で はかった ふせんの 幅（ない ときは 文字数から 見つもる）
+      const wOf = (it) => sizes && sizes[it.id] ? sizes[it.id] : fusenSize(it).w;
+      const pos = {}, R = BW - 10, HW = 58; let band = 0, x = R;
+      const wrap = () => { if (band < FLOW_BANDS.length - 1) { band++; x = R; } };
+      FLOW.filter(s => s.head).forEach(s => {
+        const head = items.find(i => i.t === 'h' && i.k === 'f_' + s.key); if (!head) return;
+        const group = items.filter(i => i.t === 'f' && i.g === s.key && i.au);
+        const first = HW + (group[0] ? wOf(group[0]) + 8 : 0), total = HW + 8 + group.reduce((a, it) => a + wOf(it) + 8, 0);
+        // のこりに 入りきらない ときは、見出しごと 下の だんへ（見出しと ふせんが はなれないように）
+        if (x < R && x - total < 4 && (total <= R - 4 || x - first < 4)) wrap();
+        if (head.au) pos[head.id] = { x: x - HW, y: FLOW_BANDS[band] };
+        x -= HW + 8;
+        group.forEach(it => { const w = wOf(it); if (x - w < 4 && x < R - HW - 8) wrap(); pos[it.id] = { x: Math.max(0, x - w), y: FLOW_BANDS[band] + (s.key === 'hatsugen' ? FLOW_SP : 0) }; x -= w + 8; });
+        x -= 12;
+      });
+      let changed = false;
+      const out = items.map(i => { const p = pos[i.id]; if (!p || (i.x === p.x && i.y === p.y)) return i; changed = true; return Object.assign({}, i, p); });
+      return changed ? out : items;
+    }
+    function Board({ items, selId, readOnly, onSelect, onBegin, onPatch, labels, pickIds, onPick, fok, fmaybe, onSizes }) {
+      const wrap = useRef(null), drag = useRef(null), sizeKey = useRef('');
+      useEffect(() => { // 型：自動で ならべる ふせんの 幅を はかって 知らせる
+        if (!onSizes || !wrap.current) return;
+        const m = {}; wrap.current.querySelectorAll('[data-fid]').forEach(el => { m[el.dataset.fid] = el.offsetWidth; });
+        const k = JSON.stringify(m); if (k !== sizeKey.current) { sizeKey.current = k; onSizes(m); }
+      });
       const [scale, setScale] = useState(0.6);
       useEffect(() => {
         const el = wrap.current; if (!el) return;
@@ -641,6 +741,7 @@
       const down = (e, it, part) => {
         if (readOnly) return;
         e.stopPropagation();
+        if (pickIds) { if (pickIds.has(it.id)) onPick(it.id); return; } // 「どの ことばの うえに はる？」の とき
         try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
         onSelect(it.id);
         drag.current = { id: it.id, part, sx: e.clientX, sy: e.clientY, o: Object.assign({}, it), moved: false };
@@ -680,14 +781,15 @@
                 <div key={w.id} className={'it frame' + (w.id === selId ? ' on' : '')} style={{ left: w.x, top: w.y, width: w.w, height: w.h, borderColor: (CHALK[w.c] || CHALK.w).bg }} onPointerDown={(e) => down(e, w, 'body')} />
               ))}
               {items.filter(x => x.t === 'h').map(h => (
-                <div key={h.id} className={'it head' + (h.id === selId ? ' on' : '')} style={{ left: h.x, top: h.y }} onPointerDown={(e) => down(e, h, 'body')}>{labels && labels[h.k] || '見出し'}</div>
+                <div key={h.id} className={'it head' + (h.v ? ' v' : '') + (h.id === selId ? ' on' : '')} style={{ left: h.x, top: h.y }} onPointerDown={(e) => down(e, h, 'body')}>{labels && labels[h.k] || '見出し'}</div>
               ))}
               <svg width={BW} height={BH} style={{ position: 'absolute', left: 0, top: 0, pointerEvents: 'none' }}>{items.filter(x => x.t === 'a').map(arrow)}</svg>
               {items.filter(x => x.t === 'f' || x.t === 's').map(it => it.t === 's' ? (
                 <div key={it.id} className={'it stamp' + (it.id === selId ? ' on' : '')} style={{ left: it.x, top: it.y, fontSize: 64 * (it.z || 1) }} onPointerDown={(e) => down(e, it, 'body')}>{it.e}</div>
               ) : (
-                <div key={it.id} className={'it fusen c-' + (FCOL[it.c] ? it.c : 'w') + (it.id === selId ? ' on' : '')} onPointerDown={(e) => down(e, it, 'body')}
-                  style={Object.assign({ left: it.x, top: it.y, fontSize: 28 * (it.z || 1) }, it.v ? { writingMode: 'vertical-rl', maxHeight: 420 } : { maxWidth: 360 })}>
+                <div key={it.id} data-fid={it.au ? it.id : undefined} className={'it fusen c-' + (FCOL[it.c] ? it.c : 'w') + (it.id === selId ? ' on' : '') + (pickIds && pickIds.has(it.id) ? ' pickme' : '') + (fmaybe && fmaybe.has(it.id) ? ' fmaybe' : '')} onPointerDown={(e) => down(e, it, 'body')}
+                  style={Object.assign({ left: it.x, top: it.y, fontSize: 28 * (it.z || 1) }, it.v ? { writingMode: 'vertical-rl', maxHeight: it.mh || 420 } : { maxWidth: 360 })}>
+                  {it.sp ? <span className={'stag' + (it.v ? ' v' : '')}>{fok && fok.has(it.id) ? <span className="ok">◎</span> : null}{rubyNodes(it.sp)}</span> : null}
                   {it.src ? <span className="tab">📖</span> : null}{rubyNodes(it.text)}
                   {it.fe ? <span className="ftag" style={it.v ? { left: 'auto', right: 0 } : null}>💗 {it.fe} ◎</span> : null}
                 </div>
@@ -778,11 +880,22 @@
       const [finish, setFinish] = useState(null); // 'ask' | 'party'
       const workRef = useRef(null), doneRef = useRef(false), progRef = useRef(progress), undo = useRef([]), timer = useRef(null), busy = useRef(false), again = useRef(false), paintRef = useRef(null), toastT = useRef(null);
       const wkey = `kokuban_w_${name}_${text.id}`, qkey = `kokuban_q_${name}`;
-      const qs = text.qs || [];
       const [undoN, setUndoN] = useState(0);
       // 先生が 決めた こたえ（ヒント・たしかめる・きもちの ことば）
       const ANS = useMemo(() => parseAns(text.ans, doc), [text.ans, doc]);
       const LABELS = useMemo(() => catLabels(text.kind, ANS), [ANS]);
+      // ものがたりの 型（使わない ときは null）。使う ときは、先生が 入れた「とい」の かわりに、型の 発問を 出す
+      const FL = useMemo(() => flowSteps(ANS, text.kind), [ANS]);
+      const qs = FL ? FL.map(s => s.q) : (text.qs || []);
+      const step = FL ? FL[qi] || null : null;
+      const QZ = FL && FL[FL.length - 1].key === 'quiz' ? FL[FL.length - 1].quiz : null;
+      const [attach, setAttach] = useState(null), [quiz, setQuiz] = useState(null);
+      const charRef = useRef(null), sizesRef = useRef(null);
+      const onSizes = (m) => { // はかった 幅で ならべ直す（重ならないように）
+        sizesRef.current = m; if (!workRef.current) return;
+        const items = flowLayout(workRef.current.items, m);
+        if (items !== workRef.current.items) { const next = Object.assign({}, workRef.current, { items }); workRef.current = next; setWork(next); }
+      };
       const [hints, setHints] = useState({}), [chk, setChk] = useState(null), [qmsg, setQmsg] = useState(''), [feelOpen, setFeelOpen] = useState(false), [missN, setMissN] = useState({}), [fask, setFask] = useState(null);
 
       // ---- よみこむ ----
@@ -797,7 +910,7 @@
           const w = parseWork(data);
           if (w.th && w.th !== doc.hash) w.marks = {}; // 文章が かわった ときは、せんを けす（こくばんは のこす）
           // 先生が 選んだ 見出しを、こくばんに ならべる（今 ある ものは そのまま）
-          const hs = ANS.heads.filter(k => LABELS[k]);
+          const hs = FL ? [] : ANS.heads.filter(k => LABELS[k]);
           let hx = 20, hy = 14; // 見出しは、名前の 長さに 合わせて 重ならないように ならべる（たて書きは 右から）
           hs.forEach(k => {
             const wd = [...LABELS[k]].length * 28 + 44;
@@ -805,8 +918,8 @@
             if (!w.items.some(x => x.t === 'h' && x.k === k)) w.items.push({ id: 'h_' + k, t: 'h', k, x: settings.vertical ? BW - 20 - hx - wd : hx, y: hy });
             hx += wd + 24;
           });
-          w.items = w.items.filter(x => x.t !== 'h' || LABELS[x.k]);
-          const first = { marks: w.marks, items: w.items };
+          w.items = w.items.filter(x => x.t !== 'h' || (LABELS[x.k] && String(x.k).startsWith('f_') === !!FL));
+          const first = { marks: w.marks, items: FL ? flowLayout(w.items, sizesRef.current) : w.items, quiz: w.quiz };
           workRef.current = first; setWork(first);
           let d = false; try { d = !!JSON.parse(data).done; } catch (e) {}
           doneRef.current = d; setDone(d);
@@ -817,10 +930,17 @@
       }, []);
       const question = qs[qi] || '';
       const sayQ = () => speak(readOf(question || 'よんで、だいじな ところに せんを ひこう。'));
-      useEffect(() => { if (work) sayQ(); setChk(null); setQmsg(''); }, [qi, !!work]);
+      useEffect(() => { if (work) sayQ(); setChk(null); setQmsg(''); setAttach(null); }, [qi, !!work]);
+      useEffect(() => { // 型：その 発問まで 進んだら、見出しを こくばんに 出す（前の 見出しと ふせんは のこる）
+        if (!work || !FL) return;
+        const need = FL.slice(0, qi + 1).filter(s => s.head && !work.items.some(x => x.t === 'h' && x.k === s.head));
+        if (!need.length) return;
+        const items = flowLayout(workRef.current.items.concat(need.map(s => ({ id: 'h_' + s.head, t: 'h', k: s.head, v: 1, au: 1, x: 0, y: 0 }))), sizesRef.current);
+        const next = Object.assign({}, workRef.current, { items }); workRef.current = next; setWork(next);
+      }, [qi, work]);
 
       // ---- ほぞん ----
-      const pack = (w) => JSON.stringify({ v: 1, th: doc.hash, marks: w.marks, items: w.items, qi, done: doneRef.current });
+      const pack = (w) => JSON.stringify({ v: 1, th: doc.hash, marks: w.marks, items: w.items, qi, done: doneRef.current, quiz: w.quiz || undefined });
       const saveNow = async () => {
         clearTimeout(timer.current);
         const w = workRef.current; if (!w) return;
@@ -850,13 +970,14 @@
       }, []);
       const apply = (next, withUndo = true) => {
         if (withUndo) { undo.current.push(workRef.current); if (undo.current.length > 40) undo.current.shift(); setUndoN(undo.current.length); }
+        if (FL) { const items = flowLayout(next.items, sizesRef.current); if (items !== next.items) next = Object.assign({}, next, { items }); } // 型：見出しの よこに ならべ直す
         workRef.current = next; setWork(next); touch(); setChk(null);
       };
       const pushUndo = () => { undo.current.push(workRef.current); if (undo.current.length > 40) undo.current.shift(); setUndoN(undo.current.length); };
       const doUndo = () => { const p = undo.current.pop(); if (!p) return; setUndoN(undo.current.length); setSelId(null); setSel(null); apply(p, false); sfx.tap(); };
-      const log = (act, color, word) => {
+      const log = (act, color, word, qtext) => {
         const q = store.json(qkey, []);
-        q.push({ id: uid(), time: Date.now(), text: text.title, q: plainOf(question), act, color: color || '', word: String(word || '').slice(0, 300) });
+        q.push({ id: uid(), time: Date.now(), text: text.title, q: plainOf(qtext || question), act, color: color || '', word: String(word || '').slice(0, 300) });
         store.set(qkey, JSON.stringify(q.slice(-400)));
       };
       const say = (e, msg) => { setToast({ e, msg }); clearTimeout(toastT.current); toastT.current = setTimeout(() => setToast(null), 2600); };
@@ -882,6 +1003,20 @@
         else if (i >= sel.a && i <= sel.b) setSel(null);
         else if (sel.one) setSel({ a: Math.min(sel.a, a), b: Math.max(sel.b, b), one: false });
         else setSel({ a, b, one: true });
+      };
+      // もじ：1文字ずつ えらぶ（なぞる。または、はじめの 文字と おわりの 文字を おす）
+      const cRange = (p, q, one) => { const ca = Math.min(p, q), cb = Math.max(p, q); return { ch: true, ca, cb, a: doc.cu[ca], b: doc.cu[cb], one }; };
+      const onChar = (ph, p) => {
+        if (ph === 'start') { charRef.current = { p0: p, moved: false }; return; }
+        const d = charRef.current; if (!d) return;
+        if (ph === 'move') { if (p === d.p0 && !d.moved) return; d.moved = true; setSel(cRange(d.p0, p, false)); return; }
+        charRef.current = null; sfx.tap();
+        if (d.moved) return;
+        const q = d.p0;
+        if (!sel || !sel.ch) setSel(cRange(q, q, true));
+        else if (q >= sel.ca && q <= sel.cb) setSel(null);
+        else if (sel.one) setSel(cRange(Math.min(sel.ca, q), Math.max(sel.cb, q), false));
+        else setSel(cRange(q, q, true));
       };
       const paintMarks = (base, lo, hi) => { const m = Object.assign({}, base); for (let i = lo; i <= hi; i++) { if (tool === 'erase') delete m[i]; else m[i] = tool; } return m; };
       const onPaint = (ph, i) => {
@@ -909,7 +1044,7 @@
           sfx.put(); log('せんを ひく', MARKS[tool].name, word); award('line');
         }
       };
-      const selWord = sel ? joinUnits(doc, sel.a, sel.b, 'plain') : '';
+      const selWord = sel ? joinSel(doc, sel, 'plain') : '';
       const selMarked = sel && work ? (() => { for (let k = sel.a; k <= sel.b; k++) if (work.marks[k]) return true; return false; })() : false;
       const markSel = (c) => {
         const m = Object.assign({}, workRef.current.marks);
@@ -925,16 +1060,32 @@
         return settings.vertical ? { x: 830 - (n % 6) * 140, y: top + (Math.floor(n / 6) % 2) * 300 } : { x: 30 + (n % 3) * 320, y: top + (Math.floor(n / 3) % 5) * 120 };
       };
       const addItem = (it) => { const item = Object.assign({ id: uid() }, it); apply(Object.assign({}, workRef.current, { items: workRef.current.items.concat([item]) })); setSelId(item.id); sfx.put(); return item; };
+      // 型：いまの 発問の 見出しの よこに、たて書きで ならべる
+      const grp = () => step && step.head ? { g: step.key, au: 1, v: true, mh: flowMaxH(step.key) } : FL ? { v: true } : {};
+      // 型「だれが いったのかな」：えらんだ ことばを、ことば（はつげん）の ふせんの 上に はる
+      const quoteIds = () => { const hs = ANS.cats.hatsugen || []; return workRef.current.items.filter(x => x.t === 'f' && (x.g === 'hatsugen' || (x.src && Array.isArray(x.u) && hs.some(i => i >= x.u[0] && i <= x.u[1])))).map(x => x.id); };
+      const startAttach = (p) => {
+        if (!quoteIds().length) { const m = 'さきに、ことば（はつげん）を こくばんに はろう。'; say('💬', m); speak(m); return; }
+        if (layout === 'text') setLayout('both');
+        setSelId(null); setAttach(p); speak('どの ことばの うえに はる？ ひかって いる ふせんを おしてね。');
+      };
+      const doAttach = (id) => {
+        const it = workRef.current.items.find(x => x.id === id); if (!it || !attach) return;
+        patchItem(id, { sp: attach.text }, true); log('だれが いった', '', `${plainOf(it.text)} ← ${attach.word}`);
+        sfx.put(); if (!award('paste')) say('🧑', 'うえに はったよ'); setAttach(null);
+      };
       const pasteSel = () => {
+        const txt = joinSel(doc, sel, 'src');
+        if (step && step.key === 'dare') { startAttach({ text: txt, word: selWord }); setSel(null); return; }
         const c = work.marks[sel.a], fc = { r: 'p', b: 'b', g: 'g', y: 'y' }[c] || 'w';
         const fk = feelKey(sel.a, sel.b);
-        const item = addItem(Object.assign({ t: 'f', src: 1, u: [sel.a, sel.b], text: joinUnits(doc, sel.a, sel.b, 'src'), c: fc, v: !!settings.vertical, z: 1 }, fk ? { fk } : {}, spot()));
+        const item = addItem(Object.assign({ t: 'f', src: 1, u: [sel.a, sel.b], text: txt, c: fc, v: !!settings.vertical, z: 1 }, fk ? { fk } : {}, spot(), grp()));
         log('こくばんに はる', '', selWord);
         if (!award('paste')) say('📌', 'こくばんに はったよ');
         if (fk) openFeel(item.id, fk);
         setSel(null);
       };
-      const speakSel = () => speak(joinUnits(doc, sel.a, sel.b, 'read'));
+      const speakSel = () => speak(joinSel(doc, sel, 'read'));
       const toggleReadAll = () => {
         if (readAll) { stopSpeak(); setReadAll(false); setReading(-1); return; }
         const list = []; doc.units.forEach(u => { list[u.s] = (list[u.s] || '') + u.read; });
@@ -943,14 +1094,15 @@
       };
       const writeOK = (t) => {
         if (writer.id) { patchItem(writer.id, { text: t }, true); log('かきなおす', '', t); }
-        else { addItem(Object.assign({ t: 'f', text: t, c: 'y', v: !!settings.vertical, z: 1 }, spot())); log('じぶんで かく', '', t); award('write'); }
+        else if (step && step.key === 'dare') startAttach({ text: t, word: t });
+        else { addItem(Object.assign({ t: 'f', text: t, c: 'y', v: !!settings.vertical, z: 1 }, spot(), grp())); log('じぶんで かく', '', t); award('write'); }
         setWriter(null);
       };
       const patchItem = (id, patch, withUndo) => apply(Object.assign({}, workRef.current, { items: workRef.current.items.map(x => x.id === id ? Object.assign({}, x, patch) : x) }), !!withUndo);
       const cur = work && work.items.find(x => x.id === selId);
       const patchCur = (patch) => patchItem(cur.id, patch, true);
       const delCur = () => { log('けす', '', cur.t === 'f' ? plainOf(cur.text) : cur.t === 's' ? cur.e : cur.t === 'a' ? 'やじるし' : 'わく'); apply(Object.assign({}, workRef.current, { items: workRef.current.items.filter(x => x.id !== cur.id) })); setSelId(null); };
-      const nudge = (dx, dy) => cur.t === 'a' ? patchCur({ x1: cur.x1 + dx, y1: cur.y1 + dy, x2: cur.x2 + dx, y2: cur.y2 + dy }) : patchCur({ x: clamp(cur.x + dx, -20, BW - 50), y: clamp(cur.y + dy, -10, BH - 50) });
+      const nudge = (dx, dy) => cur.t === 'a' ? patchCur({ x1: cur.x1 + dx, y1: cur.y1 + dy, x2: cur.x2 + dx, y2: cur.y2 + dy }) : patchCur({ x: clamp(cur.x + dx, -20, BW - 50), y: clamp(cur.y + dy, -10, BH - 50), au: 0 }); // じぶんで 動かした ものは、自動で ならべない
       const resize = (up) => {
         if (cur.t === 'w') { const k = up ? 1.2 : 1 / 1.2; patchCur({ w: clamp(Math.round(cur.w * k), 80, BW), h: clamp(Math.round(cur.h * k), 80, BH) }); return; }
         const zs = [0.75, 1, 1.3, 1.7], at = zs.indexOf(cur.z || 1), n = clamp((at < 0 ? 1 : at) + (up ? 1 : -1), 0, zs.length - 1);
@@ -960,24 +1112,43 @@
       const addArrow = () => { addItem({ t: 'a', x1: 380, y1: 350, x2: 620, y2: 350, c: 'w' }); log('やじるし', '', ''); award('mark'); };
       const addFrame = () => { addItem({ t: 'w', x: 340, y: 220, w: 320, h: 240, c: 'y' }); log('わく', '', ''); award('mark'); };
       // ---- ヒント・たしかめる・きもちの ことば ----
-      const A = ANS.q[qi] && ANS.q[qi].u.length && question ? ANS.q[qi] : null;
+      const A = FL ? (step && step.key !== 'quiz' && (step.hint || step.check) ? step : null) : (ANS.q[qi] && ANS.q[qi].u.length && question ? ANS.q[qi] : null);
       const lv = hints[qi] || 0;
       const showHint = (n) => {
-        const k = runsOf(A.u).length, col = A.c ? MARKS[A.c].name + 'の せんを ひく ところが、' : 'こたえが、';
-        const m = n === 1 ? `${col}${k}つ あるよ。よく よんで さがそう。` : n === 2 ? 'きいろく ひかって いる ぎょうを、よく よんで みよう。' : 'ひかって いる ことばを みて みよう。';
+        const k = runsOf(A.u).length, col = FL ? 'こくばんに はる ところが、' : A.c ? MARKS[A.c].name + 'の せんを ひく ところが、' : 'こたえが、';
+        const m = n === 1 ? (step && step.key === 'dare' ? '「　」の まえや あとを よんで みよう。だれが いったか、わかるかな。' : `${col}${k}つ あるよ。よく よんで さがそう。`) : n === 2 ? 'きいろく ひかって いる ぎょうを、よく よんで みよう。' : 'ひかって いる ことばを みて みよう。';
         setHints(h => Object.assign({}, h, { [qi]: n })); setQmsg('💡 ' + m); speak(m); log('ヒント', '', 'ヒント' + n);
       };
+      const missed = () => { const n = (missN[qi] || 0) + 1; setMissN(o => Object.assign({}, o, { [qi]: n })); sfx.tap(); if (n >= 3 && A.hint && lv < 3) setHints(h => Object.assign({}, h, { [qi]: 3 })); }; // 3回めは、いちばん くわしい ヒントを 出す
+      // 型「だれが いったのかな」：ことば（はつげん）の ふせんの 上に、だれが はって あるかを 見る
+      const checkDare = () => {
+        const runs = runsOf(ANS.cats.hatsugen || []), ids = new Set(quoteIds()), fok = new Set(), fmaybe = new Set(); let none = 0;
+        workRef.current.items.forEach(x => {
+          if (!ids.has(x.id)) return;
+          if (!x.sp) { none++; return; }
+          const r = Array.isArray(x.u) ? runs.find(r => r[0] <= x.u[1] && r[1] >= x.u[0]) : null, want = r ? nameList(ANS.flow.sp[r[0]]) : [];
+          const p = plainOf(x.sp), rd = readOf(x.sp);
+          if (!want.length || want.some(w => p.includes(w) || rd.includes(w))) fok.add(x.id); else fmaybe.add(x.id);
+        });
+        const all = ids.size > 0 && !none && !fmaybe.size;
+        log('たしかめる', '', `だれ ${fok.size}／${ids.size}`);
+        let m = '';
+        if (!ids.size) m = 'さきに、ことば（はつげん）を こくばんに はろう。';
+        else if (all) { m = 'だれが いったか、ぜんぶ わかったね！ すごい！'; sfx.sticker(); award('check'); }
+        else { missed(); m = (fok.size ? `◎が ${fok.size}つ。` : '') + (none ? 'まだ うえに はって いない ことばが あるよ。' : '') + (fmaybe.size ? 'てんせんの ふせんは、もう いちど よんで みよう。' : ''); }
+        setChk({ ok: new Set(), maybe: new Set(), fok, fmaybe }); setQmsg((all ? '🎉 ' : '') + m); speak(m);
+      };
       const doCheck = () => {
-        const r = evaluate(A, workRef.current), all = r.found === r.runs.length && !r.extra.length;
-        log('たしかめる', '', `${r.found}／${r.runs.length}` + (r.extra.length ? ` ほかの ところ${r.extra.length}` : ''));
+        if (step && step.key === 'dare') { checkDare(); return; }
+        const r = FL ? evaluateFlow(A, workRef.current, step.key) : evaluate(A, workRef.current), fm = r.fmaybe || [], all = r.found === r.runs.length && !r.extra.length && !fm.length;
+        log('たしかめる', '', `${r.found}／${r.runs.length}` + (r.extra.length + fm.length ? ` ほかの ところ${r.extra.length + fm.length}` : ''));
         let m = '';
         if (all) { m = 'ぜんぶ みつけたね！ すごい！'; sfx.sticker(); award('check'); }
         else {
-          const n = (missN[qi] || 0) + 1; setMissN(o => Object.assign({}, o, { [qi]: n })); sfx.tap();
-          m = (r.found ? `◎が ${r.found}つ。` : '') + (r.found < r.runs.length ? 'もう すこし あるよ。' : '') + (r.extra.length ? 'てんせんの ところは、どうかな？' : '');
-          if (n >= 3 && A.hint && lv < 3) setHints(h => Object.assign({}, h, { [qi]: 3 })); // 3回めは、いちばん くわしい ヒントを 出す
+          missed();
+          m = (r.found ? `◎が ${r.found}つ。` : '') + (r.found < r.runs.length ? 'もう すこし あるよ。' : '') + (r.extra.length ? 'てんせんの ところは、どうかな？' : '') + (fm.length ? 'てんせんの ふせんは、どうかな？' : '');
         }
-        setChk({ ok: new Set(r.runs.filter(x => x.found).map(x => x.a)), maybe: new Set(r.extra) }); setQmsg((all ? '🎉 ' : '') + m); speak(m);
+        setChk({ ok: new Set(r.runs.filter(x => x.found).map(x => x.a)), maybe: new Set(r.extra), fok: new Set(), fmaybe: new Set(fm) }); setQmsg((all ? '🎉 ' : '') + m); speak(m);
       };
       // 先生が 気持ちを 決めた 表現（例：泣きながら うつむいた）を はった とき、「どんな きもちかな？」と きく
       const feelKey = (a, b) => {
@@ -1003,7 +1174,22 @@
           setFask(f => Object.assign({}, f, { gone: f.gone.concat([w]), miss: f.miss + 1, msg: 'もう いちど かんがえて みよう' })); speak('もう いちど かんがえて みよう。');
         }
       };
-      const addFeel = (w) => { addItem(Object.assign({ t: 'f', fw: 1, text: w, c: 'p', v: !!settings.vertical, z: 1 }, spot())); log('きもちの ことば', '', w); award('write'); setFeelOpen(false); };
+      const addFeel = (w) => { addItem(Object.assign({ t: 'f', fw: 1, text: w, c: 'p', v: !!settings.vertical, z: 1 }, spot(), grp())); log('きもちの ことば', '', w); award('write'); setFeelOpen(false); };
+      // ---- 型：かくにん もんだい（3つの 中から えらぶ。q.o[0] が 正しい 答え）----
+      const openQuiz = (then) => { setQuiz({ i: 0, order: shuffle([0, 1, 2]), gone: [], miss: QZ.map(() => 0), msg: '', ok: false, then }); speak(readOf(QZ[0].q)); };
+      const pickQuiz = (k) => {
+        const q = QZ[quiz.i];
+        log('かくにん もんだい', '', plainOf(q.o[k]) + (k === 0 ? ' ◎' : ''), q.q);
+        if (k !== 0) { sfx.tap(); setQuiz(z => Object.assign({}, z, { gone: z.gone.concat([k]), miss: z.miss.map((m, j) => j === z.i ? m + 1 : m), msg: 'もう いちど かんがえて みよう' })); speak('もう いちど かんがえて みよう。'); return; }
+        sfx.put(); setQuiz(z => Object.assign({}, z, { ok: true, msg: '◎ せいかい！' })); speak('せいかい！');
+      };
+      const nextQuiz = () => {
+        if (quiz.i + 1 < QZ.length) { const i = quiz.i + 1; setQuiz(z => Object.assign({}, z, { i, order: shuffle([0, 1, 2]), gone: [], ok: false, msg: '' })); speak(readOf(QZ[i].q)); return; }
+        apply(Object.assign({}, workRef.current, { quiz: { miss: quiz.miss } }), false);
+        const then = quiz.then; setQuiz(null);
+        if (!award('quiz')) { sfx.sticker(); say('📝', 'かくにん もんだいが できたね！'); }
+        if (then === 'submit') setFinish({ ask: true });
+      };
       // ---- できた！ ----
       const submit = async () => {
         doneRef.current = true; setDone(true);
@@ -1037,7 +1223,7 @@
               <button className={layout === 'board' ? 'on' : ''} onClick={() => setLayout('board')}>🟩 おおきく</button>
             </div>
             <span style={{ fontSize: '.85rem', width: '4.6rem', textAlign: 'center' }}>{saved === 'ok' ? '✓ ほぞん' : saved === 'ng' ? '⚠ あとで おくる' : '…'}</span>
-            <button className="btn orange" onClick={() => setFinish({ ask: true })}>{done ? '✅ できた' : '🙌 できた！'}</button>
+            <button className="btn orange" onClick={() => QZ && !work.quiz ? openQuiz('submit') : setFinish({ ask: true })}>{done ? '✅ できた' : '🙌 できた！'}</button>
           </div>
 
           <div className="work">
@@ -1050,18 +1236,24 @@
                   <div className="seg light" role="group" aria-label="えらぶ おおきさ">
                     <button className={gran === 'u' ? 'on' : ''} onClick={() => { setGran('u'); setSel(null); }}>ことば</button>
                     <button className={gran === 's' ? 'on' : ''} onClick={() => { setGran('s'); setSel(null); }}>ぶん</button>
+                    <button className={gran === 'c' ? 'on' : ''} onClick={() => { setGran('c'); setSel(null); setTool('sel'); }}>もじ</button>
                   </div>
                   <span className="grow" />
                   <button className={'btn sm' + (readAll ? ' on' : '')} onClick={toggleReadAll}>{readAll ? '⏹ とめる' : '🔊 ぜんぶ'}</button>
                 </div>
-                {A && (A.hint || A.check) ? (
+                {step && step.key === 'quiz' ? (
+                  <div className="qtools">
+                    <button className="btn sm blue" onClick={() => openQuiz('')}>📝 かくにん もんだい{work.quiz ? 'を もう いちど' : 'を はじめる'}</button>
+                    <div className="qmsg">{work.quiz ? '✅ かくにん もんだいが できたよ' : ''}</div>
+                  </div>
+                ) : A && (A.hint || A.check) ? (
                   <div className="qtools">
                     {A.hint ? <button className={'btn sm' + ((missN[qi] || 0) >= 2 && lv < 3 ? ' glowb on' : '')} disabled={lv >= 3} onClick={() => showHint(lv + 1)}>💡 ヒント{lv ? '①②③'[lv - 1] : ''}</button> : null}
                     {A.check ? <button className="btn sm blue" onClick={doCheck}>✔ たしかめる</button> : null}
                     <div className="qmsg">{qmsg}</div>
                   </div>
                 ) : null}
-                <TextPane picId={text.id} title={text.title} doc={doc} marks={work.marks} sel={sel} reading={reading} vertical={settings.vertical} paint={tool !== 'sel'} onTap={onTap} onPaint={onPaint}
+                <TextPane picId={text.id} title={text.title} doc={doc} marks={work.marks} sel={sel} reading={reading} vertical={settings.vertical} paint={tool !== 'sel'} onTap={onTap} onPaint={onPaint} charMode={tool === 'sel' && gran === 'c'} onChar={onChar}
                   hl={A && lv >= 2 ? new Set(A.u) : null} glow={A && lv >= 3 ? new Set(A.u) : null} okStart={chk ? chk.ok : null} maybe={chk ? chk.maybe : null} para={ANS.paraShow && ANS.para.length ? ANS.para : null} />
                 {sel ? (
                   <div className="selbar">
@@ -1077,14 +1269,27 @@
             ) : null}
             {showBoard ? (
               <div className="pane pane-board">
-                <Board items={work.items} selId={selId} onSelect={setSelId} onBegin={pushUndo} onPatch={(id, p) => patchItem(id, p, false)} labels={LABELS} />
-                {cur ? (
+                <Board items={work.items} selId={selId} onSelect={setSelId} onBegin={pushUndo} onPatch={(id, p) => patchItem(id, 'x' in p ? Object.assign({ au: 0 }, p) : p, false)} labels={LABELS}
+                  pickIds={attach ? new Set(quoteIds()) : null} onPick={doAttach} fok={chk ? chk.fok : null} fmaybe={chk ? chk.fmaybe : null} onSizes={FL ? onSizes : null} />
+                {attach ? (
+                  <div className="bbar">
+                    <div className="brow">
+                      <b style={{ color: '#fde68a', fontSize: '1.1rem' }}>🧑「{attach.word}」を、どの ことばの うえに はる？</b>
+                    </div>
+                    <div className="brow">
+                      <b style={{ color: '#fff' }}>ひかって いる ふせんを おしてね</b>
+                      <span className="grow" />
+                      <button className="btn sm" onClick={() => setAttach(null)}>✖ やめる</button>
+                    </div>
+                  </div>
+                ) : cur ? (
                   <div className="bbar">
                     <div className="brow">
                       {cols ? <Dots colors={cols} value={cur.c} onPick={(c) => patchCur({ c })} /> : null}
-                      {cur.t === 'h' ? <b style={{ color: '#fff' }}>みだしの したに、ことばを はって いこう</b> : cur.t !== 'a' ? <><button className="btn sm" onClick={() => resize(true)}>＋ おおきく</button><button className="btn sm" onClick={() => resize(false)}>－ ちいさく</button></> : <b style={{ color: '#fff' }}>まるい つまみで、むきと ながさを かえられるよ</b>}
+                      {cur.t === 'h' ? <b style={{ color: '#fff' }}>{cur.v ? 'みだしの よこに、ことばを はって いこう' : 'みだしの したに、ことばを はって いこう'}</b> : cur.t !== 'a' ? <><button className="btn sm" onClick={() => resize(true)}>＋ おおきく</button><button className="btn sm" onClick={() => resize(false)}>－ ちいさく</button></> : <b style={{ color: '#fff' }}>まるい つまみで、むきと ながさを かえられるよ</b>}
                       {cur.t === 'f' ? <button className="btn sm" onClick={() => patchCur({ v: !cur.v })}>{cur.v ? 'よこがき' : 'たてがき'}</button> : null}
                       {cur.t === 'f' ? <button className="btn sm" onClick={() => speak(readOf(cur.text))} aria-label="よむ">🔊</button> : null}
+                      {cur.t === 'f' && cur.sp ? <button className="btn sm" style={{ background: '#fff7d6' }} onClick={() => { log('だれを はずす', '', plainOf(cur.sp)); patchCur({ sp: '' }); }}>🧑 はずす</button> : null}
                       {cur.t === 'f' && cur.fk && ANS.fm[cur.fk] ? <button className="btn sm" style={{ background: '#ffc9d6' }} onClick={() => openFeel(cur.id, cur.fk)}>💗 きもち</button> : null}
                     </div>
                     <div className="brow">
@@ -1152,6 +1357,26 @@
               </div>
             </div>
           ) : null}
+          {quiz && QZ ? (() => {
+            const q = QZ[quiz.i], sayIt = () => speak(readOf(q.q));
+            return (
+              <div className="ov">
+                <div className="card" style={{ width: '42rem', textAlign: 'center' }}>
+                  <div className="row" style={{ marginBottom: '.6rem', textAlign: 'left', flexWrap: 'nowrap' }}>
+                    <Chalkun size={60} onClick={sayIt} />
+                    <div className="bubble grow" style={{ fontSize: '1.25rem', cursor: 'pointer' }} onClick={sayIt}><small>📝 かくにん もんだい {quiz.i + 1}／{QZ.length}</small><br />{rubyNodes(q.q)} 🔊</div>
+                  </div>
+                  <div className="row" style={{ justifyContent: 'center', gap: '.9rem', margin: '1.2rem 0 .4rem' }}>
+                    {quiz.order.filter(k => !quiz.gone.includes(k) && (!quiz.ok || k === 0)).map(k => <button key={k} className={'btn big' + (quiz.ok ? ' green' : '')} style={{ fontSize: '1.5rem', minWidth: '9rem' }} onClick={() => { if (!quiz.ok) pickQuiz(k); }}>{quiz.ok ? '◎ ' : ''}{rubyNodes(q.o[k])}</button>)}
+                  </div>
+                  <div style={{ minHeight: '2.2rem', fontWeight: 700, fontSize: '1.2rem', margin: '.4rem 0' }}>{quiz.msg}</div>
+                  <div className="row" style={{ justifyContent: 'center', gap: '1rem' }}>
+                    {quiz.ok ? <button className="btn big orange" onClick={nextQuiz}>{quiz.i + 1 < QZ.length ? 'つぎへ ▶' : '🙌 おわり'}</button> : <button className="btn" onClick={() => setQuiz(null)}>あとで やる</button>}
+                  </div>
+                </div>
+              </div>
+            );
+          })() : null}
           {finish && finish.ask ? (
             <div className="ov">
               <div className="card" style={{ textAlign: 'center', width: '32rem' }}>
@@ -1304,7 +1529,8 @@
       // 先生が 決めた こたえと くらべる
       const ANS = useMemo(() => parseAns(text.ans, doc), [text.ans, doc]);
       const cl = catList(text.kind, ANS), LABELS = catLabels(text.kind, ANS);
-      const keys = ANS.q.map((q, i) => q.u.length ? i : -1).filter(i => i >= 0).concat(cl.filter(c => (ANS.cats[c.key] || []).length).map(c => c.key));
+      // ものがたりの 型を 使う ときは、「とい」は 出ないので、しゅるいの 印だけを くらべる
+      const keys = (flowSteps(ANS, text.kind) ? [] : ANS.q.map((q, i) => q.u.length ? i : -1).filter(i => i >= 0)).concat(cl.filter(c => (ANS.cats[c.key] || []).length).map(c => c.key));
       const [aq, setAq] = useState(() => keys.length ? keys[0] : null);
       const ansOf = (k) => typeof k === 'string' ? { u: ANS.cats[k], c: '' } : ANS.q[k];
       const label = (k) => typeof k === 'string' ? LABELS[k] : 'とい' + (k + 1);
@@ -1377,8 +1603,12 @@
       const doc = useMemo(() => parseDoc(t.body.replace(/\r\n?/g, '\n').trim()), [t.body]);
       const [ans, setAns] = useState(() => {
         const d0 = parseDoc(String(initial && initial.body || '').replace(/\r\n?/g, '\n').trim()), a = parseAns(initial && initial.ans, d0);
-        return { q: [0, 1, 2, 3, 4].map(i => a.q[i] || emptyQ()), cats: a.cats, fm: a.fm, custom: a.custom, heads: a.heads, para: a.para, paraShow: a.paraShow, words: a.words, n: d0.units.length, stale: a.stale };
+        return { q: [0, 1, 2, 3, 4].map(i => a.q[i] || emptyQ()), cats: a.cats, fm: a.fm, custom: a.custom, heads: a.heads, para: a.para, paraShow: a.paraShow, words: a.words, flow: a.flow, n: d0.units.length, stale: a.stale };
       });
+      // ものがたりの 型
+      const fl = ans.flow, flowOn = fl.on && t.kind !== 'せつめいぶん';
+      const setFlow = (p) => setAns(a => Object.assign({}, a, { flow: Object.assign({}, a.flow, p) }));
+      const setQuizQ = (i, p) => setFlow({ quiz: fl.quiz.map((q, j) => j === i ? Object.assign({}, q, p) : q) });
       const [target, setTarget] = useState(0); // 0〜4 = とい、'c:なまえ' = しゅるい、'para' = 意味段落
       const [gran, setGran] = useState('u');
       const [word, setWord] = useState(''), [newCat, setNewCat] = useState('');
@@ -1431,7 +1661,8 @@
         const body = t.body.replace(/\r\n?/g, '\n').trim(), keep = [0, 1, 2, 3, 4].filter(i => t.qs[i].trim());
         const ok = ans.n === doc.units.length; // 本文を 直しても、ことばの 数が 同じなら 印は そのまま 使う
         const out = { th: doc.hash, n: doc.units.length, q: keep.map(i => { const q = ans.q[i]; return { u: ok ? q.raw : [], k: q.k, hint: q.hint, check: q.check, c: q.c }; }),
-          cats: ok ? ans.cats : {}, fm: ok ? Object.fromEntries(Object.keys(ans.fm).filter(k => { const [c, i] = k.split(':'); return runsOf(ans.cats[c] || []).some(r => r[0] === Number(i)); }).map(k => [k, ans.fm[k]])) : {}, custom: ans.custom, heads: ans.heads, para: ok ? ans.para : [], paraShow: ans.paraShow, words: ans.words };
+          cats: ok ? ans.cats : {}, fm: ok ? Object.fromEntries(Object.keys(ans.fm).filter(k => { const [c, i] = k.split(':'); return runsOf(ans.cats[c] || []).some(r => r[0] === Number(i)); }).map(k => [k, ans.fm[k]])) : {}, custom: ans.custom, heads: ans.heads, para: ok ? ans.para : [], paraShow: ans.paraShow, words: ans.words,
+          flow: { on: flowOn, who: fl.who.trim(), off: fl.off, sp: ok ? Object.fromEntries(runsOf(ans.cats.hatsugen || []).filter(r => String(fl.sp[r[0]] || '').trim()).map(r => [r[0], String(fl.sp[r[0]]).trim()])) : {}, quiz: fl.quiz.map(q => ({ q: q.q.trim(), o: q.o.map(x => x.trim()) })) } };
         try { const r = await api.saveText(pin, Object.assign({}, t, { body, qs: keep.map(i => t.qs[i]), ans: JSON.stringify(out) })); if (r && r.ok) onSaved(r.texts); else setMsg('ほぞん できませんでした'); } catch (e) { setMsg('ほぞん できませんでした（つながりを 確かめて ください）'); }
       };
       const pick = (on, color) => ({ flexWrap: 'nowrap', margin: '.25rem 0', padding: '.3rem .5rem', borderRadius: 8, background: on ? color : '#fff', border: '2px solid ' + (on ? '#7c3aed' : '#cbd5e1') });
@@ -1468,7 +1699,34 @@
                 ・空白も ／も ない 行は、アプリが 自動で 区切ります。右の 点線の わくで 確かめて、合わない ところは「自動で 区切る」を 押してから ／を 足したり 消したり して ください。<br />
                 ・行を 変えると 段落が 変わります。空の 行で 間が あきます。
               </div>
-              <b>とい（めあて）</b>　<small>5つまで。空で かまいません。こたえは ② で 決めます</small>
+              {t.kind !== 'せつめいぶん' ? (
+                <div style={{ background: '#eef6ff', border: '2px solid #60a5fa', borderRadius: 10, padding: '.5rem .7rem', margin: '.6rem 0' }}>
+                  <label><input type="checkbox" checked={fl.on} onChange={e => setFlow({ on: e.target.checked })} /> <b>📘 ものがたりの 型を つかう</b></label>
+                  <div><small>発問が 順に 出て、こくばんに 見出し（たて書き）が 1つずつ 出ます。下の「とい（めあて）」の かわりに 使います。</small></div>
+                  {fl.on ? <>
+                    <div style={{ marginTop: '.5rem' }}><b>出す 発問</b>　<small>文章に ない ものは、チェックを 外します</small></div>
+                    {FLOW.map((s, i) => (
+                      <label key={s.key} className="row" style={{ flexWrap: 'nowrap', margin: '.15rem 0' }}>
+                        <input type="checkbox" checked={!fl.off.includes(s.key) && !(s.key === 'dare' && fl.off.includes('hatsugen'))} disabled={s.key === 'dare' && fl.off.includes('hatsugen')}
+                          onChange={e => setFlow({ off: e.target.checked ? fl.off.filter(k => k !== s.key) : fl.off.concat([s.key]) })} />
+                        <span>{NUMS[i]} {s.q(fl.who || '○○')}{s.head ? <small>　→ 見出し「{s.head}」</small> : <small>　→ ことばの 上に はる</small>}</span>
+                      </label>
+                    ))}
+                    <label className="row" style={{ flexWrap: 'nowrap', marginTop: '.3rem' }}><span style={{ whiteSpace: 'nowrap' }}>きもちを 読み取る 人物（○○）</span><input type="text" style={{ width: '10rem' }} value={fl.who} maxLength={20} placeholder="例：ポル" onChange={e => setFlow({ who: e.target.value })} /></label>
+                    <div style={{ marginTop: '.5rem' }}><b>📝 かくにん もんだい</b>　<small>3問まで。発問の あと、「できた！」の 前に 出ます。3つの 中から 選びます。空の 問題は 出ません</small></div>
+                    {fl.quiz.map((q, i) => (
+                      <div key={i} style={{ margin: '.3rem 0' }}>
+                        <input type="text" value={q.q} maxLength={100} placeholder={`もんだい${i + 1}（例：いつの はなしかな？）`} onChange={e => setQuizQ(i, { q: e.target.value })} />
+                        <div className="row" style={{ flexWrap: 'nowrap', marginTop: '.2rem' }}>
+                          {[0, 1, 2].map(j => <input key={j} type="text" value={q.o[j]} maxLength={30} style={j === 0 ? { background: '#dcfce7' } : null} placeholder={j === 0 ? '正しい 答え' : 'ちがう 答え'} onChange={e => setQuizQ(i, { o: q.o.map((x, k) => k === j ? e.target.value : x) })} />)}
+                        </div>
+                      </div>
+                    ))}
+                    <small>みどりの らんが 正しい 答えです。子どもの 画面では、3つの 順番が 毎回 入れかわります。発問の こたえ（印）と、だれが 言った ことばかは、② で 決めます。</small>
+                  </> : null}
+                </div>
+              ) : null}
+              <b>とい（めあて）</b>　<small>5つまで。空で かまいません。こたえは ② で 決めます{flowOn ? '。ものがたりの 型を 使う ときは、ここの といは 出ません' : ''}</small>
               {t.qs.map((q, i) => <input key={i} type="text" style={{ marginTop: '.3rem' }} value={q} placeholder={`とい${i + 1}`} onChange={e => set('qs', t.qs.map((x, j) => j === i ? e.target.value : x))} />)}
             </div>
             <div>
@@ -1524,13 +1782,29 @@
                 </div>
               ) : null}
 
+              {flowOn ? (
+                <div style={{ background: '#eef6ff', border: '2px solid #60a5fa', borderRadius: 10, padding: '.5rem .7rem', marginTop: '.8rem' }}>
+                  <b>📘 ものがたりの 型</b>
+                  <div><small>発問の こたえには、① の 印を 使います（💬 ことば（はつげん）／🧑 とうじょうじんぶつ／🕐 とき／💗 きもちの ことば・🎭 きもちが わかる ようす／🎵 オノマトペ）。印が ない 発問では、ヒントと たしかめるは 出ません。</small></div>
+                  {!fl.off.includes('hatsugen') && !fl.off.includes('dare') ? <>
+                    <div style={{ marginTop: '.4rem' }}><b>だれが 言った ことばか</b>　<small>入れると「✔ たしかめる」で くらべます。空なら、だれを はっても よい ことに なります。「くも、雲」のように「、」で 分けると、どれでも 合って いる ことに なります</small></div>
+                    {runsOf(ans.cats.hatsugen || []).map(r => (
+                      <div key={r[0]} className="row" style={{ flexWrap: 'nowrap', margin: '.2rem 0' }}>
+                        <span className="grow">{joinUnits(doc, r[0], r[1], 'plain')}</span>
+                        <input type="text" style={{ width: '10rem' }} maxLength={40} placeholder="例：ポル" value={fl.sp[r[0]] || ''} onChange={e => setFlow({ sp: Object.assign({}, fl.sp, { [r[0]]: e.target.value }) })} />
+                      </div>
+                    ))}
+                    {!(ans.cats.hatsugen || []).length ? <small>💬 ことば（はつげん）の 印が ありません。</small> : null}
+                  </> : null}
+                </div>
+              ) : null}
               <div style={{ marginTop: '.8rem' }}><b>③ 意味段落</b></div>
               <label className="row" style={pick(target === 'para', '#ffedd5')}>
                 <input type="radio" checked={target === 'para'} onChange={() => setTarget('para')} /><span className="grow">🔢 意味段落の「はじめの 行」を タップして、番号を 付ける</span><b style={{ whiteSpace: 'nowrap' }}>{ans.para.length ? ans.para.length + 'だんらく' : '—'}</b>
               </label>
               <label><input type="checkbox" checked={ans.paraShow} onChange={e => setAns(a => Object.assign({}, a, { paraShow: e.target.checked }))} /> 子どもの 画面に、段落の 番号（①②③）を 出す</label>
 
-              <div style={{ marginTop: '.8rem' }}><b>④ こくばんに 出す 見出し</b>　<small>6つまで。選んだ 見出しが、はじめから こくばんに 並びます</small></div>
+              <div style={{ marginTop: '.8rem' }}><b>④ こくばんに 出す 見出し</b>　<small>6つまで。選んだ 見出しが、はじめから こくばんに 並びます{flowOn ? '（ものがたりの 型を 使う ときは、型の 見出しだけが 出ます）' : ''}</small></div>
               <div>{cl.map(c => <button key={c.key} className={'chip' + (ans.heads.includes(c.key) ? ' on' : '')} style={ans.heads.includes(c.key) ? { background: '#bbf7d0', borderColor: '#15803d' } : null} onClick={() => toggleHead(c.key)}>{c.icon} {c.name}</button>)}</div>
 
               <div style={{ marginTop: '.8rem' }}><b>⑤ 💗 文章に ない きもちの ことば</b>　<small>子どもの こくばんの「💗 きもち」に 出ます</small></div>
@@ -1651,7 +1925,7 @@
                 <table style={{ marginTop: '.8rem', width: '100%' }}>
                   <thead><tr><th>だいめい</th><th>しゅるい</th><th>子どもに 見せる</th><th>とい</th><th>文字数</th><th></th></tr></thead>
                   <tbody>{d.texts.map(t => (
-                    <tr key={t.id}><td style={{ textAlign: 'left' }}>{plainOf(t.title)}</td><td>{t.kind}</td><td>{t.use !== false ? '○' : '×'}</td><td>{(t.qs || []).length}</td><td>{plainOf(t.body).length}</td>
+                    <tr key={t.id}><td style={{ textAlign: 'left' }}>{plainOf(t.title)}</td><td>{t.kind}</td><td>{t.use !== false ? '○' : '×'}</td><td>{t.kind !== 'せつめいぶん' && String(t.ans || '').includes('"flow":{"on":true') ? '📘 型' : (t.qs || []).length}</td><td>{plainOf(t.body).length}</td>
                       <td><button className="btn sm" onClick={() => setEdit(t)}>✏️ 直す</button> <button className="btn sm red" onClick={() => { if (window.confirm(`「${plainOf(t.title)}」を 消します。よろしいですか？\n（子どもの マイこくばんの 記録は 残ります）`)) api.deleteText(pin, t.id).then(r => r && r.ok && setTexts(r.texts)); }}>🗑 消す</button></td></tr>
                   ))}</tbody>
                 </table>
