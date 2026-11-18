@@ -88,8 +88,11 @@ ok(td.works.find(w => w.name === 'はなこ').own === 'はなこの ことば' &
 ok(ctx.getWorks('1234', 's1').works.length === 2 && ctx.getWorks('1234', 's1', 'はなこ').works[0].data === small, 'みんなの／ひとりの マイこくばん');
 
 // 4. 文章
-r = ctx.saveText('1234', { title: 'あたらしい はなし', kind: 'ものがたり', body: '=1+1\nつぎの ぎょう', qs: ['とい あ', '', 'とい い'], use: true });
+r = ctx.saveText('1234', { title: 'あたらしい はなし', kind: 'ものがたり', body: '=1+1\nつぎの ぎょう', qs: ['とい あ', '', 'とい い'], use: true, ans: '{"q":[{"u":[1]}]}' });
 ok(r.ok && r.texts.length === 3 && r.texts[2].qs.length === 2 && sheets['ぶんしょう'].data[3][4].startsWith("'="), '文章を 足す');
+ok(r.texts[2].ans === '{"q":[{"u":[1]}]}' && ctx.getInitData().texts[2].ans === r.texts[2].ans && sheets['ぶんしょう'].data[0][10].startsWith('こたえ'), 'こたえを 文章と いっしょに ほぞんする');
+sheets['ぶんしょう'].data[0][10] = ''; ctx.getInitData();
+ok(sheets['ぶんしょう'].data[0][10].startsWith('こたえ'), '前の 版の シートに「こたえ」の 列を 足す');
 const nid = r.id;
 r = ctx.saveText('1234', { id: nid, title: 'なおした はなし', kind: 'せつめいぶん', body: 'ほんぶん', qs: [], use: false });
 ok(r.texts.length === 3 && r.texts[2].title === 'なおした はなし' && r.texts[2].use === false, '文章を 直す（行は ふえない）');

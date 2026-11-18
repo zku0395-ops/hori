@@ -6,7 +6,8 @@
  */
 
 const SHEET = { ROSTER: '名簿', TEXT: 'ぶんしょう', LOG: 'きろく', SUM: 'まとめ', SET: 'せってい' };
-const TEXT_HEADER = ['ID', 'だいめい', 'しゅるい', 'つかう', 'ほんぶん', 'とい1', 'とい2', 'とい3', 'とい4', 'とい5'];
+const TEXT_HEADER = ['ID', 'だいめい', 'しゅるい', 'つかう', 'ほんぶん', 'とい1', 'とい2', 'とい3', 'とい4', 'とい5', 'こたえ（さわらないでください）'];
+const ANS_COL = TEXT_HEADER.length; // 先生が 決めた こたえ・きもちの ことば（先生用画面で 入れます）
 const LOG_HEADER = ['日時', 'なまえ', 'ぶんしょう', 'とい', 'したこと', 'いろ', 'ことば', 'ID'];
 // 「まとめ」は 子ども×文章で 1行。右の はしの「データ」に マイこくばんの 中身が 入ります
 const SUM_HEADER = ['なまえ', 'ぶんしょうID', 'だいめい', 'こうしん', 'じょうたい', 'せんを ひいた ことば', 'こくばんに はった ことば', 'じぶんで かいた ことば', 'スタンプ・やじるし・わく', 'データ（さわらないでください）'];
@@ -25,10 +26,12 @@ const ONOFF = { dir: ['たて', 'よこ'], sound: ['ならす', 'ならさない
 const SAMPLE_TEXTS = [
   ['s1', 'くもの ぼうし', 'ものがたり', '○',
     'あさ、こぐまの ポルは、のはらで 白（しろ）い ぼうしを ひろいました。\n「だれの ぼうしかな。」\nポルは、ぼうしを もって、森（もり）へ あるいて いきました。\n\nはじめに、りすに あいました。\n「この ぼうしは、きみのかい。」\n「ううん、ぼくのじゃ ないよ。ぼくには 大（おお）きすぎるもの。」\n\nつぎに、うさぎに あいました。\n「この ぼうしは、きみのかい。」\n「ううん、わたしのじゃ ないわ。耳（みみ）が 入（はい）らないもの。」\nポルは、こまって しまいました。\n\nその とき、つよい 風（かぜ）が ふきました。\nぼうしは、ふわりと 空（そら）へ とんで いきました。\n見（み）あげると、小（ちい）さな 雲（くも）が、ぼうしを かぶって わらって いました。\n「ありがとう。さがして いたんだ。」\nポルは、うれしく なって、大（おお）きく 手（て）を ふりました。',
-    'ポルが あった どうぶつに、あかい せんを ひこう。', 'ポルの きもちが わかる ぶんを、こくばんに はろう。', 'ぼうしは、だれの ものだったかな。じぶんの ことばで かこう。', '', ''],
+    'ポルが あった どうぶつに、あかい せんを ひこう。', 'ポルの きもちが わかる ぶんを、こくばんに はろう。', 'ぼうしは、だれの ものだったかな。じぶんの ことばで かこう。', '', '',
+    '{"th":"1988752360","n":66,"q":[{"u":[16,27],"hint":true,"check":true,"c":"r"},{"u":[37,38,39,60,61,62,63,64,65],"hint":true,"check":true,"c":""},{"u":[],"hint":true,"check":true,"c":""}],"feel":[38,39,61,62],"words":["こまった","ふしぎ","びっくり","うれしい","ほっと した"]}'],
   ['s2', 'だんごむしの ひみつ', 'せつめいぶん', '○',
     'だんごむしは、にわの 石（いし）の 下（した）や、おちばの 下（した）に います。\n\nだんごむしは、どうして まるく なるのでしょうか。\nだんごむしは、てきに おそわれると、からだを まるく します。\nせなかは、かたい からで できて います。\nまるく なると、やわらかい おなかを まもる ことが できます。\n\nだんごむしは、何（なに）を たべるのでしょうか。\nだんごむしは、おちばを たべます。\nたべた おちばは、ふんに なって、土（つち）の えいように なります。\nだから、だんごむしは、土（つち）を げんきに する いきものなのです。',
-    '「とい」の ぶんに、あおい せんを ひこう。', '「こたえ」の ぶんに、あかい せんを ひこう。', 'わかった ことを、こくばんに まとめよう。', '', ''],
+    '「とい」の ぶんに、あおい せんを ひこう。', '「こたえ」の ぶんに、あかい せんを ひこう。', 'わかった ことを、こくばんに まとめよう。', '', '',
+    '{"th":"-1750929336","n":48,"q":[{"u":[7,8,9,10,29,30,31],"hint":true,"check":true,"c":"b"},{"u":[11,12,13,14,15,16,32,33,34],"hint":true,"check":true,"c":"r"},{"u":[],"hint":true,"check":true,"c":""}],"feel":[],"words":[]}'],
 ];
 
 // ---------------------------------------------------------------------
@@ -79,6 +82,8 @@ function ensureSheets_() {
     sh.setFrozenRows(1);
     sh.setColumnWidth(2, 180);
     sh.setColumnWidth(5, 480);
+  } else if (!String(sh.getRange(1, ANS_COL).getValue())) {
+    sh.getRange(1, ANS_COL).setValue(TEXT_HEADER[ANS_COL - 1]).setFontWeight('bold').setBackground('#fef9c3'); // 前の 版の シートに 列を 足す
   }
   sh = ss.getSheetByName(SHEET.LOG);
   if (!sh) {
@@ -199,13 +204,14 @@ function readTexts_() {
       id: id, title: title || '（だいめい なし）', kind: String(r[2]).trim() === 'せつめいぶん' ? 'せつめいぶん' : 'ものがたり',
       use: !(use === '×' || use === 'x' || use === 'つかわない'), body: body,
       qs: [r[5], r[6], r[7], r[8], r[9]].map(function (q) { return String(q).trim(); }).filter(String),
+      ans: String(r[10] || ''),
       row: i + 2,
     });
   });
   return out;
 }
 
-function publicText_(t) { return { id: t.id, title: t.title, kind: t.kind, use: t.use, body: t.body, qs: t.qs }; }
+function publicText_(t) { return { id: t.id, title: t.title, kind: t.kind, use: t.use, body: t.body, qs: t.qs, ans: t.ans }; }
 
 // ---------------------------------------------------------------------
 // マイこくばん（「まとめ」シート）
@@ -349,7 +355,7 @@ function saveText(pin, t) {
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
-    const title = str_(t.title, 100).trim(), body = String(t.body || '').replace(/\r\n?/g, '\n').slice(0, 20000);
+    const title = str_(t.title, 100).trim(), body = String(t.body || '').replace(/\r\n?/g, '\n').slice(0, 20000).trim();
     if (!title || !body.trim()) return { ok: false, reason: 'empty' };
     const sh = ss_().getSheetByName(SHEET.TEXT);
     const texts = readTexts_();
@@ -357,7 +363,7 @@ function saveText(pin, t) {
     const id = old ? old.id : 't' + Date.now().toString(36);
     const qs = (t.qs || []).map(function (q) { return str_(q, 200).trim(); }).filter(String).slice(0, 5);
     while (qs.length < 5) qs.push('');
-    const row = [id, title, t.kind === 'せつめいぶん' ? 'せつめいぶん' : 'ものがたり', t.use === false ? '×' : '○', body].concat(qs).map(safe_);
+    const row = [id, title, t.kind === 'せつめいぶん' ? 'せつめいぶん' : 'ものがたり', t.use === false ? '×' : '○', body].concat(qs).concat([str_(t.ans, 30000)]).map(safe_);
     sh.getRange(old ? old.row : sh.getLastRow() + 1, 1, 1, TEXT_HEADER.length).setValues([row]);
     return { ok: true, id: id, texts: readTexts_().map(publicText_) };
   } finally {
@@ -437,7 +443,7 @@ function restoreBackup(pin, data) {
     if (!t || !t.id || have[t.id]) return;
     const qs = (t.qs || []).slice(0, 5).map(function (q) { return str_(q, 200); });
     while (qs.length < 5) qs.push('');
-    ss_().getSheetByName(SHEET.TEXT).appendRow([String(t.id), str_(t.title, 100), t.kind === 'せつめいぶん' ? 'せつめいぶん' : 'ものがたり', t.use === false ? '×' : '○', String(t.body || '').slice(0, 20000)].concat(qs).map(safe_));
+    ss_().getSheetByName(SHEET.TEXT).appendRow([String(t.id), str_(t.title, 100), t.kind === 'せつめいぶん' ? 'せつめいぶん' : 'ものがたり', t.use === false ? '×' : '○', String(t.body || '').slice(0, 20000)].concat(qs).concat([str_(t.ans, 30000)]).map(safe_));
   });
   (data.works || []).forEach(function (w) {
     if (!w || !w.name || !w.id || !w.data) return;
