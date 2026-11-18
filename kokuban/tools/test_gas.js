@@ -46,7 +46,7 @@ const ctx = {
 };
 vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'コード.gs'), 'utf8'), ctx);
-vm.runInContext('function SAMPLE_TEXTS_FOR_TEST() { return SAMPLE_TEXTS; } function OLD_S1_ANS_FOR_TEST() { return OLD_S1_ANS; }', ctx); // const は 外から 見えないので、テスト用に 取り出す
+vm.runInContext('function SAMPLE_TEXTS_FOR_TEST() { return SAMPLE_TEXTS; } function OLD_S1_ANS_FOR_TEST() { return OLD_S1_ANS; } function OLD_S1_ANS_2_FOR_TEST() { return OLD_S1_ANS_2; }', ctx); // const は 外から 見えないので、テスト用に 取り出す
 
 let bad = 0;
 const ok = (c, msg) => { console.log((c ? '✔ ' : '✖ ') + msg); if (!c) bad++; };
@@ -125,7 +125,12 @@ ok(ctx.restoreBackup('0420', { app: 'ほか' }).ok === false, 'ほかの アプ�
 {
   const sh = sheets['ぶんしょう'], row = sh.data.findIndex(r => r[0] === 's1'), NEW = ctx.SAMPLE_TEXTS_FOR_TEST()[0][10], OLD = ctx.OLD_S1_ANS_FOR_TEST();
   const f = JSON.parse(NEW).flow;
-  ok(f.on === true && f.who === 'ポル' && f.quiz.length === 3 && f.quiz.every(q => q.q && q.o.length === 3) && f.sp['7'] === 'ポル', 'くもの ぼうしに ものがたりの 型が 入って いる');
+  ok(f.on === true && f.who === 'ポル' && f.quiz.length === 4 && f.quiz.every(q => q.q && q.o.length === 3 && q.o.every(o => o && o.length <= 30)) && f.sp['7'] === 'ポル', 'くもの ぼうしに ものがたりの 型が 入って いる');
+  ok(f.quiz[3].w === true && f.quiz[3].q.includes('なぜかな') && f.quiz.slice(0, 3).every(q => !q.w), '4問めは 理由の 問題で、「じぶんで かく」が 出る');
+  { const OLD2 = ctx.OLD_S1_ANS_2_FOR_TEST(), f2 = JSON.parse(OLD2).flow;
+    ok(f2.on === true && f2.quiz.length === 3 && JSON.stringify(f2.quiz) === JSON.stringify(f.quiz.slice(0, 3)), '1つ 前の こたえ（3問）と、はじめの 3問は 同じ');
+    sh.data[row][10] = OLD2; ctx.doGet();
+    ok(sh.data[row][10] === NEW, '1つ 前の 版の ままの「くもの ぼうし」も、新しい こたえ（4問）に 入れかわる'); }
   ok(!JSON.parse(OLD).flow && JSON.parse(OLD).n === JSON.parse(NEW).n && JSON.stringify(JSON.parse(OLD).cats) === JSON.stringify(JSON.parse(NEW).cats), '前の こたえと 印は 同じ（型だけ 足した）');
   sh.data[row][10] = OLD; ctx.doGet();
   ok(sh.data[row][10] === NEW, '前の 版の ままの「くもの ぼうし」は、新しい こたえに 入れかわる');

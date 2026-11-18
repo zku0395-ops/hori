@@ -189,7 +189,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, useCallback } = React;
-    const APP_VERSION = '1.5.0';
+    const APP_VERSION = '1.5.1';
 
     // =====================================================================
     //  1. 小さな道具
@@ -363,7 +363,7 @@
       ['toi', '❓', 'とい', 'e'], ['kotae', '💡', 'こたえ', 'e'], ['rei', '📝', 'れい', 'e'], ['riyu', '🔗', 'りゆう', 'e'], ['matome', '⭐', 'まとめ', 'e'], ['ono', '🎵', 'オノマトペ', 'se'],
     ];
     // ---- ものがたりの 型：発問が 順に 出て、こくばんに 見出し（たて書き）が 1つずつ 出る ----
-    //  ans.flow = { on, who: きもちを 読み取る 人物, off: [出さない 発問], sp: { はつげんの はじめの 番号: 'だれが いったか' }, quiz: [{ q, o: [正しい 答え, ちがう 答え, ちがう 答え] }] }
+    //  ans.flow = { on, who: きもちを 読み取る 人物, off: [出さない 発問], sp: { はつげんの はじめの 番号: 'だれが いったか' }, quiz: [{ q, o: [正しい 答え, ちがう 答え, ちがう 答え], w: 「じぶんで かく」も 出す }] }（quiz は 4問まで）
     //  cats ＝ その 発問の こたえに 使う 印の しゅるい。head ＝ こくばんに 出す 見出し（見出しの k は 'f_' + key）
     const FLOW = [
       { key: 'hatsugen', head: '💬 ことば（はつげん）', cats: ['hatsugen'], q: () => 'ことば（はつげん）は どれかな？ えらんで こくばんに はろう。' },
@@ -373,13 +373,13 @@
       { key: 'ono', head: '🎵 オノマトペ', cats: ['ono'], q: () => 'オノマトペを こくばんに はろう。' },
     ];
     const FLOW_LABELS = {}; FLOW.forEach(s => { if (s.head) FLOW_LABELS['f_' + s.key] = s.head; });
-    const emptyFlow = () => ({ on: false, who: '', off: [], sp: {}, quiz: [0, 1, 2].map(() => ({ q: '', o: ['', '', ''] })) });
+    const emptyFlow = () => ({ on: false, who: '', off: [], sp: {}, quiz: [0, 1, 2, 3].map(() => ({ q: '', o: ['', '', ''], w: false })) });
     function parseFlow(f, ok) {
       const out = emptyFlow(); if (!f || typeof f !== 'object') return out;
       out.on = f.on === true; out.who = String(f.who || '').slice(0, 20);
       out.off = Array.isArray(f.off) ? f.off.map(String).filter(k => FLOW.some(s => s.key === k)) : [];
       if (ok && f.sp && typeof f.sp === 'object') Object.keys(f.sp).forEach(k => { const v = String(f.sp[k] || '').trim().slice(0, 40); if (v) out.sp[k] = v; });
-      if (Array.isArray(f.quiz)) out.quiz = out.quiz.map((e, i) => { const q = f.quiz[i]; return q && typeof q === 'object' ? { q: String(q.q || '').slice(0, 100), o: [0, 1, 2].map(j => String(Array.isArray(q.o) && q.o[j] || '').slice(0, 30)) } : e; });
+      if (Array.isArray(f.quiz)) out.quiz = out.quiz.map((e, i) => { const q = f.quiz[i]; return q && typeof q === 'object' ? { q: String(q.q || '').slice(0, 100), o: [0, 1, 2].map(j => String(Array.isArray(q.o) && q.o[j] || '').slice(0, 30)), w: q.w === true } : e; });
       return out;
     }
     // 子どもの 画面に 出す 発問（型を 使わない ときは null）
@@ -494,7 +494,8 @@
       const lines = Object.keys(runs).filter(c => runs[c].length).map(c => MARKS[c].name + '：' + runs[c].join(' ／ ')).join('　');
       const f = work.items.filter(x => x.t === 'f');
       const count = (t) => work.items.filter(x => x.t === t).length;
-      const qz = work.quiz && Array.isArray(work.quiz.miss) ? `かくにん：1かいで ${work.quiz.miss.filter(m => !m).length}／${work.quiz.miss.length}` : '';
+      const own = work.quiz && work.quiz.own && typeof work.quiz.own === 'object' ? work.quiz.own : {}; // じぶんで かいた こたえ（もんだいの 番号 → ことば）
+      const qz = work.quiz && Array.isArray(work.quiz.miss) ? `かくにん：1かいで ${work.quiz.miss.filter((m, i) => !m && own[i] == null).length}／${work.quiz.miss.length}` + Object.keys(own).map(i => ` ✏️${Number(i) + 1}「${String(own[i]).slice(0, 80)}」`).join('') : '';
       const etc = [work.items.filter(x => x.t === 's').map(x => x.e).join(''), count('a') ? 'やじるし×' + count('a') : '', count('w') ? 'わく×' + count('w') : '', qz].filter(String).join(' ');
       return { lines, pasted: f.filter(x => x.src).map(x => (x.sp ? '🧑' + plainOf(x.sp) + '：' : '') + plainOf(x.text) + (x.fe ? '（💗' + x.fe + '）' : '')).join(' ／ '), own: f.filter(x => !x.src).map(x => (x.fw ? '💗' : '') + plainOf(x.text)).join(' ／ '), etc };
     }
@@ -513,7 +514,7 @@
       { id: 's1', title: 'くもの ぼうし', kind: 'ものがたり', use: true,
         body: 'あさ、こぐまの ポルは、のはらで 白（しろ）い ぼうしを ひろいました。\n「だれの ぼうしかな。」\n\nポルは、りすに ききました。\n「ううん、ぼくのじゃ ないよ。」\nポルは、こまって しまいました。\n\nその とき、風（かぜ）が ふいて、ぼうしは ふわりと 空（そら）へ とんで いきました。\n小（ちい）さな 雲（くも）が、ぼうしを かぶって わらって います。\n「ありがとう。」\nポルは、うれしく なって、大（おお）きく 手（て）を ふりました。',
         qs: ['とうじょうじんぶつに、あかい せんを ひこう。', 'ポルの きもちが わかる ぶんを、こくばんに はろう。', 'ぼうしは、だれの ものだったかな。じぶんの ことばで かこう。'],
-        ans: '{"th":"-1907463431","n":40,"q":[{"u":[],"k":"jinbutsu","hint":true,"check":true,"c":"r"},{"u":[15,16,17,34,35,36,37,38,39],"k":"","hint":true,"check":true,"c":""},{"u":[],"k":"","hint":true,"check":true,"c":""}],"cats":{"hatsugen":[7,8,12,13,14,33],"jinbutsu":[2,10,28],"toki":[0,18,19],"basho":[3,24],"kimochi":[16,17,35,36],"yosu":[37,38,39],"ono":[23]},"fm":{"yosu:37":["うれしい","ありがとうの きもち"],"kimochi:16":["こまった"],"kimochi:35":["うれしい"]},"custom":[],"heads":["toki","basho","jinbutsu"],"para":[0,9,18],"paraShow":true,"words":["こまった","ふしぎ","びっくり","うれしい","ほっと した"],"flow":{"on":true,"who":"ポル","off":[],"sp":{"7":"ポル","12":"りす","33":"くも、雲"},"quiz":[{"q":"「だれの ぼうしかな。」と いったのは、だれかな？","o":["ポル","りす","くも"]},{"q":"いつの はなしかな？","o":["あさ","ひる","よる"]},{"q":"さいごの ポルは、どんな きもちかな？","o":["うれしい","こまった","かなしい"]}]}}' },
+        ans: '{"th":"-1907463431","n":40,"q":[{"u":[],"k":"jinbutsu","hint":true,"check":true,"c":"r"},{"u":[15,16,17,34,35,36,37,38,39],"k":"","hint":true,"check":true,"c":""},{"u":[],"k":"","hint":true,"check":true,"c":""}],"cats":{"hatsugen":[7,8,12,13,14,33],"jinbutsu":[2,10,28],"toki":[0,18,19],"basho":[3,24],"kimochi":[16,17,35,36],"yosu":[37,38,39],"ono":[23]},"fm":{"yosu:37":["うれしい","ありがとうの きもち"],"kimochi:16":["こまった"],"kimochi:35":["うれしい"]},"custom":[],"heads":["toki","basho","jinbutsu"],"para":[0,9,18],"paraShow":true,"words":["こまった","ふしぎ","びっくり","うれしい","ほっと した"],"flow":{"on":true,"who":"ポル","off":[],"sp":{"7":"ポル","12":"りす","33":"くも、雲"},"quiz":[{"q":"「だれの ぼうしかな。」と いったのは、だれかな？","o":["ポル","りす","くも"]},{"q":"いつの はなしかな？","o":["あさ","ひる","よる"]},{"q":"さいごの ポルは、どんな きもちかな？","o":["うれしい","こまった","かなしい"]},{"q":"「ポルは、うれしく なって、大（おお）きく 手（て）を ふりました。」のは、なぜかな？","o":["くもが「ありがとう。」と いったから","りすが ぼうしを もらって くれたから","かぜが つよく ふいたから"],"w":true}]}}' },
       { id: 's2', title: 'だんごむしの ひみつ', kind: 'せつめいぶん', use: true,
         body: 'だんごむしは、石（いし）や おちばの 下（した）に います。\n\nだんごむしは、どうして まるく なるのでしょうか。\nてきに おそわれると、からだを まるく します。\nかたい せなかで、やわらかい おなかを まもるのです。\n\nだんごむしは、何（なに）を たべるのでしょうか。\nだんごむしは、おちばを たべます。\nたべた おちばは、土（つち）の えいように なります。',
         qs: ['「とい」の ぶんに、あおい せんを ひこう。', '「こたえ」の ぶんに、あかい せんを ひこう。', 'わかった ことを、こくばんに まとめよう。'],
@@ -820,7 +821,7 @@
       const r = map[base] === h ? base : map[base];
       return kata ? toKata(r) : r;
     }
-    function Writer({ initial, onOK, onCancel }) {
+    function Writer({ initial, onOK, onCancel, okLabel }) {
       const [text, setText] = useState(initial || '');
       const [kata, setKata] = useState(false);
       const MAX = 80;
@@ -851,7 +852,7 @@
             </div>
             <div className="row" style={{ justifyContent: 'center', marginTop: '.9rem', gap: '1rem' }}>
               <button className="btn" onClick={onCancel}>やめる</button>
-              <button className="btn big green" disabled={!text.trim()} onClick={() => onOK(text.trim())}>📌 こくばんに はる</button>
+              <button className="btn big green" disabled={!text.trim()} onClick={() => onOK(text.trim())}>{okLabel || '📌 こくばんに はる'}</button>
             </div>
           </div>
         </div>
@@ -889,7 +890,7 @@
       const qs = FL ? FL.map(s => s.q) : (text.qs || []);
       const step = FL ? FL[qi] || null : null;
       const QZ = FL && FL[FL.length - 1].key === 'quiz' ? FL[FL.length - 1].quiz : null;
-      const [attach, setAttach] = useState(null), [quiz, setQuiz] = useState(null);
+      const [attach, setAttach] = useState(null), [quiz, setQuiz] = useState(null), [quizW, setQuizW] = useState(false);
       const charRef = useRef(null), sizesRef = useRef(null);
       const onSizes = (m) => { // はかった 幅で ならべ直す（重ならないように）
         sizesRef.current = m; if (!workRef.current) return;
@@ -1176,7 +1177,13 @@
       };
       const addFeel = (w) => { addItem(Object.assign({ t: 'f', fw: 1, text: w, c: 'p', v: !!settings.vertical, z: 1 }, spot(), grp())); log('きもちの ことば', '', w); award('write'); setFeelOpen(false); };
       // ---- 型：かくにん もんだい（3つの 中から えらぶ。q.o[0] が 正しい 答え）----
-      const openQuiz = (then) => { setQuiz({ i: 0, order: shuffle([0, 1, 2]), gone: [], miss: QZ.map(() => 0), msg: '', ok: false, then }); speak(readOf(QZ[0].q)); };
+      const openQuiz = (then) => { setQuiz({ i: 0, order: shuffle([0, 1, 2]), gone: [], miss: QZ.map(() => 0), own: {}, msg: '', ok: false, then }); setQuizW(false); speak(readOf(QZ[0].q)); };
+      // 「✏️ じぶんで かく」：合って いる・ちがうは 決めずに、そのまま 受け取る（先生の きろくに のこる）
+      const writeQuiz = (t) => {
+        const q = QZ[quiz.i];
+        log('かくにん もんだい', '', 'じぶんで かく：' + t, q.q);
+        sfx.put(); setQuizW(false); setQuiz(z => Object.assign({}, z, { ok: true, own: Object.assign({}, z.own, { [z.i]: t }), msg: 'じぶんの ことばで かけたね！' })); speak('じぶんの ことばで かけたね！');
+      };
       const pickQuiz = (k) => {
         const q = QZ[quiz.i];
         log('かくにん もんだい', '', plainOf(q.o[k]) + (k === 0 ? ' ◎' : ''), q.q);
@@ -1185,7 +1192,7 @@
       };
       const nextQuiz = () => {
         if (quiz.i + 1 < QZ.length) { const i = quiz.i + 1; setQuiz(z => Object.assign({}, z, { i, order: shuffle([0, 1, 2]), gone: [], ok: false, msg: '' })); speak(readOf(QZ[i].q)); return; }
-        apply(Object.assign({}, workRef.current, { quiz: { miss: quiz.miss } }), false);
+        apply(Object.assign({}, workRef.current, { quiz: Object.assign({ miss: quiz.miss }, Object.keys(quiz.own).length ? { own: quiz.own } : {}) }), false);
         const then = quiz.then; setQuiz(null);
         if (!award('quiz')) { sfx.sticker(); say('📝', 'かくにん もんだいが できたね！'); }
         if (then === 'submit') setFinish({ ask: true });
@@ -1367,7 +1374,9 @@
                     <div className="bubble grow" style={{ fontSize: '1.25rem', cursor: 'pointer' }} onClick={sayIt}><small>📝 かくにん もんだい {quiz.i + 1}／{QZ.length}</small><br />{rubyNodes(q.q)} 🔊</div>
                   </div>
                   <div className="row" style={{ justifyContent: 'center', gap: '.9rem', margin: '1.2rem 0 .4rem' }}>
-                    {quiz.order.filter(k => !quiz.gone.includes(k) && (!quiz.ok || k === 0)).map(k => <button key={k} className={'btn big' + (quiz.ok ? ' green' : '')} style={{ fontSize: '1.5rem', minWidth: '9rem' }} onClick={() => { if (!quiz.ok) pickQuiz(k); }}>{quiz.ok ? '◎ ' : ''}{rubyNodes(q.o[k])}</button>)}
+                    {quiz.own[quiz.i] != null ? <div className="fusen c-y" style={{ position: 'static', fontSize: '1.5rem', textAlign: 'left' }}>✏️ {quiz.own[quiz.i]}</div>
+                      : quiz.order.filter(k => !quiz.gone.includes(k) && (!quiz.ok || k === 0)).map(k => <button key={k} className={'btn big' + (quiz.ok ? ' green' : '')} style={{ fontSize: '1.5rem', minWidth: '9rem' }} onClick={() => { if (!quiz.ok) pickQuiz(k); }}>{quiz.ok ? '◎ ' : ''}{rubyNodes(q.o[k])}</button>)}
+                    {q.w && !quiz.ok ? <button className="btn big" style={{ fontSize: '1.5rem', minWidth: '9rem', background: '#fff3a6' }} onClick={() => setQuizW(true)}>✏️ じぶんで かく</button> : null}
                   </div>
                   <div style={{ minHeight: '2.2rem', fontWeight: 700, fontSize: '1.2rem', margin: '.4rem 0' }}>{quiz.msg}</div>
                   <div className="row" style={{ justifyContent: 'center', gap: '1rem' }}>
@@ -1377,6 +1386,7 @@
               </div>
             );
           })() : null}
+          {quiz && QZ && quizW ? <Writer initial="" okLabel="✔ これで こたえる" onOK={writeQuiz} onCancel={() => setQuizW(false)} /> : null}
           {finish && finish.ask ? (
             <div className="ov">
               <div className="card" style={{ textAlign: 'center', width: '32rem' }}>
@@ -1662,7 +1672,7 @@
         const ok = ans.n === doc.units.length; // 本文を 直しても、ことばの 数が 同じなら 印は そのまま 使う
         const out = { th: doc.hash, n: doc.units.length, q: keep.map(i => { const q = ans.q[i]; return { u: ok ? q.raw : [], k: q.k, hint: q.hint, check: q.check, c: q.c }; }),
           cats: ok ? ans.cats : {}, fm: ok ? Object.fromEntries(Object.keys(ans.fm).filter(k => { const [c, i] = k.split(':'); return runsOf(ans.cats[c] || []).some(r => r[0] === Number(i)); }).map(k => [k, ans.fm[k]])) : {}, custom: ans.custom, heads: ans.heads, para: ok ? ans.para : [], paraShow: ans.paraShow, words: ans.words,
-          flow: { on: flowOn, who: fl.who.trim(), off: fl.off, sp: ok ? Object.fromEntries(runsOf(ans.cats.hatsugen || []).filter(r => String(fl.sp[r[0]] || '').trim()).map(r => [r[0], String(fl.sp[r[0]]).trim()])) : {}, quiz: fl.quiz.map(q => ({ q: q.q.trim(), o: q.o.map(x => x.trim()) })) } };
+          flow: { on: flowOn, who: fl.who.trim(), off: fl.off, sp: ok ? Object.fromEntries(runsOf(ans.cats.hatsugen || []).filter(r => String(fl.sp[r[0]] || '').trim()).map(r => [r[0], String(fl.sp[r[0]]).trim()])) : {}, quiz: fl.quiz.map(q => Object.assign({ q: q.q.trim(), o: q.o.map(x => x.trim()) }, q.w ? { w: true } : {})) } };
         try { const r = await api.saveText(pin, Object.assign({}, t, { body, qs: keep.map(i => t.qs[i]), ans: JSON.stringify(out) })); if (r && r.ok) onSaved(r.texts); else setMsg('ほぞん できませんでした'); } catch (e) { setMsg('ほぞん できませんでした（つながりを 確かめて ください）'); }
       };
       const pick = (on, color) => ({ flexWrap: 'nowrap', margin: '.25rem 0', padding: '.3rem .5rem', borderRadius: 8, background: on ? color : '#fff', border: '2px solid ' + (on ? '#7c3aed' : '#cbd5e1') });
@@ -1713,13 +1723,14 @@
                       </label>
                     ))}
                     <label className="row" style={{ flexWrap: 'nowrap', marginTop: '.3rem' }}><span style={{ whiteSpace: 'nowrap' }}>きもちを 読み取る 人物（○○）</span><input type="text" style={{ width: '10rem' }} value={fl.who} maxLength={20} placeholder="例：ポル" onChange={e => setFlow({ who: e.target.value })} /></label>
-                    <div style={{ marginTop: '.5rem' }}><b>📝 かくにん もんだい</b>　<small>3問まで。発問の あと、「できた！」の 前に 出ます。3つの 中から 選びます。空の 問題は 出ません</small></div>
+                    <div style={{ marginTop: '.5rem' }}><b>📝 かくにん もんだい</b>　<small>4問まで。発問の あと、「できた！」の 前に 出ます。3つの 中から 選びます。空の 問題は 出ません</small></div>
                     {fl.quiz.map((q, i) => (
                       <div key={i} style={{ margin: '.3rem 0' }}>
                         <input type="text" value={q.q} maxLength={100} placeholder={`もんだい${i + 1}（例：いつの はなしかな？）`} onChange={e => setQuizQ(i, { q: e.target.value })} />
                         <div className="row" style={{ flexWrap: 'nowrap', marginTop: '.2rem' }}>
                           {[0, 1, 2].map(j => <input key={j} type="text" value={q.o[j]} maxLength={30} style={j === 0 ? { background: '#dcfce7' } : null} placeholder={j === 0 ? '正しい 答え' : 'ちがう 答え'} onChange={e => setQuizQ(i, { o: q.o.map((x, k) => k === j ? e.target.value : x) })} />)}
                         </div>
+                        <label><input type="checkbox" checked={!!q.w} onChange={e => setQuizQ(i, { w: e.target.checked })} /> <small>「✏️ じぶんで かく」も 出す（理由を 聞く 問題など。書いた ことばは、合って いる・ちがうを 決めずに 受け取ります）</small></label>
                       </div>
                     ))}
                     <small>みどりの らんが 正しい 答えです。子どもの 画面では、3つの 順番が 毎回 入れかわります。発問の こたえ（印）と、だれが 言った ことばかは、② で 決めます。</small>
