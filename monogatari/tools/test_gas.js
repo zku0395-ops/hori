@@ -168,5 +168,23 @@ fetchReply = () => ({ getResponseCode: () => 429, getContentText: () => 'quota' 
 ok(ctx.getVoice('べつの ぶん', 'Sulafat').reason === 'pause', 'つかいすぎの ときは やすむ');
 ok(ctx.getTtsStatus('2468').hasKey === true, 'こえの ようす');
 
+// いろ（先生の たしかめ）
+ok(Object.keys(ctx.getInitData().iro).length === 0 && sheets['いろ'], 'いろ：はじめは どの おはなしも たしかめて いない（「いろ」シートが できる）');
+ok(!ctx.saveIro('0000', 1, 'x', true, 'h', ['a']).ok, 'いろ：ちがう 暗証番号は だめ');
+let ir = ctx.saveIro('2468', 3, '=きつねの コン', true, '12-abc', ['{t:なつの よる}、', 'きつねの コンが']);
+ok(ir.ok && ir.iro[3].ok === true && ir.iro[3].hash === '12-abc' && ir.iro[3].lines[0] === '{t:なつの よる}、', 'いろ：たしかめた を ほぞん');
+ok(!String(sheets['いろ'].data[1][1]).startsWith('='), 'いろ：だいめいが 式に ならない');
+ir = ctx.saveIro('2468', 3, 'きつねの コン', false, '12-abc', ['{t:なつの よる}、', 'きつねの {n1:コン}が']);
+ok(ir.iro[3].ok === false && ir.iro[3].lines[1] === 'きつねの {n1:コン}が' && sheets['いろ'].getLastRow() === 2, 'いろ：出すのを やめる（おなじ 行を 書きかえる。直した いろは のこる）');
+ctx.saveIro('2468', 5, 'ゆきだるま', true, '9-x', null);
+const im = ctx.getInitData().iro;
+ok(im[5].ok === true && im[5].lines === null && im[3].ok === false, 'いろ：いろを 直して いない おはなしも たしかめられる');
+ok(!ctx.saveIro('2468', 0, 'x', true, 'h', []).ok && !ctx.saveIro('2468', 2, 'x', true, 'h', [123]).ok && !ctx.saveIro('2468', 2, 'x', true, 'h', Array(61).fill('a')).ok, 'いろ：おかしな データは ことわる');
+const bk2 = ctx.getBackup('2468');
+ok(bk2.data.iro && bk2.data.iro[5].ok === true, 'いろ：バックアップに 入る');
+delete sheets['いろ'];
+ctx.restoreBackup('2468', bk2.data);
+ok(ctx.getInitData().iro[5].ok === true && ctx.getInitData().iro[3].lines.length === 2, 'いろ：バックアップから もどせる');
+
 console.log(bad ? `\n✖ ${bad}この テストが うまく いきません` : '\nOK：ぜんぶ うまく いきました');
 process.exit(bad ? 1 : 0);
