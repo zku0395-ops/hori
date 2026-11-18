@@ -53,6 +53,7 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('マイこくばん')
     .addItem('シートを準備する', 'setup')
+    .addItem('「くもの ぼうし」を 新しい れいに 入れ直す', 'resetSample')
     .addToUi();
 }
 
@@ -129,6 +130,35 @@ function upgradeSample_(sh) {
     if (String(r[0]) !== 's1') continue;
     if (String(r[4]) === SAMPLE_TEXTS[0][4] && String(r[ANS_COL - 1]) === OLD_S1_ANS) sh.getRange(i + 2, ANS_COL).setValue(SAMPLE_TEXTS[0][ANS_COL - 1]);
     return;
+  }
+}
+
+// メニュー：先生が 直した「くもの ぼうし」を、新しい れんしゅう用の 形（ものがたりの 型）に 入れ直す。
+// 先生が 自分で 押した ときだけ 動く。子どもの きろく・こくばんには さわらない。
+function resetSample() {
+  const ui = SpreadsheetApp.getUi();
+  const res = ui.alert('「くもの ぼうし」を 入れ直します',
+    '先生が 直した「くもの ぼうし」の 本文・とい・こたえは 消えて、新しい れんしゅう用の 形（ものがたりの 型と かくにん もんだい）に なります。\n\n' +
+    '子どもの きろくと こくばんは 残ります。本文が 変わる ときは、その子が ひいた せんだけ 消えます。\n\n入れ直しますか？', ui.ButtonSet.OK_CANCEL);
+  if (res !== ui.Button.OK) return;
+  resetSample_();
+  ss_().toast('「くもの ぼうし」を 入れ直しました。アプリを 開き直して ください。');
+}
+function resetSample_() {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    ensureSheets_();
+    const sh = ss_().getSheetByName(SHEET.TEXT), last = sh.getLastRow();
+    let row = 0;
+    if (last >= 2) {
+      const ids = sh.getRange(2, 1, last - 1, 1).getValues();
+      for (let i = 0; i < ids.length; i++) if (String(ids[i][0]) === 's1') { row = i + 2; break; }
+    }
+    sh.getRange(row || Math.max(2, last + 1), 1, 1, TEXT_HEADER.length).setValues([SAMPLE_TEXTS[0]]); // ない ときは、いちばん 下に 足す
+    return { ok: true, added: !row };
+  } finally {
+    lock.releaseLock();
   }
 }
 

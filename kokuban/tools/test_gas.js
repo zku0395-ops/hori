@@ -30,13 +30,14 @@ function makeSheet(name) {
   return sh;
 }
 const sheets = {};
+const menu = []; let uiAnswer = 'cancel'; // メニューに 足した 関数の 名前と、「入れ直しますか？」への 答え
 const ss = {
   getSheetByName: (n) => sheets[n] || null,
   insertSheet: (n) => (sheets[n] = makeSheet(n)),
   toast: () => {},
 };
 const ctx = {
-  SpreadsheetApp: { getActiveSpreadsheet: () => ss, getUi: () => ({ createMenu: () => ({ addItem() { return this; }, addToUi() {} }) }) },
+  SpreadsheetApp: { getActiveSpreadsheet: () => ss, getUi: () => ({ createMenu: () => ({ addItem(label, fn) { menu.push(fn); return this; }, addToUi() {} }), alert: () => uiAnswer, ButtonSet: { OK_CANCEL: 1 }, Button: { OK: 'ok', CANCEL: 'cancel' } }) },
   LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
   Session: { getScriptTimeZone: () => 'Asia/Tokyo' },
   Utilities: { formatDate: (d) => d.toISOString().slice(0, 10).replace(/-/g, '/') + ' 10:00' },
@@ -133,6 +134,23 @@ ok(ctx.restoreBackup('0420', { app: 'ほか' }).ok === false, 'ほかの アプ�
   sh.data[row][10] = OLD; const body = sh.data[row][4]; sh.data[row][4] = body + 'あ'; ctx.doGet();
   ok(sh.data[row][10] === OLD, '先生が 本文を 直して いたら、入れかえない');
   sh.data[row][4] = body; sh.data[row][10] = NEW;
+}
+
+// メニュー：先生が 直した「くもの ぼうし」を 入れ直す
+{
+  const sh = sheets['ぶんしょう'], S = ctx.SAMPLE_TEXTS_FOR_TEST()[0], find = () => sh.data.findIndex(r => r[0] === 's1');
+  ctx.onOpen();
+  ok(menu.includes('setup') && menu.includes('resetSample') && typeof ctx.resetSample === 'function', 'メニューに「入れ直す」が ある');
+  const row = find(), other = JSON.stringify(sh.data.filter(r => r[0] !== 's1')), sum = JSON.stringify(sheets['まとめ'].data), log = JSON.stringify(sheets['きろく'].data);
+  sh.data[row][1] = '先生が 直した だいめい'; sh.data[row][4] = '先生が 直した 本文。'; sh.data[row][5] = '先生の とい'; sh.data[row][10] = '{"q":[]}';
+  uiAnswer = 'cancel'; ctx.resetSample();
+  ok(sh.data[row][4] === '先生が 直した 本文。', '「キャンセル」なら 何も 変えない');
+  uiAnswer = 'ok'; ctx.resetSample();
+  ok(JSON.stringify(sh.data[row]) === JSON.stringify(S), '「OK」で、くもの ぼうしが 新しい れいに 入れかわる');
+  ok(JSON.stringify(sh.data.filter(r => r[0] !== 's1')) === other && JSON.stringify(sheets['まとめ'].data) === sum && JSON.stringify(sheets['きろく'].data) === log, 'ほかの 文章・まとめ・きろくは 変わらない');
+  ok(JSON.parse(ctx.getInitData().texts.find(t => t.id === 's1').ans).flow.on === true, 'アプリに 型つきの 文章が とどく');
+  sh.data[row] = sh.data[row].map(() => ''); const n = sh.getLastRow(); ctx.resetSample();
+  ok(find() >= 0 && sh.data.filter(r => r[0] === 's1').length === 1 && JSON.stringify(sh.data[find()]) === JSON.stringify(S), '「くもの ぼうし」が ない ときは、足す');
 }
 
 console.log(bad ? `\n✖ ${bad}こ しっぱい` : '\n✔ ぜんぶ OK');
