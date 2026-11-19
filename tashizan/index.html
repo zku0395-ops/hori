@@ -151,6 +151,17 @@ rt{font-size:.55em;font-weight:normal}
 /* もじを おおきく */
 body.big #msg{font-size:28px}body.big #wInfo .wt{font-size:27px}body.big #hint{font-size:24px}body.big .card{font-size:24px}body.big #ovBox{font-size:30px}body.big .bld .lb{font-size:26px}
 
+/* しゅじんこうを えらぶ */
+#heroChg{font-size:22px;font-weight:bold;border:0;border-radius:16px;padding:12px 20px;background:#fff;box-shadow:0 5px 0 #b9ae86;color:#3b2a6b}
+#heroChg:active{transform:translateY(4px);box-shadow:0 1px 0 #b9ae86}
+#ovBox.wide{max-width:860px}
+.hsel{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:10px 0}
+.hsel button{margin:0!important;padding:8px 4px!important;background:#fff!important;color:#3b2a6b!important;border:5px solid #bbb!important;border-radius:18px!important;font-size:22px!important;box-shadow:0 5px 0 #b9ae86}
+.hsel button.on{border-color:#ff9800!important;background:#fff3c4!important}
+.hsel .e{font-size:110px!important;display:block}
+@media(max-width:640px){#ovBox.wide{padding:14px 10px;font-size:22px}.hsel button{font-size:17px!important;white-space:nowrap}.hsel{grid-template-columns:repeat(2,1fr)}.hsel .e{font-size:80px!important}}
+@media(max-height:700px){.hsel .e{font-size:96px!important}}
+
 /* オーバーレイ */
 #ov{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;z-index:10;padding:16px}
 #ov.on{display:flex}
@@ -212,6 +223,7 @@ body.big #msg{font-size:28px}body.big #wInfo .wt{font-size:27px}body.big #hint{f
   <!-- いえ -->
   <div class="screen" id="s-home">
     <div id="homeTop"></div>
+    <div style="text-align:center"><button id="heroChg">しゅじんこうを かえる</button></div>
     <h2>もちもの</h2>
     <div class="list" id="homeItems"></div>
   </div>
@@ -248,6 +260,15 @@ const IMG = {
   monsters:[1,2,3,4,5,6,7,8,9,10,11].map(n=>'img/mon'+n+'.png')   // ステージ1〜11の モンスター
 };
 
+/* ====== しゅじんこう ======
+   img が からっぽ('')の あいだは えもじで でます。えが できたら img に ばしょを いれます。 */
+const HEROES = [
+ {id:'yusha',   n:'ゆうしゃ',     e:'🤺', img:'',             atk:'けんで こうげき！'},
+ {id:'shonin',  n:'しょうにん',   e:'🧑‍💼', img:'',             atk:'そろばんで こうげき！'},
+ {id:'maho',    n:'まほうつかい', e:'🧙', img:'img/hero.png', atk:'まほうで こうげき！'},
+ {id:'kakutoka',n:'かくとうか',   e:'🥋', img:'',             atk:'パンチで こうげき！'}
+];
+
 /* ====== ステージ ====== */
 const STAGES = [
  {name:'2けた＋1けた',            ex:'23＋4',  types:[1], n:10, carry:false, mon:'🐛', mn:'いもむしくん',  tr:['🗝️','きんの かぎ']},
@@ -283,6 +304,8 @@ const $=id=>document.getElementById(id);
 const RUBY={'一':'いち','十':'じゅう','百':'ひゃく'};
 const rb=t=>String(t).replace(/[一十百]/g,k=>'<ruby>'+k+'<rt>'+RUBY[k]+'</rt></ruby>');
 const lvOf=exp=>Math.floor(exp/EXP_PER_LV)+1;
+const heroOf=()=>HEROES.find(h=>h.id===S.hero)||HEROES[2];
+const heroPic=()=>{const h=heroOf();return pic(h.img,h.e)};
 function pic(url,emoji){return url?'<span class="pic"><img src="'+url+'" alt=""></span>':'<span class="pic">'+emoji+'</span>'}
 
 /* ====== おと ====== */
@@ -322,6 +345,7 @@ function show(name){
   if(name==='teacher')drawTeacher();
   if(name==='world')drawWorld(); if(name==='home')drawHome(); if(name==='shop')drawShop(); if(name==='tre')drawTre();
   $('tBtn').style.display=name==='teacher'?'none':'';
+  if(name==='town'&&!S.hero)heroAsk(true);
   status(); window.scrollTo(0,0);
 }
 function status(){
@@ -330,7 +354,21 @@ function status(){
   $('sndBtn').textContent=S.snd?'🔊':'🔇';
 }
 function ov(html){$('ovBox').innerHTML=html;$('ov').classList.add('on');speak(html)}
-function ovClose(){$('ov').classList.remove('on')}
+function ovClose(){$('ov').classList.remove('on');$('ovBox').classList.remove('wide')}
+// しゅじんこうを えらぶ(はじめて ひらいたとき と、「あなたの いえ」から)
+function heroAsk(first){
+  let sel=S.hero||'';
+  const draw=()=>{
+    $('ovBox').classList.add('wide');
+    $('ovBox').innerHTML='<div>しゅじんこうを えらぼう</div><div class="hsel">'+HEROES.map(h=>'<button data-h="'+h.id+'" class="'+(sel===h.id?'on':'')+'"><span class="e">'+pic(h.img,h.e)+'</span>'+h.n+'</button>').join('')+'</div>'+
+      '<button id="heroOk" '+(sel?'':'disabled style="opacity:.35"')+'>これに する</button>'+(first?'':' <button id="heroNo" style="background:#888">やめる</button>');
+    $('ov').classList.add('on');
+    $('ovBox').querySelectorAll('[data-h]').forEach(b=>b.onclick=()=>{sel=b.dataset.h;tone(600,0,.1);speak(HEROES.find(h=>h.id===sel).n);draw()});
+    $('heroOk').onclick=()=>{if(!sel)return;S.hero=sel;save();sWin();ovClose();const on=document.querySelector('.screen.on');if(on&&on.id==='s-home')drawHome();speak(heroOf().n+'に なったよ！')};
+    if(!first)$('heroNo').onclick=ovClose;
+  };
+  draw();if(first)speak('しゅじんこうを えらぼう');
+}
 
 /* ====== ぼうけんの ちず ====== */
 // [よこ%, たて%]  0ばんは まち、1〜11が ステージ。はいけいがぞうに あわせて かえられます。
@@ -349,7 +387,7 @@ function drawWorld(){
     const st=STAGES[i-1],cl=i<=S.cleared,lk=!unlocked(i);
     h+='<button class="nd '+(cl?'cl ':'')+(lk?'lk ':'')+(!cl&&!lk?'nx ':'')+(st.boss?'boss':'')+'" data-i="'+i+'" '+pos+'><span class="nm">'+(lk?'🔒':cl?'⭐':pic(IMG.monsters[i-1],st.mon))+'</span><span class="no">'+i+'</span></button>';
   });
-  h+='<div id="whero" style="left:'+NODES[wpos][0]+'%;top:'+NODES[wpos][1]+'%">'+pic(IMG.hero,'🧙')+'</div>';
+  h+='<div id="whero" style="left:'+NODES[wpos][0]+'%;top:'+NODES[wpos][1]+'%">'+heroPic()+'</div>';
   m.innerHTML=h;wInfo();
 }
 function wInfo(msg){
@@ -377,7 +415,7 @@ $('wInfo').onclick=e=>{if(e.target.closest('.wt')&&!walking){speakAgain();return
   if(a==='act')wAct();else walkTo(wpos+(a==='next'?1:-1))};
 
 function drawHome(){
-  $('homeTop').innerHTML='<div class="big">'+pic(IMG.hero,'🧙')+'</div>レベル <b>'+lvOf(S.exp)+'</b>　🪙 <b>'+S.coins+'</b>　たから <b>'+S.tre.length+'</b>／'+STAGES.length;
+  $('homeTop').innerHTML='<div class="big">'+heroPic()+'</div><b>'+heroOf().n+'</b><br>レベル <b>'+lvOf(S.exp)+'</b>　🪙 <b>'+S.coins+'</b>　たから <b>'+S.tre.length+'</b>／'+STAGES.length;
   const own=SHOP.filter(x=>S.items.includes(x.id));
   $('homeItems').innerHTML=own.length?own.map(x=>'<div class="card"><div class="e">'+x.e+'</div>'+x.n+'</div>').join(''):'<div class="card" style="grid-column:1/-1">おみせで かいものを すると、ここに ならぶよ。</div>';
 }
@@ -421,7 +459,7 @@ function startStage(i){
   const st=STAGES[i];
   B={i,st,hp:st.n,used:{},P:null,steps:[],step:0,wrong:0,busy:false};
   $('field').style.backgroundImage=IMG.battleBg?'url('+IMG.battleBg+')':'';
-  $('hero').innerHTML=pic(IMG.hero,'🧙');
+  $('hero').innerHTML=heroPic();
   $('mon').className='';$('mon').innerHTML=pic(IMG.monsters[i],st.mon);
   show('battle'); say(st.mn+'が あらわれた！'); nextQ();
 }
@@ -462,7 +500,7 @@ function press(d){
   }
 }
 function solved(){
-  B.busy=true;sOK();say('せいかい！ こうげき！');
+  B.busy=true;sOK();say('せいかい！ '+heroOf().atk);
   const before=lvOf(S.exp);S.coins+=COIN_Q;S.exp+=EXP_Q;
   S.log.push({d:Date.now(),st:B.i+1,a:B.P.a,b:B.P.b,mo:B.miss.o,mc:B.miss.c,mt:B.miss.t,mh:B.miss.h,hint:B.hintUsed,auto:B.autoUsed});
   if(S.log.length>LOG_MAX)S.log=S.log.slice(-LOG_MAX);
@@ -594,7 +632,7 @@ $('s-teacher').onclick=e=>{
   else if(a==='bk')download('tashizan_backup_'+today()+'.json',JSON.stringify(S),'application/json');
   else if(a==='rs')$('rsFile').click();
   else if(a==='clrLog'){if(arm!=='clrLog'){tArm='clrLog'}else{S.log=[];save()}drawTeacher()}
-  else if(a==='clrGame'){if(arm!=='clrGame'){tArm='clrGame'}else{Object.assign(S,{coins:0,exp:0,cleared:0,tre:[],items:[]});save();status()}drawTeacher()}
+  else if(a==='clrGame'){if(arm!=='clrGame'){tArm='clrGame'}else{Object.assign(S,{coins:0,exp:0,cleared:0,tre:[],items:[],hero:''});save();status()}drawTeacher()}
 };
 $('s-teacher').onchange=e=>{
   if(e.target.id!=='rsFile'||!e.target.files[0])return;
@@ -620,7 +658,9 @@ function applyCfg(){document.body.classList.toggle('big',!!S.cfg.big)}
   $('msg').onclick=speakAgain;
   $('tBtn').onclick=pinAsk;
   applyCfg();$('hero').onclick=speakAgain;
+  $('heroChg').onclick=()=>heroAsk(false);
   status();
+  if(!S.hero)heroAsk(true);
 })();
 </script>
 </body>
