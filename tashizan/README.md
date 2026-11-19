@@ -6,6 +6,7 @@
 
 - Apps Script のウェブアプリとして動かします。子どもは名前のボタンを押して始め、記録は先生のスプレッドシートに届きます。
 - 絵は GitHub Pages から読みこみます。
+- 同じ順番で練習できる紙のプリント（A4たて、PDF）もあります：[tashizan/print/README.md](print/README.md)
 - GitHub Pages のページ（`https://zku0395-ops.github.io/hori/tashizan/`）をそのまま開くと、「おためしモード」で動きます。名前は選ばず、記録はその端末の中だけに残ります。
 
 ## できること
