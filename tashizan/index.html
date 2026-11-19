@@ -123,6 +123,12 @@ rt{font-size:.55em;font-weight:normal}
 .card .e{font-size:92px;line-height:1.1}
 .card .e img{max-width:100%;object-fit:contain}
 .card.no{opacity:.35}
+.cats{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:4px 12px 0}
+.cats button{font-size:20px;font-weight:bold;border:0;border-radius:16px;padding:10px 11px;background:#fff;box-shadow:0 5px 0 #b9ae86;color:#3b2a6b;white-space:nowrap}
+.cats button:active{transform:translateY(4px);box-shadow:0 1px 0 #b9ae86}
+.cats button.on{background:#3b2a6b;color:#fff;box-shadow:0 5px 0 #1e1440}
+.cats button small{font-size:15px;font-weight:normal;opacity:.8}
+.grp{font-size:22px;font-weight:bold;color:#3b2a6b;padding:10px 16px 0}
 .card button{white-space:nowrap;font-size:19px;font-weight:bold;border:0;border-radius:12px;padding:8px 12px;background:#ffd54a;margin-top:4px}
 .card button:disabled{background:#ccc;color:#777}
 #homeTop{text-align:center;font-size:24px;padding:10px}
@@ -246,13 +252,14 @@ body.big #msg{font-size:28px}body.big #wInfo .wt{font-size:27px}body.big #hint{f
   <div class="screen" id="s-home">
     <div id="homeTop"></div>
     <div style="text-align:center"><button id="heroChg">しゅじんこうを かえる</button></div>
-    <h2>もちもの</h2>
-    <div class="list" id="homeItems"></div>
+    <h2>もちもの <span id="homeCnt" style="font-size:20px"></span></h2>
+    <div id="homeItems"></div>
   </div>
 
   <!-- みせ -->
   <div class="screen" id="s-shop">
     <h2>おみせ</h2>
+    <div class="cats" id="shopCats"></div>
     <div class="list" id="shopList"></div>
   </div>
 
@@ -309,10 +316,40 @@ const STAGES = [
  {name:'こたえが 3けた③',        ex:'85＋47', types:[10],n:10, carry:true,  mon:'👹', mn:'おにキング',    tr:['🏆','きんの トロフィー']},
  {name:'だいボス：ぜんぶ',        ex:'いろいろ', types:[1,2,4,5,6,8,9,10], n:10, carry:true, boss:true, mon:'🐉', mn:'だいまおうりゅう', tr:['🌟','ひっさん マスターの ほし']}
 ];
+// おみせの しなもの(50こ)。c は なかま。id は きろくと むすびついて いるので、かえないで ください。
+const CATS = [['soubi','🛡️','そうび'],['dougu','🧪','どうぐ'],['tabemono','🍞','たべもの'],['nakama','🐾','なかま'],['norimono','⛵','のりもの']];
 const SHOP = [
- {id:'hat',e:'🎩',n:'ぼうし',p:30},{id:'cape',e:'🧣',n:'マフラー',p:40},{id:'dog',e:'🐶',n:'いぬ',p:80},
- {id:'cat',e:'🐱',n:'ねこ',p:80},{id:'bird',e:'🦜',n:'とり',p:100},{id:'uni',e:'🦄',n:'ユニコーン',p:150},
- {id:'ship',e:'⛵',n:'ふね',p:200},{id:'rocket',e:'🦄',n:'ペガサス',p:250},{id:'castle',e:'🏰',n:'おしろ',p:400}
+ // そうび
+ {id:'hat',c:'soubi',e:'🎩',n:'ぼうし',p:30},{id:'cape',c:'soubi',e:'🧣',n:'マフラー',p:40},
+ {id:'boots',c:'soubi',e:'🥾',n:'かわの くつ',p:50},{id:'gloves',c:'soubi',e:'🧤',n:'てぶくろ',p:50},
+ {id:'belt',c:'soubi',e:'🪢',n:'ベルト',p:60},{id:'mantle',c:'soubi',e:'🧥',n:'マント',p:70},
+ {id:'woodshield',c:'soubi',e:'🛡️',n:'きの たて',p:80},{id:'armor',c:'soubi',e:'🦺',n:'かわの よろい',p:100},
+ {id:'helmet',c:'soubi',e:'⛑️',n:'てつの かぶと',p:110},{id:'sword',c:'soubi',e:'🗡️',n:'どうの つるぎ',p:130},
+ {id:'staff',c:'soubi',e:'🪄',n:'まほうの つえ',p:150},
+ // どうぐ
+ {id:'rope',c:'dougu',e:'🪢',n:'ロープ',p:30},{id:'potion',c:'dougu',e:'🧪',n:'ポーション',p:40},
+ {id:'lantern',c:'dougu',e:'🏮',n:'ランタン',p:50},{id:'bag',c:'dougu',e:'👝',n:'たからの ふくろ',p:50},
+ {id:'compass',c:'dougu',e:'🧭',n:'コンパス',p:60},{id:'tent',c:'dougu',e:'⛺',n:'テント',p:70},
+ {id:'scope',c:'dougu',e:'🔭',n:'ぼうえんきょう',p:80},{id:'book',c:'dougu',e:'📖',n:'まほうの ほん',p:80},
+ // たべもの
+ {id:'apple',c:'tabemono',e:'🍎',n:'りんご',p:10},{id:'bread',c:'tabemono',e:'🍞',n:'パン',p:10},
+ {id:'cheese',c:'tabemono',e:'🧀',n:'チーズ',p:15},{id:'honey',c:'tabemono',e:'🍯',n:'はちみつ',p:20},
+ {id:'soup',c:'tabemono',e:'🍲',n:'スープ',p:20},{id:'meat',c:'tabemono',e:'🍖',n:'おにく',p:30},
+ {id:'bento',c:'tabemono',e:'🍱',n:'おべんとう',p:30},{id:'cake',c:'tabemono',e:'🍰',n:'ケーキ',p:40},
+ // なかま
+ {id:'dog',c:'nakama',e:'🐶',n:'いぬ',p:80},{id:'cat',c:'nakama',e:'🐱',n:'ねこ',p:80},
+ {id:'rabbit',c:'nakama',e:'🐰',n:'うさぎ',p:80},{id:'turtle',c:'nakama',e:'🐢',n:'かめ',p:90},
+ {id:'bird',c:'nakama',e:'🦜',n:'とり',p:100},{id:'sheep',c:'nakama',e:'🐑',n:'ひつじ',p:100},
+ {id:'owl',c:'nakama',e:'🦉',n:'ふくろう',p:120},{id:'fox',c:'nakama',e:'🦊',n:'きつね',p:120},
+ {id:'uni',c:'nakama',e:'🦄',n:'ユニコーン',p:150},{id:'horse',c:'nakama',e:'🐴',n:'うま',p:160},
+ {id:'fairy',c:'nakama',e:'🧚',n:'ようせい',p:200},{id:'rocket',c:'nakama',e:'🦄',n:'ペガサス',p:250},
+ {id:'babydragon',c:'nakama',e:'🐲',n:'ドラゴンの こども',p:250},
+ // のりもの・たてもの
+ {id:'cart',c:'norimono',e:'🛒',n:'にぐるま',p:150},{id:'boat',c:'norimono',e:'🛶',n:'ボート',p:160},
+ {id:'tenthouse',c:'norimono',e:'🎪',n:'テントの いえ',p:180},{id:'ship',c:'norimono',e:'⛵',n:'ふね',p:200},
+ {id:'windmill',c:'norimono',e:'🌬️',n:'ふうしゃ',p:220},{id:'lighthouse',c:'norimono',e:'🗼',n:'とうだい',p:250},
+ {id:'balloon',c:'norimono',e:'🎈',n:'ききゅう',p:300},{id:'carpet',c:'norimono',e:'🧞',n:'そらとぶ じゅうたん',p:350},
+ {id:'castle',c:'norimono',e:'🏰',n:'おしろ',p:400},{id:'tower',c:'norimono',e:'🏯',n:'まほうの とう',p:500}
 ];
 // しなものと たからものの え。ITEM_IMG に ある id だけ えに なり、ない ものは えもじで でます。
 // (ペガサスの id が 'rocket' なのは、まえの「ロケット」の きろくと むすびついて いるため。かえないで ください)
@@ -487,13 +524,21 @@ $('wInfo').onclick=e=>{if(e.target.closest('.wt')&&!walking){speakAgain();return
 function drawHome(){
   $('homeTop').innerHTML='<div class="big">'+heroPic()+'</div><b>'+heroOf().n+'</b><br>レベル <b>'+lvOf(S.exp)+'</b>　🪙 <b>'+S.coins+'</b>　たから <b>'+S.tre.length+'</b>／'+STAGES.length;
   const own=SHOP.filter(x=>S.items.includes(x.id));
-  $('homeItems').innerHTML=own.length?own.map(x=>'<div class="card"><div class="e">'+itemPic(x)+'</div>'+x.n+'</div>').join(''):'<div class="card" style="grid-column:1/-1">おみせで かいものを すると、ここに ならぶよ。</div>';
+  $('homeCnt').textContent='('+own.length+'／'+SHOP.length+')';
+  // なかまごとに ならべる
+  $('homeItems').innerHTML=own.length?CATS.map(c=>{const L=own.filter(x=>x.c===c[0]);
+    return L.length?'<div class="grp">'+c[1]+' '+c[2]+'</div><div class="list">'+L.map(x=>'<div class="card"><div class="e">'+itemPic(x)+'</div>'+x.n+'</div>').join('')+'</div>':''}).join('')
+    :'<div class="list"><div class="card" style="grid-column:1/-1">おみせで かいものを すると、ここに ならぶよ。</div></div>';
 }
 
+let shopCat='soubi';
 function drawShop(){
-  $('shopList').innerHTML=SHOP.map(x=>{const has=S.items.includes(x.id);
+  $('shopCats').innerHTML=CATS.map(c=>{const L=SHOP.filter(x=>x.c===c[0]);
+    return '<button data-c="'+c[0]+'" class="'+(shopCat===c[0]?'on':'')+'">'+c[1]+' '+c[2]+' <small>'+L.filter(x=>S.items.includes(x.id)).length+'／'+L.length+'</small></button>'}).join('');
+  $('shopList').innerHTML=SHOP.filter(x=>x.c===shopCat).map(x=>{const has=S.items.includes(x.id);
     return '<div class="card"><div class="e">'+itemPic(x)+'</div>'+x.n+'<br>'+(has?'<b>もっているよ</b>':'<button data-id="'+x.id+'" '+(S.coins<x.p?'disabled':'')+'>🪙'+x.p+' で かう</button>')+'</div>'}).join('');
 }
+$('shopCats').onclick=e=>{const b=e.target.closest('button');if(!b)return;shopCat=b.dataset.c;tone(600,0,.1);speak(CATS.find(c=>c[0]===shopCat)[2]);drawShop()};
 $('shopList').onclick=e=>{const b=e.target.closest('button');if(!b)return;const x=SHOP.find(v=>v.id===b.dataset.id);
   if(!x||S.coins<x.p)return;S.coins-=x.p;S.items.push(x.id);save();sWin();status();drawShop();
   ov('<div class="e">'+itemPic(x)+'</div>'+x.n+'を かったよ！<br><button onclick="ovClose()">OK</button>')};
