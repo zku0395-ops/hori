@@ -60,12 +60,14 @@ body{font-family:"BIZ UDPGothic","Yu Gothic","Hiragino Kaku Gothic ProN",sans-se
 .ln{grid-column:1/5;height:1.2mm;background:#111;border-radius:.6mm;margin:.6mm 0}
 .c.ans{border:.5mm solid #555;color:#d32f2f}
 .cb{position:absolute;right:-3.9mm;bottom:.4mm;width:7.4mm;height:9mm;border:.4mm dashed #555;border-radius:1.5mm;background:#fff;z-index:2;font-size:6.4mm;color:#d32f2f;display:flex;align-items:center;justify-content:center;font-weight:bold}
-.ft{height:20mm;display:flex;align-items:center;gap:5mm;border-top:.4mm solid #bbb;padding-top:2mm}
-.ft .q{font-size:6mm;font-weight:bold}
-.ft .face{display:flex;flex-direction:column;align-items:center;font-size:3.6mm;gap:.5mm}
+.ft{height:20mm;display:flex;align-items:center;gap:4mm;border-top:.4mm solid #bbb;padding-top:2mm}
+.ft .q{font-size:5.6mm;font-weight:bold;white-space:nowrap}
+.ft .face{white-space:nowrap;display:flex;flex-direction:column;align-items:center;font-size:3.6mm;gap:.5mm}
 .ft .face svg{width:12mm;height:12mm}
 .ft .sp{flex:1}
-.ft .pg{font-size:3.4mm;color:#666;text-align:right}
+.ft .mon{display:flex;align-items:center;gap:2mm;font-size:4.2mm;font-weight:bold;white-space:nowrap;line-height:1.3;text-align:right}
+.ft .mon img{height:17mm;max-width:24mm;object-fit:contain}
+.ft .pg{font-size:3.4mm;color:#666;text-align:right;white-space:nowrap}
 /* しろくろ */
 .mono .c.o{background:#ececec}.mono .c.t{background:#cfcfcf}.mono .c.h{background:#fff}
 .mono .hd .ttl .s,.mono .prob .no{color:#111}
@@ -119,17 +121,17 @@ body{font-family:"BIZ UDPGothic","Yu Gothic","Hiragino Kaku Gothic ProN",sans-se
 <script>
 /* ====== ステージ（アプリ tashizan/index.html の STAGES と おなじ じゅん・おなじ もんだいの じょうけん）====== */
 const STAGES = [
- {name:'2けた＋1けた',     ex:'くりあがり なし',               types:[1], carry:false},
- {name:'2けた＋2けた',     ex:'くりあがり なし',               types:[2], carry:false},
- {name:'なん十＋なん十',   ex:'30＋40 など',                   types:[3], carry:false},
- {name:'くりあがり①',     ex:'2けた＋1けた',                  types:[4], carry:true},
- {name:'くりあがり②',     ex:'2けた＋2けた',                  types:[5], carry:true},
- {name:'こたえが なん十',  ex:'26＋14 など',                   types:[6], carry:true},
- {name:'ボス：まとめ',     ex:'ステージ1〜6の もんだい',       types:[1,2,3,4,5,6], carry:true, boss:true},
- {name:'こたえが 3けた①', ex:'なん十＋なん十',                types:[8], carry:false},
- {name:'こたえが 3けた②', ex:'十のくらいだけ くりあがる',     types:[9], carry:false},
- {name:'こたえが 3けた③', ex:'どちらも くりあがる',           types:[10],carry:true},
- {name:'だいボス：ぜんぶ', ex:'いろいろな もんだい',           types:[1,2,4,5,6,8,9,10], carry:true, boss:true}
+ {mn:'いもむしくん', name:'2けた＋1けた',     ex:'くりあがり なし',               types:[1], carry:false},
+ {mn:'こうもりん', name:'2けた＋2けた',     ex:'くりあがり なし',               types:[2], carry:false},
+ {mn:'にょろへび', name:'なん十＋なん十',   ex:'30＋40 など',                   types:[3], carry:false},
+ {mn:'くもくも', name:'くりあがり①',     ex:'2けた＋1けた',                  types:[4], carry:true},
+ {mn:'おおかみ', name:'くりあがり②',     ex:'2けた＋2けた',                  types:[5], carry:true},
+ {mn:'おばけ', name:'こたえが なん十',  ex:'26＋14 など',                   types:[6], carry:true},
+ {mn:'ドラゴン', name:'ボス：まとめ',     ex:'ステージ1〜6の もんだい',       types:[1,2,3,4,5,6], carry:true, boss:true},
+ {mn:'さそりん', name:'こたえが 3けた①', ex:'なん十＋なん十',                types:[8], carry:false},
+ {mn:'きょうりゅう', name:'こたえが 3けた②', ex:'十のくらいだけ くりあがる',     types:[9], carry:false},
+ {mn:'おにキング', name:'こたえが 3けた③', ex:'どちらも くりあがる',           types:[10],carry:true},
+ {mn:'だいまおうりゅう', name:'だいボス：ぜんぶ', ex:'いろいろな もんだい',           types:[1,2,4,5,6,8,9,10], carry:true, boss:true}
 ];
 const SHEETS=10, PER=6, SEED0=20261119;
 const RUBY={'一':'いち','十':'じゅう','百':'ひゃく'};
@@ -202,7 +204,7 @@ function pageHtml(si,k,ps,o,key){
     '<div class="fr name">なまえ<span class="v">'+esc(o.name)+'</span></div></div></div>'+
     '<div class="probs">'+ps.map((P,i)=>probHtml(P,i,st,key)).join('')+'</div>'+
     '<div class="ft"><span class="q">できたかな？</span>'+['にっこり','ふつう','うーん'].map((t,i)=>'<span class="face">'+FACE(i)+t+'</span>').join('')+
-    '<span class="sp"></span><span class="pg">たしざん ひっさん プリント<br>'+(key?'こたえ ':'')+no+'</span></div></section>';
+    '<span class="sp"></span><span class="mon"><span>'+st.mn+'を<br>たおそう！</span><img src="'+(o.mono?'img/mon'+(si+1)+'-gray.png':'../img/mon'+(si+1)+'.png')+'" alt=""></span><span class="pg">'+(key?'こたえ<br>':'')+no+'</span></div></section>';
 }
 
 /* ====== がめんの そうさ ====== */
