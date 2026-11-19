@@ -100,6 +100,7 @@ window.SORA = {
         ] },
         { id: 'tashihiki', name: 'たしざん・ひきざん', emoji: '➕', apps: [
           { id: 'tashihissan', emoji: '➕', name: 'たしざん（ひっさん）マスター', url: 'https://sites.google.com/view/tasizanhissannmasternew/%E3%83%9B%E3%83%BC%E3%83%A0' },
+          { id: 'tashizanquest', emoji: '⚔️', name: 'たしざん ひっさん クエスト', say: 'たしざん ひっさん クエスト', url: 'https://script.google.com/macros/s/AKfycbwUFdGgbZtaKOQH8F7UYwwknOy2zTgCayhMi9pwXMMm2x3MZLlO1JvFcvM5FdXVY9PEVg/exec' },
           { id: 'hikimaster', emoji: '➖', name: 'ひきざんマスター', url: 'https://tadashi-hori.my.canva.site/c73hahewarmzp1m7' },
           { id: 'hikihissan', emoji: '➖', name: 'ひきざん（ひっさん）マスター', url: 'https://sites.google.com/view/hikizanhissann/%E3%83%9B%E3%83%BC%E3%83%A0' },
           { id: 'kurisagari', emoji: '🐿️', name: 'くりさがりの ある ひきざんマスター', url: 'https://sites.google.com/view/kurisagariarihissann/%E3%83%9B%E3%83%BC%E3%83%A0' },
