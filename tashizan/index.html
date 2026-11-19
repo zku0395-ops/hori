@@ -132,7 +132,14 @@ rt{font-size:.55em;font-weight:normal}
 .card button{white-space:nowrap;font-size:19px;font-weight:bold;border:0;border-radius:12px;padding:8px 12px;background:#ffd54a;margin-top:4px}
 .card button:disabled{background:#ccc;color:#777}
 #homeTop{text-align:center;font-size:24px;padding:10px}
-#homeTop .big{font-size:110px}
+#homeTop .big{font-size:130px;display:flex;align-items:flex-end;justify-content:center;gap:10px}
+#homeTop .holds{display:inline-flex;gap:8px;font-size:.62em;align-items:flex-end}
+#hero .holds{position:absolute;left:92%;bottom:0;display:flex;gap:4px;font-size:.44em;align-items:flex-end;white-space:nowrap}
+.card.held{border-color:#ff9800;background:#fff3c4}
+.card .hb{font-size:17px;font-weight:bold;color:#e65100}
+.card button.off{background:#fff;border:3px solid #999}
+.card button[data-hold]{font-size:22px;padding:10px 22px;box-shadow:0 4px 0 #b9ae86}
+.card button[data-hold]:active{transform:translateY(3px);box-shadow:0 1px 0 #b9ae86}
 #reset{margin:20px auto;font-size:16px;border:2px solid #999;background:#fff;border-radius:10px;padding:6px 12px;color:#666}
 
 /* なまえを えらぶ(Apps Script で うごかす とき) */
@@ -253,6 +260,7 @@ body.big #msg{font-size:28px}body.big #wInfo .wt{font-size:27px}body.big #hint{f
     <div id="homeTop"></div>
     <div style="text-align:center"><button id="heroChg">しゅじんこうを かえる</button></div>
     <h2>もちもの <span id="homeCnt" style="font-size:20px"></span></h2>
+    <div id="homeHow" style="text-align:center;font-size:20px;padding:0 12px"></div>
     <div id="homeItems"></div>
   </div>
 
@@ -361,6 +369,9 @@ const ITEM_HAS=['hat','cape','dog','cat','bird','uni','ship','rocket','castle',
 const ITEM_IMG={};ITEM_HAS.forEach(id=>ITEM_IMG[id]='img/item-'+(id==='rocket'?'pegasus':id)+'.png');
 const TRE_IMG=[1,2,3,4,5,6,7,8,9,10,11].map(n=>'img/tre'+n+'.png');    // ステージ1〜11の たからもの(ない ものは えもじ)
 const itemPic=x=>pic(ITEM_IMG[x.id]||'',x.e);
+// しゅじんこうが もって いる しなもの(かった ものだけ・3つまで)
+const holds=()=>(Array.isArray(S.hold)?S.hold:[]).map(id=>SHOP.find(x=>x.id===id)).filter(x=>x&&S.items.includes(x.id)).slice(0,HOLD_MAX);
+const holdsHtml=()=>{const h=holds();return h.length?'<span class="holds">'+h.map(itemPic).join('')+'</span>':''};
 const trePic=i=>pic(TRE_IMG[i]||'',STAGES[i].tr[0]);
 const KEY='tashizanHissanQuest_v1';
 const EXP_PER_LV=100, COIN_Q=5, EXP_Q=10;
@@ -371,8 +382,9 @@ const HAS_GAS=typeof google!=='undefined'&&google.script&&google.script.run;
 const gas=(fn,...a)=>new Promise((res,rej)=>google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...a));
 const BASE=HAS_GAS?'https://zku0395-ops.github.io/hori/tashizan/':'';   // えは GitHub Pages から よみこむ
 const LKEY=HAS_GAS?KEY+'_gas':KEY, PKEY=KEY+'_pending';
-const GAME0=()=>({coins:0,exp:0,cleared:0,tre:[],items:[],hero:''});
-const GF=['coins','exp','cleared','tre','items','hero'];
+const GAME0=()=>({coins:0,exp:0,cleared:0,tre:[],items:[],hero:'',hold:[]});   // hold＝しゅじんこうが もって いる しなもの(3つまで)
+const GF=['coins','exp','cleared','tre','items','hero','hold'];
+const HOLD_MAX=3;
 let me='';   // えらんだ なまえ(Apps Script の とき)
 let S=Object.assign(GAME0(),{snd:true,log:[],cfg:{}});
 try{const d=JSON.parse(localStorage.getItem(LKEY));if(d){if(HAS_GAS)S.snd=d.snd!==false;else S=Object.assign(S,d)}}catch(e){}
@@ -526,14 +538,25 @@ $('wInfo').onclick=e=>{if(e.target.closest('.wt')&&!walking){speakAgain();return
   if(a==='act')wAct();else walkTo(wpos+(a==='next'?1:-1))};
 
 function drawHome(){
-  $('homeTop').innerHTML='<div class="big">'+heroPic()+'</div><b>'+heroOf().n+'</b><br>レベル <b>'+lvOf(S.exp)+'</b>　🪙 <b>'+S.coins+'</b>　たから <b>'+S.tre.length+'</b>／'+STAGES.length;
+  const H=holds();
+  $('homeTop').innerHTML='<div class="big">'+heroPic()+holdsHtml()+'</div><b>'+heroOf().n+'</b><br>レベル <b>'+lvOf(S.exp)+'</b>　🪙 <b>'+S.coins+'</b>　たから <b>'+S.tre.length+'</b>／'+STAGES.length;
   const own=SHOP.filter(x=>S.items.includes(x.id));
   $('homeCnt').textContent='('+own.length+'／'+SHOP.length+')';
+  $('homeHow').textContent=own.length?'「もつ」を おすと、しゅじんこうが もつよ。3つまで もてるよ。（いま '+H.length+'つ）':'';
   // なかまごとに ならべる
   $('homeItems').innerHTML=own.length?CATS.map(c=>{const L=own.filter(x=>x.c===c[0]);
-    return L.length?'<div class="grp">'+c[1]+' '+c[2]+'</div><div class="list">'+L.map(x=>'<div class="card"><div class="e">'+itemPic(x)+'</div>'+x.n+'</div>').join('')+'</div>':''}).join('')
+    return L.length?'<div class="grp">'+c[1]+' '+c[2]+'</div><div class="list">'+L.map(x=>{const on=H.includes(x);
+      return '<div class="card'+(on?' held':'')+'"><div class="e">'+itemPic(x)+'</div>'+x.n+'<br>'+(on?'<span class="hb">✋ もって いるよ</span><br><button class="off" data-hold="'+x.id+'">はずす</button>':'<button data-hold="'+x.id+'">もつ</button>')+'</div>'}).join('')+'</div>':''}).join('')
     :'<div class="list"><div class="card" style="grid-column:1/-1">おみせで かいものを すると、ここに ならぶよ。</div></div>';
 }
+// もつ／はずす
+$('homeItems').onclick=e=>{const b=e.target.closest('[data-hold]');if(!b)return;const x=SHOP.find(v=>v.id===b.dataset.hold);if(!x)return;
+  const cur=holds().map(v=>v.id);
+  if(cur.includes(x.id)){S.hold=cur.filter(id=>id!==x.id);tone(500,0,.1);speak(x.n+'を はずしたよ')}
+  else if(cur.length>=HOLD_MAX){sNG();ov('<div class="e">✋</div>もてるのは 3つまでだよ。<br>どれかを はずしてね。<br><button onclick="ovClose()">OK</button>');return}
+  else{S.hold=cur.concat(x.id);sOK();speak(x.n+'を もったよ')}
+  save();drawHome();
+};
 
 let shopCat='soubi';
 function drawShop(){
@@ -578,7 +601,7 @@ function startStage(i){
   const st=STAGES[i];
   B={i,st,hp:st.n,used:{},P:null,steps:[],step:0,wrong:0,busy:false};
   $('field').style.backgroundImage=IMG.battleBg?'url('+BASE+IMG.battleBg+')':'';
-  $('hero').innerHTML=heroPic();
+  $('hero').innerHTML=heroPic()+holdsHtml();
   $('mon').className='';$('mon').innerHTML=pic(IMG.monsters[i],st.mon);
   show('battle'); say(st.mn+'が あらわれた！'); nextQ();
 }
@@ -702,7 +725,7 @@ function pickName(n){
   gas('getStudent',n).then(js=>{
     const sv=parseP(js),lp=pend[n]?parseP(pend[n].progress):null;
     const p=lp&&(lp.t||0)>=(sv.t||0)?lp:sv;   // おくれて いない ぶんが あれば、あたらしい ほうを つかう
-    const g=GAME0();GF.forEach(k=>{if(p[k]!==undefined)g[k]=p[k]});if(!Array.isArray(g.tre))g.tre=[];if(!Array.isArray(g.items))g.items=[];
+    const g=GAME0();GF.forEach(k=>{if(p[k]!==undefined)g[k]=p[k]});if(!Array.isArray(g.hold))g.hold=[];if(!Array.isArray(g.tre))g.tre=[];if(!Array.isArray(g.items))g.items=[];
     Object.assign(S,g);S.t=p.t||0;me=n;saveLocal();wpos=0;show('town');sync();
   }).catch(nameErr);
 }
@@ -808,7 +831,7 @@ $('s-teacher').onclick=e=>{
     gas('clearRecords',tPin,n).then(()=>{if(!n||n===me)me='';if(n)delete pend[n];else pend={};pendSave();return tReload()}).catch(()=>{drawTeacher();$('clrNote').textContent='消せませんでした。もういちど ためして ください。'});
   }
   else if(a==='clrLog'){if(arm!=='clrLog'){tArm='clrLog'}else{S.log=[];save()}drawTeacher()}
-  else if(a==='clrGame'){if(arm!=='clrGame'){tArm='clrGame'}else{Object.assign(S,{coins:0,exp:0,cleared:0,tre:[],items:[],hero:''});save();status()}drawTeacher()}
+  else if(a==='clrGame'){if(arm!=='clrGame'){tArm='clrGame'}else{Object.assign(S,{coins:0,exp:0,cleared:0,tre:[],items:[],hero:'',hold:[]});save();status()}drawTeacher()}
 };
 $('s-teacher').onchange=e=>{
   if(e.target.id!=='rsFile'||!e.target.files[0])return;
