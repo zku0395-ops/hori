@@ -111,7 +111,7 @@ rt{font-size:.55em;font-weight:normal}
 #pad button{font-size:40px;font-weight:bold;height:76px;border-radius:16px;border:0;background:#fff;box-shadow:0 5px 0 #b9ae86;color:#222}
 #pad button:active{transform:translateY(4px);box-shadow:0 1px 0 #b9ae86}
 /* Chromebook など、たての ひくい がめんでは すこし ちいさく */
-@media(max-height:820px){#field{height:170px}#mon{font-size:112px;top:36px}#hero{font-size:100px}#slash{top:40px;font-size:90px}
+@media(max-height:820px){#field{height:170px}#mon{font-size:112px;top:36px}#hero{font-size:118px}#slash{top:40px;font-size:90px}
   #work{padding:8px 12px}#hissan{padding:6px 18px 10px}.kurai .cell{height:38px}.cell{height:70px;font-size:56px}.box{width:62px;height:66px}.line{margin:4px 0 6px}
   #pad{padding:8px 12px 10px}#pad button{height:62px;font-size:34px}}
 @media(max-width:640px){#pad{grid-template-columns:repeat(5,1fr)}.row{grid-template-columns:34px 58px 58px 58px 150px}.hc{padding-left:10px}.dots{grid-template-columns:repeat(5,25px);gap:3px}.dot{width:25px;height:25px;font-size:13px;border-width:2px}.cell{font-size:52px;height:76px}.box{width:60px;height:70px}}
@@ -126,6 +126,17 @@ rt{font-size:.55em;font-weight:normal}
 #homeTop{text-align:center;font-size:24px;padding:10px}
 #homeTop .big{font-size:110px}
 #reset{margin:20px auto;font-size:16px;border:2px solid #999;background:#fff;border-radius:10px;padding:6px 12px;color:#666}
+
+/* なまえを えらぶ(Apps Script で うごかす とき) */
+#s-name{align-items:center;padding:20px 14px;background:#f7f3e3}
+#s-name h1{font-size:34px;color:#3b2a6b;margin:10px 0 4px;text-align:center}
+#s-name .sub{font-size:24px;margin-bottom:14px}
+#nameList{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;width:100%;max-width:820px}
+#nameList button{font-size:30px;font-weight:bold;padding:22px 10px;border:0;border-radius:20px;background:#fff;color:#3b2a6b;box-shadow:0 6px 0 #b9ae86}
+#nameList button:active{transform:translateY(4px);box-shadow:0 2px 0 #b9ae86}
+#nameMsg{font-size:22px;text-align:center;margin:14px}
+#nameMsg button{font-size:22px;font-weight:bold;border:0;border-radius:14px;padding:10px 20px;background:#ffd54a;margin-top:8px}
+#net{font-size:15px;opacity:.85;white-space:nowrap}
 
 /* せんせいよう */
 .bar #tBtn{background:#fff3;color:#fff}
@@ -155,12 +166,12 @@ body.big #msg{font-size:28px}body.big #wInfo .wt{font-size:27px}body.big #hint{f
 #heroChg{font-size:22px;font-weight:bold;border:0;border-radius:16px;padding:12px 20px;background:#fff;box-shadow:0 5px 0 #b9ae86;color:#3b2a6b}
 #heroChg:active{transform:translateY(4px);box-shadow:0 1px 0 #b9ae86}
 #ovBox.wide{max-width:860px}
-.hsel{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:10px 0}
+.hsel{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 10px;margin:8px 0}
 .hsel button{margin:0!important;padding:8px 4px!important;background:#fff!important;color:#3b2a6b!important;border:5px solid #bbb!important;border-radius:18px!important;font-size:22px!important;box-shadow:0 5px 0 #b9ae86}
 .hsel button.on{border-color:#ff9800!important;background:#fff3c4!important}
-.hsel .e{font-size:110px!important;display:block}
-@media(max-width:640px){#ovBox.wide{padding:14px 10px;font-size:22px}.hsel button{font-size:17px!important;white-space:nowrap}.hsel{grid-template-columns:repeat(2,1fr)}.hsel .e{font-size:80px!important}}
-@media(max-height:700px){.hsel .e{font-size:96px!important}}
+.hsel .e{font-size:120px!important;display:block}
+@media(max-width:640px){#ovBox.wide{padding:14px 10px;font-size:22px}.hsel button{font-size:17px!important;white-space:nowrap}.hsel{grid-template-columns:repeat(2,1fr)}.hsel .e{font-size:64px!important}}
+@media(max-height:820px){#ovBox.wide{padding:10px 20px}.hsel .e{font-size:92px!important}.hsel button{font-size:20px!important;padding:4px!important}#ovBox.wide>button{margin-top:4px;padding:8px 26px}}
 
 /* オーバーレイ */
 #ov{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;z-index:10;padding:16px}
@@ -178,12 +189,21 @@ body.big #msg{font-size:28px}body.big #wInfo .wt{font-size:27px}body.big #hint{f
     <span class="pill">レベル <b id="lv">1</b><span class="expwrap"><span class="expbar" id="expbar" style="display:block"></span></span></span>
     <span class="pill">🪙 <b id="coin">0</b></span>
     <span class="sp"></span>
+    <span id="net"></span>
     <button id="sndBtn">🔊</button>
     <button id="tBtn" title="せんせいよう">🔒</button>
   </div>
 
+  <!-- なまえを えらぶ(Apps Script で うごかす ときだけ) -->
+  <div class="screen" id="s-name">
+    <h1>たしざん ひっさん クエスト</h1>
+    <div class="sub">じぶんの なまえを おしてね</div>
+    <div id="nameList"></div>
+    <div id="nameMsg"></div>
+  </div>
+
   <!-- まち -->
-  <div class="screen on" id="s-town">
+  <div class="screen" id="s-town">
     <div id="map">
       <div class="road" style="left:46%;top:20%;width:8%;height:70%"></div>
       <div class="road" style="left:12%;top:62%;width:76%;height:9%"></div>
@@ -261,12 +281,16 @@ const IMG = {
 };
 
 /* ====== しゅじんこう ======
-   img が からっぽ('')の あいだは えもじで でます。えが できたら img に ばしょを いれます。 */
+   うえの 4にんと したの 4にん(-f)から、すきな ひとりを えらびます。なまえと こうげきの ことばは おなじです。 */
 const HEROES = [
- {id:'yusha',   n:'ゆうしゃ',     e:'🤺', img:'',             atk:'けんで こうげき！'},
- {id:'shonin',  n:'しょうにん',   e:'🧑‍💼', img:'',             atk:'そろばんで こうげき！'},
- {id:'maho',    n:'まほうつかい', e:'🧙', img:'img/hero.png', atk:'まほうで こうげき！'},
- {id:'kakutoka',n:'かくとうか',   e:'🥋', img:'',             atk:'パンチで こうげき！'}
+ {id:'yusha',     n:'ゆうしゃ',     e:'🤺', img:'img/hero-yusha.png',      atk:'けんで こうげき！'},
+ {id:'shonin',    n:'しょうにん',   e:'🧑‍💼', img:'img/hero-shonin.png',     atk:'そろばんで こうげき！'},
+ {id:'maho',      n:'まほうつかい', e:'🧙', img:'img/hero.png',            atk:'まほうで こうげき！'},
+ {id:'kakutoka',  n:'かくとうか',   e:'🥋', img:'img/hero-kakutoka.png',   atk:'パンチで こうげき！'},
+ {id:'yusha-f',   n:'ゆうしゃ',     e:'🤺', img:'img/hero-yusha-f.png',    atk:'けんで こうげき！'},
+ {id:'shonin-f',  n:'しょうにん',   e:'🧑‍💼', img:'img/hero-shonin-f.png',   atk:'そろばんで こうげき！'},
+ {id:'maho-f',    n:'まほうつかい', e:'🧙', img:'img/hero-maho-f.png',     atk:'まほうで こうげき！'},
+ {id:'kakutoka-f',n:'かくとうか',   e:'🥋', img:'img/hero-kakutoka-f.png', atk:'パンチで こうげき！'}
 ];
 
 /* ====== ステージ ====== */
@@ -292,13 +316,48 @@ const KEY='tashizanHissanQuest_v1';
 const EXP_PER_LV=100, COIN_Q=5, EXP_Q=10;
 
 /* ====== きろく ====== */
-let S={coins:0,exp:0,cleared:0,tre:[],items:[],snd:true,log:[],cfg:{}};
-try{const d=JSON.parse(localStorage.getItem(KEY));if(d)S=Object.assign(S,d)}catch(e){}
+// Apps Script の なかで うごいて いるか(うごいて いれば、なまえを えらんで はじめ、きろくは スプレッドシートへ)
+const HAS_GAS=typeof google!=='undefined'&&google.script&&google.script.run;
+const gas=(fn,...a)=>new Promise((res,rej)=>google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...a));
+const BASE=HAS_GAS?'https://zku0395-ops.github.io/hori/tashizan/':'';   // えは GitHub Pages から よみこむ
+const LKEY=HAS_GAS?KEY+'_gas':KEY, PKEY=KEY+'_pending';
+const GAME0=()=>({coins:0,exp:0,cleared:0,tre:[],items:[],hero:''});
+const GF=['coins','exp','cleared','tre','items','hero'];
+let me='';   // えらんだ なまえ(Apps Script の とき)
+let S=Object.assign(GAME0(),{snd:true,log:[],cfg:{}});
+try{const d=JSON.parse(localStorage.getItem(LKEY));if(d){if(HAS_GAS)S.snd=d.snd!==false;else S=Object.assign(S,d)}}catch(e){}
 // せんせいの せってい(はじめの あたい)
 const CFG0={rate:0.85,big:false,allOpen:false,pin:'1234'};
 S.cfg=Object.assign({},CFG0,S.cfg||{});if(!Array.isArray(S.log))S.log=[];
 const LOG_MAX=3000;
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function saveLocal(){try{localStorage.setItem(LKEY,JSON.stringify(S))}catch(e){}}
+function save(){saveLocal();if(HAS_GAS&&me){S.t=Date.now();pendOf(me).progress=progressJson();pendOf(me).time=Date.now();pendSave();syncSoon()}}
+
+/* ====== スプレッドシートへ おくる(Apps Script の とき) ======
+   おくれなかった ぶんは たんまつに ためて おき、あとで おくりなおします。 */
+let pend={};try{pend=JSON.parse(localStorage.getItem(PKEY))||{}}catch(e){}
+const pendOf=n=>pend[n]||(pend[n]={progress:'',records:[],time:Date.now()});
+function pendSave(){try{localStorage.setItem(PKEY,JSON.stringify(pend))}catch(e){}netMark()}
+function progressJson(){const o={t:S.t||Date.now()};GF.forEach(k=>o[k]=S[k]);return JSON.stringify(o)}
+const parseP=x=>{try{return JSON.parse(x||'{}')||{}}catch(e){return {}}};
+let sending=false,syncTimer=0;
+function syncSoon(ms){clearTimeout(syncTimer);syncTimer=setTimeout(sync,ms||400)}
+function sync(){
+  if(!HAS_GAS||sending)return;const n=Object.keys(pend)[0];if(!n)return;
+  const snap={name:n,progress:pend[n].progress,records:pend[n].records.slice(),time:pend[n].time};
+  sending=true;netMark();
+  gas('saveResult',snap).then(r=>{
+    sending=false;
+    if(r&&(r.ok||r.reason==='no-student')&&pend[n]){
+      const sent={};snap.records.forEach(x=>sent[x.id]=1);
+      pend[n].records=pend[n].records.filter(x=>!sent[x.id]);
+      if(r.reason==='no-student'||(!pend[n].records.length&&pend[n].progress===snap.progress))delete pend[n];
+      pendSave();if(Object.keys(pend).length)syncSoon();
+    }else{netMark();syncSoon(15000)}
+  }).catch(()=>{sending=false;netMark();syncSoon(15000)});
+}
+function netMark(){const e=document.getElementById('net');if(!e||!HAS_GAS)return;e.textContent=Object.keys(pend).length?'☁️ おくって います…':me?'☁️ ほぞん ずみ':''}
+window.addEventListener('online',()=>syncSoon());
 const $=id=>document.getElementById(id);
 // かんじ(一・十・百)には ふりがなを つける
 const RUBY={'一':'いち','十':'じゅう','百':'ひゃく'};
@@ -306,7 +365,7 @@ const rb=t=>String(t).replace(/[一十百]/g,k=>'<ruby>'+k+'<rt>'+RUBY[k]+'</rt>
 const lvOf=exp=>Math.floor(exp/EXP_PER_LV)+1;
 const heroOf=()=>HEROES.find(h=>h.id===S.hero)||HEROES[2];
 const heroPic=()=>{const h=heroOf();return pic(h.img,h.e)};
-function pic(url,emoji){return url?'<span class="pic"><img src="'+url+'" alt=""></span>':'<span class="pic">'+emoji+'</span>'}
+function pic(url,emoji){return url?'<span class="pic"><img src="'+BASE+url+'" alt=""></span>':'<span class="pic">'+emoji+'</span>'}
 
 /* ====== おと ====== */
 let ac=null;
@@ -341,11 +400,13 @@ function speakAgain(){if(lastSpeak)speak(lastSpeak)}
 /* ====== がめん ====== */
 function show(name){
   document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id==='s-'+name));
-  $('backBtn').style.display=name==='town'?'none':'';$('backBtn').textContent=name==='battle'?'◀ ちずへ':'◀ まちへ';
+  $('backBtn').style.display=(name==='name'||(name==='town'&&!HAS_GAS))?'none':'';$('backBtn').textContent=name==='battle'?'◀ ちずへ':name==='town'?'◀ なまえ':'◀ まちへ';
   if(name==='teacher')drawTeacher();
   if(name==='world')drawWorld(); if(name==='home')drawHome(); if(name==='shop')drawShop(); if(name==='tre')drawTre();
   $('tBtn').style.display=name==='teacher'?'none':'';
   if(name==='town'&&!S.hero)heroAsk(true);
+  if(name==='name')loadNames();
+  netMark();
   status(); window.scrollTo(0,0);
 }
 function status(){
@@ -377,7 +438,7 @@ const DECO=[[6,62,'🌳',44],[14,67,'🌲',40],[29,65,'🌳',40],[45,66,'🌷',3
 let wpos=0,walking=false;
 const unlocked=i=>S.cfg.allOpen||i-1<=S.cleared;
 function drawWorld(){
-  const m=$('wmap');if(IMG.worldBg)m.style.backgroundImage='url('+IMG.worldBg+')';
+  const m=$('wmap');if(IMG.worldBg)m.style.backgroundImage='url('+BASE+IMG.worldBg+')';
   const pts=n=>NODES.slice(0,n).map(p=>p.join(',')).join(' ');
   let h='<svg viewBox="0 0 100 100" preserveAspectRatio="none"><polyline class="pa" points="'+pts(NODES.length)+'"/><polyline class="pb" points="'+pts(Math.min(S.cleared+2,NODES.length))+'"/></svg>';
   if(!IMG.worldBg)DECO.forEach(d=>h+='<span class="deco" style="left:'+d[0]+'%;top:'+d[1]+'%;font-size:'+d[3]+'px">'+d[2]+'</span>');
@@ -458,7 +519,7 @@ let B=null;
 function startStage(i){
   const st=STAGES[i];
   B={i,st,hp:st.n,used:{},P:null,steps:[],step:0,wrong:0,busy:false};
-  $('field').style.backgroundImage=IMG.battleBg?'url('+IMG.battleBg+')':'';
+  $('field').style.backgroundImage=IMG.battleBg?'url('+BASE+IMG.battleBg+')':'';
   $('hero').innerHTML=heroPic();
   $('mon').className='';$('mon').innerHTML=pic(IMG.monsters[i],st.mon);
   show('battle'); say(st.mn+'が あらわれた！'); nextQ();
@@ -502,8 +563,9 @@ function press(d){
 function solved(){
   B.busy=true;sOK();say('せいかい！ '+heroOf().atk);
   const before=lvOf(S.exp);S.coins+=COIN_Q;S.exp+=EXP_Q;
-  S.log.push({d:Date.now(),st:B.i+1,a:B.P.a,b:B.P.b,mo:B.miss.o,mc:B.miss.c,mt:B.miss.t,mh:B.miss.h,hint:B.hintUsed,auto:B.autoUsed});
-  if(S.log.length>LOG_MAX)S.log=S.log.slice(-LOG_MAX);
+  const rec={d:Date.now(),st:B.i+1,a:B.P.a,b:B.P.b,mo:B.miss.o,mc:B.miss.c,mt:B.miss.t,mh:B.miss.h,hint:B.hintUsed,auto:B.autoUsed};
+  if(HAS_GAS){if(me)pendOf(me).records.push(Object.assign({id:rec.d.toString(36)+Math.random().toString(36).slice(2,8)},rec))}
+  else{S.log.push(rec);if(S.log.length>LOG_MAX)S.log=S.log.slice(-LOG_MAX)}
   save();status();
   $('hero').classList.add('atk');
   setTimeout(()=>{$('slash').classList.add('go');$('mon').classList.add('hit');B.hp--;hpDraw()},250);
@@ -565,6 +627,28 @@ function countAnim(){
 $('hintBtn').onclick=()=>{ if($('hint').classList.contains('on'))hintClose(); else hintOpen() };
 $('hissan').onclick=e=>{const d=e.target.closest('.dot');if(B&&B.auto)return;if(!d||d.classList.contains('cnt'))return;B.cnt++;d.textContent=B.cnt;d.classList.add('cnt');tone(500+B.cnt*30,0,.08)};
 
+/* ====== なまえを えらぶ(Apps Script の とき) ====== */
+function applySettings(st){if(!st)return;S.cfg.rate=Number(st.rate)||CFG0.rate;S.cfg.big=!!st.big;S.cfg.allOpen=!!st.allOpen;applyCfg()}
+function nameErr(){$('nameMsg').innerHTML='よみこめませんでした。<br><button id="nameRetry">もういちど</button>';$('nameRetry').onclick=loadNames}
+function loadNames(){
+  $('nameList').innerHTML='';$('nameMsg').textContent='よみこんで います…';
+  gas('getInitData').then(d=>{
+    applySettings(d.settings);
+    $('nameMsg').textContent=d.students.length?'':'せんせいへ：スプレッドシートの「名簿」に、なまえを いれて ください。';
+    $('nameList').innerHTML=d.students.map(()=>'<button></button>').join('');
+    [...$('nameList').children].forEach((b,i)=>{b.textContent=d.students[i];b.onclick=()=>pickName(d.students[i])});
+  }).catch(nameErr);
+}
+function pickName(n){
+  $('nameList').innerHTML='';$('nameMsg').textContent=n+'さんの きろくを よみこんで います…';tone(600,0,.1);
+  gas('getStudent',n).then(js=>{
+    const sv=parseP(js),lp=pend[n]?parseP(pend[n].progress):null;
+    const p=lp&&(lp.t||0)>=(sv.t||0)?lp:sv;   // おくれて いない ぶんが あれば、あたらしい ほうを つかう
+    const g=GAME0();GF.forEach(k=>{if(p[k]!==undefined)g[k]=p[k]});if(!Array.isArray(g.tre))g.tre=[];if(!Array.isArray(g.items))g.items=[];
+    Object.assign(S,g);S.t=p.t||0;me=n;saveLocal();wpos=0;show('town');sync();
+  }).catch(nameErr);
+}
+
 /* ====== せんせいよう ====== */
 // あんしょうばんごう(4けた)
 let pinBuf='';
@@ -577,40 +661,66 @@ function pinAsk(){
     if(k==='やめる'){ovClose();return}
     if(k==='けす')pinBuf=pinBuf.slice(0,-1);else if(pinBuf.length<4)pinBuf+=k;
     $('pinShow').textContent=('●'.repeat(pinBuf.length)+'・・・・').slice(0,4);
-    if(pinBuf.length===4){if(pinBuf===String(S.cfg.pin)){ovClose();B=null;walking=false;tTab='rec';show('teacher')}else{$('pinMsg').textContent='ばんごうが ちがいます';pinBuf='';setTimeout(()=>{if($('pinShow'))$('pinShow').textContent='・・・・'},400)}}
+    if(pinBuf.length===4&&HAS_GAS){
+      const pin=pinBuf;pinBuf='';$('pinMsg').textContent='たしかめて います…';
+      gas('getTeacherData',pin).then(r=>{
+        if(!r||!r.ok){$('pinMsg').textContent='ばんごうが ちがいます';$('pinShow').textContent='・・・・';return}
+        tPin=pin;setT(r);ovClose();B=null;walking=false;tTab='rec';show('teacher');
+      }).catch(()=>{$('pinMsg').textContent='つながりませんでした。もういちど ためして ください';$('pinShow').textContent='・・・・'});
+    }
+    else if(pinBuf.length===4){if(pinBuf===String(S.cfg.pin)){ovClose();B=null;walking=false;tTab='rec';show('teacher')}else{$('pinMsg').textContent='ばんごうが ちがいます';pinBuf='';setTimeout(()=>{if($('pinShow'))$('pinShow').textContent='・・・・'},400)}}
   };
 }
-let tTab='rec',tArm='';
+let tTab='rec',tArm='',tPin='',tWho='',T={log:[],students:[]};
+// スプレッドシートから とどいた せんせいようの データを、がめんで つかう かたちに する
+function setT(r){
+  T={students:r.students||[],log:(r.rows||[]).map(x=>{const q=String(x[3]).split('+');return {d:x[0],name:x[1],st:+x[2],a:+q[0],b:+q[1],mo:+x[5]||0,mc:+x[6]||0,mt:+x[7]||0,mh:+x[8]||0,hint:+x[9]||0,auto:+x[10]||0}}).filter(x=>STAGES[x.st-1])};
+  if(!T.students.some(x=>x.name===tWho))tWho=T.students[0]?T.students[0].name:'';
+  applySettings(r.settings);
+}
+const tReload=()=>gas('getTeacherData',tPin).then(r=>{if(r&&r.ok)setT(r);drawTeacher()});
+const curLog=()=>HAS_GAS?T.log.filter(r=>r.name===tWho):S.log;
+const curGame=()=>{if(!HAS_GAS)return S;const st=T.students.find(x=>x.name===tWho);return Object.assign(GAME0(),st?parseP(st.progress):{})};
 const KIND=[['mo','一の位'],['mc','くりあがり'],['mt','十の位'],['mh','百の位']];
 const fmtD=d=>{const x=new Date(d);return (x.getMonth()+1)+'/'+x.getDate()+' '+x.getHours()+':'+String(x.getMinutes()).padStart(2,'0')};
 const missOf=r=>r.mo+r.mc+r.mt+r.mh;
 function drawTeacher(){
   let h='<h2>せんせいよう</h2><div class="ttabs">'+[['rec','記録'],['cfg','設定'],['data','データ']].map(t=>'<button data-t="'+t[0]+'" class="'+(tTab===t[0]?'on':'')+'">'+t[1]+'</button>').join('')+'</div>';
+  const LOG=curLog(),G=curGame();
+  const who=HAS_GAS?'<div class="tbox who">'+(T.students.length?T.students.map((x,i)=>'<button data-w="'+i+'" class="'+(x.name===tWho?'on':'')+'"></button>').join(''):'「名簿」シートに 名前が ありません。')+'</div>':'';
   if(tTab==='rec'){
+    h+=who;
     h+='<div class="tbox"><h3>ステージごとの記録</h3><table><tr><th>ステージ</th><th>とけた問題</th><th>まちがえた問題</th>'+KIND.map(k=>'<th>'+k[1]+'の<br>まちがい</th>').join('')+'<th>ヒント</th><th>自動ヒント</th></tr>';
     STAGES.forEach((st,i)=>{
-      const L=S.log.filter(r=>r.st===i+1);if(!L.length&&i+1>S.cleared+1)return;
+      const L=LOG.filter(r=>r.st===i+1);if(!L.length&&i+1>G.cleared+1)return;
       const sum=k=>L.reduce((a,r)=>a+r[k],0),ng=L.filter(r=>missOf(r)>0).length,mx=Math.max(...KIND.map(k=>sum(k[0])),1);
-      h+='<tr><td class="l">'+(i+1)+' '+st.name+(i<S.cleared?' ⭐':'')+'</td><td>'+L.length+'</td><td>'+ng+(L.length?'（'+Math.round(ng/L.length*100)+'%）':'')+'</td>'+
+      h+='<tr><td class="l">'+(i+1)+' '+st.name+(i<G.cleared?' ⭐':'')+'</td><td>'+L.length+'</td><td>'+ng+(L.length?'（'+Math.round(ng/L.length*100)+'%）':'')+'</td>'+
         KIND.map(k=>{const v=sum(k[0]);return '<td class="'+(v&&v===mx?'hi':'')+'">'+v+'</td>'}).join('')+'<td>'+sum('hint')+'</td><td>'+sum('auto')+'</td></tr>';
     });
     h+='</table><div class="note">赤い ますは、そのステージで いちばん まちがいが多い位です。</div></div>';
-    const bad=S.log.filter(r=>missOf(r)>=2).slice(-15).reverse();
+    const bad=LOG.filter(r=>missOf(r)>=2).slice(-15).reverse();
     h+='<div class="tbox"><h3>つまずいた問題（2回以上まちがえた問題・新しい順に15こ）</h3>'+(bad.length?'<table><tr><th>日時</th><th>ステージ</th><th>問題</th><th>まちがえた ところ</th><th>ヒント</th></tr>'+
       bad.map(r=>'<tr><td>'+fmtD(r.d)+'</td><td>'+r.st+'</td><td>'+r.a+' ＋ '+r.b+' ＝ '+(r.a+r.b)+'</td><td class="l">'+KIND.filter(k=>r[k[0]]).map(k=>k[1]+' '+r[k[0]]+'回').join('、')+'</td><td>'+(r.auto?'自動':r.hint?'使った':'')+'</td></tr>').join('')+'</table>':'<div class="note">まだ ありません。</div>')+'</div>';
-    h+='<div class="tbox"><h3>いまの ようす</h3>レベル '+lvOf(S.exp)+'　コイン '+S.coins+'　クリアした ステージ '+S.cleared+'／'+STAGES.length+'　とけた問題 ぜんぶで '+S.log.length+'</div>';
+    h+='<div class="tbox"><h3>いまの ようす</h3>レベル '+lvOf(G.exp)+'　コイン '+G.coins+'　クリアした ステージ '+G.cleared+'／'+STAGES.length+'　とけた問題 ぜんぶで '+LOG.length+'</div>';
   }else if(tTab==='cfg'){
     const opt=(name,v,cur,label)=>'<button data-c="'+name+'" data-v="'+v+'" class="'+(String(cur)===String(v)?'on':'')+'">'+label+'</button>';
     h+='<div class="tbox"><h3>読み上げの速さ</h3>'+[[0.7,'とても ゆっくり'],[0.8,'ゆっくり'],[0.85,'すこし ゆっくり（はじめ）'],[0.95,'ふつう'],[1.05,'すこし はやい']].map(x=>opt('rate',x[0],S.cfg.rate,x[1])).join('')+'<br><button data-a="try">🔊 ためしに きく</button></div>';
     h+='<div class="tbox"><h3>文字の大きさ</h3>'+opt('big',false,S.cfg.big,'ふつう')+opt('big',true,S.cfg.big,'おおきい')+'<div class="note">メッセージ・ヒント・ちずの説明などの文字が大きくなります。</div></div>';
     h+='<div class="tbox"><h3>ステージ</h3>'+opt('allOpen',false,S.cfg.allOpen,'じゅんばんに 開く（はじめ）')+opt('allOpen',true,S.cfg.allOpen,'ぜんぶ 開く')+'<div class="note">「ぜんぶ 開く」にすると、クリアしていない ステージにも 行けます。</div></div>';
     h+='<div class="tbox"><h3>暗証番号</h3>新しい番号（4けたの数字）：<input id="newPin" inputmode="numeric" maxlength="4" style="font-size:20px;width:5em"> <button data-a="pin">かえる</button><div class="note" id="pinNote">はじめの番号は 1234 です。</div></div>';
+    if(HAS_GAS)h+='<div class="note">設定は、スプレッドシートの「せってい」シートに保存され、全員に きょうつうです。</div>';
   }else{
     h+='<div class="tbox"><h3>記録を書き出す（CSV）</h3>1問ごとの記録を、Excel や スプレッドシートで開けるファイルにします。<br><button data-a="csv">⬇ CSVを 書き出す</button></div>';
+    if(HAS_GAS){
+      h+='<div class="tbox"><h3>バックアップ</h3>記録と しんちょくは、スプレッドシートに入っています。スプレッドシートの「ファイル → コピーを作成」で、まるごと のこせます。</div>';
+      h+=who+'<div class="tbox"><h3>消す</h3>'+(tWho?'<button class="danger" data-a="clrOne">'+(tArm==='clrOne'?'ほんとうに 消す？ もう一度 押す':'えらんだ子の 記録と ゲームを 消す')+'</button> ':'')+'<button class="danger" data-a="clrAll">'+(tArm==='clrAll'?'ほんとうに 全員ぶん 消す？ もう一度 押す':'全員の 記録と ゲームを 消す')+'</button><div class="note" id="clrNote">記録（きろくシートの行）と、コイン・レベル・たから・もちもの・クリア・主人公を消します。名簿の名前は のこります。</div></div>';
+    }else{
     h+='<div class="tbox"><h3>バックアップ</h3>コイン・レベル・たから・記録・設定を、まるごと ファイルに保存します。べつの Chromebook に うつすときにも使えます。<br><button data-a="bk">⬇ バックアップを 保存</button> <button data-a="rs">⬆ バックアップから もどす</button><input type="file" id="rsFile" accept=".json,application/json" style="display:none"><div class="note" id="rsNote"></div></div>';
     h+='<div class="tbox"><h3>消す</h3><button class="danger" data-a="clrLog">'+(tArm==='clrLog'?'ほんとうに 消す？ もう一度 押す':'記録だけを 消す')+'</button> <button class="danger" data-a="clrGame">'+(tArm==='clrGame'?'ほんとうに もどす？ もう一度 押す':'ゲームを さいしょに もどす')+'</button><div class="note">「ゲームを さいしょに もどす」は、コイン・レベル・たから・もちもの・クリアを消します。記録と設定は のこります。</div></div>';
+    }
   }
   $('s-teacher').innerHTML=h;
+  document.querySelectorAll('#s-teacher [data-w]').forEach(b=>b.textContent=T.students[+b.dataset.w].name);
 }
 function download(name,text,type){
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();
@@ -620,17 +730,25 @@ const today=()=>{const d=new Date();return d.getFullYear()+String(d.getMonth()+1
 $('s-teacher').onclick=e=>{
   const b=e.target.closest('button');if(!b)return;
   if(b.dataset.t){tTab=b.dataset.t;tArm='';drawTeacher();return}
-  if(b.dataset.c){const v=b.dataset.v;S.cfg[b.dataset.c]=v==='true'?true:v==='false'?false:+v;save();applyCfg();drawTeacher();return}
+  if(b.dataset.w){tWho=T.students[+b.dataset.w].name;drawTeacher();return}
+  if(b.dataset.c){const v=b.dataset.v;S.cfg[b.dataset.c]=v==='true'?true:v==='false'?false:+v;saveLocal();applyCfg();drawTeacher();
+    if(HAS_GAS)gas('saveSettings',tPin,{rate:S.cfg.rate,big:S.cfg.big,allOpen:S.cfg.allOpen}).catch(()=>{});return}
   const a=b.dataset.a,arm=tArm;tArm='';
   if(a==='try'){const o=S.snd;S.snd=true;speak('いっしょに かぞえて みよう');S.snd=o}
-  else if(a==='pin'){const v=$('newPin').value.trim();if(/^\d{4}$/.test(v)){S.cfg.pin=v;save();drawTeacher();$('pinNote').textContent='番号を '+v+' に かえました。'}else $('pinNote').textContent='4けたの数字を入れてください。'}
+  else if(a==='pin'){const v=$('newPin').value.trim();if(/^\d{4}$/.test(v)&&HAS_GAS){gas('saveSettings',tPin,{newPin:v}).then(r=>{if(r&&r.ok){tPin=v;$('pinNote').textContent='番号を '+v+' に かえました。'}}).catch(()=>{$('pinNote').textContent='かえられませんでした。'})}
+    else if(/^\d{4}$/.test(v)){S.cfg.pin=v;saveLocal();drawTeacher();$('pinNote').textContent='番号を '+v+' に かえました。'}else $('pinNote').textContent='4けたの数字を入れてください。'}
   else if(a==='csv'){
-    const rows=[['日時','ステージ','ステージ名','問題','答え','一の位のまちがい','くりあがりのまちがい','十の位のまちがい','百の位のまちがい','ヒント','自動ヒント']];
-    S.log.forEach(r=>{const x=new Date(r.d);rows.push([x.getFullYear()+'/'+(x.getMonth()+1)+'/'+x.getDate()+' '+x.getHours()+':'+String(x.getMinutes()).padStart(2,'0'),r.st,STAGES[r.st-1].name,r.a+'+'+r.b,r.a+r.b,r.mo,r.mc,r.mt,r.mh,r.hint,r.auto])});
+    const rows=[['日時','なまえ','ステージ','ステージ名','問題','答え','一の位のまちがい','くりあがりのまちがい','十の位のまちがい','百の位のまちがい','ヒント','自動ヒント']];
+    (HAS_GAS?T.log:S.log).forEach(r=>{const x=new Date(r.d);rows.push([x.getFullYear()+'/'+(x.getMonth()+1)+'/'+x.getDate()+' '+x.getHours()+':'+String(x.getMinutes()).padStart(2,'0'),r.name||'',r.st,STAGES[r.st-1].name,r.a+'+'+r.b,r.a+r.b,r.mo,r.mc,r.mt,r.mh,r.hint,r.auto])});
     download('tashizan_kiroku_'+today()+'.csv','﻿'+rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n'),'text/csv');
   }
   else if(a==='bk')download('tashizan_backup_'+today()+'.json',JSON.stringify(S),'application/json');
   else if(a==='rs')$('rsFile').click();
+  else if(a==='clrOne'||a==='clrAll'){
+    if(arm!==a){tArm=a;drawTeacher();return}
+    const n=a==='clrOne'?tWho:'';
+    gas('clearRecords',tPin,n).then(()=>{if(!n||n===me)me='';if(n)delete pend[n];else pend={};pendSave();return tReload()}).catch(()=>{drawTeacher();$('clrNote').textContent='消せませんでした。もういちど ためして ください。'});
+  }
   else if(a==='clrLog'){if(arm!=='clrLog'){tArm='clrLog'}else{S.log=[];save()}drawTeacher()}
   else if(a==='clrGame'){if(arm!=='clrGame'){tArm='clrGame'}else{Object.assign(S,{coins:0,exp:0,cleared:0,tre:[],items:[],hero:''});save();status()}drawTeacher()}
 };
@@ -651,16 +769,20 @@ function applyCfg(){document.body.classList.toggle('big',!!S.cfg.big)}
   $('pad').onclick=e=>{const b=e.target.closest('button');if(b)press(+b.dataset.d)};
   document.addEventListener('keydown',e=>{if($('s-battle').classList.contains('on')&&!$('ov').classList.contains('on')&&/^[0-9]$/.test(e.key))press(+e.key)});
   $('b-gate').innerHTML=pic(IMG.gate,'🏯');$('b-home').innerHTML=pic(IMG.home,'🏠');$('b-shop').innerHTML=pic(IMG.shop,'🏪');$('b-tre').innerHTML=pic(IMG.treasureRoom,'💎');
-  if(IMG.townBg){$('map').style.backgroundImage='url('+IMG.townBg+')';document.querySelectorAll('#map .road').forEach(r=>r.style.display='none')}
+  if(IMG.townBg){$('map').style.backgroundImage='url('+BASE+IMG.townBg+')';document.querySelectorAll('#map .road').forEach(r=>r.style.display='none')}
   document.querySelectorAll('.bld').forEach(b=>b.onclick=()=>{tone(600,0,.1);if(b.dataset.go==='world')wpos=0;show(b.dataset.go)});
-  $('backBtn').onclick=()=>{const w=$('s-battle').classList.contains('on');B=null;walking=false;show(w?'world':'town')};
+  $('backBtn').onclick=()=>{const on=document.querySelector('.screen.on').id;B=null;walking=false;try{speechSynthesis.cancel()}catch(e){}
+    if(on==='s-battle')show('world');
+    else if(HAS_GAS&&(on==='s-town'||!me)){sync();me='';show('name')}
+    else show('town')};
   $('sndBtn').onclick=()=>{S.snd=!S.snd;save();status();if(!S.snd)try{speechSynthesis.cancel()}catch(e){}};
   $('msg').onclick=speakAgain;
   $('tBtn').onclick=pinAsk;
   applyCfg();$('hero').onclick=speakAgain;
   $('heroChg').onclick=()=>heroAsk(false);
   status();
-  if(!S.hero)heroAsk(true);
+  show(HAS_GAS?'name':'town');
+  if(HAS_GAS)syncSoon(300);   // まえに おくれなかった きろくを おくりなおす
 })();
 </script>
 </body>
