@@ -66,7 +66,7 @@
 | `img/mon1.png` 〜 `img/mon11.png` | ステージ1〜11のモンスター |
 | `img/gate.png` `img/home.png` `img/shop.png` `img/treasure-room.png` | まちの建物（城門・家・道具屋・宝物庫） |
 | `img/chest-closed.png` `img/chest-open.png` | たからばこ（とじた・あいた） |
-| `img/item-hat.png` など9まい | おみせの品物（ぼうし・マフラー・いぬ・ねこ・とり・ユニコーン・ふね・ペガサス・おしろ） |
+| `img/item-<id>.png`（50まい） | おみせの品物（そうび11・どうぐ8・たべもの8・なかま13・のりもの10）。ペガサスだけ `item-pegasus.png`（id は `rocket`） |
 | `img/tre1.png` 〜 `img/tre11.png` | ステージ1〜11の たからもの |
 
 - 絵は、先生が Canva と ChatGPT で作ったものです（大人風の本格RPGの絵柄）。まとめて1枚にした絵を、1体ずつに切り分けて背景を透明にしています。
@@ -157,8 +157,7 @@
    - モンスターの絵は、このままで使う（先生確認ずみ）。様子を見て、こわがる子がいたら作り直す。
    - まちの背景が暗め。明るい昼間の色で作り直すか。
    - おみせの品物（9こ）と たからもの（11こ）の絵は、すべて入れた（1まいめは Canva、2〜4まいめは ChatGPT で作成。`img/item-*.png` と `img/tre1.png`〜`tre11.png`）。
-   - おみせの品物を50こにふやした。新しい41こは、絵が届くまで絵文字。ChatGPT で6こずつ7まい作り、切り分けて `img/item-<id>.png` に入れ、`ITEM_IMG` に足す。
-     - ①（入れた）boots・gloves・belt・mantle・woodshield・armor　②（入れた）helmet・sword・staff・rope・potion・lantern　③（入れた）bag・compass・tent・scope・book・apple　④（入れた）bread・cheese・honey・soup・meat・bento　⑤（入れた）cake・rabbit・turtle・sheep・owl・fox　⑥（入れた）horse・fairy・babydragon・cart・boat・tenthouse　⑦ windmill・lighthouse・balloon・carpet・tower
+   - おみせの品物50こは、すべて絵を入れた（ChatGPT で6こずつ作り、切り分けて `img/item-<id>.png` に入れた。スープの ゆげは、白い ふちが残るので取りのぞいた）。
    - 買った品物の使い道（主人公に持たせる、家にかざる）は、次の段階で相談する。
 2. ごほうびの量：1問5まい・経験値100でレベルアップ。おみせの値段は このまま（先生確認ずみ）。
 3. ひっ算の答え方：百のくらいへの くりあがりの入れ方、くりあがりのないステージで小さい□を出さないこと、ヒントが数字を1つ入れるたびに閉じること、丸の番号のしくみ。このままでよいか。
