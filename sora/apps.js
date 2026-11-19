@@ -203,6 +203,7 @@ window.SORA = {
 
   // 先生用画面の「プリント」（子どもの画面には 出しません）
   prints: [
+    { id: 'p-tashizan', emoji: '⚔️', name: 'たし算の ひっ算（プリント）', url: 'https://zku0395-ops.github.io/hori/tashizan/print/' },
     { id: 'p-hissan', emoji: '🐿️', name: 'くりさがりの ある ひき算（プリント）', url: 'https://zku0395-ops.github.io/hori/hissan/print/' },
     { id: 'p-kakezan', emoji: '🧙', name: 'かけ算の ひっ算（プリント）', url: 'https://zku0395-ops.github.io/hori/kakezan/print/' },
     { id: 'p-katakana', emoji: '🤖', name: 'カタカナプリント作成', url: 'https://sites.google.com/view/katakanapurinnto/%E3%83%9B%E3%83%BC%E3%83%A0' },
