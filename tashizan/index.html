@@ -127,6 +127,30 @@ rt{font-size:.55em;font-weight:normal}
 #homeTop .big{font-size:110px}
 #reset{margin:20px auto;font-size:16px;border:2px solid #999;background:#fff;border-radius:10px;padding:6px 12px;color:#666}
 
+/* せんせいよう */
+.bar #tBtn{background:#fff3;color:#fff}
+#s-teacher{padding:10px 14px 24px;font-family:"BIZ UDPGothic","Yu Gothic",sans-serif}
+#s-teacher h2{font-size:24px}
+.ttabs{display:flex;gap:8px;justify-content:center;margin:6px 0 12px}
+.ttabs button{font-size:20px;font-weight:bold;border:3px solid #3b2a6b;background:#fff;color:#3b2a6b;border-radius:14px;padding:8px 18px}
+.ttabs button.on{background:#3b2a6b;color:#fff}
+.tbox{background:#fff;border:3px solid #3b2a6b;border-radius:14px;padding:12px 14px;margin:0 0 12px;font-size:18px}
+.tbox h3{margin:0 0 8px;font-size:20px}
+.tbox table{border-collapse:collapse;width:100%;font-size:16px}
+.tbox th,.tbox td{border:1px solid #ccc;padding:4px 6px;text-align:center}
+.tbox th{background:#eee8f8}
+.tbox td.l{text-align:left}
+.tbox .hi{background:#ffe0e0;font-weight:bold}
+.tbox button,.tbox select{font-size:18px;font-family:inherit;border:2px solid #3b2a6b;border-radius:10px;padding:6px 12px;background:#fff;margin:4px 4px 4px 0}
+.tbox button.on{background:#3b2a6b;color:#fff}
+.tbox .note{color:#666;font-size:15px}
+.tbox .danger{border-color:#c62828;color:#c62828}
+#pinShow{font-size:40px;letter-spacing:12px;margin:8px 0}
+.pinPad{display:grid;grid-template-columns:repeat(3,80px);gap:8px;justify-content:center}
+.pinPad button{margin:0!important;padding:0!important;height:64px;font-size:30px!important;background:#fff!important;color:#222!important;border:2px solid #999!important}
+/* もじを おおきく */
+body.big #msg{font-size:28px}body.big #wInfo .wt{font-size:27px}body.big #hint{font-size:24px}body.big .card{font-size:24px}body.big #ovBox{font-size:30px}body.big .bld .lb{font-size:26px}
+
 /* オーバーレイ */
 #ov{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;z-index:10;padding:16px}
 #ov.on{display:flex}
@@ -144,6 +168,7 @@ rt{font-size:.55em;font-weight:normal}
     <span class="pill">🪙 <b id="coin">0</b></span>
     <span class="sp"></span>
     <button id="sndBtn">🔊</button>
+    <button id="tBtn" title="せんせいよう">🔒</button>
   </div>
 
   <!-- まち -->
@@ -189,7 +214,6 @@ rt{font-size:.55em;font-weight:normal}
     <div id="homeTop"></div>
     <h2>もちもの</h2>
     <div class="list" id="homeItems"></div>
-    <button id="reset">さいしょから やりなおす</button>
   </div>
 
   <!-- みせ -->
@@ -203,6 +227,9 @@ rt{font-size:.55em;font-weight:normal}
     <h2>たからの へや</h2>
     <div class="list" id="treList"></div>
   </div>
+
+  <!-- せんせいよう -->
+  <div class="screen" id="s-teacher"></div>
 </div>
 
 <div id="ov"><div id="ovBox"></div></div>
@@ -244,8 +271,12 @@ const KEY='tashizanHissanQuest_v1';
 const EXP_PER_LV=100, COIN_Q=5, EXP_Q=10;
 
 /* ====== きろく ====== */
-let S={coins:0,exp:0,cleared:0,tre:[],items:[],snd:true};
+let S={coins:0,exp:0,cleared:0,tre:[],items:[],snd:true,log:[],cfg:{}};
 try{const d=JSON.parse(localStorage.getItem(KEY));if(d)S=Object.assign(S,d)}catch(e){}
+// せんせいの せってい(はじめの あたい)
+const CFG0={rate:0.85,big:false,allOpen:false,pin:'1234'};
+S.cfg=Object.assign({},CFG0,S.cfg||{});if(!Array.isArray(S.log))S.log=[];
+const LOG_MAX=3000;
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 const $=id=>document.getElementById(id);
 // かんじ(一・十・百)には ふりがなを つける
@@ -280,7 +311,7 @@ function plain(t){
 function speak(t){
   const x=plain(t);if(!x)return;lastSpeak=x;
   if(!S.snd||!window.speechSynthesis)return;
-  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(x);u.lang='ja-JP';u.rate=VOICE_RATE;if(jaVoice)u.voice=jaVoice;speechSynthesis.speak(u)}catch(e){}
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(x);u.lang='ja-JP';u.rate=S.cfg.rate||VOICE_RATE;if(jaVoice)u.voice=jaVoice;speechSynthesis.speak(u)}catch(e){}
 }
 function speakAgain(){if(lastSpeak)speak(lastSpeak)}
 
@@ -288,7 +319,9 @@ function speakAgain(){if(lastSpeak)speak(lastSpeak)}
 function show(name){
   document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id==='s-'+name));
   $('backBtn').style.display=name==='town'?'none':'';$('backBtn').textContent=name==='battle'?'◀ ちずへ':'◀ まちへ';
+  if(name==='teacher')drawTeacher();
   if(name==='world')drawWorld(); if(name==='home')drawHome(); if(name==='shop')drawShop(); if(name==='tre')drawTre();
+  $('tBtn').style.display=name==='teacher'?'none':'';
   status(); window.scrollTo(0,0);
 }
 function status(){
@@ -304,7 +337,7 @@ function ovClose(){$('ov').classList.remove('on')}
 const NODES=[[8,86],[22,80],[36,87],[50,79],[64,86],[80,78],[90,57],[72,50],[54,57],[36,50],[16,44],[40,18]];
 const DECO=[[6,62,'🌳',44],[14,67,'🌲',40],[29,65,'🌳',40],[45,66,'🌷',30],[58,70,'🌻',30],[72,66,'🌲',44],[94,82,'🌲',44],[96,38,'⛰️',60],[84,34,'⛰️',52],[62,33,'🌲',40],[48,35,'🌲',44],[24,28,'🌋',56],[6,24,'⛰️',56],[62,12,'☁️',48],[82,10,'☁️',56],[10,7,'☁️',44],[70,24,'🏔️',60]];
 let wpos=0,walking=false;
-const unlocked=i=>i-1<=S.cleared;
+const unlocked=i=>S.cfg.allOpen||i-1<=S.cleared;
 function drawWorld(){
   const m=$('wmap');if(IMG.worldBg)m.style.backgroundImage='url('+IMG.worldBg+')';
   const pts=n=>NODES.slice(0,n).map(p=>p.join(',')).join(' ');
@@ -347,11 +380,7 @@ function drawHome(){
   $('homeTop').innerHTML='<div class="big">'+pic(IMG.hero,'🧙')+'</div>レベル <b>'+lvOf(S.exp)+'</b>　🪙 <b>'+S.coins+'</b>　たから <b>'+S.tre.length+'</b>／'+STAGES.length;
   const own=SHOP.filter(x=>S.items.includes(x.id));
   $('homeItems').innerHTML=own.length?own.map(x=>'<div class="card"><div class="e">'+x.e+'</div>'+x.n+'</div>').join(''):'<div class="card" style="grid-column:1/-1">おみせで かいものを すると、ここに ならぶよ。</div>';
-  $('reset').textContent='さいしょから やりなおす'; resetArm=false;
 }
-let resetArm=false;
-$('reset').onclick=()=>{ if(!resetArm){resetArm=true;$('reset').textContent='ほんとうに けす？ もういちど おすと きえます';return}
-  S={coins:0,exp:0,cleared:0,tre:[],items:[],snd:S.snd};save();show('town')};
 
 function drawShop(){
   $('shopList').innerHTML=SHOP.map(x=>{const has=S.items.includes(x.id);
@@ -400,7 +429,7 @@ function say(t,quiet){$('msg').innerHTML='🔊 '+rb(t);if(!quiet)speak(rb(t))}
 function hpDraw(){$('monInfo').innerHTML=B.st.mn+'　'+'❤️'.repeat(B.hp)+'🤍'.repeat(B.st.n-B.hp)}
 function nextQ(){
   let P,k=0;do{P=gen(B.st.types[R(0,B.st.types.length-1)]);k++}while(B.used[P.a+'+'+P.b]&&k<50);
-  B.used[P.a+'+'+P.b]=1;B.P=P;B.step=0;B.wrong=0;B.busy=false;
+  B.used[P.a+'+'+P.b]=1;B.P=P;B.step=0;B.wrong=0;B.busy=false;B.miss={o:0,c:0,t:0,h:0};B.hintUsed=0;B.autoUsed=0;
   const sum=P.a+P.b;
   B.steps=[{k:'o',v:P.o%10}];
   if(P.c)B.steps.push({k:'c',v:1});
@@ -426,7 +455,7 @@ function press(d){
     el.textContent=d;B.step++;B.wrong=0;hintClose();$('hintBtn').classList.remove('pulse');
     if(B.step>=B.steps.length){mark();solved()}else{tone(700,0,.1);mark();say(STEP_MSG[B.steps[B.step].k])}
   }else{
-    sNG();B.wrong++;el.classList.remove('ng');void el.offsetWidth;el.classList.add('ng');
+    sNG();B.wrong++;B.miss[s.k]++;el.classList.remove('ng');void el.offsetWidth;el.classList.add('ng');
     if(B.wrong>=3){ if(!$('hint').classList.contains('on')||!B.auto){say('いっしょに かぞえて みよう');hintOpen(true)} }
     else if(B.wrong===2){$('hintBtn').classList.add('pulse');say('おしい！ 💡ヒントを つかって みよう')}
     else say('おしい！ もういちど かんがえよう');
@@ -434,7 +463,10 @@ function press(d){
 }
 function solved(){
   B.busy=true;sOK();say('せいかい！ こうげき！');
-  const before=lvOf(S.exp);S.coins+=COIN_Q;S.exp+=EXP_Q;save();status();
+  const before=lvOf(S.exp);S.coins+=COIN_Q;S.exp+=EXP_Q;
+  S.log.push({d:Date.now(),st:B.i+1,a:B.P.a,b:B.P.b,mo:B.miss.o,mc:B.miss.c,mt:B.miss.t,mh:B.miss.h,hint:B.hintUsed,auto:B.autoUsed});
+  if(S.log.length>LOG_MAX)S.log=S.log.slice(-LOG_MAX);
+  save();status();
   $('hero').classList.add('atk');
   setTimeout(()=>{$('slash').classList.add('go');$('mon').classList.add('hit');B.hp--;hpDraw()},250);
   setTimeout(()=>{
@@ -478,7 +510,7 @@ function hintOpen(auto){
     h='十のくらいは ぜんぶで <b>'+P.tt+'</b>。<br>10より おおきいから、百のくらいに <b>1</b> を かこう。';
   }
   $('hint').innerHTML=rb(h);$('hint').classList.add('on');$('hintBtn').classList.remove('pulse');B.cnt=0;
-  if(auto){B.auto=true;countAnim()}else speak(rb(h));
+  if(auto){B.auto=true;B.autoUsed=1;countAnim()}else{B.hintUsed=1;speak(rb(h))}
 }
 // 3かい まちがえたとき：まるに じゅんばんに ばんごうを つけて、いっしょに かぞえる
 function countAnim(){
@@ -495,6 +527,86 @@ function countAnim(){
 $('hintBtn').onclick=()=>{ if($('hint').classList.contains('on'))hintClose(); else hintOpen() };
 $('hissan').onclick=e=>{const d=e.target.closest('.dot');if(B&&B.auto)return;if(!d||d.classList.contains('cnt'))return;B.cnt++;d.textContent=B.cnt;d.classList.add('cnt');tone(500+B.cnt*30,0,.08)};
 
+/* ====== せんせいよう ====== */
+// あんしょうばんごう(4けた)
+let pinBuf='';
+function pinAsk(){
+  pinBuf='';
+  let pad='';[1,2,3,4,5,6,7,8,9,'けす',0,'やめる'].forEach(k=>pad+='<button data-k="'+k+'">'+k+'</button>');
+  $('ovBox').innerHTML='<div>せんせいよう</div><div style="font-size:20px">あんしょうばんごう(4けた)</div><div id="pinShow">・・・・</div><div class="pinPad" id="pinPad">'+pad+'</div><div id="pinMsg" style="font-size:18px;color:#c62828;min-height:1.4em"></div>';
+  $('ov').classList.add('on');
+  $('pinPad').onclick=e=>{const b=e.target.closest('button');if(!b)return;const k=b.dataset.k;
+    if(k==='やめる'){ovClose();return}
+    if(k==='けす')pinBuf=pinBuf.slice(0,-1);else if(pinBuf.length<4)pinBuf+=k;
+    $('pinShow').textContent=('●'.repeat(pinBuf.length)+'・・・・').slice(0,4);
+    if(pinBuf.length===4){if(pinBuf===String(S.cfg.pin)){ovClose();B=null;walking=false;tTab='rec';show('teacher')}else{$('pinMsg').textContent='ばんごうが ちがいます';pinBuf='';setTimeout(()=>{if($('pinShow'))$('pinShow').textContent='・・・・'},400)}}
+  };
+}
+let tTab='rec',tArm='';
+const KIND=[['mo','一の位'],['mc','くりあがり'],['mt','十の位'],['mh','百の位']];
+const fmtD=d=>{const x=new Date(d);return (x.getMonth()+1)+'/'+x.getDate()+' '+x.getHours()+':'+String(x.getMinutes()).padStart(2,'0')};
+const missOf=r=>r.mo+r.mc+r.mt+r.mh;
+function drawTeacher(){
+  let h='<h2>せんせいよう</h2><div class="ttabs">'+[['rec','記録'],['cfg','設定'],['data','データ']].map(t=>'<button data-t="'+t[0]+'" class="'+(tTab===t[0]?'on':'')+'">'+t[1]+'</button>').join('')+'</div>';
+  if(tTab==='rec'){
+    h+='<div class="tbox"><h3>ステージごとの記録</h3><table><tr><th>ステージ</th><th>とけた問題</th><th>まちがえた問題</th>'+KIND.map(k=>'<th>'+k[1]+'の<br>まちがい</th>').join('')+'<th>ヒント</th><th>自動ヒント</th></tr>';
+    STAGES.forEach((st,i)=>{
+      const L=S.log.filter(r=>r.st===i+1);if(!L.length&&i+1>S.cleared+1)return;
+      const sum=k=>L.reduce((a,r)=>a+r[k],0),ng=L.filter(r=>missOf(r)>0).length,mx=Math.max(...KIND.map(k=>sum(k[0])),1);
+      h+='<tr><td class="l">'+(i+1)+' '+st.name+(i<S.cleared?' ⭐':'')+'</td><td>'+L.length+'</td><td>'+ng+(L.length?'（'+Math.round(ng/L.length*100)+'%）':'')+'</td>'+
+        KIND.map(k=>{const v=sum(k[0]);return '<td class="'+(v&&v===mx?'hi':'')+'">'+v+'</td>'}).join('')+'<td>'+sum('hint')+'</td><td>'+sum('auto')+'</td></tr>';
+    });
+    h+='</table><div class="note">赤い ますは、そのステージで いちばん まちがいが多い位です。</div></div>';
+    const bad=S.log.filter(r=>missOf(r)>=2).slice(-15).reverse();
+    h+='<div class="tbox"><h3>つまずいた問題（2回以上まちがえた問題・新しい順に15こ）</h3>'+(bad.length?'<table><tr><th>日時</th><th>ステージ</th><th>問題</th><th>まちがえた ところ</th><th>ヒント</th></tr>'+
+      bad.map(r=>'<tr><td>'+fmtD(r.d)+'</td><td>'+r.st+'</td><td>'+r.a+' ＋ '+r.b+' ＝ '+(r.a+r.b)+'</td><td class="l">'+KIND.filter(k=>r[k[0]]).map(k=>k[1]+' '+r[k[0]]+'回').join('、')+'</td><td>'+(r.auto?'自動':r.hint?'使った':'')+'</td></tr>').join('')+'</table>':'<div class="note">まだ ありません。</div>')+'</div>';
+    h+='<div class="tbox"><h3>いまの ようす</h3>レベル '+lvOf(S.exp)+'　コイン '+S.coins+'　クリアした ステージ '+S.cleared+'／'+STAGES.length+'　とけた問題 ぜんぶで '+S.log.length+'</div>';
+  }else if(tTab==='cfg'){
+    const opt=(name,v,cur,label)=>'<button data-c="'+name+'" data-v="'+v+'" class="'+(String(cur)===String(v)?'on':'')+'">'+label+'</button>';
+    h+='<div class="tbox"><h3>読み上げの速さ</h3>'+[[0.7,'とても ゆっくり'],[0.8,'ゆっくり'],[0.85,'すこし ゆっくり（はじめ）'],[0.95,'ふつう'],[1.05,'すこし はやい']].map(x=>opt('rate',x[0],S.cfg.rate,x[1])).join('')+'<br><button data-a="try">🔊 ためしに きく</button></div>';
+    h+='<div class="tbox"><h3>文字の大きさ</h3>'+opt('big',false,S.cfg.big,'ふつう')+opt('big',true,S.cfg.big,'おおきい')+'<div class="note">メッセージ・ヒント・ちずの説明などの文字が大きくなります。</div></div>';
+    h+='<div class="tbox"><h3>ステージ</h3>'+opt('allOpen',false,S.cfg.allOpen,'じゅんばんに 開く（はじめ）')+opt('allOpen',true,S.cfg.allOpen,'ぜんぶ 開く')+'<div class="note">「ぜんぶ 開く」にすると、クリアしていない ステージにも 行けます。</div></div>';
+    h+='<div class="tbox"><h3>暗証番号</h3>新しい番号（4けたの数字）：<input id="newPin" inputmode="numeric" maxlength="4" style="font-size:20px;width:5em"> <button data-a="pin">かえる</button><div class="note" id="pinNote">はじめの番号は 1234 です。</div></div>';
+  }else{
+    h+='<div class="tbox"><h3>記録を書き出す（CSV）</h3>1問ごとの記録を、Excel や スプレッドシートで開けるファイルにします。<br><button data-a="csv">⬇ CSVを 書き出す</button></div>';
+    h+='<div class="tbox"><h3>バックアップ</h3>コイン・レベル・たから・記録・設定を、まるごと ファイルに保存します。べつの Chromebook に うつすときにも使えます。<br><button data-a="bk">⬇ バックアップを 保存</button> <button data-a="rs">⬆ バックアップから もどす</button><input type="file" id="rsFile" accept=".json,application/json" style="display:none"><div class="note" id="rsNote"></div></div>';
+    h+='<div class="tbox"><h3>消す</h3><button class="danger" data-a="clrLog">'+(tArm==='clrLog'?'ほんとうに 消す？ もう一度 押す':'記録だけを 消す')+'</button> <button class="danger" data-a="clrGame">'+(tArm==='clrGame'?'ほんとうに もどす？ もう一度 押す':'ゲームを さいしょに もどす')+'</button><div class="note">「ゲームを さいしょに もどす」は、コイン・レベル・たから・もちもの・クリアを消します。記録と設定は のこります。</div></div>';
+  }
+  $('s-teacher').innerHTML=h;
+}
+function download(name,text,type){
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);
+}
+const today=()=>{const d=new Date();return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')};
+$('s-teacher').onclick=e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.t){tTab=b.dataset.t;tArm='';drawTeacher();return}
+  if(b.dataset.c){const v=b.dataset.v;S.cfg[b.dataset.c]=v==='true'?true:v==='false'?false:+v;save();applyCfg();drawTeacher();return}
+  const a=b.dataset.a,arm=tArm;tArm='';
+  if(a==='try'){const o=S.snd;S.snd=true;speak('いっしょに かぞえて みよう');S.snd=o}
+  else if(a==='pin'){const v=$('newPin').value.trim();if(/^\d{4}$/.test(v)){S.cfg.pin=v;save();drawTeacher();$('pinNote').textContent='番号を '+v+' に かえました。'}else $('pinNote').textContent='4けたの数字を入れてください。'}
+  else if(a==='csv'){
+    const rows=[['日時','ステージ','ステージ名','問題','答え','一の位のまちがい','くりあがりのまちがい','十の位のまちがい','百の位のまちがい','ヒント','自動ヒント']];
+    S.log.forEach(r=>{const x=new Date(r.d);rows.push([x.getFullYear()+'/'+(x.getMonth()+1)+'/'+x.getDate()+' '+x.getHours()+':'+String(x.getMinutes()).padStart(2,'0'),r.st,STAGES[r.st-1].name,r.a+'+'+r.b,r.a+r.b,r.mo,r.mc,r.mt,r.mh,r.hint,r.auto])});
+    download('tashizan_kiroku_'+today()+'.csv','﻿'+rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n'),'text/csv');
+  }
+  else if(a==='bk')download('tashizan_backup_'+today()+'.json',JSON.stringify(S),'application/json');
+  else if(a==='rs')$('rsFile').click();
+  else if(a==='clrLog'){if(arm!=='clrLog'){tArm='clrLog'}else{S.log=[];save()}drawTeacher()}
+  else if(a==='clrGame'){if(arm!=='clrGame'){tArm='clrGame'}else{Object.assign(S,{coins:0,exp:0,cleared:0,tre:[],items:[]});save();status()}drawTeacher()}
+};
+$('s-teacher').onchange=e=>{
+  if(e.target.id!=='rsFile'||!e.target.files[0])return;
+  const fr=new FileReader();fr.onload=()=>{
+    try{const d=JSON.parse(fr.result);if(typeof d!=='object'||typeof d.coins!=='number'||!Array.isArray(d.tre))throw 0;
+      S=Object.assign({coins:0,exp:0,cleared:0,tre:[],items:[],snd:true,log:[],cfg:{}},d);S.cfg=Object.assign({},CFG0,S.cfg||{});if(!Array.isArray(S.log))S.log=[];
+      save();applyCfg();status();drawTeacher();$('rsNote').textContent='もどしました。'}
+    catch(err){$('rsNote').textContent='このファイルは つかえません。'}
+  };fr.readAsText(e.target.files[0]);
+};
+function applyCfg(){document.body.classList.toggle('big',!!S.cfg.big)}
+
 /* ====== はじめ ====== */
 (function init(){
   let h='';for(let i=1;i<=9;i++)h+='<button data-d="'+i+'">'+i+'</button>';h+='<button data-d="0">0</button>';$('pad').innerHTML=h;
@@ -505,7 +617,9 @@ $('hissan').onclick=e=>{const d=e.target.closest('.dot');if(B&&B.auto)return;if(
   document.querySelectorAll('.bld').forEach(b=>b.onclick=()=>{tone(600,0,.1);if(b.dataset.go==='world')wpos=0;show(b.dataset.go)});
   $('backBtn').onclick=()=>{const w=$('s-battle').classList.contains('on');B=null;walking=false;show(w?'world':'town')};
   $('sndBtn').onclick=()=>{S.snd=!S.snd;save();status();if(!S.snd)try{speechSynthesis.cancel()}catch(e){}};
-  $('msg').onclick=speakAgain;$('hero').onclick=speakAgain;
+  $('msg').onclick=speakAgain;
+  $('tBtn').onclick=pinAsk;
+  applyCfg();$('hero').onclick=speakAgain;
   status();
 })();
 </script>
