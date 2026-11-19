@@ -310,8 +310,14 @@ const STAGES = [
 const SHOP = [
  {id:'hat',e:'🎩',n:'ぼうし',p:30},{id:'cape',e:'🧣',n:'マフラー',p:40},{id:'dog',e:'🐶',n:'いぬ',p:80},
  {id:'cat',e:'🐱',n:'ねこ',p:80},{id:'bird',e:'🦜',n:'とり',p:100},{id:'uni',e:'🦄',n:'ユニコーン',p:150},
- {id:'ship',e:'⛵',n:'ふね',p:200},{id:'rocket',e:'🚀',n:'ロケット',p:250},{id:'castle',e:'🏰',n:'おしろ',p:400}
+ {id:'ship',e:'⛵',n:'ふね',p:200},{id:'rocket',e:'🦄',n:'ペガサス',p:250},{id:'castle',e:'🏰',n:'おしろ',p:400}
 ];
+// しなものと たからものの え。ITEM_IMG に ある id だけ えに なり、ない ものは えもじで でます。
+// (ペガサスの id が 'rocket' なのは、まえの「ロケット」の きろくと むすびついて いるため。かえないで ください)
+const ITEM_IMG={};   // れい：{hat:'img/item-hat.png'}
+const TRE_IMG=[];    // ステージ1〜11の たからもの。れい：['img/tre1.png', …]
+const itemPic=x=>pic(ITEM_IMG[x.id]||'',x.e);
+const trePic=i=>pic(TRE_IMG[i]||'',STAGES[i].tr[0]);
 const KEY='tashizanHissanQuest_v1';
 const EXP_PER_LV=100, COIN_Q=5, EXP_Q=10;
 
@@ -478,20 +484,20 @@ $('wInfo').onclick=e=>{if(e.target.closest('.wt')&&!walking){speakAgain();return
 function drawHome(){
   $('homeTop').innerHTML='<div class="big">'+heroPic()+'</div><b>'+heroOf().n+'</b><br>レベル <b>'+lvOf(S.exp)+'</b>　🪙 <b>'+S.coins+'</b>　たから <b>'+S.tre.length+'</b>／'+STAGES.length;
   const own=SHOP.filter(x=>S.items.includes(x.id));
-  $('homeItems').innerHTML=own.length?own.map(x=>'<div class="card"><div class="e">'+x.e+'</div>'+x.n+'</div>').join(''):'<div class="card" style="grid-column:1/-1">おみせで かいものを すると、ここに ならぶよ。</div>';
+  $('homeItems').innerHTML=own.length?own.map(x=>'<div class="card"><div class="e">'+itemPic(x)+'</div>'+x.n+'</div>').join(''):'<div class="card" style="grid-column:1/-1">おみせで かいものを すると、ここに ならぶよ。</div>';
 }
 
 function drawShop(){
   $('shopList').innerHTML=SHOP.map(x=>{const has=S.items.includes(x.id);
-    return '<div class="card"><div class="e">'+x.e+'</div>'+x.n+'<br>'+(has?'<b>もっているよ</b>':'<button data-id="'+x.id+'" '+(S.coins<x.p?'disabled':'')+'>🪙'+x.p+' で かう</button>')+'</div>'}).join('');
+    return '<div class="card"><div class="e">'+itemPic(x)+'</div>'+x.n+'<br>'+(has?'<b>もっているよ</b>':'<button data-id="'+x.id+'" '+(S.coins<x.p?'disabled':'')+'>🪙'+x.p+' で かう</button>')+'</div>'}).join('');
 }
 $('shopList').onclick=e=>{const b=e.target.closest('button');if(!b)return;const x=SHOP.find(v=>v.id===b.dataset.id);
   if(!x||S.coins<x.p)return;S.coins-=x.p;S.items.push(x.id);save();sWin();status();drawShop();
-  ov('<div class="e">'+x.e+'</div>'+x.n+'を かったよ！<br><button onclick="ovClose()">OK</button>')};
+  ov('<div class="e">'+itemPic(x)+'</div>'+x.n+'を かったよ！<br><button onclick="ovClose()">OK</button>')};
 
 function drawTre(){
   $('treList').innerHTML=STAGES.map((s,i)=>{const has=S.tre.includes(i);
-    return '<div class="card '+(has?'':'no')+'"><div class="e">'+(has?s.tr[0]:'❓')+'</div>'+(has?s.tr[1]:'ステージ'+(i+1))+'</div>'}).join('');
+    return '<div class="card '+(has?'':'no')+'"><div class="e">'+(has?trePic(i):'❓')+'</div>'+(has?s.tr[1]:'ステージ'+(i+1))+'</div>'}).join('');
 }
 
 /* ====== もんだい ====== */
@@ -584,7 +590,7 @@ function win(){
     ov('<div>'+st.mn+'を たおした！</div><div class="e tap" id="chest">'+pic(IMG.chestClosed,'🎁')+'</div><div>たからばこを タップ！</div>');
     $('chest').onclick=()=>{
       sWin();S.coins+=bonus;if(first)S.tre.push(i);if(S.cleared<i+1)S.cleared=Math.min(i+1,STAGES.length);save();status();
-      ov('<div class="e">'+(first?st.tr[0]:pic(IMG.chestOpen,'🪙'))+'</div>'+(first?'「'+st.tr[1]+'」を てにいれた！<br>':'')+'🪙 '+bonus+' コイン ゲット！<br><button id="ovOk">ちずへ もどる</button>');
+      ov('<div class="e">'+(first?trePic(i):pic(IMG.chestOpen,'🪙'))+'</div>'+(first?'「'+st.tr[1]+'」を てにいれた！<br>':'')+'🪙 '+bonus+' コイン ゲット！<br><button id="ovOk">ちずへ もどる</button>');
       $('ovOk').onclick=()=>{ovClose();B=null;show('world')};
     };
   },900);
