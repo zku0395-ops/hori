@@ -158,7 +158,7 @@
    - まちの背景が暗め。明るい昼間の色で作り直すか。
    - おみせの品物（9こ）と たからもの（11こ）の絵は、すべて入れた（1まいめは Canva、2〜4まいめは ChatGPT で作成。`img/item-*.png` と `img/tre1.png`〜`tre11.png`）。
    - おみせの品物を50こにふやした。新しい41こは、絵が届くまで絵文字。ChatGPT で6こずつ7まい作り、切り分けて `img/item-<id>.png` に入れ、`ITEM_IMG` に足す。
-     - ①（入れた）boots・gloves・belt・mantle・woodshield・armor　② helmet・sword・staff・rope・potion・lantern　③ bag・compass・tent・scope・book・apple　④ bread・cheese・honey・soup・meat・bento　⑤ cake・rabbit・turtle・sheep・owl・fox　⑥ horse・fairy・babydragon・cart・boat・tenthouse　⑦ windmill・lighthouse・balloon・carpet・tower
+     - ①（入れた）boots・gloves・belt・mantle・woodshield・armor　②（入れた）helmet・sword・staff・rope・potion・lantern　③ bag・compass・tent・scope・book・apple　④ bread・cheese・honey・soup・meat・bento　⑤ cake・rabbit・turtle・sheep・owl・fox　⑥ horse・fairy・babydragon・cart・boat・tenthouse　⑦ windmill・lighthouse・balloon・carpet・tower
    - 買った品物の使い道（主人公に持たせる、家にかざる）は、次の段階で相談する。
 2. ごほうびの量：1問5まい・経験値100でレベルアップ。おみせの値段は このまま（先生確認ずみ）。
 3. ひっ算の答え方：百のくらいへの くりあがりの入れ方、くりあがりのないステージで小さい□を出さないこと、ヒントが数字を1つ入れるたびに閉じること、丸の番号のしくみ。このままでよいか。
