@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>トンガリはかせの ずけい プリント</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    @page { size: A4 portrait; margin: 0; }
+    * { box-sizing: border-box; }
+    html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { margin: 0; background: #e2e8f0; font-family: 'BIZ UDPGothic', sans-serif; color: #1f2937; }
+    ruby rt { font-size: .5em; }
+
+    /* ---- 先生が えらぶ ところ（印刷しない） ---- */
+    .controls { max-width: 210mm; margin: 0 auto; padding: 16px; }
+    .panel { background: #fff; border-radius: 18px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 2px 0 #cbd5e1; }
+    .panel h1 { font-size: 26px; margin: 0; display: flex; align-items: center; gap: 10px; }
+    .panel h2 { font-size: 18px; margin: 0 0 10px; }
+    .panel p { margin: 6px 0; line-height: 1.6; }
+    .btns { display: flex; flex-wrap: wrap; gap: 8px; }
+    .btn { font: inherit; font-size: 17px; font-weight: 700; border: 2px solid #0369a1; background: #fff; color: #0369a1; border-radius: 14px; padding: 10px 14px; cursor: pointer; box-shadow: 0 4px 0 #0369a1; position: relative; top: 0; }
+    .btn:active { top: 4px; box-shadow: 0 0 0 #0369a1; }
+    .btn.big { font-size: 22px; padding: 14px 26px; background: #16a34a; border-color: #166534; color: #fff; box-shadow: 0 5px 0 #166534; }
+    .btn.small { font-size: 14px; padding: 6px 10px; box-shadow: 0 3px 0 #0369a1; }
+    a.btn { display: inline-block; text-decoration: none; }
+    .grpick { display: grid; gap: 6px; }
+    .grpick .grow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; border: 2px solid #cbd5e1; border-radius: 12px; padding: 8px 10px; font-size: 16px; }
+    .grpick .grow.on { border-color: #0369a1; background: #e0f2fe; }
+    .grpick label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+    .grpick input { width: 20px; height: 20px; }
+    .grpick .nm { font-weight: 700; min-width: 11em; }
+    .grpick .rg { display: flex; gap: 14px; }
+    .row2 { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; }
+    .row2 input[type=text] { font: inherit; font-size: 20px; padding: 8px 10px; border: 2px solid #94a3b8; border-radius: 10px; width: 240px; }
+    .row2 input.short { width: 80px; }
+    .check { display: flex; align-items: center; gap: 8px; font-size: 17px; }
+    .check input { width: 22px; height: 22px; }
+    .note { font-size: 14px; color: #475569; }
+    .count { font-size: 16px; font-weight: 700; color: #0369a1; }
+    .preview { overflow-x: auto; padding-bottom: 20px; }
+
+    /* ---- プリント（A4 たて） ---- */
+    .page { position: relative; width: 210mm; height: 297mm; background: #fff; margin: 0 auto 10mm; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,.15); }
+    .hd { position: absolute; left: 10mm; right: 10mm; top: 7mm; height: 31mm; }
+    .series { position: absolute; left: 0; top: 0; font-size: 3.4mm; color: #64748b; font-weight: 700; }
+    .title { position: absolute; left: 0; top: 5.5mm; width: 74mm; height: 24mm; border: .6mm solid #0369a1; border-radius: 3mm; padding: 1.6mm 3mm; }
+    .title.test { border: 1.2mm double #b45309; padding: 1.2mm 2.6mm; }
+    .title .t1 { font-size: 5.8mm; font-weight: 700; color: #0369a1; white-space: nowrap; }
+    .title.test .t1 { color: #b45309; }
+    .title .t2 { font-size: 4.6mm; font-weight: 700; margin-top: 1.6mm; }
+    .title .t2 b { display: inline-block; min-width: 7mm; text-align: center; background: #0369a1; color: #fff; border-radius: 1.5mm; padding: 0 1.5mm; margin-left: 1.5mm; }
+    .title.test .t2 b { background: #b45309; }
+    .hakase { position: absolute; left: 73mm; top: 2mm; height: 29mm; }
+    .who { position: absolute; left: 101mm; top: 5.5mm; right: 0; font-size: 4.6mm; font-weight: 700; }
+    .who.test { right: 33mm; }
+    .who .date { display: flex; align-items: flex-end; gap: 1.5mm; height: 9mm; white-space: nowrap; }
+    .who .date .bl { display: inline-block; width: 9mm; height: 8mm; border-bottom: .4mm solid #475569; text-align: center; font-size: 6mm; line-height: 8mm; }
+    .who.test .date .bl { width: 7.5mm; }
+    .who .name { margin-top: 4mm; display: flex; align-items: flex-end; gap: 2mm; border-bottom: .4mm solid #475569; padding: 0 0 1mm 0; height: 11mm; white-space: nowrap; }
+    .who .name .nm { font-size: 7mm; padding-left: 3mm; }
+    .score { position: absolute; right: 0; top: 4mm; width: 31mm; height: 25mm; border: .6mm solid #dc2626; border-radius: 3mm; }
+    .score .lb2 { position: absolute; left: 2mm; top: 1.4mm; font-size: 3mm; color: #dc2626; font-weight: 700; }
+    .score .lb { position: absolute; right: 2.5mm; bottom: 2mm; font-size: 4.6mm; font-weight: 700; color: #dc2626; }
+    .key { position: absolute; left: 52mm; top: -1.5mm; background: #dc2626; color: #fff; font-size: 4.5mm; font-weight: 700; border-radius: 2mm; padding: .6mm 3mm; }
+    .inst { position: absolute; left: 10mm; right: 10mm; top: 41mm; height: 15mm; border: .5mm solid #f59e0b; background: #fffbeb; border-radius: 3mm; padding: 0 4mm; font-size: 4.5mm; font-weight: 700; line-height: 1.55; display: flex; align-items: center; word-break: keep-all; }
+    .inst > div { position: relative; z-index: 1; }
+    .inst:before { content: ''; position: absolute; left: 76mm; top: -3mm; width: 4mm; height: 4mm; background: #fffbeb; border-left: .5mm solid #f59e0b; border-top: .5mm solid #f59e0b; transform: rotate(45deg) translate(1.1mm, 1.1mm); }
+    .body { position: absolute; left: 10mm; top: 59mm; width: 190mm; height: 205mm; }
+    .cell { position: absolute; border: .4mm solid #94a3b8; border-radius: 3mm; }
+    .cell .cap { position: absolute; left: 2mm; top: 1.5mm; right: 2mm; font-size: 4.2mm; font-weight: 700; white-space: nowrap; display: flex; align-items: center; gap: 1.5mm; }
+    .cell .no { flex: none; display: inline-block; width: 6.5mm; height: 6.5mm; border-radius: 50%; background: #1f2937; color: #fff; text-align: center; line-height: 6.5mm; font-size: 4mm; }
+    .cell svg { position: absolute; }
+    .rei { position: absolute; right: 2mm; bottom: 1.5mm; font-size: 3.4mm; font-weight: 700; color: #dc2626; }
+    .ansline { position: absolute; font-size: 4.6mm; font-weight: 700; white-space: nowrap; display: flex; align-items: center; gap: 1.5mm; }
+    .box { display: inline-block; width: 12mm; height: 12mm; border: .5mm solid #1f2937; border-radius: 1.5mm; text-align: center; line-height: 11mm; font-size: 8mm; color: #dc2626; font-weight: 700; flex: none; }
+    .legend { position: absolute; left: 0; top: 0; width: 190mm; border: .5mm dashed #0369a1; border-radius: 3mm; background: #f0f9ff; font-size: 4.3mm; font-weight: 700; line-height: 1.7; height: 42mm; padding: 7mm 4mm 2mm 52mm; }
+    .legend svg { position: absolute; left: 4mm; top: 2mm; }
+    .legend .h { color: #dc2626; } .legend .c { color: #2563eb; }
+    .sent { position: absolute; left: 0; width: 190mm; border: .4mm solid #94a3b8; border-radius: 3mm; padding: 2mm 4mm; font-size: 5mm; font-weight: 700; }
+    .sent .ln { display: flex; align-items: center; gap: 1.5mm; margin: 2mm 0; white-space: nowrap; }
+    .chips { position: absolute; display: flex; gap: 4mm; align-items: center; }
+    .chip { position: relative; border: .5mm solid #64748b; border-radius: 6mm; padding: 1.2mm 4mm; font-size: 5.2mm; font-weight: 700; white-space: nowrap; background: #fff; }
+    .chip.hit:after, .rs .ab.hit:after { content: ''; position: absolute; left: -1.6mm; right: -1.6mm; top: -1.6mm; bottom: -1.6mm; border: .9mm solid #dc2626; border-radius: 50%; }
+    .rs { position: absolute; font-size: 4.3mm; font-weight: 700; line-height: 1.35; }
+    .rs .r { display: flex; align-items: center; gap: 2.5mm; margin-top: 1.6mm; white-space: nowrap; }
+    .rs .ab { position: relative; flex: none; display: inline-block; width: 6.5mm; height: 6.5mm; border: .4mm solid #1f2937; border-radius: 50%; text-align: center; line-height: 5.8mm; font-size: 4mm; }
+    .rs .lb { color: #475569; font-size: 3.8mm; }
+    .cnt { position: absolute; left: 0; width: 190mm; display: flex; justify-content: center; align-items: center; gap: 12mm; font-size: 5.2mm; font-weight: 700; }
+    .cnt span { display: flex; align-items: center; gap: 1.5mm; white-space: nowrap; }
+    .ft { position: absolute; left: 10mm; right: 10mm; bottom: 7mm; height: 22mm; }
+    .ft .robot { position: absolute; left: 0; bottom: 0; height: 22mm; }
+    .ft .dk { position: absolute; left: 25mm; bottom: 1mm; right: 0; height: 19mm; border: .5mm solid #94a3b8; border-radius: 3mm; display: flex; align-items: center; padding: 0 4mm; gap: 4mm; font-size: 4.6mm; font-weight: 700; white-space: nowrap; }
+    .ft .face { display: flex; align-items: center; gap: 1.5mm; font-size: 3.8mm; }
+
+    @media print {
+      body { background: #fff; }
+      .controls { display: none; }
+      .preview { padding: 0; overflow: visible; }
+      .page { margin: 0; box-shadow: none; page-break-after: always; break-after: page; }
+    }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <div class="panel">
+      <h1><img src="../img/hakase.png" alt="" style="height:56px"> トンガリはかせの ずけい プリント</h1>
+      <p>トンガリはかせの ロボット けんきゅうじょ（三角形・四角形のアプリ）と同じ順で練習するプリントです。A4たてで印刷します。</p>
+      <h2 style="margin-top:12px">できあがった PDF（そのまま印刷・保存できます）</h2>
+      <div class="btns" id="pdfs"></div>
+      <p class="note">どの PDF も、れんしゅう①〜⑤ → まとめテスト①〜③ → こたえ（8まい）の順です。</p>
+    </div>
+    <div class="panel">
+      <h2>1. プリントを えらぶ</h2>
+      <div class="btns" style="margin-bottom:10px">
+        <button class="btn small" id="allOn">ぜんぶ えらぶ</button>
+        <button class="btn small" id="allOff">ぜんぶ はずす</button>
+      </div>
+      <div class="grpick" id="pick"></div>
+    </div>
+    <div class="panel">
+      <h2>2. 学年・名前と こたえ</h2>
+      <div class="row2"><label for="gr" style="font-weight:700">がくねん</label><input type="text" id="gr" class="short" maxlength="2" placeholder="れい：2"><label for="nm" style="font-weight:700">なまえ</label><input type="text" id="nm" placeholder="空けておくと手で書けます"></div>
+      <p class="note">入れると、プリントに印刷されます。空けておくと、子どもが自分で書けます。</p>
+      <div class="row2"><label class="check"><input type="checkbox" id="ans"> こたえの ページも つける（えらんだ プリントの うしろに 入ります）</label></div>
+      <div class="row2"><button class="btn" id="reroll">🔄 べつの もんだいに する</button><button class="btn small" id="reset">もとの もんだいに もどす</button><span class="note" id="seedNote"></span></div>
+    </div>
+    <div class="panel">
+      <div class="row2" style="margin-top:0"><button class="btn big" id="printBtn">🖨 いんさつ する</button><span class="count" id="cnt"></span></div>
+      <p class="note">印刷の画面で、用紙は「A4」、倍率は「100%（実際のサイズ）」、「背景のグラフィック」をオンにしてください。</p>
+    </div>
+  </div>
+  <div class="preview" id="out"></div>
+
+  <script>
+  /* =========================================================
+     きほん
+     ========================================================= */
+  const COL = { ink: '#1f2937', dot: '#475569', mark: '#dc2626', line: '#2563eb', trace: '#f59e0b', ans: '#dc2626', pale: '#cbd5e1', tri: '#fecaca', quad: '#bfdbfe' };
+  const HAKASE = '../img/hakase.png', ROBOT = '../img/robot.png';
+  const SAN = '{三角形|さんかくけい}', SHI = '{四角形|しかくけい}', TEN = 'ちょう{点|てん}', HON = '{本|ほん}';
+  const W = (s) => s === 3 ? SAN : SHI;
+  // ふりがな：「{三角形|さんかくけい}」と 書くと ルビに なる
+  const rb = (s) => String(s).replace(/\{([^|}]+)\|([^}]+)\}/g, '<ruby>$1<rt>$2</rt></ruby>');
+  function rng(seed) { let s = seed >>> 0 || 1; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const shuffleR = (r, a) => { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+  const pickR = (r, a) => a[Math.floor(r() * a.length)];
+  const f1 = (v) => Math.round(v * 100) / 100;
+
+  /* =========================================================
+     図形の 計算（アプリと 同じ きまり）
+     ========================================================= */
+  const ptOf = (n, i) => ({ x: i % n, y: Math.floor(i / n) });
+  const cross = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const area2 = (pts) => { let s = 0; pts.forEach((p, i) => { const q = pts[(i + 1) % pts.length]; s += p.x * q.y - q.x * p.y; }); return s; };
+  const areaOf = (pts) => Math.abs(area2(pts)) / 2;
+  const onSeg = (p, q, r) => Math.min(p.x, q.x) <= r.x && r.x <= Math.max(p.x, q.x) && Math.min(p.y, q.y) <= r.y && r.y <= Math.max(p.y, q.y);
+  function segHit(a, b, c, d) {
+    const d1 = cross(c, d, a), d2 = cross(c, d, b), d3 = cross(a, b, c), d4 = cross(a, b, d);
+    if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) return true;
+    return (d1 === 0 && onSeg(c, d, a)) || (d2 === 0 && onSeg(c, d, b)) || (d3 === 0 && onSeg(a, b, c)) || (d4 === 0 && onSeg(a, b, d));
+  }
+  // 形に なっているか（null なら だいじょうぶ）
+  function polyProblem(pts) {
+    const n = pts.length;
+    for (let i = 0; i < n; i++) { const a = pts[(i + n - 1) % n], b = pts[i], c = pts[(i + 1) % n]; if (cross(a, b, c) === 0) return 'flat'; }
+    if (n === 4 && (segHit(pts[0], pts[1], pts[2], pts[3]) || segHit(pts[1], pts[2], pts[3], pts[0]))) return 'cross';
+    if (area2(pts) === 0) return 'flat';
+    return null;
+  }
+  const shapeKey = (idxs) => [...idxs].sort((a, b) => a - b).join('-');
+  const sortAround = (n, idxs) => {
+    const ps = idxs.map(i => ptOf(n, i)), cx = ps.reduce((s, p) => s + p.x, 0) / ps.length, cy = ps.reduce((s, p) => s + p.y, 0) / ps.length;
+    return idxs.map((i, k) => [i, Math.atan2(ps[k].y - cy, ps[k].x - cx)]).sort((a, b) => a[1] - b[1]).map(a => a[0]);
+  };
+  // へこんで いない 形か
+  const convex = (pts) => new Set(pts.map((q, i) => Math.sign(cross(pts[(i + pts.length - 1) % pts.length], q, pts[(i + 1) % pts.length])))).size === 1;
+  const COND = {
+    any: { ok: () => true },
+    midc: { ok: (pts, sides) => areaOf(pts) >= (sides === 3 ? 2 : 3) && convex(pts) },
+    mid: { ok: (pts, sides) => areaOf(pts) >= (sides === 3 ? 2 : 3) },
+    big: { ok: (pts, sides) => areaOf(pts) >= (sides === 3 ? 6 : 9), cap: 'おおきな' },
+    small: { ok: (pts) => areaOf(pts) <= 1 && Math.max(...pts.map(p => p.x)) - Math.min(...pts.map(p => p.x)) <= 2 && Math.max(...pts.map(p => p.y)) - Math.min(...pts.map(p => p.y)) <= 2, cap: 'ちいさな' },
+    down: { ok: (pts) => { const minY = Math.min(...pts.map(p => p.y)); return pts.filter(p => p.y === minY).length === 2 && areaOf(pts) >= 2; }, cap: 'さかさまの' },
+    tilt: { ok: (pts) => pts.every((p, i) => { const q = pts[(i + 1) % pts.length]; return p.x !== q.x && p.y !== q.y; }) && areaOf(pts) >= 3, cap: 'へんが ぜんぶ ななめの' },
+  };
+  function findPoly(r, n, sides, cond, made, must) {
+    const all = [...Array(n * n).keys()];
+    for (let t = 0; t < 8000; t++) {
+      let idxs = shuffleR(r, all).slice(0, sides);
+      if (must != null && !idxs.includes(must)) idxs[0] = must;
+      if (new Set(idxs).size < sides) continue;
+      if (sides === 4) idxs = sortAround(n, idxs);
+      const pts = idxs.map(i => ptOf(n, i));
+      if (polyProblem(pts) || !COND[cond].ok(pts, sides) || made.includes(shapeKey(idxs))) continue;
+      made.push(shapeKey(idxs));
+      return idxs;
+    }
+    return null;
+  }
+  // 2つの 点（dir：yoko・tate・naname、long：はしから はしまで）
+  function findLine(r, n, dir, long, made) {
+    for (let t = 0; t < 4000; t++) {
+      const a = Math.floor(r() * n * n), b = Math.floor(r() * n * n), p = ptOf(n, a), q = ptOf(n, b);
+      const dx = Math.abs(p.x - q.x), dy = Math.abs(p.y - q.y), len = Math.max(dx, dy);
+      if (len < 2) continue;
+      if (dir === 'yoko' && dy !== 0) continue;
+      if (dir === 'tate' && dx !== 0) continue;
+      if (dir === 'naname' && dx !== dy) continue;
+      if (long && len < n - 1) continue;
+      const k = shapeKey([a, b]);
+      if (made.includes(k)) continue;
+      made.push(k);
+      return [a, b];
+    }
+    return null;
+  }
+  // 1本の 直線（a-b）に へんを 書き足す 答え
+  function findAdd(r, n, sides, a, b) {
+    const all = [...Array(n * n).keys()].filter(i => i !== a && i !== b);
+    for (let t = 0; t < 8000; t++) {
+      const mid = shuffleR(r, all).slice(0, sides - 2);
+      const idxs = [a, ...mid, b], pts = idxs.map(i => ptOf(n, i));
+      if (polyProblem(pts) || areaOf(pts) < (sides === 3 ? 1.5 : 2.5)) continue;
+      // 四角形の れいは、へこんで いない 形に する
+      if (sides === 4 && !convex(pts)) continue;
+      return idxs;
+    }
+    return null;
+  }
+
+  /* =========================================================
+     見せる 形（アプリと 同じ）
+     ========================================================= */
+  const SHAPES = {
+    'tri-up': { cat: 'tri', pts: [[50, 10], [92, 86], [8, 86]] },
+    'tri-down': { cat: 'tri', pts: [[8, 14], [92, 14], [50, 90]] },
+    'tri-thin': { cat: 'tri', pts: [[50, 4], [66, 96], [34, 96]] },
+    'tri-tilt': { cat: 'tri', pts: [[12, 34], [88, 10], [62, 92]] },
+    'tri-right': { cat: 'tri', pts: [[14, 12], [14, 88], [88, 88]] },
+    'tri-flat': { cat: 'tri', pts: [[4, 72], [96, 78], [36, 38]] },
+    'sq': { cat: 'quad', pts: [[16, 16], [84, 16], [84, 84], [16, 84]] },
+    'rect': { cat: 'quad', pts: [[4, 28], [96, 28], [96, 72], [4, 72]] },
+    'diamond': { cat: 'quad', pts: [[50, 4], [94, 50], [50, 96], [6, 50]] },
+    'trap': { cat: 'quad', pts: [[30, 22], [70, 22], [94, 80], [6, 80]] },
+    'irr': { cat: 'quad', pts: [[12, 18], [74, 8], [92, 82], [24, 70]] },
+    'concave': { cat: 'quad', pts: [[8, 92], [50, 6], [92, 92], [50, 62]] },
+    'round-tri': { cat: 'none', reason: 'round', base: 'tri-up', mod: 'round' },
+    'round-sq': { cat: 'none', reason: 'round', base: 'sq', mod: 'round' },
+    'open-tri': { cat: 'none', reason: 'open', base: 'tri-up', mod: 'open', side: 2 },
+    'open-sq': { cat: 'none', reason: 'open', base: 'sq', mod: 'open', side: 1 },
+    'curve-tri': { cat: 'none', reason: 'curve', base: 'tri-up', mod: 'curve', side: 1 },
+    'curve-sq': { cat: 'none', reason: 'curve', base: 'sq', mod: 'curve', side: 2 },
+    'circle': { cat: 'none', reason: 'curve', mod: 'circle' },
+  };
+  Object.entries(SHAPES).forEach(([k, s]) => {
+    s.key = k;
+    if (s.base) s.pts = SHAPES[s.base].pts;
+    if (!s.reason) s.reason = s.cat === 'tri' ? 'r3' : 'r4';
+  });
+  const TRI_KEYS = ['tri-up', 'tri-down', 'tri-thin', 'tri-tilt', 'tri-right', 'tri-flat'];
+  const QUAD_KEYS = ['sq', 'rect', 'diamond', 'trap', 'irr', 'concave'];
+  const NON_TRI = ['round-tri', 'open-tri', 'curve-tri', 'circle'], NON_QUAD = ['round-sq', 'open-sq', 'curve-sq', 'circle'];
+  const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  const centroid = (pts) => [pts.reduce((s, p) => s + p[0], 0) / pts.length, pts.reduce((s, p) => s + p[1], 0) / pts.length];
+  const outward = (p, c, d) => { const vx = p[0] - c[0], vy = p[1] - c[1], l = Math.hypot(vx, vy) || 1; return [p[0] + vx / l * d, p[1] + vy / l * d]; };
+  // 少しだけ 大きさと 位置を かえる
+  function makeShape(r, key) {
+    const s = SHAPES[key];
+    const k = 0.86 + r() * 0.12, dx = (r() - 0.5) * 5, dy = (r() - 0.5) * 5;
+    const pts = s.pts ? s.pts.map(([x, y]) => [50 + (x - 50) * k + dx, 50 + (y - 50) * k + dy]) : null;
+    return { ...s, pts };
+  }
+  function shapeD(sh) {
+    const P = sh.pts;
+    if (sh.mod === 'circle') return 'M 50 8 A 42 42 0 1 1 49.9 8 Z';
+    if (sh.mod === 'round') {
+      const n = P.length, R = 15; let d = '';
+      for (let i = 0; i < n; i++) {
+        const a = P[(i + n - 1) % n], b = P[i], c = P[(i + 1) % n];
+        const la = Math.hypot(a[0] - b[0], a[1] - b[1]), lc = Math.hypot(c[0] - b[0], c[1] - b[1]);
+        const p1 = [b[0] + (a[0] - b[0]) / la * R, b[1] + (a[1] - b[1]) / la * R], p2 = [b[0] + (c[0] - b[0]) / lc * R, b[1] + (c[1] - b[1]) / lc * R];
+        d += `${i === 0 ? 'M' : 'L'} ${f1(p1[0])} ${f1(p1[1])} Q ${f1(b[0])} ${f1(b[1])} ${f1(p2[0])} ${f1(p2[1])} `;
+      }
+      return d + 'Z';
+    }
+    if (sh.mod === 'open') {
+      const n = P.length, g = sh.side, a = P[g], b = P[(g + 1) % n];
+      const s1 = [a[0] + (b[0] - a[0]) * 0.34, a[1] + (b[1] - a[1]) * 0.34], s2 = [a[0] + (b[0] - a[0]) * 0.66, a[1] + (b[1] - a[1]) * 0.66];
+      let d = `M ${f1(s2[0])} ${f1(s2[1])} `;
+      for (let k = 1; k <= n; k++) { const p = P[(g + k) % n]; d += `L ${f1(p[0])} ${f1(p[1])} `; }
+      return d + `L ${f1(s1[0])} ${f1(s1[1])}`;
+    }
+    if (sh.mod === 'curve') {
+      const n = P.length, g = sh.side, a = P[g], b = P[(g + 1) % n], c = centroid(P), ctl = outward(mid(a, b), c, 26);
+      let d = `M ${f1(P[0][0])} ${f1(P[0][1])} `;
+      for (let i = 0; i < n; i++) { const q = P[(i + 1) % n]; d += i === g ? `Q ${f1(ctl[0])} ${f1(ctl[1])} ${f1(q[0])} ${f1(q[1])} ` : `L ${f1(q[0])} ${f1(q[1])} `; }
+      return d + 'Z';
+    }
+    return 'M ' + P.map(p => f1(p[0]) + ' ' + f1(p[1])).join(' L ') + ' Z';
+  }
+  // 形の 絵（size：mm）。opt：pale（うすい線・なぞる用）、fill、sides（へんの番号）、verts（ちょう点の○）
+  function shapeSvg(sh, size, opt = {}) {
+    let g = `<path d="${shapeD(sh)}" fill="${opt.fill || 'none'}" stroke="${opt.pale ? COL.pale : COL.ink}" stroke-width="${opt.pale ? 4.2 : 2.4}" stroke-linejoin="round" stroke-linecap="round"/>`;
+    if (sh.pts && !sh.mod) {
+      const c = centroid(sh.pts);
+      if (opt.sides) sh.pts.forEach((p, i) => { const m = outward(mid(p, sh.pts[(i + 1) % sh.pts.length]), c, -11); g += `<text x="${f1(m[0])}" y="${f1(m[1] + 3.6)}" text-anchor="middle" font-size="10" font-weight="700" fill="${COL.ans}">${i + 1}</text>`; });
+      if (opt.verts) sh.pts.forEach((p) => { g += `<circle cx="${f1(p[0])}" cy="${f1(p[1])}" r="6" fill="none" stroke="${COL.ans}" stroke-width="1.8"/>`; });
+    }
+    if (opt.label) g += `<text x="50" y="${opt.labelY || 60}" text-anchor="middle" font-size="13" font-weight="700" fill="${COL.ans}">${opt.label}</text>`;
+    return `<svg viewBox="-8 -8 116 116" width="${size}mm" height="${size}mm" style="${opt.style || ''}">${g}</svg>`;
+  }
+
+  /* =========================================================
+     点の ます目（1問）
+     p：{ n, cap, marks[], fixed[a,b], trace[[a,b]], ans[[a,b]], rei }
+     ========================================================= */
+  function dotSvg(p, key, boxW, boxH) {
+    const n = p.n, sp = Math.min(n <= 4 ? 13.5 : n === 5 ? 10.8 : 9, (boxW - 8) / (n - 1), (boxH - 8) / (n - 1));
+    const w = sp * (n - 1), ox = (boxW - w) / 2, oy = (boxH - w) / 2;
+    const X = (i) => f1(ox + (i % n) * sp), Y = (i) => f1(oy + Math.floor(i / n) * sp);
+    const seg = (a, b, attr) => `<line x1="${X(a)}" y1="${Y(a)}" x2="${X(b)}" y2="${Y(b)}" stroke-linecap="round" ${attr}/>`;
+    let g = '';
+    if (!key) (p.trace || []).forEach(([a, b]) => { g += seg(a, b, `stroke="${COL.trace}" stroke-width="1.3" stroke-dasharray="2.2 2.2"`); });
+    if (key) (p.ans || []).forEach(([a, b]) => { g += seg(a, b, `stroke="${COL.ans}" stroke-width="1.1"`); });
+    if (p.fixed) g += seg(p.fixed[0], p.fixed[1], `stroke="${COL.line}" stroke-width="1.8"`);
+    const marks = p.marks || [], fixed = p.fixed || [];
+    for (let i = 0; i < n * n; i++) {
+      if (fixed.includes(i)) g += `<circle cx="${X(i)}" cy="${Y(i)}" r="2" fill="${COL.line}"/>`;
+      else if (marks.includes(i)) g += `<circle cx="${X(i)}" cy="${Y(i)}" r="2.3" fill="${COL.mark}" stroke="#fff" stroke-width=".5"/><circle cx="${X(i)}" cy="${Y(i)}" r="3.3" fill="none" stroke="${COL.mark}" stroke-width=".45"/>`;
+      else g += `<circle cx="${X(i)}" cy="${Y(i)}" r="1.05" fill="${COL.dot}"/>`;
+    }
+    return `<svg viewBox="0 0 ${boxW} ${boxH}" width="${boxW}mm" height="${boxH}mm" style="left:0;top:9mm">${g}</svg>`;
+  }
+  const ring = (idxs) => idxs.map((a, i) => [a, idxs[(i + 1) % idxs.length]]);
+  // 6問を 2れつ×3だんに ならべる
+  function dotGrid(probs, key) {
+    const cw = 93, ch = 66, gx = 4, gy = 3.5;
+    return probs.map((p, i) => {
+      const x = (i % 2) * (cw + gx), y = Math.floor(i / 2) * (ch + gy);
+      return `<div class="cell" style="left:${x}mm;top:${y}mm;width:${cw}mm;height:${ch}mm"><div class="cap"><span class="no">${i + 1}</span><span>${rb(p.cap)}</span></div>${dotSvg(p, key, cw, ch - 10)}${key && p.rei ? '<div class="rei">（れい）</div>' : ''}</div>`;
+    }).join('');
+  }
+
+  /* =========================================================
+     ステージ0：てんと せん
+     ========================================================= */
+  const DIR_CAP = { yoko: 'よこの せん', tate: 'たての せん', naname: 'ななめの せん' };
+  // kind：m（あかい点・なぞり）、M（あかい点）、yoko・tate・naname（じぶんで）、L-yoko など（はしから はしまで）
+  function lineProb(r, kind, n, made) {
+    if (kind === 'm' || kind === 'M') {
+      const dir = pickR(r, ['yoko', 'tate', 'naname']), ab = findLine(r, n, dir, false, made);
+      return { n, cap: 'あかい てんを むすぼう', marks: ab, trace: kind === 'm' ? [ab] : [], ans: [ab] };
+    }
+    const long = kind.startsWith('L-'), dir = long ? kind.slice(2) : kind;
+    return { n, cap: (long ? 'はしから はしまで ' : '') + DIR_CAP[dir], ans: [findLine(r, n, dir, long, made)], rei: true };
+  }
+  const S0 = {
+    p: [
+      { inst: 'あかい てんと てんを、まっすぐな せんで むすぼう。うすい せんを なぞるよ。じょうぎを つかおう。', kinds: ['m', 'm', 'm', 'm', 'm', 'm'], n: 4 },
+      { inst: 'あかい てんと てんを、まっすぐな せんで むすぼう。じょうぎを つかうと、きれいに ひけるよ。', kinds: ['M', 'M', 'M', 'M', 'M', 'M'], n: 4 },
+      { inst: 'じぶんで てんを 2つ えらんで、よこや たての まっすぐな せんで むすぼう。', kinds: ['yoko', 'tate', 'yoko', 'tate', 'yoko', 'tate'], n: 4 },
+      { inst: 'じぶんで てんを 2つ えらんで、ななめの まっすぐな せんで むすぼう。', kinds: ['naname', 'naname', 'yoko', 'naname', 'tate', 'naname'], n: 4 },
+      { inst: 'はしの てんを 2つ えらんで、はしから はしまで ながい せんで むすぼう。', kinds: ['L-yoko', 'L-tate', 'L-naname', 'L-yoko', 'L-tate', 'L-naname'], n: 5 },
+    ],
+    t: [
+      { inst: 'てんと てんを、まっすぐな せんで むすぼう。', kinds: ['M', 'M', 'yoko', 'tate', 'naname', 'L-yoko'], n: 4 },
+      { inst: 'じぶんで てんを 2つ えらんで、まっすぐな せんで むすぼう。', kinds: ['yoko', 'tate', 'naname', 'naname', 'L-tate', 'L-yoko'], n: 4 },
+      { inst: 'じぶんで てんを 2つ えらんで、まっすぐな せんで むすぼう。', kinds: ['tate', 'yoko', 'naname', 'L-yoko', 'L-tate', 'L-naname'], n: 5 },
+    ],
+  };
+  function sheet0(def, r, key) {
+    const made = [];
+    return { html: dotGrid(def.kinds.map(k => lineProb(r, k, def.n, made)), key), total: 6 };
+  }
+
+  /* =========================================================
+     ステージ1・2：三角形・四角形を つくろう
+     ========================================================= */
+  // kind：m（あかい点＋なぞり1本）、M（あかい点）、free、one（あかい点1つ）、big・small・down・tilt（6×6）
+  function polyProb(r, sides, kind, made) {
+    if (kind === 'm' || kind === 'M') {
+      const idxs = findPoly(r, 4, sides, 'midc', made);
+      return { n: 4, cap: 'あかい てんを むすぼう', marks: idxs, trace: kind === 'm' ? [[idxs[0], idxs[1]]] : [], ans: ring(idxs) };
+    }
+    if (kind === 'free') return { n: 4, cap: `${W(sides)}を つくろう`, ans: ring(findPoly(r, 4, sides, 'mid', made)), rei: true };
+    if (kind === 'free6') return { n: 6, cap: `${W(sides)}を つくろう`, ans: ring(findPoly(r, 6, sides, 'mid', made)), rei: true };
+    if (kind === 'one') {
+      const must = Math.floor(r() * 16), idxs = findPoly(r, 4, sides, 'mid', made, must);
+      return { n: 4, cap: 'あかい てんを つかおう', marks: [must], ans: ring(idxs), rei: true };
+    }
+    return { n: 6, cap: `${COND[kind].cap} ${W(sides)}`, ans: ring(findPoly(r, 6, sides, kind, made)), rei: true };
+  }
+  const S12 = (sides) => {
+    const w = W(sides), k = sides === 3 ? 'down' : 'tilt', num = sides === 3 ? '3つ' : '4つ';
+    const jun = sides === 4 ? 'となりの てんを じゅんばんに むすぶよ。' : '';
+    return {
+      p: [
+        { inst: `あかい てんを まっすぐな せんで むすんで、${w}を つくろう。はじめの 1{本|ぽん}は なぞるよ。`, kinds: ['m', 'm', 'm', 'm', 'm', 'm'] },
+        { inst: `あかい てんを まっすぐな せんで むすんで、${w}を つくろう。${jun}`, kinds: ['M', 'M', 'M', 'M', 'M', 'M'] },
+        { inst: `じぶんで てんを ${num} えらんで むすび、${w}を つくろう。ぜんぶ ちがう かたちに できるかな。`, kinds: ['free', 'free', 'free', 'free', 'free', 'free'] },
+        { inst: `あかい てんと、じぶんで えらんだ てんを むすんで、${w}を つくろう。`, kinds: ['one', 'one', 'one', 'one', 'one', 'one'] },
+        { inst: `ことばに あう ${w}を つくろう。てんが たくさん あるよ。`, kinds: ['big', 'small', k, 'big', 'small', k] },
+      ],
+      t: [
+        { inst: `てんを まっすぐな せんで むすんで、${w}を つくろう。`, kinds: ['M', 'M', 'free', 'free', 'one', 'one'] },
+        { inst: `てんを まっすぐな せんで むすんで、${w}を つくろう。`, kinds: ['free', 'free', 'one', 'one', 'big', 'small'] },
+        { inst: `ことばに あう ${w}を つくろう。`, kinds: ['free6', 'big', 'small', k, 'free6', k] },
+      ],
+    };
+  };
+  function sheet12(sides) {
+    return (def, r, key) => { const made = []; return { html: dotGrid(def.kinds.map(k => polyProb(r, sides, k, made)), key), total: 6 }; };
+  }
+
+  /* =========================================================
+     ステージ3：へんと ちょう点
+     ========================================================= */
+  const LEGEND = () => {
+    const sh = { ...SHAPES['tri-up'] }, P = sh.pts;
+    let g = `<path d="${shapeD(sh)}" fill="none" stroke="${COL.mark}" stroke-width="3" stroke-linejoin="round"/>`;
+    P.forEach(p => { g += `<circle cx="${p[0]}" cy="${p[1]}" r="6.5" fill="${COL.line}" stroke="#fff" stroke-width="1.5"/>`; });
+    return `<div class="legend"><svg viewBox="-10 -4 120 104" width="44mm" height="38mm">${g}</svg>
+      <div>まわりの まっすぐな せんを <span class="h">「へん」</span>（あかい せん）、</div>
+      <div>かどの てんを <span class="c">「${rb(TEN)}」</span>（あおい ●）と いうよ。</div>
+      <div>${rb(SAN)}は へんが 3${rb('{本|ぼん}')}、${rb(SHI)}は へんが 4${rb(HON)}。</div></div>`;
+  };
+  // mode：hen（へんだけ・なぞる）、ten（ちょう点だけ）、both
+  function countCell(sh, i, mode, key, x, y, cw, ch) {
+    const n = sh.pts.length, size = Math.min(mode === 'both' ? 47 : 52, ch - 12);
+    const svg = shapeSvg(sh, size, { pale: mode === 'hen' && !key, sides: key && mode !== 'ten', verts: key && mode !== 'hen', style: `left:2mm;top:${f1((ch - size) / 2 + 3)}mm` });
+    const lines = [];
+    if (mode !== 'ten') lines.push(`<span>へん</span><span class="box">${key ? n : ''}</span><span>${rb(HON)}</span>`);
+    if (mode !== 'hen') lines.push(`<span>${rb(TEN)}</span><span class="box">${key ? n : ''}</span><span>つ</span>`);
+    const top = ch / 2 - (lines.length * 17) / 2 + 3;
+    return `<div class="cell" style="left:${x}mm;top:${y}mm;width:${cw}mm;height:${ch}mm"><div class="cap"><span class="no">${i + 1}</span></div>${svg}` +
+      lines.map((l, k) => `<div class="ansline" style="left:${size + 4}mm;top:${f1(top + k * 17)}mm">${l}</div>`).join('') + `</div>`;
+  }
+  const S3 = {
+    p: [
+      { inst: `へんを いろえんぴつで なぞろう。へんは なん${HON} あるかな。`, mode: 'hen', keys: ['tri-up', 'sq', 'tri-right', 'rect'], legend: true },
+      { inst: `${TEN}に ○を つけよう。${TEN}は いくつ あるかな。`, mode: 'ten', keys: ['tri-up', 'sq', 'tri-down', 'trap'], legend: true },
+      { inst: `${SAN}の へんと ${TEN}を かぞえて、□に かずを かこう。`, mode: 'both', keys: ['tri-up', 'tri-right', 'tri-tilt', 'tri-thin'], legend: true },
+      { inst: `${SHI}の へんと ${TEN}を かぞえて、□に かずを かこう。`, mode: 'both', keys: ['sq', 'rect', 'diamond', 'irr'], legend: true },
+      { inst: `へんと ${TEN}を かぞえて、□に かずを かこう。いろいろな かたちが あるよ。`, mode: 'both', keys: ['tri-flat', 'trap', 'tri-down', 'concave', 'diamond', 'tri-thin'], mix: true },
+    ],
+    t: [
+      { inst: `へんと ${TEN}を かぞえて、□に かずを かこう。`, mode: 'both', keys: ['tri-up', 'sq', 'tri-tilt', 'rect'], sent: true, mix: true },
+      { inst: `へんと ${TEN}を かぞえて、□に かずを かこう。`, mode: 'both', keys: ['tri-down', 'trap', 'tri-right', 'diamond'], sent: true, mix: true },
+      { inst: `へんと ${TEN}を かぞえて、□に かずを かこう。`, mode: 'both', keys: ['tri-thin', 'concave', 'tri-flat', 'irr'], sent: true, mix: true },
+    ],
+  };
+  function sheet3(def, r, key) {
+    const keys = def.mix ? shuffleR(r, def.keys) : def.keys, shs = keys.map(k => makeShape(r, k));
+    const cw = 93, gx = 4;
+    let html = '', top = 0, ch = 66, gy = 3.5, total = shs.length * (def.mode === 'both' ? 2 : 1);
+    if (def.legend) { html += LEGEND(); top = 46; ch = 77; gy = 4; }
+    if (def.sent) ch = 76;
+    html += shs.map((sh, i) => countCell(sh, i, def.mode, key, (i % 2) * (cw + gx), top + Math.floor(i / 2) * (ch + gy), cw, ch)).join('');
+    if (def.sent) {
+      const b = (v) => `<span class="box">${key ? v : ''}</span>`;
+      html += `<div class="sent" style="top:${2 * (ch + gy) + 1}mm">
+        <div class="ln"><span class="no" style="display:inline-block;width:6.5mm;height:6.5mm;border-radius:50%;background:#1f2937;color:#fff;text-align:center;line-height:6.5mm;font-size:4mm">5</span><span>${rb(SAN)}の へんは</span>${b(3)}<span>${rb('{本|ぼん}')}、${rb(TEN)}は</span>${b(3)}<span>つ。</span></div>
+        <div class="ln"><span class="no" style="display:inline-block;width:6.5mm;height:6.5mm;border-radius:50%;background:#1f2937;color:#fff;text-align:center;line-height:6.5mm;font-size:4mm">6</span><span>${rb(SHI)}の へんは</span>${b(4)}<span>${rb(HON)}、${rb(TEN)}は</span>${b(4)}<span>つ。</span></div></div>`;
+      total += 4;
+    }
+    return { html, total };
+  }
+
+  /* =========================================================
+     ステージ4：みつけよう
+     ========================================================= */
+  // cat：tri・quad・both。easy：ほかの なかま（三角形を さがす ときの 四角形）を 入れない
+  function findKeys(r, cat, count, easy) {
+    const nT = cat === 'both' ? Math.round(count / 3) : Math.round(count * 0.4) + (r() < 0.5 ? 0 : -1);
+    const cyc = (keys, k) => { const s = shuffleR(r, keys); return Array.from({ length: k }, (_, i) => s[i % s.length]); };
+    if (cat === 'both') return shuffleR(r, [...cyc(TRI_KEYS, nT), ...cyc(QUAD_KEYS, nT), ...cyc([...new Set([...NON_TRI, ...NON_QUAD])], count - nT * 2)]);
+    const tri = cat === 'tri', nO = easy ? 0 : Math.round(count * 0.25);
+    return shuffleR(r, [...cyc(tri ? TRI_KEYS : QUAD_KEYS, nT), ...cyc(tri ? QUAD_KEYS : TRI_KEYS, nO), ...cyc(tri ? NON_TRI : NON_QUAD, count - nT - nO)]);
+  }
+  const S4 = {
+    p: [
+      { inst: `${SAN}を ぜんぶ みつけて、いろを ぬろう。まっすぐな せん 3{本|ぼん}で かこまれた かたちだよ。`, cat: 'tri', count: 9, easy: true },
+      { inst: `${SAN}を ぜんぶ みつけて、いろを ぬろう。${SHI}も まざって いるよ。`, cat: 'tri', count: 9 },
+      { inst: `${SHI}を ぜんぶ みつけて、いろを ぬろう。まっすぐな せん 4${HON}で かこまれた かたちだよ。`, cat: 'quad', count: 9, easy: true },
+      { inst: `${SHI}を ぜんぶ みつけて、いろを ぬろう。${SAN}も まざって いるよ。`, cat: 'quad', count: 9 },
+      { inst: `${SAN}は あか、${SHI}は あおで ぬろう。どちらでも ない かたちは ぬらないよ。`, cat: 'both', count: 9 },
+    ],
+    t: [
+      { inst: `${SAN}を ぜんぶ みつけて、いろを ぬろう。`, cat: 'tri', count: 12 },
+      { inst: `${SHI}を ぜんぶ みつけて、いろを ぬろう。`, cat: 'quad', count: 12 },
+      { inst: `${SAN}は あか、${SHI}は あおで ぬろう。どちらでも ない かたちは ぬらないよ。`, cat: 'both', count: 12 },
+    ],
+  };
+  function sheet4(def, r, key) {
+    const keys = findKeys(r, def.cat, def.count, def.easy), rows = def.count / 3;
+    const cw = 60, gx = 5, ch = rows === 3 ? 60 : 45, gy = 3, size = rows === 3 ? 50 : 39;
+    const hit = (c) => def.cat === 'both' ? c !== 'none' : c === def.cat;
+    let html = keys.map((k, i) => {
+      const sh = makeShape(r, k), h = key && hit(sh.cat);
+      const svg = shapeSvg(sh, size, { fill: h ? COL[sh.cat] : 'none', label: h && def.cat === 'both' ? (sh.cat === 'tri' ? 'あか' : 'あお') : '', labelY: sh.key === 'tri-down' ? 46 : sh.key === 'concave' ? 48 : 66, style: `left:${(cw - size) / 2}mm;top:${f1((ch - size) / 2 + 2)}mm` });
+      return `<div class="cell" style="left:${(i % 3) * (cw + gx)}mm;top:${Math.floor(i / 3) * (ch + gy)}mm;width:${cw}mm;height:${ch}mm"><div class="cap"><span class="no">${i + 1}</span></div>${svg}</div>`;
+    }).join('');
+    const nT = keys.filter(k => SHAPES[k].cat === 'tri').length, nQ = keys.filter(k => SHAPES[k].cat === 'quad').length;
+    const b = (v) => `<span class="box">${key ? v : ''}</span>`;
+    const parts = [];
+    if (def.cat !== 'quad') parts.push(`<span><span>${rb(SAN)}は</span>${b(nT)}<span>こ</span></span>`);
+    if (def.cat !== 'tri') parts.push(`<span><span>${rb(SHI)}は</span>${b(nQ)}<span>こ</span></span>`);
+    html += `<div class="cnt" style="top:${rows * (ch + gy) + 1}mm">${parts.join('')}</div>`;
+    return { html, total: (def.cat === 'both' ? nT + nQ : def.cat === 'tri' ? nT : nQ) + parts.length };
+  }
+
+  /* =========================================================
+     ステージ5：どっちかな？
+     ========================================================= */
+  const CAT_NAME = { tri: SAN, quad: SHI, none: 'どちらでも ない' };
+  const REASONS = {
+    r3: `3{本|ぼん}の まっすぐな せんで かこまれて いる`,
+    r4: `4${HON}の まっすぐな せんで かこまれて いる`,
+    curve: 'まがった せんが ある',
+    open: 'せんが つながって いない（あいて いる）',
+    round: 'かどが まるく なって いる',
+  };
+  function reasonChoices(r, sh) {
+    const re = sh.reason, base = sh.base && SHAPES[sh.base].cat === 'tri' ? 'r3' : 'r4';
+    let others;
+    if (re === 'r3') others = ['r4', pickR(r, ['curve', 'open'])];
+    else if (re === 'r4') others = ['r3', pickR(r, ['open', 'round'])];
+    else if (re === 'round') others = ['open', base];
+    else if (re === 'curve') others = ['open', sh.base ? base : 'r3'];
+    else others = [pickR(r, ['curve', 'round']), base];
+    return shuffleR(r, [re, ...others]);
+  }
+  const S5 = {
+    p: [
+      { inst: `${SAN}かな？ どちらでも ないかな？ あう ほうを ○で かこもう。`, cats: ['tri', 'none'], keys: (r) => [pickR(r, ['tri-up', 'tri-right']), 'tri-down', 'round-tri', 'open-tri', 'curve-tri'] },
+      { inst: `${SAN}かな？ どちらでも ないかな？ あう ほうを ○で かこもう。`, cats: ['tri', 'none'], keys: (r) => ['tri-thin', 'tri-tilt', 'tri-flat', 'circle', pickR(r, ['round-tri', 'open-tri', 'curve-tri'])] },
+      { inst: `${SAN}・${SHI}・どちらでも ない の どれかな？ あう ものを ○で かこもう。`, cats: ['tri', 'quad', 'none'], keys: (r) => [pickR(r, TRI_KEYS), 'sq', pickR(r, ['rect', 'trap']), 'round-sq', pickR(r, ['open-sq', 'curve-sq'])] },
+      { inst: `${SAN}・${SHI}・どちらでも ない の どれかな？ あう ものを ○で かこもう。`, cats: ['tri', 'quad', 'none'], keys: (r) => [pickR(r, ['tri-down', 'tri-thin', 'tri-flat']), 'diamond', pickR(r, ['irr', 'concave']), 'circle', pickR(r, ['round-tri', 'open-tri', 'curve-sq'])] },
+      { inst: `どれかな？ あう ものを ○で かこもう。わけも えらんで、ア・イ・ウに ○を つけよう。`, cats: ['tri', 'quad', 'none'], reason: true, keys: (r) => [pickR(r, TRI_KEYS), pickR(r, QUAD_KEYS.slice(0, 5)), pickR(r, ['round-tri', 'round-sq']), pickR(r, ['open-tri', 'open-sq', 'curve-tri', 'curve-sq'])] },
+    ],
+    t: [
+      { inst: `${SAN}・${SHI}・どちらでも ない の どれかな？ あう ものを ○で かこもう。`, cats: ['tri', 'quad', 'none'], keys: (r) => [pickR(r, TRI_KEYS), pickR(r, QUAD_KEYS), 'circle', pickR(r, ['round-tri', 'round-sq']), pickR(r, ['open-tri', 'open-sq'])] },
+      { inst: `どれかな？ あう ものを ○で かこもう。わけも えらんで、ア・イ・ウに ○を つけよう。`, cats: ['tri', 'quad', 'none'], reason: true, keys: (r) => [pickR(r, ['tri-up', 'tri-right', 'tri-tilt']), pickR(r, ['sq', 'rect', 'trap']), 'curve-tri', 'open-sq'] },
+      { inst: `どれかな？ あう ものを ○で かこもう。わけも えらんで、ア・イ・ウに ○を つけよう。`, cats: ['tri', 'quad', 'none'], reason: true, keys: (r) => [pickR(r, ['tri-down', 'tri-thin', 'tri-flat']), pickR(r, ['diamond', 'irr', 'concave']), 'round-sq', pickR(r, ['curve-sq', 'open-tri'])] },
+    ],
+  };
+  function sheet5(def, r, key) {
+    const keys = shuffleR(r, def.keys(r)), rows = keys.length, ch = def.reason ? 49 : 38.5, gy = 3, size = def.reason ? 42 : 34;
+    const html = keys.map((k, i) => {
+      const sh = makeShape(r, k);
+      const chips = def.cats.map(c => `<span class="chip${key && c === sh.cat ? ' hit' : ''}">${rb(CAT_NAME[c])}</span>`).join('');
+      let rs = '';
+      if (def.reason) {
+        const opts = reasonChoices(r, sh);
+        rs = `<div class="rs" style="left:${size + 10}mm;top:17mm"><div class="lb">わけ</div>` + opts.map((o, j) => `<div class="r"><span class="ab${key && o === sh.reason ? ' hit' : ''}">${'アイウ'[j]}</span><span>${rb(REASONS[o])}</span></div>`).join('') + `</div>`;
+      }
+      return `<div class="cell" style="left:0;top:${f1(i * (ch + gy))}mm;width:190mm;height:${ch}mm"><div class="cap"><span class="no">${i + 1}</span></div>` +
+        shapeSvg(sh, size, { style: `left:8mm;top:${f1((ch - size) / 2)}mm` }) +
+        `<div class="chips" style="left:${size + 14}mm;top:${def.reason ? 4 : f1(ch / 2 - 6.5)}mm">${chips}</div>${rs}</div>`;
+    }).join('');
+    return { html, total: rows * (def.reason ? 2 : 1) };
+  }
+
+  /* =========================================================
+     ステージ6：かきたそう
+     ========================================================= */
+  // kind：m3（あかい点＋なぞり）、M3・M4（あかい点）、f3・f4（じぶんで）、n3・n4（ななめの 線から）
+  function addProb(r, kind, n, made) {
+    const sides = Number(kind.slice(1)), t = kind[0];
+    const dir = t === 'n' ? 'naname' : pickR(r, ['yoko', 'tate']);
+    for (let k = 0; k < 200; k++) {
+      const ab = findLine(r, n, dir, false, made), idxs = ab && findAdd(r, n, sides, ab[0], ab[1]);
+      if (!idxs) continue;
+      const mids = idxs.slice(1, -1), lines = idxs.slice(0, -1).map((a, i) => [a, idxs[i + 1]]);
+      const cap = `${W(sides)}（へんを ${sides - 1}${sides === 3 ? '{本|ほん}' : '{本|ぼん}'}）`;
+      if (t === 'm' || t === 'M') return { n, cap, fixed: ab, marks: mids, trace: t === 'm' ? [lines[0]] : [], ans: lines };
+      return { n, cap, fixed: ab, ans: lines, rei: true };
+    }
+    return { n, cap: '', ans: [] };
+  }
+  const S6 = {
+    p: [
+      { inst: `あおい せんの はしと あかい てんを むすんで、${SAN}を つくろう。はじめの 1{本|ぽん}は なぞるよ。`, kinds: ['m3', 'm3', 'm3', 'm3', 'm3', 'm3'], n: 4 },
+      { inst: `あおい せんの はしと あかい てんを むすんで、${SAN}や ${SHI}を つくろう。`, kinds: ['M3', 'M3', 'M3', 'M4', 'M4', 'M4'], n: 4 },
+      { inst: `じぶんで てんを 1つ えらんで、へんを 2{本|ほん} かきたそう。${SAN}が できるよ。`, kinds: ['f3', 'f3', 'f3', 'f3', 'f3', 'f3'], n: 4 },
+      { inst: `ななめの せんに、へんを 2{本|ほん} かきたして、${SAN}を つくろう。`, kinds: ['n3', 'n3', 'n3', 'n3', 'n3', 'n3'], n: 4 },
+      { inst: `じぶんで てんを 2つ えらんで、へんを 3{本|ぼん} かきたそう。${SHI}が できるよ。`, kinds: ['f4', 'f4', 'f4', 'n4', 'f4', 'n4'], n: 5 },
+    ],
+    t: [
+      { inst: `あおい せんに へんを かきたして、${SAN}を つくろう。`, kinds: ['M3', 'M3', 'f3', 'f3', 'n3', 'n3'], n: 4 },
+      { inst: `あおい せんに へんを かきたして、${SAN}や ${SHI}を つくろう。`, kinds: ['f3', 'f3', 'n3', 'f4', 'f4', 'n4'], n: 4 },
+      { inst: `あおい せんに へんを かきたして、${SAN}や ${SHI}を つくろう。`, kinds: ['f3', 'n3', 'f4', 'f4', 'n4', 'n4'], n: 5 },
+    ],
+  };
+  function sheet6(def, r, key) {
+    const made = [];
+    return { html: dotGrid(def.kinds.map(k => addProb(r, k, def.n, made)), key), total: 6 };
+  }
+
+  /* =========================================================
+     ステージの 一覧
+     ========================================================= */
+  const STAGES = [
+    { id: 0, name: 'てんと せん', file: 'てんとせん', defs: S0, make: sheet0 },
+    { id: 1, name: `${SAN}を つくろう`, file: 'さんかくけいをつくろう', defs: S12(3), make: sheet12(3) },
+    { id: 2, name: `${SHI}を つくろう`, file: 'しかくけいをつくろう', defs: S12(4), make: sheet12(4) },
+    { id: 3, name: `へんと ${TEN}`, file: 'へんとちょうてん', defs: S3, make: sheet3 },
+    { id: 4, name: 'みつけよう', file: 'みつけよう', defs: S4, make: sheet4 },
+    { id: 5, name: 'どっちかな？', file: 'どっちかな', defs: S5, make: sheet5 },
+    { id: 6, name: 'かきたそう', file: 'かきたそう', defs: S6, make: sheet6 },
+  ];
+  const plain = (s) => String(s).replace(/\{([^|}]+)\|([^}]+)\}/g, '$1');
+  const CIRC = '①②③④⑤⑥⑦⑧';
+
+  /* =========================================================
+     1まいの ページ
+     ========================================================= */
+  const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  function face(kind) {
+    const m = kind === 0 ? 'M 6.5 12 Q 10 16.5 13.5 12' : kind === 1 ? 'M 7 12.6 Q 10 14.6 13 12.6' : 'M 7 13.4 L 13 13.4';
+    return `<svg viewBox="0 0 20 20" width="11mm" height="11mm"><circle cx="10" cy="10" r="8.6" fill="#fff" stroke="${COL.ink}" stroke-width="1"/><circle cx="7" cy="8" r="1.1" fill="${COL.ink}"/><circle cx="13" cy="8" r="1.1" fill="${COL.ink}"/><path d="${m}" fill="none" stroke="${COL.ink}" stroke-width="1" stroke-linecap="round"/></svg>`;
+  }
+  function pageHtml(st, sec, no, seedOf, opt) {
+    const def = st.defs[sec][no], test = sec === 't', key = opt.key;
+    const res = st.make(def, rng(seedOf(st.id, sec, no)), key);
+    const bl = (v) => `<span class="bl">${esc(v || '')}</span>`;
+    return `<div class="page" data-stage="${st.id}" data-sec="${sec}" data-no="${no + 1}"${key ? ' data-key="1"' : ''}>
+      <div class="hd">
+        <div class="series">トンガリはかせの ずけい プリント</div>
+        ${key ? '<div class="key">こたえ</div>' : ''}
+        <div class="title${test ? ' test' : ''}"><div class="t1">${st.id}　${rb(st.name)}</div><div class="t2">${test ? 'まとめテスト' : 'れんしゅう'}<b>${no + 1}</b></div></div>
+        <img class="hakase" src="${HAKASE}" alt="">
+        <div class="who${test ? ' test' : ''}">
+          <div class="date">${bl(opt.grade)}ねん　${bl()}がつ${bl()}にち</div>
+          <div class="name">なまえ<span class="nm">${esc(opt.name || '')}</span></div>
+        </div>
+        ${test ? `<div class="score"><div class="lb2">できた かず</div><div class="lb">／ ${res.total}</div></div>` : ''}
+      </div>
+      <div class="inst"><div>${rb(def.inst)}</div></div>
+      <div class="body">${res.html}</div>
+      <div class="ft"><img class="robot" src="${ROBOT}" alt="">
+        <div class="dk"><span>できたかな？<span style="font-size:3.6mm;font-weight:400">（○を つけよう）</span></span>
+          <span class="face">${face(0)}よく できた</span><span class="face">${face(1)}できた</span><span class="face">${face(2)}もう すこし</span></div></div>
+    </div>`;
+  }
+
+  /* =========================================================
+     画面（えらぶ・印刷）
+     ========================================================= */
+  const DEFAULT_SEED = 20261;
+  const q = new URLSearchParams(location.search);
+  let seed = Number(q.get('seed')) || DEFAULT_SEED;
+  const seedOf = (sid, sec, no) => (seed * 31 + sid * 7919 + (sec === 't' ? 500009 : 0) + no * 104729) >>> 0;
+  const out = document.getElementById('out'), pick = document.getElementById('pick');
+  const sel = {};   // 'ステージ:p'・'ステージ:t' → true
+  const qs = q.get('s'), qsec = q.get('sec') || 'all';
+  STAGES.forEach(st => {
+    const on = qs == null ? st.id === 0 : (qs === 'all' || qs.split(',').map(Number).includes(st.id));
+    sel[st.id + ':p'] = on && qsec !== 'test';
+    sel[st.id + ':t'] = on && qsec !== 'ren';
+  });
+  document.getElementById('ans').checked = q.get('ans') === '1';
+  document.getElementById('nm').value = q.get('name') || '';
+  document.getElementById('gr').value = q.get('g') || '';
+  const onlyKey = q.get('only') === 'key';
+
+  document.getElementById('pdfs').innerHTML = STAGES.map(st => `<a class="btn small" href="pdf/ずけいプリント_${st.id}_${st.file}.pdf" target="_blank">📄 ${st.id} ${plain(st.name)}</a>`).join('') +
+    `<a class="btn small" href="pdf/ずけいプリント_ぜんぶ.pdf" target="_blank">📄 ぜんぶ（112まい）</a>`;
+
+  function drawPick() {
+    pick.innerHTML = STAGES.map(st => {
+      const p = sel[st.id + ':p'], t = sel[st.id + ':t'];
+      return `<div class="grow${p || t ? ' on' : ''}"><span class="nm">${st.id}　${rb(st.name)}</span><span class="rg">
+        <label><input type="checkbox" data-k="${st.id}:p"${p ? ' checked' : ''}> れんしゅう（5まい）</label>
+        <label><input type="checkbox" data-k="${st.id}:t"${t ? ' checked' : ''}> まとめテスト（3まい）</label></span></div>`;
+    }).join('');
+    pick.querySelectorAll('input').forEach(el => { el.onchange = () => { sel[el.dataset.k] = el.checked; render(); }; });
+  }
+  function render() {
+    drawPick();
+    const opt = { name: document.getElementById('nm').value.trim(), grade: document.getElementById('gr').value.trim() };
+    const withKey = document.getElementById('ans').checked || onlyKey;
+    let html = '', n = 0;
+    STAGES.forEach(st => {
+      const list = [];
+      ['p', 't'].forEach(sec => { if (sel[st.id + ':' + sec]) st.defs[sec].forEach((_, no) => list.push([sec, no])); });
+      if (!onlyKey) list.forEach(([sec, no]) => { html += pageHtml(st, sec, no, seedOf, opt); n++; });
+      if (withKey) list.forEach(([sec, no]) => { html += pageHtml(st, sec, no, seedOf, { key: true }); n++; });
+    });
+    out.innerHTML = html;
+    document.getElementById('cnt').textContent = `ぜんぶで ${n}まい`;
+    document.getElementById('seedNote').textContent = seed === DEFAULT_SEED ? '（PDF と 同じ もんだいです）' : `もんだいの ばんごう：${seed}（PDF とは ちがう もんだいです）`;
+    const imgs = [...out.querySelectorAll('img')];
+    Promise.all([document.fonts ? document.fonts.ready : null, ...imgs.map(im => im.complete ? null : new Promise(res => { im.onload = im.onerror = res; }))]).then(() => { document.body.dataset.ready = '1'; });
+  }
+  const setAll = (v) => { Object.keys(sel).forEach(k => { sel[k] = v; }); render(); };
+  document.getElementById('allOn').onclick = () => setAll(true);
+  document.getElementById('allOff').onclick = () => setAll(false);
+  document.getElementById('ans').onchange = render;
+  document.getElementById('nm').oninput = render;
+  document.getElementById('gr').oninput = render;
+  document.getElementById('reroll').onclick = () => { seed = Math.floor(Math.random() * 900000) + 100000; render(); };
+  document.getElementById('reset').onclick = () => { seed = DEFAULT_SEED; render(); };
+  document.getElementById('printBtn').onclick = () => window.print();
+  render();
+  </script>
+</body>
+</html>
