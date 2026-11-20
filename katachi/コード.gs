@@ -13,6 +13,7 @@ const SETTING_ROWS = [
   ['rate', 'よみあげの はやさ', '0.8', '1がふつう。小さいほどゆっくり（0.5〜1.2）'],
   ['font', 'もじの おおきさ', '1', '0.9（ちいさめ）・1（ふつう）・1.15（おおきめ）・1.3（とても おおきい）'],
   ['count', '1回の もんだいの かず', '5', '3・5・7'],
+  ['need', 'つぎが ひらくまでの せいかいの かず', '10', '5・10・15'],
   ['sound', 'こうかおん', 'ならす', 'ならす／ならさない'],
 ];
 // オン・オフの 設定の ことば（オンの ことば、オフの ことば）
@@ -108,11 +109,12 @@ function appSettings_() {
     const v = m[row[1]];
     return v === undefined || v === '' ? row[2] : v;
   };
-  const count = Number(get('count'));
+  const count = Number(get('count')), need = Number(get('need'));
   const s = {
     rate: Number(get('rate')) || 0.8,
     font: Number(get('font')) || 1,
     count: [3, 5, 7].indexOf(count) >= 0 ? count : 5,
+    need: [5, 10, 15].indexOf(need) >= 0 ? need : 10,
   };
   Object.keys(ONOFF).forEach(function (k) { s[k] = get(k) !== ONOFF[k][1]; });
   return s;
@@ -184,7 +186,7 @@ function saveResult(payload) {
       const neu = parseProgress_(payload.progress);
       // 先生が変えた フラグは のこす。古い 端末の しんちょくでは 上書きしない
       if (!old.t || (neu.t || 0) >= old.t) {
-        if (old.flagT && old.flagT > (neu.t || 0)) { neu.unlockAll = !!old.unlockAll; neu.flagT = old.flagT; }
+        if (old.flagT && old.flagT > (neu.t || 0)) copyFlags_(neu, old);
         cell.setValue(JSON.stringify(neu));
       }
     }
@@ -249,11 +251,30 @@ function updateProgress_(name, fn) {
   return { ok: true, progress: json };
 }
 
-// 全部開く（unlockAll）
+// 先生が ひとりずつ きめる もの
+//   unlockAll：全部開く　openTo：この ばしょ まで 開く（2〜6。0 は じゅんばんに）
+//   cnt：1回の もんだいの かず（3・5・7。0 は クラスと同じ）　need：つぎが ひらくまでの かず（5・10・15。0 は クラスと同じ）
+const FLAGS = ['unlockAll', 'openTo', 'cnt', 'need'];
+function copyFlags_(to, from) {
+  to.unlockAll = !!from.unlockAll;
+  to.openTo = Number(from.openTo) || 0;
+  to.cnt = Number(from.cnt) || 0;
+  to.need = Number(from.need) || 0;
+  to.flagT = from.flagT;
+  return to;
+}
+
 function setFlag(pin, name, key, value) {
   if (!checkPin_(pin)) return { ok: false };
-  if (key !== 'unlockAll') return { ok: false };
-  return updateProgress_(name, function (p) { p[key] = !!value; p.flagT = Date.now(); });
+  if (FLAGS.indexOf(key) < 0) return { ok: false };
+  const n = Number(value) || 0;
+  return updateProgress_(name, function (p) {
+    if (key === 'unlockAll') { p.unlockAll = !!value; if (value) p.openTo = 0; }
+    else if (key === 'openTo') { p.unlockAll = n >= 7; p.openTo = n >= 2 && n <= 6 ? n : 0; }
+    else if (key === 'cnt') p.cnt = [3, 5, 7].indexOf(n) >= 0 ? n : 0;
+    else if (key === 'need') p.need = [5, 10, 15].indexOf(n) >= 0 ? n : 0;
+    p.flagT = Date.now();
+  });
 }
 
 function addCoins(pin, name, delta) {
@@ -301,7 +322,8 @@ function restoreBackup(pin, data) {
   return { ok: true };
 }
 
-// 記録を消す（name が空なら全員）
+// 記録を消す（name が空なら全員）。ひとりずつの 設定は のこす。
+// しんちょくは 空に せず「今 消した」時こくを 入れる（子どもの たんまつに のこった 古い しんちょくで もどらないように）
 function clearRecords(pin, name) {
   if (!checkPin_(pin)) return { ok: false };
   const lock = LockService.getScriptLock();
@@ -319,7 +341,10 @@ function clearRecords(pin, name) {
     }
     const sh = ss_().getSheetByName(SHEET.ROSTER);
     rosterValues_().forEach(function (r, i) {
-      if (!name || String(r[0]).trim() === name) sh.getRange(i + 2, 2).setValue('');
+      if (!String(r[0]).trim() || (name && String(r[0]).trim() !== name)) return;
+      const old = parseProgress_(r[1]), now = Date.now();
+      old.flagT = now;
+      sh.getRange(i + 2, 2).setValue(JSON.stringify(copyFlags_({ t: now }, old)));
     });
     return { ok: true };
   } finally {

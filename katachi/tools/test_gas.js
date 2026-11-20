@@ -51,7 +51,7 @@ ok(['名簿', 'きろく', 'まとめ', 'せってい'].every(n => sheets[n]), '
 ok(sheets['きろく'].data[0].join(',') === '日時,なまえ,ステージ,もんだい,けっか,まちがい,ヒント,まちがいの しゅるい,びょう,ID', 'きろくの 見出し');
 sheets['名簿'].getRange(2, 1, 2, 1).setValues([['たろう'], ['はなこ']]);
 const init = ctx.getInitData();
-ok(init.students.length === 2 && init.settings.count === 5 && init.settings.rate === 0.8 && init.settings.font === 1 && init.settings.sound === true, 'はじめの 設定（5もん・0.8倍・おと あり）');
+ok(init.students.length === 2 && init.settings.count === 5 && init.settings.need === 10 && init.settings.rate === 0.8 && init.settings.font === 1 && init.settings.sound === true, 'はじめの 設定（5もん・10もんで つぎ・0.8倍・おと あり）');
 
 // 2. きろくを うけとる
 const rec = (id, o = {}) => Object.assign({ id, stage: '1-2', label: '点をむすぶ(三角形)', result: '○', miss: 0, hint: 0, kinds: '', secs: 12 }, o);
@@ -74,6 +74,21 @@ ok(JSON.parse(ctx.getStudent('たろう')).coins === 8, '新しい しんちょ�
 ctx.setFlag('1234', 'たろう', 'unlockAll', true);
 ctx.saveResult({ name: 'たろう', progress: JSON.stringify({ t: Date.now() - 1000, coins: 8, unlockAll: false }), records: [] });
 ok(JSON.parse(ctx.getStudent('たろう')).unlockAll === true, '先生の「全部開く」は のこる');
+// 3b. ひとりずつの 設定
+ctx.setFlag('1234', 'たろう', 'cnt', 3); ctx.setFlag('1234', 'たろう', 'need', 15); ctx.setFlag('1234', 'たろう', 'openTo', 4);
+let tp = JSON.parse(ctx.getStudent('たろう'));
+ok(tp.cnt === 3 && tp.need === 15 && tp.openTo === 4 && tp.unlockAll === false, 'ひとりずつ：もんだいの かず・つぎまでの かず・どこまで 開くか');
+ctx.setFlag('1234', 'たろう', 'cnt', 4); ctx.setFlag('1234', 'たろう', 'need', 0);
+tp = JSON.parse(ctx.getStudent('たろう'));
+ok(tp.cnt === 0 && tp.need === 0, 'きまって いない かずは「クラスと同じ」に する');
+ok(ctx.setFlag('1234', 'たろう', 'coins', 999).ok === false && ctx.setFlag('0000', 'たろう', 'cnt', 3).ok === false, 'ほかの ものは 変えられない・暗証番号が いる');
+ctx.setFlag('1234', 'たろう', 'cnt', 7);
+ctx.saveResult({ name: 'たろう', progress: JSON.stringify({ t: Date.now() - 1000, coins: 8, cnt: 0, openTo: 0 }), records: [] });
+tp = JSON.parse(ctx.getStudent('たろう'));
+ok(tp.cnt === 7 && tp.openTo === 4, '古い たんまつの しんちょくでは、ひとりずつの 設定は 消えない');
+ctx.setFlag('1234', 'たろう', 'openTo', 7);
+tp = JSON.parse(ctx.getStudent('たろう'));
+ok(tp.unlockAll === true && tp.openTo === 0, '「ぜんぶ」は 全部開く に なる');
 ok(ctx.addCoins('1234', 'たろう', 10).ok && JSON.parse(ctx.getStudent('たろう')).coins === 18, 'コインを 足す');
 
 // 4. 先生用の まとめ
@@ -88,11 +103,18 @@ ok(sheets['まとめ'].data[1][1] === 'ぜんたい' && sheets['まとめ'].data
 ok(ctx.saveSettings('1234', { rate: 0.7, font: 1.15, count: 7, sound: false, newPin: '4321' }).ok, '設定を 保存');
 const s2 = ctx.getInitData().settings;
 ok(s2.rate === 0.7 && s2.font === 1.15 && s2.count === 7 && s2.sound === false, '設定が かわる');
+ctx.saveSettings('4321', { need: 15 });
+ok(ctx.getInitData().settings.need === 15, 'つぎが ひらくまでの かずが かわる');
 ok(ctx.getTeacherData('1234').ok === false && ctx.getTeacherData('4321').ok, '暗証番号が かわる');
 ok(ctx.getLogRows('4321').rows.length === 5, 'きろくの 書き出し');
 const b = ctx.getBackup('4321');
 ok(b.ok && b.data.app === 'katachi' && b.data.roster.length === 2, 'バックアップ');
-ok(ctx.clearRecords('4321', 'たろう').ok && sheets['きろく'].getLastRow() === 1 && ctx.getStudent('たろう') === '', 'きろくを 消す');
+const before = Date.now();
+ok(ctx.clearRecords('4321', 'たろう').ok && sheets['きろく'].getLastRow() === 1, 'きろくを 消す');
+const cl = JSON.parse(ctx.getStudent('たろう'));
+ok(!cl.coins && !cl.cleared && cl.cnt === 7 && cl.unlockAll === true && cl.t >= before, 'はじめからに しても、ひとりずつの 設定は のこる');
+ctx.saveResult({ name: 'たろう', progress: JSON.stringify({ t: before - 5000, coins: 77 }), records: [] });
+ok(!JSON.parse(ctx.getStudent('たろう')).coins, '消した あと、古い たんまつの しんちょくでは もどらない');
 ok(ctx.restoreBackup('4321', b.data).ok && JSON.parse(ctx.getStudent('たろう')).coins === 18, 'バックアップから もどす');
 ok(ctx.restoreBackup('4321', { app: 'wakerun' }).ok === false, 'ほかの アプリの バックアップは うけつけない');
 
