@@ -76,7 +76,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo } = React;
-    const APP_VERSION = '1.0.0';
+    const APP_VERSION = '1.1.0';
     const IMG = window.KATACHI_BASE + 'img/';
 
     // =====================================================================
@@ -222,11 +222,26 @@
     const TITLES = [[1, 'みならい ゆうしゃ'], [3, 'かたちの たびびと'], [5, 'さんかくの けんし'], [8, 'しかくの きし'], [12, 'かたちの ゆうしゃ'], [16, 'でんせつの ゆうしゃ']];
     const titleOf = (lv) => TITLES.filter(t => lv >= t[0]).pop()[1];
 
-    const emptyProgress = () => ({ hero: '', xp: 0, coins: 0, cleared: {}, tre: [], items: [], eq: {}, cur: null, unlockAll: false, t: 0 });
+    const emptyProgress = () => ({ hero: '', xp: 0, coins: 0, cleared: {}, tre: [], items: [], eq: {}, cur: null, unlockAll: false, got: {}, openTo: 0, cnt: 0, need: 0, t: 0 });
+    // 先生が ひとりずつ きめる もの（子どもの たんまつの しんちょくで 上書き しない）
+    const FLAGS = ['unlockAll', 'openTo', 'cnt', 'need'];
+    const copyFlags = (to, from) => { FLAGS.forEach(k => { to[k] = from[k]; }); to.flagT = from.flagT; return to; };
+    const setFlagOn = (p, key, val) => {
+      const n = Number(val) || 0;
+      if (key === 'unlockAll') { p.unlockAll = !!val; if (val) p.openTo = 0; }
+      else if (key === 'openTo') { p.unlockAll = n >= 7; p.openTo = n >= 2 && n <= 6 ? n : 0; }
+      else if (key === 'cnt') p.cnt = [3, 5, 7].includes(n) ? n : 0;
+      else if (key === 'need') p.need = [5, 10, 15].includes(n) ? n : 0;
+      else return false;
+      return true;
+    };
+    const countOf = (p, st) => p.cnt || st.count;
+    const needOf = (p, st) => p.need || st.need || 10;
     const parseProgress = (s) => { let p = {}; try { p = JSON.parse(s || '{}') || {}; } catch (e) {} return { ...emptyProgress(), ...p }; };
     const stepOpen = (p, id) => {
       if (p.unlockAll) return true;
       const i = ALL_STEPS.findIndex(s => s.id === id);
+      if (p.openTo && i >= 0 && ALL_STEPS[i].place.id <= p.openTo) return true;
       return i === 0 || !!p.cleared[ALL_STEPS[i - 1].id];
     };
     const placeOpen = (p, pl) => stepOpen(p, pl.steps[0].id);
@@ -741,7 +756,7 @@
       google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
     });
     const LOG_HEADER = ['日時', 'なまえ', 'ステージ', 'もんだい', 'けっか', 'まちがい', 'ヒント', 'まちがいの しゅるい', 'びょう', 'ID'];
-    const DEFAULT_SETTINGS = { rate: 0.8, font: 1, count: 5, sound: true };
+    const DEFAULT_SETTINGS = { rate: 0.8, font: 1, count: 5, need: 10, sound: true };
 
     // まとめ（先生用）— コード.gs の aggregate_ と おなじ しくみ
     const emptyStu = () => ({ count: 0, ok: 0, miss: 0, hint: 0, last: '', stages: {}, kinds: {} });
@@ -781,7 +796,7 @@
       async sendOne(p) {
         if (HAS_GAS) return gas('saveResult', p);
         const d = Local.data(), old = parseProgress(d.progress[p.name]), neu = parseProgress(p.progress);
-        if (neu.t >= old.t) { if (old.flagT && old.flagT > neu.t) { neu.unlockAll = old.unlockAll; neu.flagT = old.flagT; } d.progress[p.name] = JSON.stringify(neu); }
+        if (neu.t >= old.t) { if (old.flagT && old.flagT > neu.t) copyFlags(neu, old); d.progress[p.name] = JSON.stringify(neu); }
         const ids = new Set(d.log.map(r => r[9]));
         p.records.forEach(r => { if (!ids.has(r.id)) d.log.push(recRow(p.stamp, p.name, r)); });
         Local.save(); return { ok: true };
@@ -814,7 +829,7 @@
       },
       async setFlag(pin, name, key, val) {
         if (HAS_GAS) return gas('setFlag', pin, name, key, val);
-        const d = Local.data(), p = parseProgress(d.progress[name]); p[key] = !!val; p.flagT = p.t = Date.now(); d.progress[name] = JSON.stringify(p); Local.save(); return { ok: true };
+        const d = Local.data(), p = parseProgress(d.progress[name]); if (!setFlagOn(p, key, val)) return { ok: false }; p.flagT = p.t = Date.now(); d.progress[name] = JSON.stringify(p); Local.save(); return { ok: true };
       },
       async addCoins(pin, name, delta) {
         if (HAS_GAS) return gas('addCoins', pin, name, delta);
@@ -837,7 +852,7 @@
       async clear(pin, name) {
         if (HAS_GAS) return gas('clearRecords', pin, name);
         const d = Local.data(); d.log = name ? d.log.filter(r => r[1] !== name) : [];
-        d.roster.forEach(n => { if (!name || n === name) delete d.progress[n]; }); Local.save(); return { ok: true };
+        d.roster.forEach(n => { if (!name || n === name) { const o = parseProgress(d.progress[n]); d.progress[n] = JSON.stringify(copyFlags({ t: Date.now() }, { ...o, flagT: Date.now() })); } }); Local.save(); return { ok: true };
       },
     };
     const download = (name, text, type) => {
@@ -906,7 +921,8 @@
       );
     }
 
-    function MapScreen({ name, p, go, onStep }) {
+    function MapScreen({ name, p, settings, go, onStep }) {
+      const need = needOf(p, settings);
       const [open, setOpen] = useState(null);
       const L = levelOf(p.xp);
       const curPlace = PLACES.find(pl => placeOpen(p, pl) && pl.steps.some(s => !p.cleared[s.id])) || PLACES[PLACES.length - 1];
@@ -948,6 +964,7 @@
                   {open.steps.map(s => { const ok = stepOpen(p, s.id), cont = p.cur && p.cur.step === s.id && p.cur.idx > 0;
                     return <button key={s.id} className={'btn ' + (ok ? (p.cleared[s.id] ? 'green' : '') : 'gray')} disabled={!ok} style={{ textAlign: 'left', display: 'flex', gap: '.6rem', alignItems: 'center' }} onClick={() => onStep(s.id)}>
                       <span>{ok ? (p.cleared[s.id] ? '⭐' : '⚔️') : '🔒'}</span><span style={{ flex: 1 }}>{rt(s.n)}</span>
+                      {ok && !p.cleared[s.id] && <span style={{ background: '#fff', color: '#1e3a8a', borderRadius: 99, padding: '0 .6rem', fontSize: '1rem', whiteSpace: 'nowrap' }}>{Math.min(p.got[s.id] || 0, need)}／{need}もん</span>}
                       {cont && <span style={{ background: '#fde047', color: '#422006', borderRadius: 99, padding: '0 .6rem', fontSize: '1rem' }}>つづきから</span>}
                       <span style={{ fontSize: '1.5rem' }}>{p.tre.includes(s.id) ? s.tr[0] : '🎁'}</span>
                     </button>; })}
@@ -960,10 +977,12 @@
     }
 
     const bgOf = (n) => `url(${IMG}${n}.webp), linear-gradient(#c7d2fe, #e0e7ff)`;
-    function Battle({ name, p, stepId, settings, onProgress, onExit }) {
+    function Battle({ name, p, stepId, settings, onProgress, onExit, onAgain }) {
+      const count = useRef(countOf(p, settings)).current, need = useRef(needOf(p, settings)).current;
       const step = stepOf(stepId), mon = step.place.mon;
-      const startIdx = p.cur && p.cur.step === stepId ? Math.min(p.cur.idx, settings.count - 1) : 0;
-      const qs = useMemo(() => makeQuestions(stepId, settings.count), [stepId]);
+      const startIdx = useRef(p.cur && p.cur.step === stepId ? Math.min(p.cur.idx, count - 1) : 0).current;
+      const qs = useMemo(() => makeQuestions(stepId, count), [stepId]);
+      const opened = useRef(false);
       const [idx, setIdx] = useState(startIdx);
       const [msg, setMsg] = useState('');
       const [lv, setLv] = useState(0);
@@ -993,30 +1012,42 @@
         say(pickOne(['せいかい！', 'やったね！', 'すごい！', 'そのとおり！']) + ' ' + q.after);
         const rec = { id: uid(), stage: stepId, label: q.label, result: s.miss ? '△' : '○', miss: s.miss, hint: s.hint, kinds: [...new Set(s.kinds)].join('・'), secs: Math.round((Date.now() - s.t0) / 1000) };
         const old = pRef.current, np = { ...old, xp: old.xp + 10, coins: old.coins + 1, cur: last ? null : { step: stepId, idx: idx + 1 } };
+        // きめた かず（10もん など）せいかい すると、つぎが ひらく。まえに クリアした ステップは クリアの まま
+        const got = (old.got[stepId] || 0) + 1, was = !!old.cleared[stepId];
+        np.got = { ...old.got, [stepId]: got };
+        if (!was && got >= need) {
+          opened.current = true; np.cleared = { ...old.cleared, [stepId]: 1 };
+          if (!old.tre.includes(stepId)) np.tre = [...old.tre, stepId];
+        }
         let g = null;
         if (last) {
-          const first = !old.tre.includes(stepId);
-          np.coins += 5; np.cleared = { ...old.cleared, [stepId]: (old.cleared[stepId] || 0) + 1 };
-          if (first) np.tre = [...old.tre, stepId];
-          g = { first, lvUp: levelOf(np.xp).lv > startLv.current ? levelOf(np.xp).lv : 0 };
+          np.coins += 5;
+          if (was) np.cleared = { ...old.cleared, [stepId]: (old.cleared[stepId] || 0) + 1 };
+          g = { done: was || got >= need, first: opened.current, rest: Math.max(0, need - got), lvUp: levelOf(np.xp).lv > startLv.current ? levelOf(np.xp).lv : 0 };
         }
         onProgress(np, [rec]);
-        setTimeout(() => { setMonAnim(''); if (last) { setGain(g); setPhase('win'); Sound.win(); Speech.say(`${mon.n}を たおした！ コインと たからものを てに いれたよ。`); } else { setPhase('q'); setIdx(idx + 1); } }, 2600);
+        setTimeout(() => { setMonAnim(''); if (last) { setGain(g); setPhase('win'); Sound.win(); Speech.say(g.done ? `${mon.n}を たおした！ ${g.first ? 'たからものを てに いれたよ。つぎの みちが ひらいたよ。' : 'コインを てに いれたよ。'}` : `${mon.n}を おいはらった！ あと ${g.rest}もんで、たからものだよ。もう いちど ちょうせん しよう。`); } else { setPhase('q'); setIdx(idx + 1); } }, 2600);
       };
       const left = qs.length - idx - (phase === 'q' ? 0 : 1);
       if (phase === 'win') return (
         <div className="screen mapbg" style={{ alignItems: 'center', justifyContent: 'center', gap: '1rem', padding: '1.5rem', backgroundImage: bgOf(step.place.bg) }}>
           <div className="card pop" style={{ padding: '1.5rem 2.5rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 700, color: '#b45309' }}>🎉 {mon.n}を たおした！</div>
+            <div style={{ fontSize: '2rem', fontWeight: 700, color: '#b45309' }}>🎉 {mon.n}を {gain && !gain.done ? 'おいはらった！' : 'たおした！'}</div>
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1.5rem', margin: '1rem 0' }}>
               <HeroFig p={p} size={130} />
               <div style={{ fontSize: '1.4rem', fontWeight: 700, lineHeight: 2, textAlign: 'left' }}>
                 <div>🪙 コイン ＋{qs.length - startIdx + 5}</div>
-                <div className="pop"><span style={{ fontSize: '2.4rem' }}>{step.tr[0]}</span> {step.tr[1]}{gain && gain.first ? ' を みつけた！' : ''}</div>
+                {gain && !gain.done
+                  ? <div><span style={{ fontSize: '2.4rem' }}>🎁</span> たからものまで あと <span style={{ fontSize: '2rem', color: '#dc2626' }}>{gain.rest}</span>もん</div>
+                  : <div className="pop"><span style={{ fontSize: '2.4rem' }}>{step.tr[0]}</span> {step.tr[1]}{gain && gain.first ? ' を みつけた！' : ''}</div>}
+                {gain && gain.first && <div style={{ color: '#15803d' }}>🔓 つぎの みちが ひらいた！</div>}
                 {gain && gain.lvUp > 0 && <div className="glow" style={{ color: '#7c3aed' }}>⬆ レベル {gain.lvUp} に なった！</div>}
               </div>
             </div>
-            <button className="btn big green" onClick={onExit}>ちずに もどる</button>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+              {gain && !gain.done && <button className="btn big green glow" onClick={onAgain}>⚔️ もう いちど</button>}
+              <button className={'btn big ' + (gain && !gain.done ? 'gray' : 'green')} onClick={onExit}>ちずに もどる</button>
+            </div>
           </div>
         </div>);
       return (
@@ -1136,29 +1167,45 @@
           {note && <div style={{ background: '#dbeafe', padding: '.4rem .8rem', borderRadius: '.6rem' }}>{note}</div>}
           {tab === 'rec' && <div className="card" style={{ padding: '1rem', overflowX: 'auto' }}>
             <div style={{ marginBottom: '.5rem', color: '#475569' }}>名前を押すと、ステージごとの結果と「まちがいの種類」が出ます。○＝1回で正解。赤：60%未満　黄：60〜79%　緑：80%以上</div>
-            <table className="t"><thead><tr><th>名前</th><th>Lv</th><th>コイン</th><th>クリア</th><th>問題数</th><th>1回で正解</th><th>まちがい</th><th>ヒント</th><th>多いまちがい</th><th>最後の日</th><th>全部開く</th><th>コイン</th></tr></thead>
+            <table className="t"><thead><tr><th>名前</th><th>Lv</th><th>コイン</th><th>クリア</th><th>問題数</th><th>1回で正解</th><th>まちがい</th><th>ヒント</th><th>多いまちがい</th><th>最後の日</th></tr></thead>
               <tbody>{data.students.map(s => { const p = parseProgress(s.progress);
                 return <React.Fragment key={s.name}>
                   <tr><td><button className="btn white small" onClick={() => setOpen(open === s.name ? null : s.name)}>{open === s.name ? '▼' : '▶'} {s.name}</button></td>
                     <td>{levelOf(p.xp).lv}</td><td>{p.coins}</td><td>{Object.keys(p.cleared).length} / {ALL_STEPS.length}</td><td>{s.count}</td><td style={{ background: col(s.ok, s.count) }}>{pct(s.ok, s.count)}</td><td>{s.miss}</td><td>{s.hint}</td><td>{top(s.kinds)}</td><td>{s.last}</td>
-                    <td><input type="checkbox" style={{ width: '1.4rem', height: '1.4rem' }} checked={!!p.unlockAll} onChange={e => act(() => api.setFlag(pin, s.name, 'unlockAll', e.target.checked), `${s.name}：全部開く を ${e.target.checked ? 'オン' : 'オフ'} にしました`)} /></td>
-                    <td><button className="btn white small" onClick={() => act(() => api.addCoins(pin, s.name, 10), `${s.name}：コインを 10まい 足しました`)}>＋10</button></td></tr>
-                  {open === s.name && <tr><td colSpan="12" style={{ background: '#f8fafc' }}>
+</tr>
+                  {open === s.name && <tr><td colSpan="10" style={{ background: '#f8fafc' }}>
                     <table className="t"><thead><tr><th>ステージ</th><th>問題数</th><th>1回で正解</th><th>まちがい</th><th>まちがいの種類</th></tr></thead>
                       <tbody>{ALL_STEPS.filter(x => s.stages[x.id]).map(x => { const g = s.stages[x.id];
-                        return <tr key={x.id}><td>{x.id}　{x.place.n}：{yomi(x.n)}</td><td>{g[0]}</td><td style={{ background: col(g[1], g[0]) }}>{pct(g[1], g[0])}</td><td>{g[2]}</td><td>{top(g[3], 4)}</td></tr>; })}
+                        return <tr key={x.id}><td>{x.id}　{x.place.n}：{yomi(x.n)}{p.cleared[x.id] ? ' ⭐' : `（${Math.min(p.got[x.id] || 0, needOf(p, data.settings))}／${needOf(p, data.settings)}）`}</td><td>{g[0]}</td><td style={{ background: col(g[1], g[0]) }}>{pct(g[1], g[0])}</td><td>{g[2]}</td><td>{top(g[3], 4)}</td></tr>; })}
                         {!Object.keys(s.stages).length && <tr><td colSpan="5">まだ記録がありません</td></tr>}</tbody></table></td></tr>}
                 </React.Fragment>; })}</tbody></table>
-            <div style={{ marginTop: '.8rem' }}>学級全体で多いまちがい：{top(data.classKinds, 6) || 'まだ ありません'}</div>
+            <div style={{ marginTop: '.8rem', color: '#475569' }}>「全部開く」「コインを足す」は、「⚙ 設定」の「ひとりずつの設定」にうつりました。</div>
+            <div style={{ marginTop: '.4rem' }}>学級全体で多いまちがい：{top(data.classKinds, 6) || 'まだ ありません'}</div>
           </div>}
-          {tab === 'set' && set && <div className="card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '40rem' }}>
+          {tab === 'set' && set && <div style={{ display: 'flex', flexDirection: 'column', gap: '.8rem' }}><div className="card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '44rem' }}>
+            <div style={{ fontWeight: 700, fontSize: '1.15rem' }}>クラス全体の設定</div>
             <label>読み上げの速さ：{set.rate}　<input type="range" min="0.5" max="1.2" step="0.1" value={set.rate} onChange={e => setSet({ ...set, rate: Number(e.target.value) })} />　<button className="btn white small" onClick={() => { Speech.rate = set.rate; Speech.say(`てんを 3つ タッチ して、${SAN}を つくろう。`); }}>🔊 ためす</button></label>
             <label>文字の大きさ：{[[0.9, '小さめ'], [1, 'ふつう'], [1.15, '大きめ'], [1.3, 'とても大きい']].map(([v, n]) => <button key={v} className={'btn small ' + (set.font === v ? '' : 'white')} style={{ marginRight: '.4rem' }} onClick={() => setSet({ ...set, font: v })}>{n}</button>)}</label>
             <label>1回の問題の数：{[3, 5, 7].map(v => <button key={v} className={'btn small ' + (set.count === v ? '' : 'white')} style={{ marginRight: '.4rem' }} onClick={() => setSet({ ...set, count: v })}>{v}問</button>)}</label>
+            <label>次のステージが開くまでの正解の数：{[5, 10, 15].map(v => <button key={v} className={'btn small ' + ((set.need || 10) === v ? '' : 'white')} style={{ marginRight: '.4rem' }} onClick={() => setSet({ ...set, need: v })}>{v}問</button>)}</label>
             <label>効果音：<button className={'btn small ' + (set.sound ? '' : 'white')} onClick={() => setSet({ ...set, sound: !set.sound })}>{set.sound ? '鳴らす' : '鳴らさない'}</button></label>
             <label>新しい暗証番号（変えるときだけ・数字4けた）：<input value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))} style={{ fontSize: '1.2rem', width: '6rem' }} inputMode="numeric" /></label>
             <div><button className="btn green" onClick={() => act(async () => { await api.saveSettings(pin, { ...set, newPin }); onSettings(set); if (/^\d{4}$/.test(newPin)) { setPin(newPin); setNewPin(''); } }, '設定を保存しました')}>保存する</button></div>
-          </div>}
+          </div>
+          <div className="card" style={{ padding: '1rem', overflowX: 'auto' }}>
+            <div style={{ fontWeight: 700, fontSize: '1.15rem' }}>ひとりずつの設定</div>
+            <div style={{ margin: '.3rem 0 .6rem', color: '#475569' }}>えらぶと、すぐに保存されます。子どもが次に名前を選んだときから変わります。</div>
+            <table className="t"><thead><tr><th>名前</th><th>1回の問題の数</th><th>次が開くまでの数</th><th>どこまで開くか</th><th>クリア</th><th>コイン</th><th>コインを足す</th><th>はじめからにする</th></tr></thead>
+              <tbody>{data.students.map(s => { const p = parseProgress(s.progress); const sel = { fontSize: '1rem', padding: '.3rem', fontFamily: 'inherit' };
+                const flag = (k, v, msg) => act(() => api.setFlag(pin, s.name, k, v), `${s.name}：${msg}`);
+                return <tr key={s.name}><td style={{ fontWeight: 700 }}>{s.name}</td>
+                  <td><select style={sel} value={p.cnt || 0} onChange={e => flag('cnt', Number(e.target.value), '1回の問題の数を変えました')}><option value={0}>クラスと同じ（{data.settings.count}問）</option>{[3, 5, 7].map(v => <option key={v} value={v}>{v}問</option>)}</select></td>
+                  <td><select style={sel} value={p.need || 0} onChange={e => flag('need', Number(e.target.value), '次が開くまでの数を変えました')}><option value={0}>クラスと同じ（{data.settings.need || 10}問）</option>{[5, 10, 15].map(v => <option key={v} value={v}>{v}問</option>)}</select></td>
+                  <td><select style={sel} value={p.unlockAll ? 7 : (p.openTo || 0)} onChange={e => flag('openTo', Number(e.target.value), '開く場所を変えました')}><option value={0}>じゅんばんに</option>{PLACES.filter(pl => pl.id >= 2 && pl.id <= 6).map(pl => <option key={pl.id} value={pl.id}>{pl.id} {pl.n} まで</option>)}<option value={7}>ぜんぶ</option></select></td>
+                  <td>{Object.keys(p.cleared).length} / {ALL_STEPS.length}</td><td>🪙 {p.coins}</td>
+                  <td style={{ whiteSpace: 'nowrap' }}>{[10, 50, 100].map(v => <button key={v} className="btn white small" style={{ marginRight: '.3rem' }} onClick={() => act(() => api.addCoins(pin, s.name, v), `${s.name}：コインを ${v}まい 足しました`)}>＋{v}</button>)}</td>
+                  <td><button className="btn orange small" onClick={() => { if (window.confirm(`${s.name} を はじめからにします。\n記録・進み具合・コイン・たからものが消えます。元に戻せません。\n（この表の設定は残ります）\nほんとうに 消しますか？`)) act(() => api.clear(pin, s.name), `${s.name} を はじめからにしました`); }}>はじめから</button></td></tr>; })}</tbody></table>
+          </div></div>}
           {tab === 'data' && <div className="card" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '44rem' }}>
             <div><button className="btn small" onClick={async () => { const r = await api.logRows(pin); if (r.ok) download('katachi_kiroku.csv', '﻿' + r.rows.map(row => row.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\r\n'), 'text/csv'); }}>📄 記録を CSV で書き出す</button></div>
             <div><button className="btn small" onClick={async () => { const r = await api.backup(pin); if (r.ok) download('katachi_backup.json', JSON.stringify(r.data), 'application/json'); }}>💾 進み具合のバックアップを保存する</button></div>
@@ -1186,6 +1233,7 @@
       const [name, setName] = useState('');
       const [p, setP] = useState(null);
       const [stepId, setStepId] = useState(null);
+      const [round, setRound] = useState(0);
       const applySettings = (s) => { const n = { ...DEFAULT_SETTINGS, ...s }; setSettings(n); Speech.rate = n.rate; Sound.on = n.sound; document.documentElement.style.fontSize = (16 * n.font) + 'px'; };
       const loadInit = () => api.init().then(d => { setInit(d); applySettings(d.settings); }).catch(e => setErr(String(e.message || e)));
       useEffect(() => { loadInit(); api.flush(); const on = () => api.flush(); window.addEventListener('online', on); return () => window.removeEventListener('online', on); }, []);
@@ -1194,7 +1242,7 @@
         let s = ''; try { s = await api.student(n); } catch (e) {}
         // この たんまつに 新しい しんちょくが のこって いれば、そちらを つかう
         const a = parseProgress(s), b = parseProgress(safeStore.get('katachi_copy_' + n));
-        const pr = b.t > a.t ? { ...b, unlockAll: a.flagT > b.t ? a.unlockAll : b.unlockAll } : a;
+        const pr = b.t > a.t ? (a.flagT > b.t ? copyFlags({ ...b }, a) : b) : a;
         setName(n); setP(pr); setView(pr.hero ? 'map' : 'hero');
       };
       const onProgress = (np, recs) => {
@@ -1207,10 +1255,10 @@
       if (view === 'teacher') return <Teacher back={() => { setView('names'); loadInit(); }} onSettings={applySettings} />;
       if (view === 'names' || !p) return <NameSelect init={init} onPick={pick} onTeacher={() => { Speech.stop(); setView('teacher'); }} />;
       if (view === 'hero') return <HeroSelect name={name} cur={p.hero} onPick={(h) => { onProgress({ ...p, hero: h }, []); setView('map'); }} />;
-      if (view === 'battle') return <Battle key={stepId} name={name} p={p} stepId={stepId} settings={settings} onProgress={onProgress} onExit={() => setView('map')} />;
+      if (view === 'battle') return <Battle key={stepId + ':' + round} name={name} p={p} stepId={stepId} settings={settings} onProgress={onProgress} onExit={() => setView('map')} onAgain={() => setRound(round + 1)} />;
       if (view === 'shop') return <Shop p={p} onProgress={onProgress} back={() => setView('map')} />;
       if (view === 'zukan') return <Zukan p={p} back={() => setView('map')} />;
-      return <MapScreen name={name} p={p} go={(v) => { Speech.stop(); if (v === 'names') { setP(null); loadInit(); } setView(v); }} onStep={(id) => { Sound.tap(); setStepId(id); setView('battle'); }} />;
+      return <MapScreen name={name} p={p} settings={settings} go={(v) => { Speech.stop(); if (v === 'names') { setP(null); loadInit(); } setView(v); }} onStep={(id) => { Sound.tap(); setStepId(id); setView('battle'); }} />;
     }
     ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
