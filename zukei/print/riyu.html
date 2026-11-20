@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>三角形と四角形 りゆうの プリント</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    @page { size: A4 landscape; margin: 0; }
+    * { box-sizing: border-box; }
+    html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { margin: 0; background: #e2e8f0; font-family: 'BIZ UDPGothic', sans-serif; color: #1f2937; }
+    ruby rt { font-size: .5em; }
+
+    /* ---- 先生が えらぶ ところ（印刷しない） ---- */
+    .controls { max-width: 297mm; margin: 0 auto; padding: 16px; }
+    .panel { background: #fff; border-radius: 18px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 2px 0 #cbd5e1; }
+    .panel h1 { font-size: 26px; margin: 0; display: flex; align-items: center; gap: 10px; }
+    .panel h2 { font-size: 18px; margin: 0 0 10px; }
+    .panel p { margin: 6px 0; line-height: 1.6; }
+    .btns { display: flex; flex-wrap: wrap; gap: 8px; }
+    .btn { font: inherit; font-size: 17px; font-weight: 700; border: 2px solid #0369a1; background: #fff; color: #0369a1; border-radius: 14px; padding: 10px 14px; cursor: pointer; box-shadow: 0 4px 0 #0369a1; position: relative; top: 0; }
+    .btn:active { top: 4px; box-shadow: 0 0 0 #0369a1; }
+    .btn.big { font-size: 22px; padding: 14px 26px; background: #16a34a; border-color: #166534; color: #fff; box-shadow: 0 5px 0 #166534; }
+    .btn.small { font-size: 14px; padding: 6px 10px; box-shadow: 0 3px 0 #0369a1; }
+    a.btn { display: inline-block; text-decoration: none; }
+    .row2 { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 10px; }
+    .row2 input[type=text] { font: inherit; font-size: 20px; padding: 8px 10px; border: 2px solid #94a3b8; border-radius: 10px; width: 240px; }
+    .row2 input.short { width: 80px; }
+    .row2 select { font: inherit; font-size: 18px; padding: 6px 8px; border: 2px solid #94a3b8; border-radius: 10px; }
+    .check { display: flex; align-items: center; gap: 8px; font-size: 17px; }
+    .check input { width: 22px; height: 22px; }
+    .note { font-size: 14px; color: #475569; }
+    .count { font-size: 16px; font-weight: 700; color: #0369a1; }
+    .preview { overflow-x: auto; padding-bottom: 20px; }
+
+    /* ---- プリント（A4 よこ） ---- */
+    .page { position: relative; width: 297mm; height: 210mm; background: #fff; margin: 0 auto 10mm; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,.15); }
+    .title { position: absolute; left: 10mm; top: 8mm; height: 15mm; border: .6mm solid #1f2937; border-radius: 2mm; padding: 0 5mm; font-size: 7.5mm; font-weight: 700; display: flex; align-items: center; white-space: nowrap; letter-spacing: .5mm; }
+    .title b { margin-left: 3mm; font-size: 9mm; color: #0369a1; }
+    .key { position: absolute; left: 12mm; top: 2mm; background: #dc2626; color: #fff; font-size: 4.2mm; font-weight: 700; border-radius: 2mm; padding: .4mm 3mm; }
+    .who { position: absolute; right: 10mm; top: 8mm; height: 15mm; display: flex; align-items: flex-end; gap: 1.5mm; font-size: 5mm; font-weight: 700; white-space: nowrap; }
+    .who .bl { display: inline-block; width: 11mm; height: 11mm; border-bottom: .4mm solid #475569; text-align: center; font-size: 7mm; line-height: 12mm; }
+    .who .nm { display: inline-block; width: 60mm; height: 11mm; border-bottom: .4mm solid #475569; font-size: 7.5mm; line-height: 12mm; padding-left: 3mm; margin-left: 1mm; }
+    .inst { position: absolute; left: 10mm; right: 10mm; top: 27mm; height: 13mm; display: flex; align-items: center; gap: 3mm; font-size: 5.4mm; font-weight: 700; white-space: nowrap; }
+    .inst img { height: 15mm; }
+    .cell { position: absolute; width: 136.5mm; height: 70mm; border: .5mm solid #1f2937; }
+    .cell .pic { position: absolute; left: 0; top: 0; width: 46mm; height: 42mm; border-right: .4mm solid #1f2937; border-bottom: .4mm solid #1f2937; }
+    .cell .pic svg { position: absolute; left: 8mm; top: 5mm; }
+    .cell .lab { position: absolute; left: 1.5mm; top: 1.5mm; width: 7.5mm; height: 7.5mm; border: .45mm solid #1f2937; border-radius: 50%; text-align: center; line-height: 6.8mm; font-size: 4.6mm; font-weight: 700; background: #fff; }
+    .cell .ch { position: absolute; left: 46mm; top: 0; right: 0; height: 42mm; border-bottom: .4mm solid #1f2937; }
+    .cell .ch .l1 { position: absolute; left: 0; right: 0; top: 5mm; display: flex; justify-content: center; align-items: center; gap: 7mm; font-size: 7mm; font-weight: 700; }
+    .cell .ch .l2 { position: absolute; left: 0; right: 0; top: 24mm; display: flex; justify-content: center; font-size: 7mm; font-weight: 700; }
+    .opt { position: relative; padding: 1mm 2mm; white-space: nowrap; }
+    .opt.hit:after { content: ''; position: absolute; left: -2mm; right: -2mm; top: -1mm; bottom: -2mm; border: 1mm solid #dc2626; border-radius: 50%; }
+    .cell .rl { position: absolute; left: 0; top: 42mm; width: 46mm; height: 28mm; border-right: .4mm solid #1f2937; display: flex; align-items: center; justify-content: center; font-size: 6.4mm; font-weight: 700; }
+    .cell .rw { position: absolute; left: 46mm; top: 42mm; right: 0; height: 28mm; }
+    .cell .rw:before { content: ''; position: absolute; left: 0; right: 0; top: 14mm; border-top: .35mm dashed #64748b; }
+    .cell .rw .ex { position: absolute; left: 3mm; right: 2mm; top: 0; height: 14mm; display: flex; align-items: center; font-size: 4.9mm; font-weight: 700; color: #dc2626; white-space: nowrap; }
+    .cell .rw .ex2 { position: absolute; right: 2mm; bottom: 1.5mm; font-size: 3.4mm; font-weight: 700; color: #dc2626; }
+    .cell.sel .rw:before { display: none; }
+    .cell .rw .rc { position: absolute; left: 3mm; right: 1mm; top: 1mm; font-size: 4.5mm; font-weight: 700; }
+    .cell .rw .rc .r { display: flex; align-items: center; gap: 2.5mm; height: 8.7mm; white-space: nowrap; }
+    .cell .rw .rc .ab { position: relative; flex: none; display: inline-block; width: 6mm; height: 6mm; border: .4mm solid #1f2937; border-radius: 50%; text-align: center; line-height: 5.3mm; font-size: 3.8mm; }
+    .cell .rw .rc .ab.hit:after { content: ''; position: absolute; left: -1.5mm; right: -1.5mm; top: -1.5mm; bottom: -1.5mm; border: .9mm solid #dc2626; border-radius: 50%; }
+    .title small { font-size: 5mm; margin-left: 3mm; color: #475569; letter-spacing: 0; }
+    .hint { position: absolute; left: 10mm; right: 10mm; top: 188.5mm; height: 14mm; border: .5mm dashed #0369a1; border-radius: 3mm; background: #f0f9ff; display: flex; align-items: center; gap: 3.5mm; padding: 0 4mm; font-size: 4.4mm; font-weight: 700; white-space: nowrap; }
+    .hint .hh { color: #0369a1; margin-right: 1mm; }
+    .hint .w { border: .35mm solid #94a3b8; background: #fff; border-radius: 4mm; padding: .6mm 3mm; }
+
+    @media print {
+      body { background: #fff; }
+      .controls { display: none; }
+      .preview { padding: 0; overflow: visible; }
+      .page { margin: 0; box-shadow: none; page-break-after: always; break-after: page; }
+    }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <div class="panel">
+      <h1><img src="../img/hakase.png" alt="" style="height:56px"> 三角形と四角形　りゆうの プリント</h1>
+      <p>形を見て「三角形・四角形・どちらでもない」を○でかこみ、理由を答えるプリントです。A4よこで印刷します。理由を ア・イ・ウ から「えらぶ」①〜⑳と、自分で「かく」①〜⑳の、合わせて40まいです。どちらも少しずつむずかしくなります。</p>
+      <div class="btns">
+        <a class="btn small" href="pdf/さんかくしかくプリント_1_りゆうをえらぶ.pdf" target="_blank">📄 りゆうを えらぶ（20まい）</a>
+        <a class="btn small" href="pdf/さんかくしかくプリント_2_りゆうをかく.pdf" target="_blank">📄 りゆうを かく（20まい）</a>
+        <a class="btn small" href="pdf/さんかくしかくプリント_3_こたえ.pdf" target="_blank">📄 こたえ（40まい）</a>
+        <a class="btn small" href="index.html">← ずけい プリント（A4たて）へ</a>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>プリントを えらぶ</h2>
+      <div class="row2" style="margin-top:0"><select id="mode"><option value="sel">りゆうを えらぶ（ア・イ・ウ）</option><option value="kaku">りゆうを かく</option><option value="both">りょうほう</option></select><select id="from"></select><span>から</span><select id="to"></select><span>まで</span></div>
+      <div class="row2"><label for="gr" style="font-weight:700">がくねん</label><input type="text" id="gr" class="short" maxlength="2" placeholder="れい：2"><label for="nm" style="font-weight:700">なまえ</label><input type="text" id="nm" placeholder="空けておくと手で書けます"></div>
+      <div class="row2"><label class="check"><input type="checkbox" id="hint" checked> 「りゆうを かく」の 下に「ことばの ヒント」を 入れる</label></div>
+      <div class="row2"><label class="check"><input type="checkbox" id="ans"> こたえの ページも つける（うしろに 入ります）</label></div>
+      <div class="row2"><button class="btn" id="reroll">🔄 べつの もんだいに する</button><button class="btn small" id="reset">もとの もんだいに もどす</button><span class="note" id="seedNote"></span></div>
+    </div>
+    <div class="panel">
+      <div class="row2" style="margin-top:0"><button class="btn big" id="printBtn">🖨 いんさつ する</button><span class="count" id="cnt"></span></div>
+      <p class="note">印刷の画面で、用紙は「A4」、向きは「横」、倍率は「100%（実際のサイズ）」、「背景のグラフィック」をオンにしてください。</p>
+    </div>
+  </div>
+  <div class="preview" id="out"></div>
+
+  <script>
+  /* =========================================================
+     きほん
+     ========================================================= */
+  const SAN = '{三角形|さんかくけい}', SHI = '{四角形|しかくけい}', CHOKU = '{直線|ちょくせん}', SEN = '{線|せん}', RIYU = '{理由|りゆう}';
+  const rb = (s) => String(s).replace(/\{([^|}]+)\|([^}]+)\}/g, '<ruby>$1<rt>$2</rt></ruby>');
+  const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  function rng(seed) { let s = seed >>> 0 || 1; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const shuffleR = (r, a) => { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+  const pickR = (r, a) => a[Math.floor(r() * a.length)];
+  const f1 = (v) => Math.round(v * 100) / 100;
+  const CIRC = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳';
+
+  /* =========================================================
+     形
+     ========================================================= */
+  const reg = (n, rot = -90) => Array.from({ length: n }, (_, i) => { const a = (rot + i * 360 / n) * Math.PI / 180; return [50 + 42 * Math.cos(a), 50 + 42 * Math.sin(a)]; });
+  const POLY = {
+    // 三角形
+    'tri-up': [[50, 10], [92, 86], [8, 86]], 'tri-right': [[14, 12], [14, 88], [88, 88]], 'tri-down': [[8, 14], [92, 14], [50, 90]],
+    'tri-thin': [[50, 4], [66, 96], [34, 96]], 'tri-tilt': [[12, 34], [88, 10], [62, 92]], 'tri-flat': [[4, 72], [96, 78], [36, 38]],
+    // 四角形
+    'sq': [[16, 16], [84, 16], [84, 84], [16, 84]], 'rect': [[4, 28], [96, 28], [96, 72], [4, 72]], 'diamond': [[50, 4], [94, 50], [50, 96], [6, 50]],
+    'trap': [[30, 22], [70, 22], [94, 80], [6, 80]], 'irr': [[12, 18], [74, 8], [92, 82], [24, 70]], 'para': [[28, 24], [96, 24], [72, 78], [4, 78]],
+    'kite': [[50, 4], [82, 38], [50, 96], [18, 38]], 'thin': [[6, 40], [94, 40], [94, 60], [6, 60]], 'concave': [[8, 92], [50, 6], [92, 92], [50, 62]],
+    // 直線が 5本・6本
+    'penta': reg(5), 'hexa': reg(6, 0), 'lshape': [[14, 10], [54, 10], [54, 52], [90, 52], [90, 90], [14, 90]], 'house': [[50, 6], [90, 40], [90, 92], [10, 92], [10, 40]],
+  };
+  const TRI_E = ['tri-up', 'tri-right'], TRI_ALL = ['tri-up', 'tri-right', 'tri-down', 'tri-thin', 'tri-tilt', 'tri-flat'];
+  const QUAD_E = ['sq', 'rect'], QUAD_M = ['diamond', 'trap', 'irr', 'para'], QUAD_H = ['kite', 'thin', 'concave'];
+  const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  const centroid = (pts) => [pts.reduce((s, p) => s + p[0], 0) / pts.length, pts.reduce((s, p) => s + p[1], 0) / pts.length];
+  const outward = (p, c, d) => { const vx = p[0] - c[0], vy = p[1] - c[1], l = Math.hypot(vx, vy) || 1; return [p[0] + vx / l * d, p[1] + vy / l * d]; };
+  // まわして、わくに おさまる 大きさに そろえる
+  function place(pts, deg) {
+    const a = deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+    const q = pts.map(([x, y]) => [(x - 50) * c - (y - 50) * s, (x - 50) * s + (y - 50) * c]);
+    const xs = q.map(p => p[0]), ys = q.map(p => p[1]), w = Math.max(...xs) - Math.min(...xs), h = Math.max(...ys) - Math.min(...ys);
+    const k = 80 / Math.max(w, h), mx = (Math.max(...xs) + Math.min(...xs)) / 2, my = (Math.max(...ys) + Math.min(...ys)) / 2;
+    return q.map(([x, y]) => [50 + (x - mx) * k, 50 + (y - my) * k]);
+  }
+  function polyD(P, mod, g) {
+    const n = P.length;
+    if (mod === 'round') {
+      let d = '';
+      for (let i = 0; i < n; i++) {
+        const a = P[(i + n - 1) % n], b = P[i], c = P[(i + 1) % n];
+        const la = Math.hypot(a[0] - b[0], a[1] - b[1]), lc = Math.hypot(c[0] - b[0], c[1] - b[1]), R = Math.min(15, la * 0.4, lc * 0.4);
+        const p1 = [b[0] + (a[0] - b[0]) / la * R, b[1] + (a[1] - b[1]) / la * R], p2 = [b[0] + (c[0] - b[0]) / lc * R, b[1] + (c[1] - b[1]) / lc * R];
+        d += `${i === 0 ? 'M' : 'L'} ${f1(p1[0])} ${f1(p1[1])} Q ${f1(b[0])} ${f1(b[1])} ${f1(p2[0])} ${f1(p2[1])} `;
+      }
+      return d + 'Z';
+    }
+    if (mod === 'open') {
+      const a = P[g], b = P[(g + 1) % n];
+      const s1 = [a[0] + (b[0] - a[0]) * 0.34, a[1] + (b[1] - a[1]) * 0.34], s2 = [a[0] + (b[0] - a[0]) * 0.66, a[1] + (b[1] - a[1]) * 0.66];
+      let d = `M ${f1(s2[0])} ${f1(s2[1])} `;
+      for (let k = 1; k <= n; k++) { const p = P[(g + k) % n]; d += `L ${f1(p[0])} ${f1(p[1])} `; }
+      return d + `L ${f1(s1[0])} ${f1(s1[1])}`;
+    }
+    if (mod === 'curve' || mod === 'dent') {
+      const a = P[g], b = P[(g + 1) % n], ctl = outward(mid(a, b), centroid(P), mod === 'curve' ? 24 : -22);
+      let d = `M ${f1(P[0][0])} ${f1(P[0][1])} `;
+      for (let i = 0; i < n; i++) { const q = P[(i + 1) % n]; d += i === g ? `Q ${f1(ctl[0])} ${f1(ctl[1])} ${f1(q[0])} ${f1(q[1])} ` : `L ${f1(q[0])} ${f1(q[1])} `; }
+      return d + 'Z';
+    }
+    return 'M ' + P.map(p => f1(p[0]) + ' ' + f1(p[1])).join(' L ') + ' Z';
+  }
+  // 手で かいたような、でこぼこの 形
+  function blobD(r) {
+    const n = 9, pts = Array.from({ length: n }, (_, i) => { const a = i / n * Math.PI * 2 + r() * 0.3, rad = 26 + r() * 16; return [50 + rad * Math.cos(a) * 1.1, 50 + rad * Math.sin(a)]; });
+    let d = '';
+    for (let i = 0; i < n; i++) {
+      const p0 = pts[(i + n - 1) % n], p1 = pts[i], p2 = pts[(i + 1) % n], p3 = pts[(i + 2) % n];
+      const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6], c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+      if (i === 0) d += `M ${f1(p1[0])} ${f1(p1[1])} `;
+      d += `C ${f1(c1[0])} ${f1(c1[1])} ${f1(c2[0])} ${f1(c2[1])} ${f1(p2[0])} ${f1(p2[1])} `;
+    }
+    return d + 'Z';
+  }
+  const PATHS = {
+    circle: () => 'M 50 8 A 42 42 0 1 1 49.9 8 Z',
+    oval: () => 'M 6 50 A 44 28 0 1 1 94 50 A 44 28 0 1 1 6 50 Z',
+    half: () => 'M 8 68 A 42 42 0 0 1 92 68 Z',
+    fan: () => 'M 50 10 L 90 78 Q 50 98 10 78 Z',
+    blob: (r) => blobD(r),
+  };
+  // れいの 理由
+  const REASON = {
+    r3: `3{本|ぼん}の ${CHOKU}で かこまれて いるから。`,
+    r4: `4{本|ほん}の ${CHOKU}で かこまれて いるから。`,
+    curve: `まがった ${SEN}が あるから。`,
+    allcurve: `まがった ${SEN}で かこまれて いるから。`,
+    open: `${SEN}が つながって いない（あいて いる）から。`,
+    openS: `${SEN}が つながって いないから。`,
+    round: `かどが まるいから。`,
+    r5: `${CHOKU}が 5{本|ほん} あるから。`,
+    r6: `${CHOKU}が 6{本|ぽん} あるから。`,
+  };
+  // spec：'tri-up'（そのまま）、'sq:round'（かどが丸い）、'tri-up:open'、'rect:curve'、'sq:dent'、'circle' など
+  function makeShape(r, spec, rotate) {
+    const [base, mod] = spec.split(':');
+    if (PATHS[base]) return { d: PATHS[base](r), cat: 'none', reason: base === 'half' || base === 'fan' ? 'curve' : 'allcurve', base: base === 'fan' ? 'r3' : pickR(r, ['r3', 'r4']) };
+    const n = POLY[base].length;
+    const deg = rotate ? pickR(r, [0, 0, 90, 180, 270, 20, -25, 45, 160]) : 0;
+    const P = place(POLY[base], deg), g = Math.floor(r() * n);
+    const d = polyD(P, mod, g);
+    if (mod) return { d, cat: 'none', reason: mod === 'dent' ? 'curve' : mod, base: n === 3 ? 'r3' : 'r4' };
+    return { d, cat: n === 3 ? 'tri' : n === 4 ? 'quad' : 'none', reason: 'r' + n };
+  }
+  const svgOf = (sh) => `<svg viewBox="0 0 100 100" width="34mm" height="34mm"><path d="${sh.d}" fill="none" stroke="#1f2937" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+
+  /* =========================================================
+     30まいの 中身（少しずつ むずかしく する）
+     tri・quad・none から 1つずつ えらび、4つめは extra から えらぶ
+     ========================================================= */
+  const LEVELS = [
+    { to: 4, name: 'きほんの かたち', tri: TRI_E, quad: QUAD_E, none: ['circle', 'blob', 'oval', 'blob'], rotate: false },
+    { to: 8, name: 'むきや かたちが ちがう', tri: TRI_ALL, quad: [...QUAD_E, ...QUAD_M], none: ['tri-up:round', 'sq:round', 'rect:round', 'blob', 'circle'], rotate: false },
+    { to: 12, name: 'あいて いる・まがって いる', tri: TRI_ALL, quad: [...QUAD_E, ...QUAD_M], none: ['tri-up:open', 'sq:open', 'rect:open', 'tri-up:curve', 'sq:curve', 'tri-right:round', 'trap:round'], rotate: false },
+    { to: 16, name: 'めずらしい かたち', tri: TRI_ALL, quad: [...QUAD_M, ...QUAD_H], none: ['penta', 'hexa', 'half', 'fan', 'trap:open', 'tri-down:curve', 'diamond:round', 'sq:dent'], rotate: true },
+    { to: 20, name: 'まとめ', tri: TRI_ALL, quad: [...QUAD_E, ...QUAD_M, ...QUAD_H], none: ['circle', 'blob', 'half', 'penta', 'hexa', 'lshape', 'house', 'sq:round', 'kite:round', 'rect:open', 'tri-tilt:open', 'para:open', 'trap:curve', 'tri-thin:curve', 'tri-up:dent'], rotate: true },
+  ];
+  // えらぶ 理由（正しい もの 1つ＋ちがう もの 2つ）
+  function reasonChoices(r, sh) {
+    const re = sh.reason;
+    let others;
+    if (re === 'r3') others = ['r4', pickR(r, ['curve', 'open', 'round'])];
+    else if (re === 'r4') others = ['r3', pickR(r, ['curve', 'open', 'round'])];
+    else if (re === 'r5' || re === 'r6') others = ['r4', pickR(r, ['curve', 'r3'])];
+    else if (re === 'round') others = ['open', sh.base];
+    else if (re === 'open') others = [pickR(r, ['curve', 'round']), sh.base];
+    else others = ['open', sh.base];
+    return shuffleR(r, [re, ...others]);
+  }
+  // まい（1〜20）ごとの 4つの 形。同じ レベルの 中で 同じ 形が つづかないように 山から 順に 引く
+  function buildAll(seed, mode) {
+    const sheets = [];
+    let from = 1;
+    LEVELS.forEach((lv, li) => {
+      const r = rng(seed * 131 + li * 7907 + (mode === 'kaku' ? 55001 : 0));
+      const deck = (list) => { let d = []; return () => { if (!d.length) d = shuffleR(r, list); return d.pop(); }; };
+      const dt = deck(lv.tri), dq = deck(lv.quad), dn = deck(lv.none);
+      for (let no = from; no <= lv.to; no++) {
+        // 4つめ：三角形・四角形・どちらでもない を じゅんばんに
+        const extra = [dn, dt, dq, dn, dn][(no - from) % 5];
+        const specs = shuffleR(r, [dt(), dq(), dn(), extra()]);
+        const shapes = specs.map(s => makeShape(r, s, lv.rotate));
+        shapes.forEach(sh => { sh.choices = reasonChoices(r, sh); });
+        sheets.push({ no, mode, level: lv.name, shapes });
+      }
+      from = lv.to + 1;
+    });
+    return sheets;
+  }
+
+  /* =========================================================
+     1まいの ページ
+     ========================================================= */
+  const HINTS = [CHOKU, `3{本|ぼん}`, `4{本|ほん}`, 'かこまれて いる', `まがった ${SEN}`, 'あいて いる', 'かどが まるい'];
+  function pageHtml(sheet, opt) {
+    const key = opt.key, sel = sheet.mode === 'sel', bl = (v) => `<span class="bl">${esc(v || '')}</span>`;
+    const cells = sheet.shapes.map((sh, i) => {
+      const o = (c, t) => `<span class="opt${key && sh.cat === c ? ' hit' : ''}">${rb(t)}</span>`;
+      const rw = sel
+        ? `<div class="rc">${sh.choices.map((c, j) => `<div class="r"><span class="ab${key && c === sh.reason ? ' hit' : ''}">${'アイウ'[j]}</span><span>${rb(REASON[c === 'open' ? 'openS' : c])}</span></div>`).join('')}</div>`
+        : (key ? `<div class="ex"><span>${rb(REASON[sh.reason])}</span></div><div class="ex2">（れい）</div>` : '');
+      return `<div class="cell${sel ? ' sel' : ''}" style="left:${10 + (i % 2) * 140.5}mm;top:${43 + Math.floor(i / 2) * 73}mm">
+        <div class="pic"><div class="lab">${'あいうえ'[i]}</div>${svgOf(sh)}</div>
+        <div class="ch"><div class="l1">${o('tri', SAN)}<span>・</span>${o('quad', SHI)}</div><div class="l2">${o('none', 'どちらでも ない')}</div></div>
+        <div class="rl">${rb(RIYU)}</div>
+        <div class="rw">${rw}</div>
+      </div>`;
+    }).join('');
+    return `<div class="page" data-mode="${sheet.mode}" data-no="${sheet.no}"${key ? ' data-key="1"' : ''}>
+      ${key ? '<div class="key">こたえ</div>' : ''}
+      <div class="title">${rb(SAN)}と${rb(SHI)}<b>${CIRC[sheet.no - 1]}</b><small>${sel ? 'りゆうを えらぶ' : 'りゆうを かく'}</small></div>
+      <div class="who">${bl(opt.grade)}ねん　${bl()}がつ${bl()}にち　なまえ<span class="nm">${esc(opt.name || '')}</span></div>
+      <div class="inst"><img src="../img/hakase.png" alt=""><span>${rb(`${SAN}や ${SHI}は どれかな？ あう ものを ○で かこもう。` + (sel ? `${RIYU}も えらんで、ア・イ・ウに ○を つけよう。` : `${RIYU}も ${'{書|か}'}いて みよう。`))}</span></div>
+      ${cells}
+      ${opt.hint && !sel ? `<div class="hint"><span class="hh">ことばの ヒント</span>${HINTS.map(h => `<span class="w">${rb(h)}</span>`).join('')}</div>` : ''}
+    </div>`;
+  }
+
+  /* =========================================================
+     画面
+     ========================================================= */
+  const DEFAULT_SEED = 20262;
+  const q = new URLSearchParams(location.search);
+  let seed = Number(q.get('seed')) || DEFAULT_SEED;
+  const out = document.getElementById('out'), from = document.getElementById('from'), to = document.getElementById('to');
+  const opts = [...CIRC].map((c, i) => `<option value="${i + 1}">${c}</option>`).join('');
+  from.innerHTML = opts; to.innerHTML = opts;
+  from.value = q.get('from') || '1'; to.value = q.get('to') || (q.get('from') ? '20' : '4');
+  if (q.get('all') === '1') { from.value = '1'; to.value = '20'; }
+  document.getElementById('mode').value = q.get('m') || 'sel';
+  document.getElementById('ans').checked = q.get('ans') === '1';
+  document.getElementById('hint').checked = q.get('hint') !== '0';
+  document.getElementById('nm').value = q.get('name') || '';
+  document.getElementById('gr').value = q.get('g') || '';
+  const onlyKey = q.get('only') === 'key';
+
+  function render() {
+    const a = Math.min(Number(from.value), Number(to.value)), b = Math.max(Number(from.value), Number(to.value));
+    const m = document.getElementById('mode').value;
+    const sheets = (m === 'both' ? ['sel', 'kaku'] : [m]).flatMap(md => buildAll(seed, md).filter(s => s.no >= a && s.no <= b));
+    const opt = { name: document.getElementById('nm').value.trim(), grade: document.getElementById('gr').value.trim(), hint: document.getElementById('hint').checked };
+    const withKey = document.getElementById('ans').checked || onlyKey;
+    let html = '';
+    if (!onlyKey) html += sheets.map(s => pageHtml(s, opt)).join('');
+    if (withKey) html += sheets.map(s => pageHtml(s, { key: true, hint: opt.hint })).join('');
+    out.innerHTML = html;
+    document.getElementById('cnt').textContent = `ぜんぶで ${out.querySelectorAll('.page').length}まい`;
+    document.getElementById('seedNote').textContent = seed === DEFAULT_SEED ? '（PDF と 同じ もんだいです）' : `もんだいの ばんごう：${seed}（PDF とは ちがう もんだいです）`;
+    const imgs = [...out.querySelectorAll('img')];
+    Promise.all([document.fonts ? document.fonts.ready : null, ...imgs.map(im => im.complete ? null : new Promise(res => { im.onload = im.onerror = res; }))]).then(() => { document.body.dataset.ready = '1'; });
+  }
+  ['mode', 'from', 'to', 'ans', 'hint'].forEach(id => { document.getElementById(id).onchange = render; });
+  document.getElementById('nm').oninput = render;
+  document.getElementById('gr').oninput = render;
+  document.getElementById('reroll').onclick = () => { seed = Math.floor(Math.random() * 900000) + 100000; render(); };
+  document.getElementById('reset').onclick = () => { seed = DEFAULT_SEED; render(); };
+  document.getElementById('printBtn').onclick = () => window.print();
+  render();
+  </script>
+</body>
+</html>
