@@ -8,6 +8,7 @@
 > - 分数の学習アプリ「モカせんせいの ケーキやさん」：内容と使い方は [bunsu/README.md](bunsu/README.md) を見てください。
 > - カタカナの学習アプリ「ロボタンと カタカナ」：内容と使い方は [katakana/README.md](katakana/README.md) を見てください。
 > - 三角形・四角形の学習アプリ「トンガリはかせの ロボット けんきゅうじょ」：内容と使い方は [zukei/README.md](zukei/README.md) を見てください。
+> - 三角形・四角形のプリント「トンガリはかせの ずけい プリント」（A4たて。7ステージ×れんしゅう5まい・まとめテスト3まい・こたえ）：内容と使い方は [zukei/print/README.md](zukei/print/README.md)
 > - 文章の読み取りアプリ「ワンダせんせいの なぞとき たんていじむしょ」（いつ・どこで・だれが・なにを した）：内容と使い方は [nazotoki/README.md](nazotoki/README.md) を見てください。
 > - カタカナのプリント「ロボタンの カナカナパズル」（1画ずつのピースを組み合わせてカタカナを書く）：内容と使い方は [kanapuzzle/README.md](kanapuzzle/README.md) を見てください。
 > - カタカナのパズルの学習アプリ「ロボタンの カナカナパズル」（アプリ版。1画ずつのピースを わくに はめてカタカナを組み立てる。かげ→マス→じぶんで→どの もじ？ の4段階。ねじと部品でロボタンをパワーアップ）：内容と使い方は [kanapuzzle/app/README.md](kanapuzzle/app/README.md) を見てください。
