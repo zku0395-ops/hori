@@ -137,6 +137,7 @@ window.SORA = {
           { id: 'sankakushikaku', emoji: '📐', name: 'さんかくけい・しかくけいマスター', url: 'https://sites.google.com/view/sannkakukeisiakkujke/%E3%83%9B%E3%83%BC%E3%83%A0' },
           { id: 'kakudomaster', emoji: '📐', name: '{角度|かくど}マスター', url: 'https://script.google.com/a/macros/kodaira.ed.jp/s/AKfycbxw8fASLD8nHe3qW3Z1Sz9M1-V3sIbk3NRCLYKLJjUEHTLWbLgTkrgHH6iRzHh7igJX/exec' },
           { id: 'kakudowani', emoji: '🐊', name: 'かくどを はかろう（ワニ）', url: 'https://sites.google.com/view/kakudowohakarou/%E3%83%9B%E3%83%BC%E3%83%A0' },
+          { id: 'katachioukoku', emoji: '🏰', name: 'サンカと かたちの おうこく', say: 'サンカと かたちの おうこく', url: 'https://script.google.com/macros/s/AKfycbxpAnXst3q60XPHMcufprCHtjPUGRT_70NIkHzOUDhe1tRYLhDUp-2E-O8z8CNV_kggEQ/exec' },
         ] },
         { id: 'bunsu', name: 'ぶんすう・しょうすう', emoji: '🍰', apps: [
           { id: 'bunsumaster', emoji: '🍰', name: 'ぶんすうマスター', url: 'https://sites.google.com/view/bunsumasternew/%E3%83%9B%E3%83%BC%E3%83%A0' },
