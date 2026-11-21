@@ -44,6 +44,7 @@
     .float { animation: float 3s ease-in-out infinite; }
     @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
     .blink { animation: blink 1s ease-in-out infinite; }
+    .kblink { animation: blink 1s ease-in-out infinite; }
     @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
     .card { background: #fff; border-radius: 1.2rem; box-shadow: 0 4px 0 rgba(0,0,0,.18); }
     .bubble { background: #fff; border: 3px solid #a78bfa; border-radius: 1.1rem; padding: .5rem .9rem; font-size: 1.3rem; font-weight: 700; line-height: 1.9; }
@@ -82,7 +83,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo } = React;
-    const APP_VERSION = '1.3.0';
+    const APP_VERSION = '1.4.0';
     const IMG = window.KATACHI_BASE + 'img/';
 
     // =====================================================================
@@ -979,6 +980,7 @@
             <button className="btn yellow small" onClick={() => go('shop')}>🛒 おみせ</button>
             <button className="btn orange small" onClick={() => go('zukan')}>📖 ずかん</button>
             <button className="btn pink small" onClick={() => go('album')}>🖼 アルバム</button>
+            <button className="btn small" onClick={() => go('kyo')}>📘 きょうしつ</button>
             <button className="btn gray small" onClick={() => go('names')}>🚪 おわる</button>
           </div>
           <div style={{ position: 'relative', flex: 1, minHeight: '30rem' }}>
@@ -986,7 +988,7 @@
               <polyline points={PLACES.map(pl => pl.pos.join(',')).join(' ')} fill="none" stroke="#fef3c7" strokeWidth="8" strokeDasharray="14 12" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
             </svg>
             {PLACES.map(pl => { const ok = placeOpen(p, pl), st = stars(pl);
-              return <div key={pl.id} style={{ position: 'absolute', left: pl.pos[0] + '%', top: pl.pos[1] + '%', transform: 'translate(-50%,-50%)' }}><button disabled={!ok} onClick={() => { Sound.tap(); setOpen(pl); Speech.say(pl.n); }} className={'opt' + (pl.id === curPlace.id && st < 3 ? ' glow' : '')}
+              return <div key={pl.id} style={{ position: 'absolute', left: pl.pos[0] + '%', top: pl.pos[1] + '%', transform: 'translate(-50%,-50%)' }}><button disabled={!ok} onClick={() => { Sound.tap(); if (pl.id === 3 && !kyoOf(p).seen) { go('kyo'); return; } setOpen(pl); Speech.say(pl.n); }} className={'opt' + (pl.id === curPlace.id && st < 3 ? ' glow' : '')}
                 style={{ padding: '.3rem .7rem', textAlign: 'center', fontSize: '1rem', lineHeight: 1.4, opacity: ok ? 1 : .75, background: ok ? '#fff' : '#cbd5e1' }}>
                 <div style={{ fontSize: '2.6rem', lineHeight: 1.1 }}>{ok ? pl.em : '🔒'}</div>
                 <div>{pl.id}　{pl.n}</div>
@@ -1203,6 +1205,150 @@
       );
     }
 
+    // ---- サンカの きょうしつ（「へん」と「ちょう点」を おしえて もらう ところ）----
+    // しんちょくの kyo に のこす：n＝さいごまで 見た かず、d＝コインを もらった 日、seen＝1ど ひらいた、miss＝まちがいの しゅるいと かず
+    const TENJI = '{点|てん}';
+    const KYO_TRI = [[150, 32], [42, 200], [258, 200]], KYO_QUAD = [[72, 42], [238, 60], [260, 192], [48, 200]];
+    const kyoOf = (p) => ({ n: 0, d: '', seen: false, ...((p && p.kyo) || {}), miss: { ...(((p && p.kyo) || {}).miss || {}) } });
+    const kyoToday = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+    const KYO_PAGES = [
+      { t: 'tap', pts: KYO_TRI, mode: 'side', text: `${SAN}の まわりの まっすぐな ${SEN}を、「へん」と いうよ。へんを ぜんぶ タッチ して みよう。`, after: `へんは 3ぼん あったね。まっすぐな ${SEN}が、へん だよ。`, wrong: `そこは かど だよ。へんは、まっすぐな ${SEN}だよ。`, kind: 'へんで かどを タッチ' },
+      { t: 'tap', pts: KYO_TRI, mode: 'vertex', text: `へんと へんが であう かどの ${TENJI}を、「${TEN}」と いうよ。${TEN}を ぜんぶ タッチ して みよう。`, after: `${TEN}は 3つ あったね。かどの ${TENJI}が、${TEN}だよ。`, wrong: `そこは へん だよ。${TEN}は、かどの ${TENJI}だよ。`, kind: 'ちょう点で へんを タッチ' },
+      { t: 'quiz', text: `いろが ついた ところを 見てね。へんは どっち？`, opts: [['triSide', true], ['triVertex', false]], after: `せいかい！ まっすぐな ${SEN}が、へん だよ。`, wrong: `それは かどの ${TENJI}、${TEN}だよ。へんは、まっすぐな ${SEN}だよ。`, kind: 'へんと ちょう点の とりちがえ' },
+      { t: 'quiz', text: `いろが ついた ところを 見てね。${TEN}は どっち？`, opts: [['triVertex', true], ['triSide', false]], after: `せいかい！ かどの ${TENJI}が、${TEN}だよ。`, wrong: `それは まっすぐな ${SEN}、へん だよ。${TEN}は、かどの ${TENJI}だよ。`, kind: 'へんと ちょう点の とりちがえ' },
+      { t: 'tap', pts: KYO_QUAD, mode: 'side', text: `こんどは ${SHI}だよ。へんを ぜんぶ タッチ して みよう。`, after: `へんは 4ほん あったね。${SHI}の へんは、4ほん だよ。`, wrong: `そこは かど だよ。へんは、まっすぐな ${SEN}だよ。`, kind: 'へんで かどを タッチ' },
+      { t: 'tap', pts: KYO_QUAD, mode: 'vertex', text: `${SHI}の ${TEN}を ぜんぶ タッチ して みよう。`, after: `${TEN}は 4つ あったね。${SHI}の ${TEN}は、4つ だよ。`, wrong: `そこは へん だよ。${TEN}は、かどの ${TENJI}だよ。`, kind: 'ちょう点で へんを タッチ' },
+      { t: 'show', figs: [['triSide', true, 'へん'], ['triCurve', false, 'へんでは ない']], text: `へんは、まっすぐな ${SEN}だよ。まがった ${SEN}は、へんでは ないよ。` },
+      { t: 'quiz', text: `あおい ところを 見てね。へんは どっち？`, opts: [['quadSide', true], ['quadCurve', false]], after: `せいかい！ まっすぐな ${SEN}が、へん だよ。`, wrong: `それは まがった ${SEN}だよ。へんは、まっすぐな ${SEN}だよ。`, kind: 'まがった 線を へんに した' },
+      { t: 'show', figs: [['triVertex', true, TEN], ['triRound', false, `${TEN}では ない`]], text: `${TEN}は、とがった かどの ${TENJI}だよ。まるい かどは、${TEN}では ないよ。` },
+      { t: 'quiz', text: `あかい ところを 見てね。${TEN}は どっち？`, opts: [['quadCorner', true], ['quadRound', false]], after: `せいかい！ とがった かどの ${TENJI}が、${TEN}だよ。`, wrong: `そこは まるいね。${TEN}は、とがった かどの ${TENJI}だよ。`, kind: 'まるい かどを ちょう点に した' },
+      { t: 'sum', text: `${SAN}は、へんが 3ぼん、${TEN}が 3つ。${SHI}は、へんが 4ほん、${TEN}が 4つ だよ。よく おぼえたね。` },
+    ];
+    const KB = '#2563eb', KR = '#dc2626', KK = '#1e293b';
+
+    // へん（線）と ちょう点（かど）を タッチ して ひからせる
+    function KyoTap({ pts, mode, done, hint, onDone, onMiss, size = 460 }) {
+      const n = pts.length;
+      const [got, setGot] = useState(done ? pts.map((_, i) => i) : []);
+      const all = got.length === n;
+      const cx = pts.reduce((a, q) => a + q[0], 0) / n, cy = pts.reduce((a, q) => a + q[1], 0) / n;
+      const out = (x, y, d) => { const l = Math.hypot(x - cx, y - cy) || 1; return [x + (x - cx) / l * d, y + (y - cy) / l * d]; };
+      const hit = (kind, i) => {
+        if (all) return;
+        if (kind !== mode) { Sound.miss(); onMiss(); return; }
+        if (got.includes(i)) return;
+        const g = [...got, i]; setGot(g);
+        if (g.length === n) { Sound.ok(); onDone(); } else { Sound.tap(); Speech.say(String(g.length)); }
+      };
+      const sides = pts.map((q, i) => [q, pts[(i + 1) % n]]);
+      const num = (i) => got.indexOf(i) + 1;
+      return (
+        <svg viewBox="0 0 300 232" style={{ width: size, maxWidth: '92vw', height: 'auto', touchAction: 'manipulation' }}>
+          <polygon points={pts.join(' ')} fill="#fef9c3" />
+          {sides.map(([a, b], i) => { const on = mode === 'side' && got.includes(i), blink = mode === 'side' && hint && !on && !all;
+            return <line key={i} x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} stroke={on ? KB : blink ? '#93c5fd' : KK} strokeWidth={on ? 11 : blink ? 9 : 5} strokeLinecap="round" className={blink ? 'kblink' : ''} />; })}
+          {pts.map((q, i) => { const on = mode === 'vertex' && got.includes(i), blink = mode === 'vertex' && hint && !on && !all;
+            return <circle key={i} cx={q[0]} cy={q[1]} r={on ? 13 : blink ? 11 : 6} fill={on ? KR : blink ? '#fca5a5' : KK} className={blink ? 'kblink' : ''} />; })}
+          {mode === 'side' && sides.map(([a, b], i) => { if (!got.includes(i)) return null; const m = out((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, 20);
+            return <text key={i} x={m[0]} y={m[1] + 8} textAnchor="middle" fontSize="24" fontWeight="700" fill={KB}>{num(i)}</text>; })}
+          {mode === 'vertex' && pts.map((q, i) => { if (!got.includes(i)) return null; const m = out(q[0], q[1], 26);
+            return <text key={i} x={m[0]} y={m[1] + 8} textAnchor="middle" fontSize="24" fontWeight="700" fill={KR}>{num(i)}</text>; })}
+          {sides.map(([a, b], i) => <line key={'h' + i} x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} stroke="transparent" strokeWidth="40" pointerEvents="stroke" style={{ cursor: 'pointer' }} onClick={() => hit('side', i)} />)}
+          {pts.map((q, i) => <circle key={'v' + i} cx={q[0]} cy={q[1]} r="27" fill="transparent" style={{ cursor: 'pointer' }} onClick={() => hit('vertex', i)} />)}
+        </svg>);
+    }
+
+    // えらぶ ための 小さな 図（あお＝線、あか＝かど）
+    function KyoFig({ kind, size = 200 }) {
+      const T = '100,25 30,135 170,135', Q = '40,30 165,40 175,130 30,135';
+      const base = { fill: '#fef9c3', stroke: KK, strokeWidth: 4, strokeLinejoin: 'round' };
+      const hiL = { fill: 'none', stroke: KB, strokeWidth: 10, strokeLinecap: 'round' };
+      let body = null;
+      if (kind === 'triSide') body = <g><polygon points={T} {...base} /><line x1="30" y1="135" x2="170" y2="135" {...hiL} /></g>;
+      if (kind === 'triVertex') body = <g><polygon points={T} {...base} /><circle cx="100" cy="25" r="12" fill={KR} /></g>;
+      if (kind === 'triCurve') body = <g><path d="M30,135 L170,135 L100,25 Q25,45 30,135 Z" {...base} /><path d="M100,25 Q25,45 30,135" {...hiL} /></g>;
+      if (kind === 'triRound') body = <g><path d="M30,135 L170,135 L118,54 Q100,26 82,54 Z" {...base} /><circle cx="100" cy="40" r="12" fill={KR} /></g>;
+      if (kind === 'quadSide') body = <g><polygon points={Q} {...base} /><line x1="40" y1="30" x2="165" y2="40" {...hiL} /></g>;
+      if (kind === 'quadCurve') body = <g><path d="M40,40 Q100,-12 165,45 L175,130 L30,135 Z" {...base} /><path d="M40,40 Q100,-12 165,45" {...hiL} /></g>;
+      if (kind === 'quadCorner') body = <g><polygon points={Q} {...base} /><circle cx="165" cy="40" r="12" fill={KR} /></g>;
+      if (kind === 'quadRound') body = <g><path d="M40,30 L112,36 Q168,40 170,96 L175,130 L30,135 Z" {...base} /><circle cx="154" cy="53" r="12" fill={KR} /></g>;
+      return <svg viewBox="0 0 200 160" style={{ width: size, height: size * 0.8, display: 'block' }}>{body}</svg>;
+    }
+
+    // まとめの 図（へんは あお、ちょう点は あか）
+    function KyoSumFig({ pts, size = 190 }) {
+      return <svg viewBox="0 0 300 232" style={{ width: size, height: 'auto', flex: 'none' }}>
+        <polygon points={pts.join(' ')} fill="#fef9c3" stroke={KB} strokeWidth="9" strokeLinejoin="round" />
+        {pts.map((q, i) => <circle key={i} cx={q[0]} cy={q[1]} r="13" fill={KR} />)}
+      </svg>;
+    }
+
+    function Kyoshitsu({ p, onProgress, back }) {
+      const [page, setPage] = useState(0);
+      const [done, setDone] = useState({});
+      const [msg, setMsg] = useState('');
+      const [out, setOut] = useState({});
+      const [tapMiss, setTapMiss] = useState({});
+      const [end, setEnd] = useState(null);
+      const miss = useRef({});
+      const order = useMemo(() => KYO_PAGES.map(() => Math.random() < 0.5), []);
+      const pg = KYO_PAGES[page], last = page === KYO_PAGES.length - 1;
+      const ok = !!done[page] || pg.t === 'show' || pg.t === 'sum';
+      const text = msg || (done[page] && pg.after) || pg.text;
+      useEffect(() => { if (!kyoOf(p).seen) onProgress({ ...p, kyo: { ...kyoOf(p), seen: true } }, []); }, []);
+      useEffect(() => { setMsg(''); Speech.say((done[page] && pg.after) || pg.text); }, [page]);
+      const addMiss = (kind, word) => { miss.current[kind] = (miss.current[kind] || 0) + 1; setMsg(word); Speech.say(word); };
+      const finishPage = () => { setDone({ ...done, [page]: true }); setMsg(''); Speech.say(pg.after); };
+      const merged = () => { const k = kyoOf(p), m = { ...k.miss }; Object.keys(miss.current).forEach(x => { m[x] = (m[x] || 0) + miss.current[x]; }); miss.current = {}; return { ...k, seen: true, miss: m }; };
+      const leave = () => { Speech.stop(); if (Object.keys(miss.current).length) onProgress({ ...p, kyo: merged() }, []); back(); };
+      const finish = () => {
+        const k = merged(), day = kyoToday(), coin = k.d !== day ? 5 : 0;
+        onProgress({ ...p, coins: p.coins + coin, kyo: { ...k, n: k.n + 1, d: day } }, []);
+        Sound.win(); setEnd({ coin });
+        Speech.say(coin ? `さいごまで がんばったね。コインを 5まい あげるよ。` : `さいごまで がんばったね。また いつでも きてね。`);
+      };
+      const go = (d) => { Sound.tap(); setPage(page + d); };
+      const opts = pg.t === 'quiz' ? (order[page] ? [pg.opts[1], pg.opts[0]] : pg.opts) : [];
+      return (
+        <div className="screen" style={{ background: '#f8fafc', padding: '.8rem 1rem', gap: '.6rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '.8rem', flexWrap: 'wrap' }}>
+            <button className="btn gray small" onClick={leave}>◀ ちずへ</button>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>📘 サンカの きょうしつ</div>
+            <div style={{ display: 'flex', gap: '.35rem', alignItems: 'center' }}>{KYO_PAGES.map((_, i) => <span key={i} style={{ width: i === page ? '1.1rem' : '.8rem', height: i === page ? '1.1rem' : '.8rem', borderRadius: 99, background: i === page ? '#f59e0b' : i < page ? '#86efac' : '#cbd5e1' }} />)}</div>
+          </div>
+          <div style={{ display: 'flex' }}><Fairy text={text} onTap={() => Speech.say(text)} size={76} /></div>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2rem', flexWrap: 'wrap', minHeight: '17rem' }}>
+            {pg.t === 'tap' && <KyoTap key={page} pts={pg.pts} mode={pg.mode} done={!!done[page]} hint={(tapMiss[page] || 0) >= 2} onDone={finishPage}
+              onMiss={() => { setTapMiss({ ...tapMiss, [page]: (tapMiss[page] || 0) + 1 }); addMiss(pg.kind, pg.wrong); }} />}
+            {pg.t === 'quiz' && opts.map(([k, right]) => { const gone = !right && out[page], show = done[page] || out[page];
+              return <button key={k} className={'opt' + (right && out[page] && !done[page] ? ' glow' : '')} disabled={!!gone || (!!done[page] && !right)} style={{ padding: '.6rem', position: 'relative', opacity: gone || (done[page] && !right) ? .35 : 1, borderColor: right && done[page] ? '#16a34a' : undefined, background: right && done[page] ? '#dcfce7' : undefined }}
+                onClick={() => { if (done[page]) return; if (right) { Sound.ok(); finishPage(); } else { Sound.miss(); setOut({ ...out, [page]: true }); addMiss(pg.kind, pg.wrong); } }}>
+                <KyoFig kind={k} size={300} />
+                {show && <div style={{ position: 'absolute', top: '.2rem', right: '.6rem', fontSize: '2.4rem', fontWeight: 700, color: right ? '#16a34a' : '#94a3b8' }}>{right ? (done[page] ? '○' : '') : '×'}</div>}
+              </button>; })}
+            {pg.t === 'show' && pg.figs.map(([k, good, label]) => <div key={k} className="card" style={{ padding: '.6rem 1rem', textAlign: 'center', border: '4px solid ' + (good ? '#16a34a' : '#94a3b8') }}>
+              <div style={{ fontSize: '2.6rem', fontWeight: 700, lineHeight: 1.1, color: good ? '#16a34a' : '#64748b' }}>{good ? '○' : '×'}</div>
+              <KyoFig kind={k} size={270} />
+              <div style={{ fontSize: '1.4rem', fontWeight: 700 }}>{rt(label)}</div></div>)}
+            {pg.t === 'sum' && <div className="card" style={{ padding: '.6rem 1.4rem' }}>
+              {[[KYO_TRI, SAN, '3ぼん', '3つ'], [KYO_QUAD, SHI, '4ほん', '4つ']].map(([pts, nm, a, b], i) => <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1.4rem', padding: '.4rem 0', borderTop: i ? '2px dashed #e2e8f0' : 'none', fontSize: '1.5rem', fontWeight: 700 }}>
+                <KyoSumFig pts={pts} size={170} /><div style={{ width: '8rem' }}>{rt(nm)}</div>
+                <div style={{ color: KB }}>へん　{a}</div><div style={{ color: KR }}>{rt(TEN)}　{b}</div></div>)}
+            </div>}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '1.2rem' }}>
+            <button className="btn gray" disabled={page === 0} style={{ visibility: page === 0 ? 'hidden' : 'visible' }} onClick={() => go(-1)}>◀ もどる</button>
+            {!last && <button className={'btn' + (ok ? ' green' : ' gray')} disabled={!ok} onClick={() => go(1)}>つぎへ ▶</button>}
+            {last && <button className="btn green" onClick={finish}>🎉 おわる</button>}
+          </div>
+          {end && <div className="overlay"><div className="card pop" style={{ padding: '1.5rem 2.5rem', textAlign: 'center' }}>
+            <div style={{ fontSize: '2rem', fontWeight: 700, color: '#b45309' }}>🎉 よく できました！</div>
+            <div style={{ fontSize: '1.4rem', margin: '1rem 0' }}>{end.coin ? `🪙 コイン ${end.coin}まい` : 'また いつでも きてね'}</div>
+            <button className="btn big green" onClick={() => { Speech.stop(); back(); }}>ちずへ</button></div></div>}
+        </div>
+      );
+    }
+
     // ---- 先生用画面 ----
     function Teacher({ back, onSettings }) {
       const [pin, setPin] = useState('');
@@ -1244,7 +1390,7 @@
           {data.isDefaultPin && <div style={{ background: '#fef3c7', padding: '.4rem .8rem', borderRadius: '.6rem' }}>暗証番号が最初のまま（1234）です。「設定」で変えてください。</div>}
           {note && <div style={{ background: '#dbeafe', padding: '.4rem .8rem', borderRadius: '.6rem' }}>{note}</div>}
           {tab === 'rec' && <div className="card" style={{ padding: '1rem', overflowX: 'auto' }}>
-            <div style={{ marginBottom: '.5rem', color: '#475569' }}>名前を押すと、ステージごとの結果と「まちがいの種類」、作った形が出ます。○＝1回で正解。赤：60%未満　黄：60〜79%　緑：80%以上</div>
+            <div style={{ marginBottom: '.5rem', color: '#475569' }}>名前を押すと、ステージごとの結果と「まちがいの種類」、作った形、きょうしつの ようすが出ます。○＝1回で正解。赤：60%未満　黄：60〜79%　緑：80%以上</div>
             <table className="t"><thead><tr><th>名前</th><th>Lv</th><th>コイン</th><th>クリア</th><th>問題数</th><th>1回で正解</th><th>まちがい</th><th>ヒント</th><th>多いまちがい</th><th>最後の日</th></tr></thead>
               <tbody>{data.students.map(s => { const p = parseProgress(s.progress);
                 return <React.Fragment key={s.name}>
@@ -1260,7 +1406,9 @@
                     {MADE_STEPS.filter(x => madeOf(p, x.id).length).map(x => <div key={x.id} style={{ display: 'flex', alignItems: 'center', gap: '.6rem', padding: '.3rem 0', borderTop: '1px solid #e2e8f0' }}>
                       <div style={{ width: '13rem', flex: 'none' }}>{x.id}　{yomi(x.n)}</div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.3rem' }}>{madeOf(p, x.id).map((m, i) => <MadeSvg key={i} m={m} size={64} />)}</div></div>)}
-                    {!MADE_STEPS.some(x => madeOf(p, x.id).length) && <div style={{ color: '#64748b' }}>まだ ありません（v1.2.0 にしてから作った形が、のります）</div>}</td></tr>}
+                    {!MADE_STEPS.some(x => madeOf(p, x.id).length) && <div style={{ color: '#64748b' }}>まだ ありません（v1.2.0 にしてから作った形が、のります）</div>}
+                    <div style={{ fontWeight: 700, margin: '.8rem 0 .3rem' }}>📘 きょうしつ（へん・ちょう点）</div>
+                    {(() => { const k = kyoOf(p); return k.seen || k.n ? <div>さいごまで見た回数：{k.n}回　／　最後に見た日：{k.d || '—'}　／　まちがい：{top(k.miss, 6) || 'なし'}</div> : <div style={{ color: '#64748b' }}>まだ 見ていません</div>; })()}</td></tr>}
                 </React.Fragment>; })}</tbody></table>
             <div style={{ marginTop: '.8rem', color: '#475569' }}>「全部開く」「コインを足す」は、「⚙ 設定」の「ひとりずつの設定」にうつりました。</div>
             <div style={{ marginTop: '.4rem' }}>学級全体で多いまちがい：{top(data.classKinds, 6) || 'まだ ありません'}</div>
@@ -1342,6 +1490,7 @@
       if (view === 'shop') return <Shop p={p} onProgress={onProgress} back={() => setView('map')} />;
       if (view === 'zukan') return <Zukan p={p} back={() => setView('map')} />;
       if (view === 'album') return <Album p={p} back={() => { Speech.stop(); setView('map'); }} />;
+      if (view === 'kyo') return <Kyoshitsu p={p} onProgress={onProgress} back={() => setView('map')} />;
       return <MapScreen name={name} p={p} settings={settings} go={(v) => { Speech.stop(); if (v === 'names') { setP(null); loadInit(); } setView(v); }} onStep={(id) => { Sound.tap(); setStepId(id); setView('battle'); }} />;
     }
     ReactDOM.createRoot(document.getElementById('root')).render(<App />);
