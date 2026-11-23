@@ -68,6 +68,10 @@
   .points { display:grid; gap:.45rem; margin:.6rem auto 0; max-width:46rem; padding:0; list-style:none; }
   .points li { background:#fff; border:.14rem solid var(--line); border-radius:.9rem; padding:.45rem .8rem; font-size:1.4rem; font-weight:700; display:flex; gap:.6rem; align-items:center; }
   .points li b { display:grid; place-items:center; flex:none; width:2.1rem; height:2.1rem; border-radius:50%; background:var(--ai); color:#fff; }
+  .card.side { display:flex; gap:1rem; align-items:center; justify-content:center; }
+  .card.side .pic { margin:0; flex:0 1 auto; }
+  .card.side .points { margin:0; flex:1 1 18rem; max-width:30rem; }
+  @media (max-width:800px) { .card.side { flex-direction:column; } }
   .three { display:grid; grid-template-columns:repeat(3,1fr); gap:.6rem; }
   .three figure { margin:0; background:#fff; border:.14rem solid var(--line); border-radius:1rem; padding:.4rem; text-align:center; }
   .three img { width:100%; max-height:36vh; object-fit:contain; }
@@ -372,13 +376,13 @@ const JUNBI = [
     tags: [['おてほん', 13, 88], ['ぶんちん', 48, 13], ['かみ（はんし）', 48, 55], ['したじき', 48, 93], ['おおふで', 67, 11], ['こふで', 77, 95], ['すみ', 90, 3], ['すずり', 91, 97]] },
   { title: 'すわりかた', img: 'shisei.jpg', say: 'しせいを ととのえよう。',
     pts: ['せなかを ぴん', 'あしは ゆかに ぺったん', 'おなかと つくえの あいだは グー ひとつ', 'ひだりてで かみを おさえる'] },
-  { title: 'ふでの もちかた', img: 'mochikata.jpg', say: 'ふでを もとう。ふでは まっすぐ たてるよ。',
-    pts: ['ふでは まっすぐ たてる', 'おやゆびと ゆび ２ほんで もつ', 'ひじを すこし あげる'] }
+  { title: 'ふでの もちかた', img: 'mochikata.jpg', say: 'ふでを もとう。えんぴつと おなじ もちかたで、ふでを まっすぐ たてるよ。',
+    pts: ['おやゆびと ひとさしゆびで もつ', 'なかゆびで うしろから ささえる', 'ふでは まっすぐ たてる', 'ひじを すこし あげる'] }
 ];
 function junbi(m) {
   const J = JUNBI[ui.sub];
   m.innerHTML = talk(J.say) + segHtml(JUNBI.map((j, i) => ({ id: i, label: (i + 1) + '　' + j.title })), ui.sub, 'sub') +
-    '<div class="card"><div class="pic"><img src="images/' + J.img + '" alt="' + J.title + '">' +
+    '<div class="card' + (J.pts ? ' side' : '') + '"><div class="pic"><img src="images/' + J.img + '" alt="' + J.title + '">' +
     (J.tags || []).map(t => '<span class="tag" style="left:' + t[1] + '%;top:' + t[2] + '%">' + t[0] + '</span>').join('') + '</div>' +
     (J.pts ? '<ul class="points">' + J.pts.map((p, i) => '<li><b>' + (i + 1) + '</b>' + p + '</li>').join('') + '</ul>' : '') + '</div>';
   m.querySelectorAll('[data-sub]').forEach(b => b.onclick = () => { ui.sub = +b.dataset.sub; render(); });
