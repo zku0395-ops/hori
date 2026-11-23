@@ -46,7 +46,7 @@ const ctx = {
 };
 vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'コード.gs'), 'utf8'), ctx);
-vm.runInContext('function SAMPLE_TEXTS_FOR_TEST() { return SAMPLE_TEXTS; } function OLD_S1_ANS_FOR_TEST() { return OLD_S1_ANS; } function OLD_S1_ANS_2_FOR_TEST() { return OLD_S1_ANS_2; } function OLD_S1_3_FOR_TEST() { return [OLD_S1_BODY, OLD_S1_ANS_3]; }', ctx); // const は 外から 見えないので、テスト用に 取り出す
+vm.runInContext('function SAMPLE_TEXTS_FOR_TEST() { return SAMPLE_TEXTS; } function OLD_S2_FOR_TEST() { return [OLD_S2_BODY, OLD_S2_QS, OLD_S2_ANS]; } function OLD_S1_ANS_FOR_TEST() { return OLD_S1_ANS; } function OLD_S1_ANS_2_FOR_TEST() { return OLD_S1_ANS_2; } function OLD_S1_3_FOR_TEST() { return [OLD_S1_BODY, OLD_S1_ANS_3]; }', ctx); // const は 外から 見えないので、テスト用に 取り出す
 
 let bad = 0;
 const ok = (c, msg) => { console.log((c ? '✔ ' : '✖ ') + msg); if (!c) bad++; };
@@ -171,6 +171,24 @@ ok(ctx.restoreBackup('0420', { app: 'ほか' }).ok === false, 'ほかの アプ�
   ok(JSON.parse(ctx.getInitData().texts.find(t => t.id === 's1').ans).flow.on === true, 'アプリに 型つきの 文章が とどく');
   sh.data[row] = sh.data[row].map(() => ''); const n = sh.getLastRow(); ctx.resetSample();
   ok(find() >= 0 && sh.data.filter(r => r[0] === 's1').length === 1 && JSON.stringify(sh.data[find()]) === JSON.stringify(S), '「くもの ぼうし」が ない ときは、足す');
+}
+// だんごむしの ひみつ：せつめいぶんの 型
+{
+  const sh = sheets['ぶんしょう'], S = ctx.SAMPLE_TEXTS_FOR_TEST()[1], [OB, OQ, OA] = ctx.OLD_S2_FOR_TEST(), find = () => sh.data.findIndex(r => r[0] === 's2');
+  const A = JSON.parse(S[10]);
+  ok(S[0] === 's2' && A.flow.on === true && A.n === 31 && A.cats.toi.join() === '5,6,7,8,20,21,22' && A.cats.kotae.join() === '9,10,11,12,13,14,15,16,17,18,19,23,24,25', 'だんごむしに せつめいぶんの 型と、とい・こたえの 印が 入って いる');
+  ok(S[4].includes('まもる ことが できます。') && S[5] === '「とい」の ぶんを ２つ みつけよう。' && S[6] === '「こたえ」の ぶんを みつけよう。', '本文と といの ことばが 新しい');
+  const old = () => ['s2', S[1], S[2], S[3], OB].concat(OQ, [OA]);
+  let row = find(); const s1 = JSON.stringify(sh.data.find(r => r[0] === 's1'));
+  sh.data[row] = old(); ctx.doGet();
+  ok(JSON.stringify(sh.data[row]) === JSON.stringify(S), 'はじめの ままの「だんごむし」は、自動で 新しく なる');
+  ok(JSON.stringify(sh.data.find(r => r[0] === 's1')) === s1, 'くもの ぼうしは 変わらない');
+  sh.data[row] = old(); sh.data[row][5] = '先生の とい'; ctx.doGet();
+  ok(sh.data[row][4] === OB && sh.data[row][5] === '先生の とい', '先生が といを 直して いたら、入れかえない');
+  ctx.onOpen(); ok(menu.includes('resetSample2'), 'メニューに「だんごむし」の 入れ直しが ある');
+  uiAnswer = 'cancel'; ctx.resetSample2(); ok(sh.data[row][5] === '先生の とい', '「キャンセル」なら 何も 変えない');
+  uiAnswer = 'ok'; ctx.resetSample2();
+  ok(JSON.stringify(sh.data[row]) === JSON.stringify(S) && JSON.stringify(sh.data.find(r => r[0] === 's1')) === s1, '「OK」で、だんごむしだけが 新しい れいに 入れかわる');
 }
 
 console.log(bad ? `\n✖ ${bad}こ しっぱい` : '\n✔ ぜんぶ OK');

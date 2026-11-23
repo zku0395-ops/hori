@@ -29,9 +29,9 @@ const SAMPLE_TEXTS = [
     'とうじょうじんぶつに、あかい せんを ひこう。', 'ポルの きもちが わかる ぶんを、こくばんに はろう。', 'ぼうしは、だれの ものだったかな。じぶんの ことばで かこう。', '', '',
     '{"th":"2042149167","n":42,"q":[{"u":[],"k":"jinbutsu","hint":true,"check":true,"c":"r"},{"u":[15,16,17,36,37,38,39,40,41],"k":"","hint":true,"check":true,"c":""},{"u":[],"k":"","hint":true,"check":true,"c":""}],"cats":{"hatsugen":[7,8,12,13,14,33,34,35],"jinbutsu":[2,10,28],"toki":[0,18,19],"basho":[3,24],"kimochi":[16,17,37,38],"yosu":[39,40,41],"ono":[23]},"fm":{"yosu:39":["うれしい","ありがとうの きもち"],"kimochi:16":["こまった"],"kimochi:37":["うれしい"]},"custom":[],"heads":["toki","basho","jinbutsu"],"para":[0,9,18],"paraShow":true,"words":["こまった","ふしぎ","びっくり","うれしい","ほっと した"],"flow":{"on":true,"who":"ポル","off":[],"sp":{"7":"ポル","12":"りす","33":"くも、雲"},"quiz":[{"q":"「だれの ぼうしかな。」と いったのは、だれかな？","o":["ポル","りす","くも"]},{"q":"いつの はなしかな？","o":["あさ","ひる","よる"]},{"q":"さいごの ポルは、どんな きもちかな？","o":["うれしい","こまった","かなしい"]},{"q":"「ポルは、うれしく なって、大（おお）きく 手（て）を ふりました。」のは、なぜかな？","o":["くもが「ありがとう。」と いったから","りすが ぼうしを もらって くれたから","かぜが つよく ふいたから"],"w":true}]}}'],
   ['s2', 'だんごむしの ひみつ', 'せつめいぶん', '○',
-    'だんごむしは、石（いし）や おちばの 下（した）に います。\n\nだんごむしは、どうして まるく なるのでしょうか。\nてきに おそわれると、からだを まるく します。\nかたい せなかで、やわらかい おなかを まもるのです。\n\nだんごむしは、何（なに）を たべるのでしょうか。\nだんごむしは、おちばを たべます。\nたべた おちばは、土（つち）の えいように なります。',
-    '「とい」の ぶんに、あおい せんを ひこう。', '「こたえ」の ぶんに、あかい せんを ひこう。', 'わかった ことを、こくばんに まとめよう。', '', '',
-    '{"th":"152608060","n":30,"q":[{"u":[],"k":"toi","hint":true,"check":true,"c":"b"},{"u":[],"k":"kotae","hint":true,"check":true,"c":"r"},{"u":[],"k":"","hint":true,"check":true,"c":""}],"cats":{"toi":[5,6,7,8,19,20,21],"kotae":[9,10,11,12,13,22,23,24]},"custom":[],"heads":["toi","kotae"],"para":[0,5,19],"paraShow":true,"words":[]}'],
+    'だんごむしは、石（いし）や おちばの 下（した）に います。\n\nだんごむしは、どうして まるく なるのでしょうか。\nだんごむしは、てきに おそわれると、からだを まるく して、やわらかい おなかを まもる ことが できます。\n\nだんごむしは、何（なに）を たべるのでしょうか。\nだんごむしは、おちばを たべます。\nたべた おちばは、土（つち）の えいように なります。',
+    '「とい」の ぶんを ２つ みつけよう。', '「こたえ」の ぶんを みつけよう。', 'わかった ことを、こくばんに まとめよう。', '', '',
+    '{"th":"-1858911988","n":31,"q":[{"u":[],"k":"toi","hint":true,"check":true,"c":"b"},{"u":[],"k":"kotae","hint":true,"check":true,"c":"r"},{"u":[],"k":"","hint":true,"check":true,"c":""}],"cats":{"toi":[5,6,7,8,20,21,22],"kotae":[9,10,11,12,13,14,15,16,17,18,19,23,24,25]},"custom":[],"heads":["toi","kotae"],"para":[0,5,20],"paraShow":true,"words":[],"flow":{"on":true,"who":"","off":[],"sp":{},"quiz":[]}}'],
 ];
 
 // 前の 版の「くもの ぼうし」の こたえ（ものがたりの 型が 入る 前）。先生が 何も 直して いない ときだけ、新しい ものに 入れかえる
@@ -41,6 +41,10 @@ const OLD_S1_ANS_2 = '{"th":"-1907463431","n":40,"q":[{"u":[],"k":"jinbutsu","hi
 // 「ありがとう。さがして いたんだ。」に 変える 前の 本文と こたえ（かくにん もんだい 4問）
 const OLD_S1_BODY = 'あさ、こぐまの ポルは、のはらで 白（しろ）い ぼうしを ひろいました。\n「だれの ぼうしかな。」\n\nポルは、りすに ききました。\n「ううん、ぼくのじゃ ないよ。」\nポルは、こまって しまいました。\n\nその とき、風（かぜ）が ふいて、ぼうしは ふわりと 空（そら）へ とんで いきました。\n小（ちい）さな 雲（くも）が、ぼうしを かぶって わらって います。\n「ありがとう。」\nポルは、うれしく なって、大（おお）きく 手（て）を ふりました。';
 const OLD_S1_ANS_3 = '{"th":"-1907463431","n":40,"q":[{"u":[],"k":"jinbutsu","hint":true,"check":true,"c":"r"},{"u":[15,16,17,34,35,36,37,38,39],"k":"","hint":true,"check":true,"c":""},{"u":[],"k":"","hint":true,"check":true,"c":""}],"cats":{"hatsugen":[7,8,12,13,14,33],"jinbutsu":[2,10,28],"toki":[0,18,19],"basho":[3,24],"kimochi":[16,17,35,36],"yosu":[37,38,39],"ono":[23]},"fm":{"yosu:37":["うれしい","ありがとうの きもち"],"kimochi:16":["こまった"],"kimochi:35":["うれしい"]},"custom":[],"heads":["toki","basho","jinbutsu"],"para":[0,9,18],"paraShow":true,"words":["こまった","ふしぎ","びっくり","うれしい","ほっと した"],"flow":{"on":true,"who":"ポル","off":[],"sp":{"7":"ポル","12":"りす","33":"くも、雲"},"quiz":[{"q":"「だれの ぼうしかな。」と いったのは、だれかな？","o":["ポル","りす","くも"]},{"q":"いつの はなしかな？","o":["あさ","ひる","よる"]},{"q":"さいごの ポルは、どんな きもちかな？","o":["うれしい","こまった","かなしい"]},{"q":"「ポルは、うれしく なって、大（おお）きく 手（て）を ふりました。」のは、なぜかな？","o":["くもが「ありがとう。」と いったから","りすが ぼうしを もらって くれたから","かぜが つよく ふいたから"],"w":true}]}}';
+// 「せつめいぶんの 型」を 入れる 前の「だんごむしの ひみつ」（本文・とい・こたえ）
+const OLD_S2_BODY = 'だんごむしは、石（いし）や おちばの 下（した）に います。\n\nだんごむしは、どうして まるく なるのでしょうか。\nてきに おそわれると、からだを まるく します。\nかたい せなかで、やわらかい おなかを まもるのです。\n\nだんごむしは、何（なに）を たべるのでしょうか。\nだんごむしは、おちばを たべます。\nたべた おちばは、土（つち）の えいように なります。';
+const OLD_S2_QS = ['「とい」の ぶんに、あおい せんを ひこう。', '「こたえ」の ぶんに、あかい せんを ひこう。', 'わかった ことを、こくばんに まとめよう。', '', ''];
+const OLD_S2_ANS = '{"th":"152608060","n":30,"q":[{"u":[],"k":"toi","hint":true,"check":true,"c":"b"},{"u":[],"k":"kotae","hint":true,"check":true,"c":"r"},{"u":[],"k":"","hint":true,"check":true,"c":""}],"cats":{"toi":[5,6,7,8,19,20,21],"kotae":[9,10,11,12,13,22,23,24]},"custom":[],"heads":["toi","kotae"],"para":[0,5,19],"paraShow":true,"words":[]}';
 
 // ---------------------------------------------------------------------
 // 画面を表示する
@@ -59,6 +63,7 @@ function onOpen() {
     .createMenu('マイこくばん')
     .addItem('シートを準備する', 'setup')
     .addItem('「くもの ぼうし」を 新しい れいに 入れ直す', 'resetSample')
+    .addItem('「だんごむしの ひみつ」を 新しい れいに 入れ直す', 'resetSample2')
     .addToUi();
 }
 
@@ -132,12 +137,15 @@ function upgradeSample_(sh) {
   const values = sh.getRange(2, 1, last - 1, TEXT_HEADER.length).getValues();
   for (let i = 0; i < values.length; i++) {
     const r = values[i];
+    if (String(r[0]) === 's2') { // だんごむしの ひみつ：本文・とい・こたえが はじめの ままの ときだけ、せつめいぶんの 型に する
+      if (String(r[4]) === OLD_S2_BODY && String(r[ANS_COL - 1]) === OLD_S2_ANS && OLD_S2_QS.every((q, j) => String(r[5 + j]) === q)) sh.getRange(i + 2, 1, 1, TEXT_HEADER.length).setValues([SAMPLE_TEXTS[1]]);
+      continue;
+    }
     if (String(r[0]) !== 's1') continue;
     // 本文も こたえも、前の 版の どれかと 同じ（＝先生が 直して いない）ときだけ、行を まるごと 新しい ものに する
     const body = String(r[4]), ans = String(r[ANS_COL - 1]);
     const oldAns = [OLD_S1_ANS, OLD_S1_ANS_2, OLD_S1_ANS_3].indexOf(ans) >= 0;
     if ((body === OLD_S1_BODY && oldAns) || (body === SAMPLE_TEXTS[0][4] && oldAns)) sh.getRange(i + 2, 1, 1, TEXT_HEADER.length).setValues([SAMPLE_TEXTS[0]]);
-    return;
   }
 }
 
@@ -152,7 +160,18 @@ function resetSample() {
   resetSample_();
   ss_().toast('「くもの ぼうし」を 入れ直しました。アプリを 開き直して ください。');
 }
-function resetSample_() {
+// メニュー：「だんごむしの ひみつ」を、新しい れんしゅう用の 形（せつめいぶんの 型）に 入れ直す
+function resetSample2() {
+  const ui = SpreadsheetApp.getUi();
+  const res = ui.alert('「だんごむしの ひみつ」を 入れ直します',
+    '先生が 直した「だんごむしの ひみつ」の 本文・とい・こたえは 消えて、新しい れんしゅう用の 形（せつめいぶんの 型）に なります。\n\n' +
+    '子どもの きろくと こくばんは 残ります。本文が 変わるので、その子が ひいた せんだけ 消えます。\n\n入れ直しますか？', ui.ButtonSet.OK_CANCEL);
+  if (res !== ui.Button.OK) return;
+  resetSample_(1);
+  ss_().toast('「だんごむしの ひみつ」を 入れ直しました。アプリを 開き直して ください。');
+}
+function resetSample_(n) {
+  const S = SAMPLE_TEXTS[n || 0];
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
@@ -161,9 +180,9 @@ function resetSample_() {
     let row = 0;
     if (last >= 2) {
       const ids = sh.getRange(2, 1, last - 1, 1).getValues();
-      for (let i = 0; i < ids.length; i++) if (String(ids[i][0]) === 's1') { row = i + 2; break; }
+      for (let i = 0; i < ids.length; i++) if (String(ids[i][0]) === S[0]) { row = i + 2; break; }
     }
-    sh.getRange(row || Math.max(2, last + 1), 1, 1, TEXT_HEADER.length).setValues([SAMPLE_TEXTS[0]]); // ない ときは、いちばん 下に 足す
+    sh.getRange(row || Math.max(2, last + 1), 1, 1, TEXT_HEADER.length).setValues([S]); // ない ときは、いちばん 下に 足す
     return { ok: true, added: !row };
   } finally {
     lock.releaseLock();

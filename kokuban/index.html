@@ -189,7 +189,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, useCallback } = React;
-    const APP_VERSION = '1.5.3';
+    const APP_VERSION = '1.6.0';
 
     // =====================================================================
     //  1. 小さな道具
@@ -372,27 +372,45 @@
       { key: 'kimochi', head: '💗 きもち', cats: ['kimochi', 'yosu'], q: (who) => `${who || 'とうじょうじんぶつ'}の きもちが わかる ぶんや ことばを こくばんに はろう。` },
       { key: 'ono', head: '🎵 オノマトペ', cats: ['ono'], q: () => 'オノマトペを こくばんに はろう。' },
     ];
-    const FLOW_LABELS = {}; FLOW.forEach(s => { if (s.head) FLOW_LABELS['f_' + s.key] = s.head; });
+    // ---- せつめいぶんの 型：「とい」の 文を 見つける → 「とい」1つずつ、その「こたえ」の 文を 見つける → まとめる ----
+    //  こたえ ＝ その「とい」の あと、次の「とい」までに ある「こたえ」の 印。ふせんは、その「とい」の 下に ならぶ
+    const FLOW_E = [
+      { key: 'toi', head: '❓「とい」の ぶん', say: '「とい」の ぶんを ○つ みつけよう。' },
+      { key: 'kotae', head: '💡「こたえ」の ぶん', say: '「（といの 文）」の こたえを みつけよう。（「とい」1つずつ 聞きます）' },
+      { key: 'matome', head: '', say: 'わかった ことを、こくばんに まとめよう。' },
+    ];
+    const FLOW_LABELS = {}; FLOW.concat(FLOW_E).forEach(s => { if (s.head) FLOW_LABELS['f_' + s.key] = s.head; });
     const emptyFlow = () => ({ on: false, who: '', off: [], sp: {}, quiz: [0, 1, 2, 3].map(() => ({ q: '', o: ['', '', ''], w: false })) });
     function parseFlow(f, ok) {
       const out = emptyFlow(); if (!f || typeof f !== 'object') return out;
       out.on = f.on === true; out.who = String(f.who || '').slice(0, 20);
-      out.off = Array.isArray(f.off) ? f.off.map(String).filter(k => FLOW.some(s => s.key === k)) : [];
+      out.off = Array.isArray(f.off) ? f.off.map(String).filter(k => FLOW.concat(FLOW_E).some(s => s.key === k)) : [];
       if (ok && f.sp && typeof f.sp === 'object') Object.keys(f.sp).forEach(k => { const v = String(f.sp[k] || '').trim().slice(0, 40); if (v) out.sp[k] = v; });
       if (Array.isArray(f.quiz)) out.quiz = out.quiz.map((e, i) => { const q = f.quiz[i]; return q && typeof q === 'object' ? { q: String(q.q || '').slice(0, 100), o: [0, 1, 2].map(j => String(Array.isArray(q.o) && q.o[j] || '').slice(0, 30)), w: q.w === true } : e; });
       return out;
     }
     // 子どもの 画面に 出す 発問（型を 使わない ときは null）
-    function flowSteps(a, kind) {
-      const f = a.flow; if (!f || !f.on || kind === 'せつめいぶん') return null;
+    function flowSteps(a, kind, doc) {
+      const f = a.flow; if (!f || !f.on) return null;
       const off = new Set(f.off); if (off.has('hatsugen')) off.add('dare');
-      const steps = FLOW.filter(s => !off.has(s.key)).map(s => {
+      const steps = kind === 'せつめいぶん' ? flowStepsE(a, off, doc) : FLOW.filter(s => !off.has(s.key)).map(s => {
         const u = [...new Set(s.cats.flatMap(c => a.cats[c] || []))].sort((x, y) => x - y);
         return { key: s.key, head: s.head ? 'f_' + s.key : '', q: s.q(f.who), u, hint: u.length > 0, check: u.length > 0 || s.key === 'dare', c: '' };
       });
       const quiz = f.quiz.filter(q => q.q.trim() && q.o.every(o => o.trim()));
       if (quiz.length) steps.push({ key: 'quiz', head: '', q: 'さいごに、かくにん もんだいに こたえよう。', u: [], quiz });
       return steps.length ? steps : null;
+    }
+    function flowStepsE(a, off, doc) {
+      const steps = [], tu = a.cats.toi || [], ku = a.cats.kotae || [], tr = runsOf(tu), zen = (n) => n < 10 ? '０１２３４５６７８９'[n] : String(n);
+      const st = (key, head, q, u, fc) => ({ key, g: key, head, q, u, hint: u.length > 0, check: u.length > 0, c: '', fc });
+      if (!off.has('toi')) steps.push(st('toi', 'f_toi', tr.length ? '「とい」の ぶんを ' + zen(tr.length) + 'つ みつけよう。' : '「とい」の ぶんを みつけよう。', tu, 'b'));
+      if (!off.has('kotae')) {
+        if (!tr.length) steps.push(st('kotae0', 'f_kotae', '「こたえ」の ぶんを みつけよう。', ku, 'p'));
+        tr.forEach((r, i) => { const end = tr[i + 1] ? tr[i + 1][0] : Infinity; steps.push(st('kotae' + i, 'f_kotae', '「' + (doc ? joinUnits(doc, r[0], r[1], 'src').trim() : 'とい') + '」の こたえを みつけよう。', ku.filter(k => k > r[1] && k < end), 'p')); });
+      }
+      if (!off.has('matome')) steps.push(st('matome', '', 'わかった ことを、こくばんに まとめよう。', [], ''));
+      return steps;
     }
     const nameList = (s) => String(s || '').split(/[、,，\/／・]/).map(x => x.trim()).filter(String);
     // その 文章で 使う しゅるい（文章の しゅるいに 合う もの・印の ある もの・先生が 足した もの）
@@ -516,9 +534,9 @@
         qs: ['とうじょうじんぶつに、あかい せんを ひこう。', 'ポルの きもちが わかる ぶんを、こくばんに はろう。', 'ぼうしは、だれの ものだったかな。じぶんの ことばで かこう。'],
         ans: '{"th":"2042149167","n":42,"q":[{"u":[],"k":"jinbutsu","hint":true,"check":true,"c":"r"},{"u":[15,16,17,36,37,38,39,40,41],"k":"","hint":true,"check":true,"c":""},{"u":[],"k":"","hint":true,"check":true,"c":""}],"cats":{"hatsugen":[7,8,12,13,14,33,34,35],"jinbutsu":[2,10,28],"toki":[0,18,19],"basho":[3,24],"kimochi":[16,17,37,38],"yosu":[39,40,41],"ono":[23]},"fm":{"yosu:39":["うれしい","ありがとうの きもち"],"kimochi:16":["こまった"],"kimochi:37":["うれしい"]},"custom":[],"heads":["toki","basho","jinbutsu"],"para":[0,9,18],"paraShow":true,"words":["こまった","ふしぎ","びっくり","うれしい","ほっと した"],"flow":{"on":true,"who":"ポル","off":[],"sp":{"7":"ポル","12":"りす","33":"くも、雲"},"quiz":[{"q":"「だれの ぼうしかな。」と いったのは、だれかな？","o":["ポル","りす","くも"]},{"q":"いつの はなしかな？","o":["あさ","ひる","よる"]},{"q":"さいごの ポルは、どんな きもちかな？","o":["うれしい","こまった","かなしい"]},{"q":"「ポルは、うれしく なって、大（おお）きく 手（て）を ふりました。」のは、なぜかな？","o":["くもが「ありがとう。」と いったから","りすが ぼうしを もらって くれたから","かぜが つよく ふいたから"],"w":true}]}}' },
       { id: 's2', title: 'だんごむしの ひみつ', kind: 'せつめいぶん', use: true,
-        body: 'だんごむしは、石（いし）や おちばの 下（した）に います。\n\nだんごむしは、どうして まるく なるのでしょうか。\nてきに おそわれると、からだを まるく します。\nかたい せなかで、やわらかい おなかを まもるのです。\n\nだんごむしは、何（なに）を たべるのでしょうか。\nだんごむしは、おちばを たべます。\nたべた おちばは、土（つち）の えいように なります。',
-        qs: ['「とい」の ぶんに、あおい せんを ひこう。', '「こたえ」の ぶんに、あかい せんを ひこう。', 'わかった ことを、こくばんに まとめよう。'],
-        ans: '{"th":"152608060","n":30,"q":[{"u":[],"k":"toi","hint":true,"check":true,"c":"b"},{"u":[],"k":"kotae","hint":true,"check":true,"c":"r"},{"u":[],"k":"","hint":true,"check":true,"c":""}],"cats":{"toi":[5,6,7,8,19,20,21],"kotae":[9,10,11,12,13,22,23,24]},"custom":[],"heads":["toi","kotae"],"para":[0,5,19],"paraShow":true,"words":[]}' },
+        body: 'だんごむしは、石（いし）や おちばの 下（した）に います。\n\nだんごむしは、どうして まるく なるのでしょうか。\nだんごむしは、てきに おそわれると、からだを まるく して、やわらかい おなかを まもる ことが できます。\n\nだんごむしは、何（なに）を たべるのでしょうか。\nだんごむしは、おちばを たべます。\nたべた おちばは、土（つち）の えいように なります。',
+        qs: ['「とい」の ぶんを ２つ みつけよう。', '「こたえ」の ぶんを みつけよう。', 'わかった ことを、こくばんに まとめよう。'],
+        ans: '{"th":"-1858911988","n":31,"q":[{"u":[],"k":"toi","hint":true,"check":true,"c":"b"},{"u":[],"k":"kotae","hint":true,"check":true,"c":"r"},{"u":[],"k":"","hint":true,"check":true,"c":""}],"cats":{"toi":[5,6,7,8,20,21,22],"kotae":[9,10,11,12,13,14,15,16,17,18,19,23,24,25]},"custom":[],"heads":["toi","kotae"],"para":[0,5,20],"paraShow":true,"words":[],"flow":{"on":true,"who":"","off":[],"sp":{},"quiz":[]}}' },
     ];
     const DEMO_KEY = 'kokuban_demo';
     const demo = {
@@ -709,6 +727,7 @@
       const per = Math.max(1, Math.floor(330 / fs)); return { w: Math.max(60, Math.min(n, per) * fs + 30), h: Math.ceil(n / per) * line + 26 };
     }
     function flowLayout(items, sizes) { // sizes ＝ 画面で はかった ふせんの 幅（ない ときは 文字数から 見つもる）
+      if (items.some(i => (i.t === 'h' && (i.k === 'f_toi' || i.k === 'f_kotae')) || (i.t === 'f' && i.g === 'matome'))) return flowLayoutE(items, sizes);
       const wOf = (it) => sizes && sizes[it.id] ? sizes[it.id] : fusenSize(it).w;
       const pos = {}, L = 10, R = BW - 6, HW = 58; let band = 0, x = L;
       const wrap = () => { if (band < FLOW_BANDS.length - 1) { band++; x = L; } };
@@ -723,9 +742,29 @@
         group.forEach(it => { const w = wOf(it); if (x + w > R && x > L + HW + 8) wrap(); pos[it.id] = { x: Math.max(0, Math.min(x, BW - w)), y: FLOW_BANDS[band] + (s.key === 'hatsugen' ? FLOW_SP : 0) }; x += w + 8; });
         x += 12;
       });
+      return placeItems(items, pos);
+    }
+    function placeItems(items, pos) {
       let changed = false;
       const out = items.map(i => { const p = pos[i.id]; if (!p || (i.x === p.x && i.y === p.y)) return i; changed = true; return Object.assign({}, i, p); });
       return changed ? out : items;
+    }
+    // せつめいぶんの 型：上の だん ＝「とい」、下の だん ＝「こたえ」。こたえは、その「とい」の ま下に ならぶ。まとめは その 右
+    function flowLayoutE(items, sizes) {
+      const wOf = (it) => sizes && sizes[it.id] ? sizes[it.id] : fusenSize(it).w;
+      const pos = {}, L = 10, R = BW - 6, HW = 58, fs = items.filter(i => i.t === 'f' && i.au), tois = fs.filter(i => i.g === 'toi');
+      items.forEach(i => { if (i.t === 'h' && i.au && (i.k === 'f_toi' || i.k === 'f_kotae')) pos[i.id] = { x: L, y: FLOW_BANDS[i.k === 'f_toi' ? 0 : 1] }; });
+      const kn = (i) => /^kotae\d+$/.test(i.g || '') ? Number(i.g.slice(5)) : -1;
+      const n = Math.max(-1, ...tois.map(i => i.gn >= 0 ? i.gn : -1), ...fs.map(kn)) + 1;
+      let x = L + HW + 8;
+      const row = (list, y) => { let xx = x; list.forEach(it => { const w = wOf(it); pos[it.id] = { x: Math.max(0, Math.min(xx, BW - w)), y }; xx += w + 8; }); return xx - x; };
+      for (let k = 0; k <= n; k++) { // k === n：どの「とい」でも ない ふせん
+        const top = tois.filter(i => k < n ? i.gn === k : !(i.gn >= 0)), bot = k < n ? fs.filter(i => kn(i) === k) : [];
+        if (top.length || bot.length) x += Math.max(row(top, FLOW_BANDS[0]), row(bot, FLOW_BANDS[1])) + 12;
+      }
+      const x0 = x; let band = 0;
+      fs.filter(i => i.g === 'matome').forEach(it => { const w = wOf(it); if (x + w > R && x > x0 && band < FLOW_BANDS.length - 1) { band++; x = x0; } pos[it.id] = { x: Math.max(0, Math.min(x, BW - w)), y: FLOW_BANDS[band] }; x += w + 8; });
+      return placeItems(items, pos);
     }
     function Board({ items, selId, readOnly, onSelect, onBegin, onPatch, labels, pickIds, onPick, fok, fmaybe, onSizes }) {
       const wrap = useRef(null), drag = useRef(null), sizeKey = useRef('');
@@ -887,7 +926,7 @@
       const ANS = useMemo(() => parseAns(text.ans, doc), [text.ans, doc]);
       const LABELS = useMemo(() => catLabels(text.kind, ANS), [ANS]);
       // ものがたりの 型（使わない ときは null）。使う ときは、先生が 入れた「とい」の かわりに、型の 発問を 出す
-      const FL = useMemo(() => flowSteps(ANS, text.kind), [ANS]);
+      const FL = useMemo(() => flowSteps(ANS, text.kind, doc), [ANS]);
       const qs = FL ? FL.map(s => s.q) : (text.qs || []);
       const step = FL ? FL[qi] || null : null;
       const QZ = FL && FL[FL.length - 1].key === 'quiz' ? FL[FL.length - 1].quiz : null;
@@ -935,7 +974,7 @@
       useEffect(() => { if (work) sayQ(); setChk(null); setQmsg(''); setAttach(null); }, [qi, !!work]);
       useEffect(() => { // 型：その 発問まで 進んだら、見出しを こくばんに 出す（前の 見出しと ふせんは のこる）
         if (!work || !FL) return;
-        const need = FL.slice(0, qi + 1).filter(s => s.head && !work.items.some(x => x.t === 'h' && x.k === s.head));
+        const need = [...new Set(FL.slice(0, qi + 1).map(s => s.head))].filter(h => h && !work.items.some(x => x.t === 'h' && x.k === h)).map(h => ({ head: h }));
         if (!need.length) return;
         const items = flowLayout(workRef.current.items.concat(need.map(s => ({ id: 'h_' + s.head, t: 'h', k: s.head, v: 1, au: 1, x: 0, y: 0 }))), sizesRef.current);
         const next = Object.assign({}, workRef.current, { items }); workRef.current = next; setWork(next);
@@ -1063,7 +1102,7 @@
       };
       const addItem = (it) => { const item = Object.assign({ id: uid() }, it); apply(Object.assign({}, workRef.current, { items: workRef.current.items.concat([item]) })); setSelId(item.id); sfx.put(); return item; };
       // 型：いまの 発問の 見出しの よこに、たて書きで ならべる
-      const grp = () => step && step.head ? { g: step.key, au: 1, v: true, mh: flowMaxH(step.key) } : FL ? { v: true } : {};
+      const grp = () => step && (step.head || step.g) ? { g: step.key, au: 1, v: true, mh: flowMaxH(step.key) } : FL ? { v: true } : {};
       // 型「だれが いったのかな」：えらんだ ことばを、ことば（はつげん）の ふせんの 上に はる
       const quoteIds = () => { const hs = ANS.cats.hatsugen || []; return workRef.current.items.filter(x => x.t === 'f' && (x.g === 'hatsugen' || (x.src && Array.isArray(x.u) && hs.some(i => i >= x.u[0] && i <= x.u[1])))).map(x => x.id); };
       const startAttach = (p) => {
@@ -1079,9 +1118,10 @@
       const pasteSel = () => {
         const txt = joinSel(doc, sel, 'src');
         if (step && step.key === 'dare') { startAttach({ text: txt, word: selWord }); setSel(null); return; }
-        const c = work.marks[sel.a], fc = { r: 'p', b: 'b', g: 'g', y: 'y' }[c] || 'w';
+        const c = work.marks[sel.a], fc = (step && step.fc) || { r: 'p', b: 'b', g: 'g', y: 'y' }[c] || 'w';
+        const gn = step && step.key === 'toi' ? runsOf(step.u).findIndex(r => r[0] <= sel.b && r[1] >= sel.a) : -1; // せつめいぶんの 型：何番めの「とい」か
         const fk = feelKey(sel.a, sel.b);
-        const item = addItem(Object.assign({ t: 'f', src: 1, u: [sel.a, sel.b], text: txt, c: fc, v: !!settings.vertical, z: 1 }, fk ? { fk } : {}, spot(), grp()));
+        const item = addItem(Object.assign({ t: 'f', src: 1, u: [sel.a, sel.b], text: txt, c: fc, v: !!settings.vertical, z: 1 }, fk ? { fk } : {}, spot(), grp(), gn >= 0 ? { gn } : {}));
         log('こくばんに はる', '', selWord);
         if (!award('paste')) say('📌', 'こくばんに はったよ');
         if (fk) openFeel(item.id, fk);
@@ -1541,7 +1581,7 @@
       const ANS = useMemo(() => parseAns(text.ans, doc), [text.ans, doc]);
       const cl = catList(text.kind, ANS), LABELS = catLabels(text.kind, ANS);
       // ものがたりの 型を 使う ときは、「とい」は 出ないので、しゅるいの 印だけを くらべる
-      const keys = (flowSteps(ANS, text.kind) ? [] : ANS.q.map((q, i) => q.u.length ? i : -1).filter(i => i >= 0)).concat(cl.filter(c => (ANS.cats[c.key] || []).length).map(c => c.key));
+      const keys = (flowSteps(ANS, text.kind, doc) ? [] : ANS.q.map((q, i) => q.u.length ? i : -1).filter(i => i >= 0)).concat(cl.filter(c => (ANS.cats[c.key] || []).length).map(c => c.key));
       const [aq, setAq] = useState(() => keys.length ? keys[0] : null);
       const ansOf = (k) => typeof k === 'string' ? { u: ANS.cats[k], c: '' } : ANS.q[k];
       const label = (k) => typeof k === 'string' ? LABELS[k] : 'とい' + (k + 1);
@@ -1617,7 +1657,7 @@
         return { q: [0, 1, 2, 3, 4].map(i => a.q[i] || emptyQ()), cats: a.cats, fm: a.fm, custom: a.custom, heads: a.heads, para: a.para, paraShow: a.paraShow, words: a.words, flow: a.flow, n: d0.units.length, stale: a.stale };
       });
       // ものがたりの 型
-      const fl = ans.flow, flowOn = fl.on && t.kind !== 'せつめいぶん';
+      const isE = t.kind === 'せつめいぶん', fl = ans.flow, flowOn = fl.on;
       const setFlow = (p) => setAns(a => Object.assign({}, a, { flow: Object.assign({}, a.flow, p) }));
       const setQuizQ = (i, p) => setFlow({ quiz: fl.quiz.map((q, j) => j === i ? Object.assign({}, q, p) : q) });
       const [target, setTarget] = useState(0); // 0〜4 = とい、'c:なまえ' = しゅるい、'para' = 意味段落
@@ -1710,20 +1750,25 @@
                 ・空白も ／も ない 行は、アプリが 自動で 区切ります。右の 点線の わくで 確かめて、合わない ところは「自動で 区切る」を 押してから ／を 足したり 消したり して ください。<br />
                 ・行を 変えると 段落が 変わります。空の 行で 間が あきます。
               </div>
-              {t.kind !== 'せつめいぶん' ? (
+              {true ? (
                 <div style={{ background: '#eef6ff', border: '2px solid #60a5fa', borderRadius: 10, padding: '.5rem .7rem', margin: '.6rem 0' }}>
-                  <label><input type="checkbox" checked={fl.on} onChange={e => setFlow({ on: e.target.checked })} /> <b>📘 ものがたりの 型を つかう</b></label>
+                  <label><input type="checkbox" checked={fl.on} onChange={e => setFlow({ on: e.target.checked })} /> <b>📘 {isE ? 'せつめいぶんの 型' : 'ものがたりの 型'}を つかう</b></label>
                   <div><small>発問が 順に 出て、こくばんに 見出し（たて書き）が 1つずつ 出ます。下の「とい（めあて）」の かわりに 使います。</small></div>
                   {fl.on ? <>
                     <div style={{ marginTop: '.5rem' }}><b>出す 発問</b>　<small>文章に ない ものは、チェックを 外します</small></div>
-                    {FLOW.map((s, i) => (
+                    {isE ? FLOW_E.map((s, i) => (
+                      <label key={s.key} className="row" style={{ flexWrap: 'nowrap', margin: '.15rem 0' }}>
+                        <input type="checkbox" checked={!fl.off.includes(s.key)} onChange={e => setFlow({ off: e.target.checked ? fl.off.filter(k => k !== s.key) : fl.off.concat([s.key]) })} />
+                        <span>{NUMS[i]} {s.say}{s.head ? <small>　→ 見出し「{s.head}」</small> : null}</span>
+                      </label>
+                    )) : FLOW.map((s, i) => (
                       <label key={s.key} className="row" style={{ flexWrap: 'nowrap', margin: '.15rem 0' }}>
                         <input type="checkbox" checked={!fl.off.includes(s.key) && !(s.key === 'dare' && fl.off.includes('hatsugen'))} disabled={s.key === 'dare' && fl.off.includes('hatsugen')}
                           onChange={e => setFlow({ off: e.target.checked ? fl.off.filter(k => k !== s.key) : fl.off.concat([s.key]) })} />
                         <span>{NUMS[i]} {s.q(fl.who || '○○')}{s.head ? <small>　→ 見出し「{s.head}」</small> : <small>　→ ことばの 上に はる</small>}</span>
                       </label>
                     ))}
-                    <label className="row" style={{ flexWrap: 'nowrap', marginTop: '.3rem' }}><span style={{ whiteSpace: 'nowrap' }}>きもちを 読み取る 人物（○○）</span><input type="text" style={{ width: '10rem' }} value={fl.who} maxLength={20} placeholder="例：ポル" onChange={e => setFlow({ who: e.target.value })} /></label>
+                    {isE ? null : <label className="row" style={{ flexWrap: 'nowrap', marginTop: '.3rem' }}><span style={{ whiteSpace: 'nowrap' }}>きもちを 読み取る 人物（○○）</span><input type="text" style={{ width: '10rem' }} value={fl.who} maxLength={20} placeholder="例：ポル" onChange={e => setFlow({ who: e.target.value })} /></label>}
                     <div style={{ marginTop: '.5rem' }}><b>📝 かくにん もんだい</b>　<small>4問まで。発問の あと、「できた！」の 前に 出ます。3つの 中から 選びます。空の 問題は 出ません</small></div>
                     {fl.quiz.map((q, i) => (
                       <div key={i} style={{ margin: '.3rem 0' }}>
@@ -1734,11 +1779,11 @@
                         <label><input type="checkbox" checked={!!q.w} onChange={e => setQuizQ(i, { w: e.target.checked })} /> <small>「✏️ じぶんで かく」も 出す（理由を 聞く 問題など。書いた ことばは、合って いる・ちがうを 決めずに 受け取ります）</small></label>
                       </div>
                     ))}
-                    <small>みどりの らんが 正しい 答えです。子どもの 画面では、3つの 順番が 毎回 入れかわります。発問の こたえ（印）と、だれが 言った ことばかは、② で 決めます。</small>
+                    <small>みどりの らんが 正しい 答えです。子どもの 画面では、3つの 順番が 毎回 入れかわります。発問の こたえ（印）{isE ? '' : 'と、だれが 言った ことばか'}は、② で 決めます。</small>
                   </> : null}
                 </div>
               ) : null}
-              <b>とい（めあて）</b>　<small>5つまで。空で かまいません。こたえは ② で 決めます{flowOn ? '。ものがたりの 型を 使う ときは、ここの といは 出ません' : ''}</small>
+              <b>とい（めあて）</b>　<small>5つまで。空で かまいません。こたえは ② で 決めます{flowOn ? '。型を 使う ときは、ここの といは 出ません' : ''}</small>
               {t.qs.map((q, i) => <input key={i} type="text" style={{ marginTop: '.3rem' }} value={q} placeholder={`とい${i + 1}`} onChange={e => set('qs', t.qs.map((x, j) => j === i ? e.target.value : x))} />)}
             </div>
             <div>
@@ -1794,7 +1839,12 @@
                 </div>
               ) : null}
 
-              {flowOn ? (
+              {flowOn && isE ? (
+                <div style={{ background: '#eef6ff', border: '2px solid #60a5fa', borderRadius: 10, padding: '.5rem .7rem', marginTop: '.8rem' }}>
+                  <b>📘 せつめいぶんの 型</b>
+                  <div><small>発問の こたえには、① の「❓ とい」と「💡 こたえ」の 印を 使います。「とい」の 文の あと、次の「とい」の 文までに ある「こたえ」の 印が、その「とい」の こたえに なります。印が ない 発問では、ヒントと たしかめるは 出ません。</small></div>
+                </div>
+              ) : flowOn ? (
                 <div style={{ background: '#eef6ff', border: '2px solid #60a5fa', borderRadius: 10, padding: '.5rem .7rem', marginTop: '.8rem' }}>
                   <b>📘 ものがたりの 型</b>
                   <div><small>発問の こたえには、① の 印を 使います（💬 ことば（はつげん）／🧑 とうじょうじんぶつ／🕐 とき／💗 きもちの ことば・🎭 きもちが わかる ようす／🎵 オノマトペ）。印が ない 発問では、ヒントと たしかめるは 出ません。</small></div>
@@ -1816,7 +1866,7 @@
               </label>
               <label><input type="checkbox" checked={ans.paraShow} onChange={e => setAns(a => Object.assign({}, a, { paraShow: e.target.checked }))} /> 子どもの 画面に、段落の 番号（①②③）を 出す</label>
 
-              <div style={{ marginTop: '.8rem' }}><b>④ こくばんに 出す 見出し</b>　<small>6つまで。選んだ 見出しが、はじめから こくばんに 並びます{flowOn ? '（ものがたりの 型を 使う ときは、型の 見出しだけが 出ます）' : ''}</small></div>
+              <div style={{ marginTop: '.8rem' }}><b>④ こくばんに 出す 見出し</b>　<small>6つまで。選んだ 見出しが、はじめから こくばんに 並びます{flowOn ? '（型を 使う ときは、型の 見出しだけが 出ます）' : ''}</small></div>
               <div>{cl.map(c => <button key={c.key} className={'chip' + (ans.heads.includes(c.key) ? ' on' : '')} style={ans.heads.includes(c.key) ? { background: '#bbf7d0', borderColor: '#15803d' } : null} onClick={() => toggleHead(c.key)}>{c.icon} {c.name}</button>)}</div>
 
               <div style={{ marginTop: '.8rem' }}><b>⑤ 💗 文章に ない きもちの ことば</b>　<small>子どもの こくばんの「💗 きもち」に 出ます</small></div>
@@ -1937,7 +1987,7 @@
                 <table style={{ marginTop: '.8rem', width: '100%' }}>
                   <thead><tr><th>だいめい</th><th>しゅるい</th><th>子どもに 見せる</th><th>とい</th><th>文字数</th><th></th></tr></thead>
                   <tbody>{d.texts.map(t => (
-                    <tr key={t.id}><td style={{ textAlign: 'left' }}>{plainOf(t.title)}</td><td>{t.kind}</td><td>{t.use !== false ? '○' : '×'}</td><td>{t.kind !== 'せつめいぶん' && String(t.ans || '').includes('"flow":{"on":true') ? '📘 型' : (t.qs || []).length}</td><td>{plainOf(t.body).length}</td>
+                    <tr key={t.id}><td style={{ textAlign: 'left' }}>{plainOf(t.title)}</td><td>{t.kind}</td><td>{t.use !== false ? '○' : '×'}</td><td>{String(t.ans || '').includes('"flow":{"on":true') ? '📘 型' : (t.qs || []).length}</td><td>{plainOf(t.body).length}</td>
                       <td><button className="btn sm" onClick={() => setEdit(t)}>✏️ 直す</button> <button className="btn sm red" onClick={() => { if (window.confirm(`「${plainOf(t.title)}」を 消します。よろしいですか？\n（子どもの マイこくばんの 記録は 残ります）`)) api.deleteText(pin, t.id).then(r => r && r.ok && setTexts(r.texts)); }}>🗑 消す</button></td></tr>
                   ))}</tbody>
                 </table>
