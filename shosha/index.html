@@ -259,6 +259,43 @@ function drawGuide(c, kind, level) {
   c.save(); c.fillStyle = '#27507a'; c.beginPath(); c.arc(p.x, p.y, 13, 0, Math.PI * 2); c.fill();
   c.fillStyle = '#fff'; c.font = 'bold 16px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('1', p.x, p.y + 1); c.restore();
 }
+/* 書き方の お手本の図（④⑤⑥）。ZU＝ことばの ふだを 置く場所（まん中） */
+const ZU = {
+  yoko: [[200, 170], [500, 150], [800, 130]],
+  hidari: [[820, 95], [830, 270], [720, 500]],
+  migi: [[570, 72], [780, 215], [440, 545], [850, 375]]
+};
+function drawZu(c, kind) {
+  const K = KINDS[kind], s = K.shape.s, cp = K.shape.cp, n = s.length - 1, F = '"BIZ UDPGothic",sans-serif';
+  inkPath(c, s, 0, n, '#8f8676', 7); inkPath(c, s, 0, n, '#f3ede0', 0);
+  marks(kind).forEach(p => hosaki(c, p));
+  centerLine(c, s, '#e8312a', 5, [16, 11]);
+  const a = s[Math.max(0, n - 10)], b = s[n], ang = Math.atan2(b.y - a.y, b.x - a.x);   // やじるし
+  c.save(); c.translate(b.x, b.y); c.rotate(ang); c.fillStyle = '#e8312a';
+  c.beginPath(); c.moveTo(26, 0); c.lineTo(-8, -15); c.lineTo(-8, 15); c.closePath(); c.fill(); c.restore();
+  let at = 0;
+  const pts = K.tl.map(st => { let i = at; if (st.t === 'land') i = 0; if (st.t === 'move') { i = Math.round((at + cp[st.to]) / 2); at = cp[st.to]; } return s[Math.min(i, n)]; });
+  const num = (x, y, r, k) => { c.fillStyle = '#27507a'; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill(); c.fillStyle = '#fff'; c.font = 'bold ' + Math.round(r * 1.25) + 'px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(k, x, y + 1); };
+  c.save();
+  K.tl.forEach((st, k) => {   // 先に つなぐ線
+    const p = pts[k], q = ZU[kind][k];
+    c.strokeStyle = '#27507a'; c.lineWidth = 3; c.beginPath(); c.moveTo(p.x, p.y); c.lineTo(q[0], q[1]); c.stroke();
+  });
+  K.tl.forEach((st, k) => {
+    const p = pts[k], q = ZU[kind][k];
+    num(p.x, p.y, 19, k + 1);
+    c.font = 'bold 56px ' + F; const ww = c.measureText(st.word).width + 66;
+    c.font = 'bold 34px ' + F; const nw = c.measureText(st.note).width;
+    const bw = Math.max(ww, nw) + 30, bh = 130, x = q[0] - bw / 2, y = q[1] - bh / 2;
+    c.fillStyle = '#fff'; c.strokeStyle = '#1d1b19'; c.lineWidth = 3;
+    c.beginPath(); c.roundRect(x, y, bw, bh, 14); c.fill(); c.stroke();
+    const wx = q[0] - ww / 2;
+    num(wx + 25, y + 44, 24, k + 1);
+    c.fillStyle = '#e8312a'; c.font = 'bold 56px ' + F; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText(st.word, wx + 62, y + 46);
+    c.fillStyle = '#1d1b19'; c.font = 'bold 34px ' + F; c.textAlign = 'center'; c.fillText(st.note, q[0], y + 101);
+  });
+  c.restore();
+}
 function drawBrush(c, x, y, press) {   // press 0（うえ）〜1（つよく おす）
   const lift = (1 - press) * 46;
   c.save(); c.translate(x, y - lift);
@@ -541,12 +578,14 @@ function demoSlide(m, say, face, title, leftHtml, guide) {
   m.querySelectorAll('.points li').forEach(t => t.onclick = () => speak($('span', t).innerHTML));
   foot(null, null, '<button class="btn blue" id="play">▶ おてほんを 見る</button><button class="btn" id="slow">🐢 ゆっくり</button><button class="btn small" id="vbtn" hidden>🎬 どうが</button>');
   const cv = $('#cv'), c = cv.getContext('2d');
-  c.clearRect(0, 0, W, H); if (guide) drawGuide(c, ui.kind, guide); inkPath(c, s, 0, s.length - 1, '#1d1b19', 0);
-  const run = slow => playDemo(cv, ui.kind, { slow, guide, onWord: (i, st) => {
+  const zu = () => { c.clearRect(0, 0, W, H); drawZu(c, ui.kind); };   // 書き方の お手本の図
+  zu(); if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (cv.isConnected && !ui.playing) zu(); });
+  ui.playing = false;
+  const run = slow => { ui.playing = true; playDemo(cv, ui.kind, { slow, guide, onEnd: () => { const id = anim.id; setTimeout(() => { if (cv.isConnected && anim.id === id) { ui.playing = false; zu(); } }, 1500); }, onWord: (i, st) => {
     m.querySelectorAll('.chip').forEach(x => x.classList.toggle('on', +x.dataset.c === i));
     const w = $('#word'); if (!w) return;
     if (st && st.word) { w.hidden = false; w.innerHTML = st.word + '<small>' + (st.note || '') + '</small>'; speak(st.word); } else w.hidden = true;
-  } });
+  } }); };
   $('#play').onclick = () => run(false); $('#slow').onclick = () => run(true);
   if (ui.autoDemo) { ui.autoDemo = false; setTimeout(() => { if (cv.isConnected) run(false); }, 2600); }
   m.querySelectorAll('[data-kind]').forEach(b => b.onclick = () => { ui.kind = b.dataset.kind; ui.autoDemo = true; render(); });
