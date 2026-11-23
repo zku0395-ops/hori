@@ -84,6 +84,9 @@ window.SORA = {
           { id: 'monogatari', emoji: '🌸', name: 'ピカリせんせいの ものがたりの もり', say: 'ピカリせんせいの ものがたりの もり', url: 'https://script.google.com/macros/s/AKfycbxuT2z3PhAXIhhxaWGg2bL0UPpnr1R0AXROsUQ9NDSFOG6X0cbw9dasZhA1Azdta4V5Bw/exec' },
           { id: 'kokuban', emoji: '🖍️', name: 'チョークんの マイこくばん', say: 'チョークんの マイこくばん', url: 'https://script.google.com/macros/s/AKfycbzcWs4Korrmy003Ew_ymIUg5lmv0LlywokiQ3X5UViyjmAeHxgftrGpIWFFdhaOk_7JPg/exec' },
         ] },
+        { id: 'shosha', name: 'しょしゃ', emoji: '🖌️', apps: [
+          { id: 'shosha', emoji: '🖌️', name: 'スミまると ふでの どうじょう', say: 'スミまると ふでの どうじょう', url: 'https://zku0395-ops.github.io/hori/shosha/' },
+        ] },
       ],
     },
     {
