@@ -189,7 +189,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, useCallback } = React;
-    const APP_VERSION = '1.5.2';
+    const APP_VERSION = '1.5.3';
 
     // =====================================================================
     //  1. 小さな道具
@@ -699,7 +699,8 @@
     //  6. マイこくばん
     // =====================================================================
     const BW = 1000, BH = 700;
-    // ---- ものがたりの 型：見出しと ふせんを、右から 左へ 自動で ならべる（2だん）----
+    // ---- ものがたりの 型：見出しを 左に 出し、ふせんを その 右へ 自動で ならべる（2だん）----
+    //  見出しは いつも ふせんの 左に ある。ふせんの 幅が 見つもりと ちがっても、見出しには 重ならない
     const FLOW_BANDS = [8, 354], FLOW_BH = 338, FLOW_SP = 82; // FLOW_SP ＝ ことば（はつげん）の 上に「だれ」を はる すきま
     const flowMaxH = (key) => FLOW_BH - (key === 'hatsugen' ? FLOW_SP : key === 'kimochi' ? 40 : 0) - 6; // きもち：下に「💗 こまった ◎」が 付く すきま
     function fusenSize(it) {
@@ -709,18 +710,18 @@
     }
     function flowLayout(items, sizes) { // sizes ＝ 画面で はかった ふせんの 幅（ない ときは 文字数から 見つもる）
       const wOf = (it) => sizes && sizes[it.id] ? sizes[it.id] : fusenSize(it).w;
-      const pos = {}, R = BW - 10, HW = 58; let band = 0, x = R;
-      const wrap = () => { if (band < FLOW_BANDS.length - 1) { band++; x = R; } };
+      const pos = {}, L = 10, R = BW - 6, HW = 58; let band = 0, x = L;
+      const wrap = () => { if (band < FLOW_BANDS.length - 1) { band++; x = L; } };
       FLOW.filter(s => s.head).forEach(s => {
         const head = items.find(i => i.t === 'h' && i.k === 'f_' + s.key); if (!head) return;
         const group = items.filter(i => i.t === 'f' && i.g === s.key && i.au);
         const first = HW + (group[0] ? wOf(group[0]) + 8 : 0), total = HW + 8 + group.reduce((a, it) => a + wOf(it) + 8, 0);
         // のこりに 入りきらない ときは、見出しごと 下の だんへ（見出しと ふせんが はなれないように）
-        if (x < R && x - total < 4 && (total <= R - 4 || x - first < 4)) wrap();
-        if (head.au) pos[head.id] = { x: x - HW, y: FLOW_BANDS[band] };
-        x -= HW + 8;
-        group.forEach(it => { const w = wOf(it); if (x - w < 4 && x < R - HW - 8) wrap(); pos[it.id] = { x: Math.max(0, x - w), y: FLOW_BANDS[band] + (s.key === 'hatsugen' ? FLOW_SP : 0) }; x -= w + 8; });
-        x -= 12;
+        if (x > L && x + total > R && (total <= R - L || x + first > R)) wrap();
+        if (head.au) pos[head.id] = { x, y: FLOW_BANDS[band] };
+        x += HW + 8;
+        group.forEach(it => { const w = wOf(it); if (x + w > R && x > L + HW + 8) wrap(); pos[it.id] = { x: Math.max(0, Math.min(x, BW - w)), y: FLOW_BANDS[band] + (s.key === 'hatsugen' ? FLOW_SP : 0) }; x += w + 8; });
+        x += 12;
       });
       let changed = false;
       const out = items.map(i => { const p = pos[i.id]; if (!p || (i.x === p.x && i.y === p.y)) return i; changed = true; return Object.assign({}, i, p); });
