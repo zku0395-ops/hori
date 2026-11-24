@@ -66,6 +66,11 @@
     .tbody { font-family: 'BIZ UDGothic', 'BIZ UDPGothic', sans-serif; font-size: 1.7rem; line-height: 2.5; letter-spacing: .04em; }
     .tpic { display: block; inline-size: auto; max-inline-size: 100%; block-size: 13rem; border-radius: 16px; border: 4px solid #e7c98f; margin-block-end: 1rem; background: #fff; }
     .tscroll.v .tpic { block-size: 15rem; inline-size: auto; max-block-size: none; }
+    /* 子どもの 画面：文章の ぜんぶが 1つの 画面に 入るように、文字の 大きさを 自動で 合わせる（絵と だいめいも いっしょに 小さく なる） */
+    .tbody.fit .ttitle { font-size: 1.18em; }
+    .tbody.fit .tpic { block-size: 7.65em; margin-block-end: .6em; }
+    .tscroll.v .tbody.fit .tpic { block-size: 8.8em; }
+    .tbody.fit[data-nopic] .tpic { display: none; }
     .cardpic { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 12px; border: 3px solid #e7c98f; }
     .ttitle { font-size: 2rem; font-weight: 700; margin: 0; padding-block-end: .6em; padding-inline-start: 1.5em; }
     .ln { margin: 0; }
@@ -189,7 +194,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, useCallback } = React;
-    const APP_VERSION = '1.6.0';
+    const APP_VERSION = '1.6.1';
 
     // =====================================================================
     //  1. 小さな道具
@@ -662,7 +667,7 @@
     // =====================================================================
     //  5. 文章の 画面
     // =====================================================================
-    function TextPane({ title, doc, marks, sel, reading, vertical, paint, heat, preview, onTap, onPaint, ansSet, glow, maybe, okStart, hl, para, picId, charMode, onChar }) {
+    function TextPane({ title, doc, marks, sel, reading, vertical, paint, heat, preview, onTap, onPaint, ansSet, glow, maybe, okStart, hl, para, picId, charMode, onChar, fit }) {
       const ref = useRef(null), painting = useRef(false);
       const unitAt = (e) => { const el = document.elementFromPoint(e.clientX, e.clientY); const u = el && el.closest && el.closest('[data-i]'); return u ? Number(u.dataset.i) : -1; };
       const charAt = (e) => { const el = document.elementFromPoint(e.clientX, e.clientY); const c = el && el.closest && el.closest('[data-c]'); return c ? Number(c.dataset.c) : -1; };
@@ -675,15 +680,35 @@
       const click = (e) => { if (paint || charMode || !onTap) return; const u = e.target.closest('[data-i]'); if (u) onTap(Number(u.dataset.i)); };
       const scroll = (dir) => { const el = ref.current; if (!el) return; vertical ? el.scrollBy({ left: -dir * el.clientWidth * 0.7, behavior: 'smooth' }) : el.scrollBy({ top: dir * el.clientHeight * 0.7, behavior: 'smooth' }); };
       const [over, setOver] = useState(false);
+      // fit：スクロールしなくても ぜんぶ 読めるように、入りきる いちばん 大きい 文字に する。
+      //  それでも 文字が 小さく なりすぎる ときは、絵を かくす。いちばん 小さい 大きさでも 入らない 長い 文章だけ、スクロールが のこる
       useEffect(() => {
-        const el = ref.current; if (!el) return;
+        const el = ref.current; if (!el || !fit) return;
+        const body = el.firstElementChild, MIN = 0.42;
+        const fits = () => vertical ? el.scrollWidth <= el.clientWidth + 1 : el.scrollHeight <= el.clientHeight + 1;
+        const set = (k) => { body.style.fontSize = (1.7 * k).toFixed(3) + 'rem'; body.style.lineHeight = k < 1 ? '2.1' : ''; };
+        const solve = () => { set(1); if (fits()) return 1; let lo = MIN, hi = 1; set(lo); if (!fits()) return lo; for (let i = 0; i < 7; i++) { const m = (lo + hi) / 2; set(m); if (fits()) lo = m; else hi = m; } set(lo); return lo; };
+        // はかる 間は スクロールバーを 出さない（出たり 消えたり すると、高さが 変わって 大きさが 決まらない）
+        const run = () => {
+          if (!el.clientWidth || !el.clientHeight) return;
+          el.style.overflow = 'hidden'; delete body.dataset.nopic;
+          if (solve() < 0.7 && body.querySelector('.tpic')) { body.dataset.nopic = '1'; solve(); }
+          const ok = fits(); el.style.overflow = ''; setOver(!ok); // 入りきらない ときだけ、◀ ▶ を 出す
+        };
+        run(); const ro = new ResizeObserver(run); ro.observe(el);
+        const img = body.querySelector('.tpic'); if (img) img.addEventListener('load', run);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (ref.current === el) run(); });
+        return () => { ro.disconnect(); if (img) img.removeEventListener('load', run); };
+      }, [doc, vertical, fit]);
+      useEffect(() => {
+        const el = ref.current; if (!el || fit) return;
         const check = () => setOver(vertical ? el.scrollWidth > el.clientWidth + 4 : el.scrollHeight > el.clientHeight + 4);
         check(); const ro = new ResizeObserver(check); ro.observe(el); return () => ro.disconnect();
-      }, [doc, vertical]);
+      }, [doc, vertical, fit]);
       return (
         <>
           <div ref={ref} className={'tscroll' + (vertical ? ' v' : '') + (paint || charMode ? ' paint' : '') + (over ? ' over' : '')} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerLeave={up} onClick={click}>
-            <div className={'tbody' + (preview ? ' preview' : '')}>
+            <div className={'tbody' + (preview ? ' preview' : '') + (fit ? ' fit' : '')}>
               {picId ? <Pic id={picId} className="tpic" /> : null}
               {title ? <h2 className="ttitle">{rubyNodes(title)}</h2> : null}
               {doc.lines.map((ln, k) => ln.blank ? <p key={k} className="ln blank" /> : (
@@ -1301,7 +1326,7 @@
                     <div className="qmsg">{qmsg}</div>
                   </div>
                 ) : null}
-                <TextPane picId={text.id} title={text.title} doc={doc} marks={work.marks} sel={sel} reading={reading} vertical={settings.vertical} paint={tool !== 'sel'} onTap={onTap} onPaint={onPaint} charMode={tool === 'sel' && gran === 'c'} onChar={onChar}
+                <TextPane fit picId={text.id} title={text.title} doc={doc} marks={work.marks} sel={sel} reading={reading} vertical={settings.vertical} paint={tool !== 'sel'} onTap={onTap} onPaint={onPaint} charMode={tool === 'sel' && gran === 'c'} onChar={onChar}
                   hl={A && lv >= 2 ? new Set(A.u) : null} glow={A && lv >= 3 ? new Set(A.u) : null} okStart={chk ? chk.ok : null} maybe={chk ? chk.maybe : null} para={ANS.paraShow && ANS.para.length ? ANS.para : null} />
                 {sel ? (
                   <div className="selbar">
