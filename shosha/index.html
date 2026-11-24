@@ -123,7 +123,8 @@
 <script>
 'use strict';
 /* =========================================================
-   スミまると ふでの どうじょう（書写・毛筆）第1回：よこ画・左はらい・右はらい
+   スミまると ふでの どうじょう（書写・毛筆）
+   かだい：せんの れんしゅう（よこ画・左はらい・右はらい）／ふじ山（ふ・じ・山）
    記録はとりません。設定と はんこ は この端末のブラウザの中だけに保存します。
    ========================================================= */
 const W = 1000, H = 640;
@@ -191,6 +192,16 @@ function dense(pts, w) {   // 折れ線を 4px ごとに並べ直す
   const L = pts[pts.length - 1]; s.push({ x: L[0], y: L[1], w });
   return { s, cp: [0, s.length - 1] };
 }
+function poly(cps) {   // 折れ線（かどを まるめない）。太さは 点ごとに 変える
+  const s = [], cp = [];
+  for (let i = 0; i < cps.length - 1; i++) {
+    const a = cps[i], b = cps[i + 1], n = Math.max(1, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) / 4));
+    cp.push(s.length);
+    for (let k = 0; k < n; k++) s.push({ x: a[0] + (b[0] - a[0]) * k / n, y: a[1] + (b[1] - a[1]) * k / n, w: a[2] + (b[2] - a[2]) * k / n });
+  }
+  const L = cps[cps.length - 1]; cp.push(s.length); s.push({ x: L[0], y: L[1], w: L[2] });
+  return { s, cp };
+}
 const wavePts = () => { const p = []; for (let x = 110; x <= 890; x += 10) p.push([x, 320 - Math.sin((x - 110) / 780 * Math.PI * 4) * 150]); return p; };
 const spiralPts = () => { const p = []; for (let a = 0; a <= Math.PI * 5; a += 0.06) { const r = 28 + a * 15.5; p.push([500 + Math.cos(a) * r, 320 + Math.sin(a) * r]); } return p; };
 
@@ -209,7 +220,62 @@ const KINDS = {
   nami: { name: 'なみなみ', warm: true, shape: dense(wavePts(), 40), tl: [{ t: 'land', word: '', ms: 400 }, { t: 'move', to: 1, word: 'なみなみ', note: '', ms: 3500 }] },
   uzu: { name: 'うずまき', warm: true, shape: dense(spiralPts(), 34), tl: [{ t: 'land', word: '', ms: 400 }, { t: 'move', to: 1, word: 'ぐるぐる', note: '', ms: 5000 }] }
 };
-const STROKES = ['yoko', 'hidari', 'migi'], WARMS = ['giza', 'nami', 'uzu'];
+/* ---------- 「ふじ山」：1画ずつの 線（このアプリのために 作った形） ---------- */
+const TEN = [{ t: 'land', word: 'トン', note: 'ふでを おく', ms: 700 }, { t: 'move', to: 2, word: '', note: '', ms: 450 }, { t: 'hold', word: 'ピタッ', note: 'とめる', ms: 800 }];
+const TATE = [{ t: 'land', word: 'トン', note: 'ふでを おく', ms: 800 }, { t: 'move', to: 2, word: 'スー', note: 'したへ', ms: 2000 }, { t: 'hold', word: 'ピタッ', note: 'とめる', ms: 900 }];
+/* 字の まん中の線：KanjiVG（CC BY-SA 3.0 / Ulrich Apel ほか, https://kanjivg.tagaini.net/）より。shosha/tools/kvg.js で 作る */
+const KVG = {
+  fu1: [[424,69],[429,73],[434,78],[439,81],[444,85],[450,89],[455,92],[461,95],[466,97],[472,100],[478,102],[485,104],[491,105],[498,107],[505,108],[517,110],[525,112],[532,114],[535,116],[537,119],[537,121],[535,124],[532,127],[527,130],[521,133],[515,136],[508,140],[501,143],[494,147]],
+  fu2: [[430,269],[433,275],[437,281],[441,288],[446,295],[451,302],[457,309],[464,316],[471,324],[478,332],[486,341],[495,350],[503,360],[512,370],[521,381],[534,399],[542,417],[547,435],[548,453],[546,470],[541,486],[532,500],[521,513],[506,522],[490,529],[470,533],[449,532],[425,528],[399,519]],
+  fu3: [[257,438],[258,444],[259,449],[260,455],[262,460],[263,465],[265,470],[267,475],[269,480],[272,485],[274,489],[277,493],[281,497],[285,500],[289,503],[290,503],[291,503],[292,502],[294,500],[296,497],[299,494],[302,489],[307,485],[313,479],[321,473],[331,467],[343,460],[357,452],[373,445]],
+  fu4: [[664,365],[671,369],[678,374],[685,379],[691,384],[698,388],[704,393],[710,397],[715,402],[720,406],[724,410],[728,413],[732,416],[734,419],[736,421],[744,432],[750,440],[753,446],[754,451],[753,454],[751,457],[748,458],[744,459],[738,460],[732,460],[726,461],[719,462],[713,464],[707,466]],
+  ji1: [[401,79],[403,84],[404,88],[405,92],[406,97],[406,102],[407,106],[407,111],[407,116],[406,120],[406,125],[405,130],[405,135],[404,140],[403,145],[401,163],[398,181],[396,200],[394,218],[392,236],[390,254],[389,272],[387,290],[386,307],[386,325],[385,343],[385,360],[384,377],[384,395],[386,430],[392,460],[401,486],[413,507],[429,525],[447,537],[468,546],[492,551],[518,552],[546,550],[576,544],[607,534],[641,521],[675,505]],
+  ji2: [[562,142],[566,145],[570,147],[574,151],[578,154],[581,158],[585,162],[589,166],[593,170],[596,174],[600,179],[603,183],[606,188],[609,192],[611,196]],
+  ji3: [[603,111],[607,113],[611,115],[616,118],[620,121],[624,125],[629,128],[633,132],[637,136],[641,140],[645,143],[649,147],[652,151],[655,155],[658,159]],
+  yama1: [[501,68],[501,111],[501,127],[500,151],[500,181],[500,216],[500,254],[500,294],[500,334],[500,372],[500,407],[500,437],[499,461],[499,477],[499,484]],
+  yama2: [[295,318],[295,351],[294,361],[294,372],[293,382],[292,393],[291,404],[290,415],[289,426],[288,437],[287,448],[285,458],[284,469],[282,479],[280,489],[279,493],[279,497],[278,500],[278,503],[279,505],[279,507],[280,509],[281,510],[282,512],[284,512],[286,513],[288,513],[290,513],[293,513],[317,509],[344,506],[373,503],[403,500],[434,497],[466,493],[499,490],[532,487],[564,484],[596,482],[627,479],[657,477],[686,476],[712,474]],
+  yama3: [[731,283],[731,316],[731,324],[730,335],[729,347],[728,360],[726,375],[725,390],[723,406],[722,422],[721,437],[719,453],[718,467],[717,481],[716,493],[715,497],[715,500],[715,503],[715,506],[715,509],[714,512],[714,514],[714,517],[714,519],[714,520],[714,522],[713,523],[713,524],[713,525]]
+};
+/* KVG の 線に、筆の 太さを つける。wk＝[[ばしょ0〜1, 太さ], …]、cuts＝ことばを 切りかえる ばしょ（0〜1） */
+function kshape(pts, wk, cuts) {
+  const raw = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = pts[i], b = pts[i + 1], n = Math.max(1, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) / 4));
+    for (let k = 0; k < n; k++) raw.push({ x: a[0] + (b[0] - a[0]) * k / n, y: a[1] + (b[1] - a[1]) * k / n });
+  }
+  const L = pts[pts.length - 1]; raw.push({ x: L[0], y: L[1] });
+  const n = raw.length - 1;
+  raw.forEach((p, i) => {
+    const u = i / n; let k = 0; while (k < wk.length - 2 && u > wk[k + 1][0]) k++;
+    const A = wk[k], B = wk[k + 1]; p.w = A[1] + (B[1] - A[1]) * Math.max(0, Math.min(1, (u - A[0]) / (B[0] - A[0])));
+  });
+  return { s: raw, cp: [0].concat(cuts.map(c => Math.round(c * n)), [n]) };
+}
+const HANE = [{ t: 'land', word: 'トン', note: 'ふでを おく', ms: 700 }, { t: 'move', to: 1, word: '', note: '', ms: 500 }, { t: 'move', to: 2, word: 'スッ', note: 'はらう', ms: 700 }];
+Object.assign(KINDS, {
+  fu1: { shape: kshape(KVG.fu1, [[0, 30], [0.42, 72], [0.56, 60], [1, 5]], [0.5]), tl: HANE },
+  fu2: { shape: kshape(KVG.fu2, [[0, 40], [0.3, 66], [0.7, 80], [0.86, 58], [1, 5]], [0.35, 0.8]),
+    tl: [{ t: 'land', word: 'トン', note: 'ふでを おく', ms: 800 }, { t: 'move', to: 1, word: 'スー', note: 'したへ', ms: 1400 }, { t: 'move', to: 2, word: 'クルッ', note: 'まがる', ms: 1900 }, { t: 'move', to: 3, word: 'ピョン', note: 'はねる', ms: 900 }] },
+  fu3: { shape: kshape(KVG.fu3, [[0, 34], [0.36, 72], [0.5, 60], [1, 5]], [0.42]), tl: HANE },
+  fu4: { shape: kshape(KVG.fu4, [[0, 30], [0.45, 74], [0.6, 62], [1, 6]], [0.5]), tl: HANE },
+  ji1: { shape: kshape(KVG.ji1, [[0, 68], [0.1, 72], [0.5, 74], [0.76, 80], [1, 5]], [0.5, 0.78]),
+    tl: [{ t: 'land', word: 'トン', note: 'ふでを おく', ms: 800 }, { t: 'move', to: 1, word: 'スー', note: 'したへ', ms: 2000 }, { t: 'move', to: 2, word: 'クルッ', note: 'まがる', ms: 1500 }, { t: 'move', to: 3, word: 'スーッ', note: 'うえへ はらう', ms: 1800 }] },
+  ji2: { shape: kshape(KVG.ji2, [[0, 16], [0.8, 42], [1, 40]], [0.5]), tl: TEN },
+  ji3: { shape: kshape(KVG.ji3, [[0, 16], [0.8, 42], [1, 40]], [0.5]), tl: TEN },
+  yama1: { shape: kshape(KVG.yama1, [[0, 74], [0.5, 66], [1, 78]], [0.5]), tl: TATE },
+  yama2: { shape: kshape(KVG.yama2, [[0, 72], [0.27, 70], [0.33, 74], [0.7, 66], [1, 78]], [0.27, 0.34]),
+    tl: [{ t: 'land', word: 'トン', note: 'ふでを おく', ms: 800 }, { t: 'move', to: 1, word: 'スー', note: 'したへ', ms: 1500 }, { t: 'move', to: 2, word: 'カクッ', note: 'おれる', ms: 700 }, { t: 'move', to: 3, word: 'スー', note: 'よこへ', ms: 1900 }, { t: 'hold', word: 'ピタッ', note: 'とめる', ms: 900 }] },
+  yama3: { shape: kshape(KVG.yama3, [[0, 72], [0.5, 66], [1, 78]], [0.5]), tl: TATE },
+  /* 字（strokes＝書き順） */
+  fu: { name: 'ふ', label: 'ふ', strokes: ['fu1', 'fu2', 'fu3', 'fu4'], say: '「ふ」は、4かいで かくよ。てん、まがって はねる、てん、てん。てんは、トン、スッ。' },
+  ji: { name: 'じ', label: 'じ', strokes: ['ji1', 'ji2', 'ji3'], say: '「じ」は、したへ スー、クルッと まがって はらう。さいごに てんてん。' },
+  yama: { name: 'やま', label: R('山', 'やま'), strokes: ['yama1', 'yama2', 'yama3'], say: '「やま」は、まんなかの たて、ひだりから よこへ おれる、みぎの たて。' }
+});
+const STROKES = ['yoko', 'hidari', 'migi'], CHARS = ['fu', 'ji', 'yama'], WARMS = ['giza', 'nami', 'uzu'];
+const TASKS = { sen: { name: 'せんの れんしゅう', sub: R('一', 'いち') + '・' + R('二', 'に') + '・' + R('大', 'だい'), items: STROKES }, fuji: { name: 'ふじ' + R('山', 'さん'), sub: 'ふ・じ・' + R('山', 'さん'), items: CHARS } };
+const strokesOf = kind => KINDS[kind].strokes || [kind];
+const isChar = kind => !!KINDS[kind].strokes;
+const chipsHtml = kind => (KINDS[kind].tl || []).map((st, i) => st.word ? '<span class="chip" data-c="' + i + '">' + st.word + '</span>' : '').join('');
 const LEVELS = [
   { n: 1, name: 'わく・ほさき・あかい せん' },
   { n: 2, name: 'わくと ほさき' },
@@ -296,6 +362,70 @@ function drawZu(c, kind) {
   });
   c.restore();
 }
+/* 字（ふ・じ・山）：cur＝いま かく 画（0から）。-1 なら ぜんぶ */
+function drawCharGuide(c, ch, level, cur) {
+  const ks = KINDS[ch].strokes, S_ = k => KINDS[k].shape.s;
+  if (level <= 2) {
+    ks.forEach(k => inkPath(c, S_(k), 0, S_(k).length - 1, '#8f8676', 7));
+    ks.forEach(k => inkPath(c, S_(k), 0, S_(k).length - 1, '#f3ede0', 0));
+    if (cur >= 0) marks(ks[cur]).forEach(p => hosaki(c, p));
+  }
+  if (level === 1 || level === 3) ks.forEach((k, i) => centerLine(c, S_(k), i === cur ? '#e8312a' : 'rgba(232,49,42,.35)', i === cur ? 9 : 6));
+  if (level === 4) {
+    c.save(); c.translate(18, H - 178); c.fillStyle = '#fff'; c.strokeStyle = '#1d1b19'; c.lineWidth = 3;
+    c.fillRect(0, 0, 250, 160); c.strokeRect(0, 0, 250, 160); c.scale(0.25, 0.25);
+    ks.forEach(k => inkPath(c, S_(k), 0, S_(k).length - 1, '#1d1b19', 0)); c.restore();
+  }
+  if (cur >= 0) { const p = S_(ks[cur])[0]; numMark(c, p.x, p.y, 16, cur + 1); }
+}
+function numMark(c, x, y, r, k) {
+  c.save(); c.fillStyle = '#27507a'; c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
+  c.fillStyle = '#fff'; c.font = 'bold ' + Math.round(r * 1.25) + 'px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(k, x, y + 1); c.restore();
+}
+function arrowLine(c, s) {   // 赤い 点線と やじるし
+  const n = s.length - 1;
+  centerLine(c, s, '#e8312a', 5, [16, 11]);
+  const a = s[Math.max(0, n - 10)], b = s[n], ang = Math.atan2(b.y - a.y, b.x - a.x);
+  c.save(); c.translate(b.x, b.y); c.rotate(ang); c.fillStyle = '#e8312a';
+  c.beginPath(); c.moveTo(24, 0); c.lineTo(-8, -14); c.lineTo(-8, 14); c.closePath(); c.fill(); c.restore();
+}
+/* 字の 書き方の図。cur＝-1：書き順と 向き。cur＝0〜：その 画の ことば */
+function drawCharZu(c, ch, cur) {
+  const ks = KINDS[ch].strokes, S_ = k => KINDS[k].shape.s, F = '"BIZ UDPGothic",sans-serif';
+  ks.forEach((k, i) => inkPath(c, S_(k), 0, S_(k).length - 1, cur < 0 || i === cur ? '#8f8676' : '#cfc8ba', 7));
+  ks.forEach(k => inkPath(c, S_(k), 0, S_(k).length - 1, '#f3ede0', 0));
+  if (cur < 0) {
+    ks.forEach(k => arrowLine(c, S_(k)));
+    ks.forEach((k, i) => { const p = S_(k)[0]; numMark(c, p.x, p.y, 20, i + 1); });
+    return;
+  }
+  const K = KINDS[ks[cur]], s = K.shape.s, cp = K.shape.cp, n = s.length - 1;
+  marks(ks[cur]).forEach(p => hosaki(c, p)); arrowLine(c, s);
+  let at = 0; const L = [];
+  K.tl.forEach(st => { let i = at; if (st.t === 'land') i = 0; if (st.t === 'move') { i = Math.round((at + cp[st.to]) / 2); at = cp[st.to]; } if (st.word) L.push({ st, p: s[Math.min(i, n)] }); });
+  const bh = 112, gap = 8;
+  L.forEach(l => { l.left = l.p.x < 480; l.y = Math.max(bh / 2 + 6, Math.min(H - bh / 2 - 6, l.p.y)); });
+  if (L.length > 1 && L.every(l => l.left === L[0].left)) L.forEach((l, k) => { if (k % 2) l.left = !l.left; });   // かたほうに かたよらない
+  [true, false].forEach(side => {   // かさならない ように 上下に ずらす
+    const g = L.filter(l => l.left === side).sort((a, b) => a.y - b.y);
+    for (let k = 1; k < g.length; k++) g[k].y = Math.max(g[k].y, g[k - 1].y + bh + gap);
+    const over = g.length ? g[g.length - 1].y + bh / 2 + 6 - H : 0;
+    if (over > 0) { g.forEach(l => l.y -= over); for (let k = g.length - 2; k >= 0; k--) g[k].y = Math.min(g[k].y, g[k + 1].y - bh - gap); }
+  });
+  c.save();
+  L.forEach(l => { l.x = l.left ? 128 : W - 128; c.strokeStyle = '#27507a'; c.lineWidth = 3; c.beginPath(); c.moveTo(l.p.x, l.p.y); c.lineTo(l.x, l.y); c.stroke(); });
+  L.forEach((l, k) => {
+    numMark(c, l.p.x, l.p.y, 17, k + 1);
+    c.font = 'bold 48px ' + F; const ww = c.measureText(l.st.word).width + 58;
+    c.font = 'bold 30px ' + F; const nw = c.measureText(l.st.note).width;
+    const bw = Math.max(ww, nw) + 26, x = l.x - bw / 2, y = l.y - bh / 2;
+    c.fillStyle = '#fff'; c.strokeStyle = '#1d1b19'; c.lineWidth = 3; c.beginPath(); c.roundRect(x, y, bw, bh, 14); c.fill(); c.stroke();
+    const wx = l.x - ww / 2; numMark(c, wx + 22, y + 38, 21, k + 1);
+    c.fillStyle = '#e8312a'; c.font = 'bold 48px ' + F; c.textAlign = 'left'; c.textBaseline = 'middle'; c.fillText(l.st.word, wx + 54, y + 40);
+    c.fillStyle = '#1d1b19'; c.font = 'bold 30px ' + F; c.textAlign = 'center'; c.fillText(l.st.note, l.x, y + 87);
+  });
+  c.restore();
+}
 function drawBrush(c, x, y, press) {   // press 0（うえ）〜1（つよく おす）
   const lift = (1 - press) * 46;
   c.save(); c.translate(x, y - lift);
@@ -332,7 +462,7 @@ function playDemo(cv, kind, opt) {
     if (st.t === 'lift') press = 1 - u;
     const i = Math.min(s.length - 1, Math.round(idx)), p = s[i];
     c.clearRect(0, 0, W, H);
-    if (opt.guide) drawGuide(c, kind, opt.guide);
+    if (opt.bg) opt.bg(c); else if (opt.guide) drawGuide(c, kind, opt.guide);
     c.fillStyle = '#1d1b19';
     if (st.t === 'land') stamp(c, s[0].x, s[0].y, s[0].w * u); else inkPath(c, s, 0, i, '#1d1b19', 0);
     if (!K.warm && !opt.noMeter) meter(c, st.t === 'lift' ? 0 : p.w * (st.t === 'land' ? u : 1));
@@ -349,13 +479,28 @@ function playDemo(cv, kind, opt) {
   requestAnimationFrame(frame);
 }
 
+/* 字の 見本：書き順どおりに 1画ずつ。opt.only＝その 画だけ */
+function playChar(cv, ch, opt) {
+  opt = opt || {};
+  const ks = KINDS[ch].strokes, one = opt.only != null, to = one ? opt.only : ks.length - 1;
+  const step = i => {
+    opt.onStroke && opt.onStroke(i);
+    playDemo(cv, ks[i], Object.assign({}, opt, {
+      bg: c => { drawCharGuide(c, ch, opt.guide || 2, i); for (let k = 0; k < i; k++) { const s = KINDS[ks[k]].shape.s; inkPath(c, s, 0, s.length - 1, '#1d1b19', 0); } },
+      onEnd: () => { if (i < to) { const id = anim.id; setTimeout(() => { if (anim.id === id && cv.isConnected) step(i + 1); }, 350); } else opt.onEnd && opt.onEnd(); }
+    }));
+  };
+  step(one ? opt.only : 0);
+}
+const play = (cv, kind, opt) => isChar(kind) ? playChar(cv, kind, opt) : playDemo(cv, kind, opt);
+
 /* ---------- 画面の流れ ---------- */
 const FLOW = [
   { id: 'junbi', t: 'じゅんび' }, { id: 'renshu', t: 'ふでの<br>れんしゅう' }, { id: 'yubi', t: 'ゆびで<br>なぞる' },
   { id: 'kami', t: 'かみを おいて<br>なぞる' }, { id: 'fude', t: 'ふでで<br>なぞる' }, { id: 'miru', t: '見て<br>かく' },
   { id: 'happyo', t: 'はっぴょう' }, { id: 'katazuke', t: 'かたづけ' }
 ];
-const ui = { step: -1, sub: 0, kind: 'yoko', level: 1, warm: 'giza', mode: 'warm', sheetsDone: 0, maxStep: 0, hint: 0, miss: 0 };
+const ui = { step: -1, task: 'sen', sk: -1, sub: 0, kind: 'yoko', level: 1, warm: 'giza', mode: 'warm', sheetsDone: 0, maxStep: 0, hint: 0, miss: 0 };
 
 function renderFlow() {
   const nav = $('#flow');
@@ -396,14 +541,19 @@ function render() {
 function home(m) {
   const n = Object.keys(S.stamps).length;
   m.innerHTML = '<h1 style="font-size:2.5rem;margin-top:1.2rem">スミまると ふでの どうじょう</h1>' +
-    '<img src="images/sumimaru_ouen.png" alt="スミまる" style="width:min(42vh,18rem);border-radius:50%;background:#fff" id="hs">' +
-    '<div class="card" style="max-width:40rem;text-align:center"><h2>だい１かい　' + R('横画', 'よこかく') + '・' + R('左', 'ひだり') + 'はらい・' + R('右', 'みぎ') + 'はらい</h2></div>' +
+    '<img src="images/sumimaru_ouen.png" alt="スミまる" style="width:min(34vh,15rem);border-radius:50%;background:#fff" id="hs">' +
+    '<div class="card" style="max-width:46rem;text-align:center;padding:.6rem 1rem"><h2 style="margin:0 0 .5rem">きょうの かだい</h2><div class="row">' +
+    Object.keys(TASKS).map(k => '<button class="btn ' + (ui.task === k ? 'on' : '') + '" data-task="' + k + '" style="font-size:1.45rem;min-width:15rem">' + TASKS[k].name + '<span style="display:block;font-size:1.05rem;margin-top:.55rem;line-height:1.7">' + TASKS[k].sub + '</span></button>').join('') + '</div></div>' +
     '<div class="row"><button class="btn red" id="start" style="font-size:1.9rem;padding:1rem 2.6rem">▶ はじめる</button>' +
     '<button class="btn" id="cho">🔴 はんこちょう（' + n + '）</button><button class="btn small" id="tch">⚙️ せんせい</button></div>';
   $('#foot').innerHTML = '';
   const hello = 'ぼくは スミまる。いっしょに ふでで かこう！';
   $('#hs').onclick = () => speak(hello);
   $('#start').onclick = () => go(0);
+  m.querySelectorAll('[data-task]').forEach(b => b.onclick = () => {
+    ui.task = b.dataset.task; ui.kind = TASKS[ui.task].items[0]; ui.level = 1; ui.sk = -1; ui.mode = 'warm'; ui.sheetsDone = 0; render();
+    speak('きょうの かだいは、' + plain(TASKS[ui.task].name.replace(/<rt>.*?<\/rt>/g, '')) + '。');
+  });
   $('#cho').onclick = showStamps; $('#tch').onclick = openTeacher;
 }
 
@@ -431,7 +581,7 @@ function junbi(m) {
 
 /* ---------- 2 ふでの れんしゅう（ゆびの たいそう ＋ 見本） ---------- */
 function renshu(m) {
-  const items = [{ id: 'warm', label: '✋ ゆびの たいそう' }].concat(STROKES.map(k => ({ id: k, label: KINDS[k].label })));
+  const items = [{ id: 'warm', label: '✋ ゆびの たいそう' }].concat(TASKS[ui.task].items.map(k => ({ id: k, label: KINDS[k].label })));
   const cur = ui.mode === 'warm' ? 'warm' : ui.kind;
   if (ui.mode === 'warm') {
     m.innerHTML = talk('ゆびで なぞって、たいそうを しよう。') + '<div class="row wide">' + segHtml(items, cur, 'mode') +
@@ -441,11 +591,11 @@ function renshu(m) {
   } else {
     const K = KINDS[ui.kind];
     m.innerHTML = talk(K.say) + '<div class="row wide">' + segHtml(items, cur, 'mode') +
-      '<div class="chips" id="chips">' + K.tl.map((st, i) => '<span class="chip" data-c="' + i + '">' + st.word + '</span>').join('') + '</div></div>' +
+      '<div class="chips" id="chips">' + chipsHtml(strokesOf(ui.kind)[0]) + '</div></div>' +
       traceHtml(ui.kind);
     foot(null, null, '<button class="btn blue" id="play">▶ もういちど</button><button class="btn" id="slow">🐢 ゆっくり</button><button class="btn small" id="vbtn" hidden>🎬 どうが</button>');
     const cv = $('#cv');
-    const run = slow => playDemo(cv, ui.kind, { slow, guide: 2, onWord: (i, st) => {
+    const run = slow => play(cv, ui.kind, { slow, guide: 2, onStroke: i => { const ch = $('#chips'); if (ch) ch.innerHTML = chipsHtml(strokesOf(ui.kind)[i]); }, onWord: (i, st) => {
       m.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', +c.dataset.c === i));
       const w = $('#word'); if (!w) return;
       if (st && st.word) { w.hidden = false; w.innerHTML = st.word + '<small>' + (st.note || '') + '</small>'; speak(st.word); } else w.hidden = true;
@@ -461,6 +611,7 @@ function renshu(m) {
 }
 /* Canva で作った動画が video/ にあれば「どうが」ボタンを出す */
 function videoSlot(kind) {
+  if (isChar(kind)) return;
   const v = document.createElement('video');
   v.preload = 'metadata'; v.src = 'video/' + kind + '.mp4';
   v.onloadedmetadata = () => {
@@ -478,7 +629,7 @@ function videoSlot(kind) {
 const levelOpen = (kind, n) => S.openAll || n === 1 || !!S.stamps[kind + '-' + (n - 1)];
 function yubi(m) {
   if (!levelOpen(ui.kind, ui.level)) ui.level = 1;
-  m.innerHTML = talk('ゆびで なぞろう。' + KINDS[ui.kind].say) + '<div class="row wide">' + segHtml(STROKES.map(k => ({ id: k, label: KINDS[k].label })), ui.kind, 'kind') +
+  m.innerHTML = talk('ゆびで なぞろう。' + KINDS[ui.kind].say) + '<div class="row wide">' + segHtml(TASKS[ui.task].items.map(k => ({ id: k, label: KINDS[k].label })), ui.kind, 'kind') +
     '<div class="seg">' + LEVELS.map(L => '<button class="btn small lv ' + (L.n === ui.level ? 'on' : '') + '" data-lv="' + L.n + '"' + (levelOpen(ui.kind, L.n) ? '' : ' disabled') + '>ステップ' + L.n +
       (S.stamps[ui.kind + '-' + L.n] ? '<span class="hanko ok" style="font-size:.5rem;border-width:.12rem">◎</span>' : levelOpen(ui.kind, L.n) ? '' : '<span class="lock">🔒</span>') + '</button>').join('') + '</div></div>' + traceHtml(ui.kind);
   foot(null, null, TOOLS); bindTrace(ui.kind, ui.level);
@@ -486,32 +637,36 @@ function yubi(m) {
   m.querySelectorAll('[data-lv]').forEach(b => b.onclick = () => { ui.level = +b.dataset.lv; ui.hint = 0; ui.miss = 0; render(); });
 }
 const TOOLS = '<button class="btn" id="clear">🧽 けす</button><button class="btn" id="hint">💡 ヒント</button><button class="btn blue" id="auto">スミまるの おてほん</button>';
-const WORDPOS = { yoko: '', hidari: 'pl', migi: 'pr', giza: '', nami: '', uzu: 'pl' };
+const WORDPOS = { yoko: '', hidari: 'pl', migi: 'pr', giza: '', nami: '', uzu: 'pl', fu: 'pl', ji: 'pl', yama: 'pl' };
 function traceHtml(kind) {
   return '<div class="stage" id="stage"><canvas id="cv" width="' + W + '" height="' + H + '"></canvas><div class="word ' + WORDPOS[kind] + '" id="word" hidden></div></div>';
 }
 function bindTrace(kind, level) {
-  const cv = $('#cv'), c = cv.getContext('2d'), K = KINDS[kind], s = K.shape.s, key = K.warm ? kind : kind + '-' + level;
-  const ink = document.createElement('canvas'); ink.width = W; ink.height = H; const ic = ink.getContext('2d');
+  const cv = $('#cv'), c = cv.getContext('2d'), K = KINDS[kind], ks = strokesOf(kind), multi = isChar(kind), key = K.warm ? kind : kind + '-' + level;
+  const mk = () => { const x = document.createElement('canvas'); x.width = W; x.height = H; return x; };
+  const ink = mk(), ic = ink.getContext('2d'), old = mk(), oc = old.getContext('2d');   // ink：いまの 画、old：かきおわった 画
   const tol = level === 4 ? 115 : 85;
+  let si = 0, SK = KINDS[ks[0]], s = SK.shape.s;   // si：いま なぞる 画
   let p = -1, last = null, busy = false, extra = 0;   // extra：ヒントで足す手がかり
   const wordEl = $('#word');
-  const stepAt = i => { let at = 0, w = K.tl[0]; for (const st of K.tl) { if (st.t === 'move') { if (i > at) w = st; at = K.shape.cp[st.to]; } } return w; };
+  const setStroke = i => { si = i; SK = KINDS[ks[i]]; s = SK.shape.s; };
+  const stepAt = i => { let at = 0, w = SK.tl[0]; for (const st of SK.tl) { if (st.t === 'move') { if (i > at) w = st; at = SK.shape.cp[st.to]; } } return w; };
   const showWord = st => { if (!st || !st.word) { wordEl.hidden = true; return; } const h = st.word + '<small>' + (st.note || '') + '</small>'; if (wordEl.innerHTML !== h || wordEl.hidden) { wordEl.innerHTML = h; wordEl.hidden = false; speak(st.word); } };
   const paint = () => {
-    c.clearRect(0, 0, W, H); drawGuide(c, kind, level);
+    c.clearRect(0, 0, W, H); if (multi) drawCharGuide(c, kind, level, si); else drawGuide(c, kind, level);
     if (extra >= 2 && level >= 2) centerLine(c, s, 'rgba(232,49,42,.55)', 9, level === 4 ? [16, 14] : null);
-    c.drawImage(ink, 0, 0);
+    c.drawImage(old, 0, 0); c.drawImage(ink, 0, 0);
   };
-  const reset = () => { ic.clearRect(0, 0, W, H); p = -1; last = null; wordEl.hidden = true; paint(); };
+  const reset = () => { ic.clearRect(0, 0, W, H); p = -1; last = null; wordEl.hidden = true; paint(); };   // いまの 画だけ けす
+  const resetAll = () => { oc.clearRect(0, 0, W, H); setStroke(0); reset(); };
   const pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height }; };
   const near = q => { let best = -1, bd = 1e9; for (let i = Math.max(0, p); i <= Math.min(s.length - 1, p + 45); i++) { const d = Math.hypot(s[i].x - q.x, s[i].y - q.y); if (d < bd) { bd = d; best = i; } } return bd < tol ? best : -1; };
   cv.onpointerdown = e => {
     if (busy) return; e.preventDefault(); anim.id++; reset();
     const q = pos(e);
-    if (Math.hypot(s[0].x - q.x, s[0].y - q.y) > tol) { setTalk('あおい ①の しるしから はじめよう。'); tone(330, 0.15, 0.05); return; }
+    if (Math.hypot(s[0].x - q.x, s[0].y - q.y) > tol) { setTalk(multi ? 'あおい しるしの ' + (si + 1) + 'から はじめよう。' : 'あおい ①の しるしから はじめよう。'); tone(330, 0.15, 0.05); return; }
     try { cv.setPointerCapture(e.pointerId); } catch (_) {}
-    p = 0; last = q; ic.fillStyle = '#1d1b19'; stamp(ic, q.x, q.y, s[0].w); paint(); showWord(K.tl[0]);
+    p = 0; last = q; ic.fillStyle = '#1d1b19'; stamp(ic, q.x, q.y, s[0].w); paint(); showWord(SK.tl[0]);
   };
   cv.onpointermove = e => {
     if (p < 0 || busy) return; e.preventDefault();
@@ -525,8 +680,12 @@ function bindTrace(kind, level) {
     if (p < 0 || busy) return;
     const done = p >= (s.length - 1) * 0.94; p = -1;
     if (done) {
-      const lastSt = K.tl[K.tl.length - 1]; if (lastSt.t === 'hold') showWord(lastSt);
-      busy = true; setTimeout(() => { busy = false; success(key, kind, level); }, lastSt.t === 'hold' ? 900 : 400);
+      const lastSt = SK.tl[SK.tl.length - 1], wait = lastSt.t === 'hold' ? 900 : 400; if (lastSt.t === 'hold') showWord(lastSt);
+      busy = true;
+      if (multi && si < ks.length - 1) {   // つぎの 画へ
+        tone(784, 0.15, 0.07);
+        setTimeout(() => { busy = false; if (!cv.isConnected) return; oc.drawImage(ink, 0, 0); setStroke(si + 1); ui.miss = 0; reset(); setTalk('いいね！ つぎは ' + (si + 1) + 'ばんめ。'); }, wait);
+      } else setTimeout(() => { busy = false; success(key, kind, level); }, wait);
     } else {
       ui.miss++; S.fails[key] = (S.fails[key] || 0) + 1; save(); tone(330, 0.15, 0.05);
       setTalk(ui.miss >= 3 ? 'スミまるが かいて みるね。よく 見てね。' : 'おしい！ さいごまで ゆびを はなさないで なぞろう。');
@@ -535,16 +694,17 @@ function bindTrace(kind, level) {
     }
   };
   cv.onpointerup = up; cv.onpointercancel = up;
-  const auto = () => {
+  const auto = () => {   // スミまるの お手本（字のときは、いまの 画だけ）
     if (!cv.isConnected) return; ic.clearRect(0, 0, W, H); busy = true;
-    playDemo(cv, kind, { guide: level, noMeter: true, onWord: (i, st) => showWord(st), onEnd: () => { busy = false; setTimeout(() => { if (cv.isConnected) reset(); }, 900); } });
+    const o = { guide: level, noMeter: true, onWord: (i, st) => showWord(st), onEnd: () => { busy = false; setTimeout(() => { if (cv.isConnected) reset(); }, 900); } };
+    if (multi) { o.only = si; playChar(cv, kind, o); } else playDemo(cv, kind, o);
   };
-  $('#clear').onclick = () => { anim.id++; busy = false; reset(); };
+  $('#clear').onclick = () => { anim.id++; busy = false; resetAll(); };
   $('#auto').onclick = auto;
   $('#hint').onclick = () => {
     $('#hint').classList.remove('glow'); ui.hint = Math.min(3, ui.hint + 1);
     if (ui.hint === 1) setTalk(K.warm ? 'あおい ①から、せんの まんなかを ゆっくり なぞろう。' : K.say + ' ゆっくりで いいよ。');
-    else if (ui.hint === 2) { extra = 2; paint(); setTalk('あかい せんの うえを なぞろう。あおい ①から はじめるよ。'); }
+    else if (ui.hint === 2) { extra = 2; paint(); setTalk(multi ? 'あかい せんの うえを なぞろう。あおい しるしから はじめるよ。' : 'あかい せんの うえを なぞろう。あおい ①から はじめるよ。'); }
     else { setTalk('スミまるが かいて みるね。よく 見てね。'); setTimeout(auto, 1500); }
   };
   if (ui.hint >= 2) extra = 2;
@@ -571,25 +731,30 @@ function slide(m, say, face, title, pts, extraHtml) {
 }
 /* ④⑤⑥：左に やること、右に お手本の動き */
 function demoSlide(m, say, face, title, leftHtml, guide) {
-  const K = KINDS[ui.kind], s = K.shape.s;
+  const kind = ui.kind, ch = isChar(kind), ks = strokesOf(kind);
+  if (!ch || ui.sk >= ks.length) ui.sk = -1;   // sk：字の なんばんめの 画を 見せるか（-1＝ぜんぶ）
+  const skSeg = ch ? '<div class="seg">' + [-1].concat(ks.map((_, i) => i)).map(i => '<button class="btn small ' + (i === ui.sk ? 'on' : '') + '" data-sk="' + i + '">' + (i < 0 ? 'ぜんぶ' : '①②③④⑤'[i]) + '</button>').join('') + '</div>' : '';
   m.innerHTML = talk(say, face) + '<div class="two"><div class="card"><h2>' + title + '</h2>' + leftHtml + '</div>' +
-    '<div class="demo">' + segHtml(STROKES.map(k => ({ id: k, label: KINDS[k].label })), ui.kind, 'kind') +
-    '<div class="chips">' + K.tl.map((st, i) => '<span class="chip" data-c="' + i + '">' + st.word + '</span>').join('') + '</div>' + traceHtml(ui.kind) + '</div></div>';
+    '<div class="demo"><div class="row" style="gap:.4rem 1rem">' + segHtml(TASKS[ui.task].items.map(k => ({ id: k, label: KINDS[k].label })), kind, 'kind') + skSeg + '</div>' +
+    '<div class="chips" id="chips">' + chipsHtml(ks[Math.max(0, ui.sk)]) + '</div>' + traceHtml(kind) + '</div></div>';
   m.querySelectorAll('.points li').forEach(t => t.onclick = () => speak($('span', t).innerHTML));
   foot(null, null, '<button class="btn blue" id="play">▶ おてほんを 見る</button><button class="btn" id="slow">🐢 ゆっくり</button><button class="btn small" id="vbtn" hidden>🎬 どうが</button>');
   const cv = $('#cv'), c = cv.getContext('2d');
-  const zu = () => { c.clearRect(0, 0, W, H); drawZu(c, ui.kind); };   // 書き方の お手本の図
+  const zu = () => { c.clearRect(0, 0, W, H); if (ch) drawCharZu(c, kind, ui.sk); else drawZu(c, kind); };   // 書き方の お手本の図
   zu(); if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (cv.isConnected && !ui.playing) zu(); });
   ui.playing = false;
-  const run = slow => { ui.playing = true; playDemo(cv, ui.kind, { slow, guide, onEnd: () => { const id = anim.id; setTimeout(() => { if (cv.isConnected && anim.id === id) { ui.playing = false; zu(); } }, 1500); }, onWord: (i, st) => {
+  const run = slow => { ui.playing = true; play(cv, kind, { slow, guide: ch ? 2 : guide, only: ch && ui.sk >= 0 ? ui.sk : null,
+    onStroke: i => { const el = $('#chips'); if (el) el.innerHTML = chipsHtml(ks[i]); },
+    onEnd: () => { const id = anim.id; setTimeout(() => { if (cv.isConnected && anim.id === id) { ui.playing = false; zu(); } }, 1500); }, onWord: (i, st) => {
     m.querySelectorAll('.chip').forEach(x => x.classList.toggle('on', +x.dataset.c === i));
     const w = $('#word'); if (!w) return;
     if (st && st.word) { w.hidden = false; w.innerHTML = st.word + '<small>' + (st.note || '') + '</small>'; speak(st.word); } else w.hidden = true;
   } }); };
   $('#play').onclick = () => run(false); $('#slow').onclick = () => run(true);
   if (ui.autoDemo) { ui.autoDemo = false; setTimeout(() => { if (cv.isConnected) run(false); }, 2600); }
-  m.querySelectorAll('[data-kind]').forEach(b => b.onclick = () => { ui.kind = b.dataset.kind; ui.autoDemo = true; render(); });
-  videoSlot(ui.kind);
+  m.querySelectorAll('[data-kind]').forEach(b => b.onclick = () => { ui.kind = b.dataset.kind; ui.sk = -1; ui.autoDemo = true; render(); });
+  m.querySelectorAll('[data-sk]').forEach(b => b.onclick = () => { anim.id++; ui.sk = +b.dataset.sk; ui.autoDemo = true; render(); });
+  videoSlot(kind);
 }
 const ptsHtml = pts => '<ul class="points">' + pts.map((p, i) => '<li><b>' + (i + 1) + '</b><span>' + p + '</span></li>').join('') + '</ul>';
 function kami(m) {
@@ -628,12 +793,15 @@ function katazuke(m) {
 /* ---------- ポップアップ・はんこちょう ---------- */
 function pop(html) { const r = $('#popRoot'); r.innerHTML = '<div class="pop"><div>' + html + '</div></div>'; r.querySelectorAll('[data-close]').forEach(b => b.onclick = closePop); }
 function closePop() { $('#popRoot').innerHTML = ''; }
-const ALLKEYS = () => WARMS.concat(...STROKES.map(k => LEVELS.map(L => k + '-' + L.n)));
+const ALLK = STROKES.concat(CHARS);
 function showStamps() {
   const cell = k => S.stamps[k] ? '<span class="hanko">よく<br>できた</span>' : '<span class="hanko empty">？</span>';
-  pop('<h2>🔴 はんこちょう</h2><p style="font-size:1.15rem;font-weight:700;margin:.6rem 0 .3rem">ゆびの たいそう</p><div class="hgrid">' + WARMS.map(cell).join('') + '</div>' +
-    STROKES.map(k => '<p style="font-size:1.15rem;font-weight:700;margin:.6rem 0 .3rem">' + KINDS[k].label + '</p><div class="hgrid">' + LEVELS.map(L => cell(k + '-' + L.n)).join('') + '</div>').join('') +
-    '<div class="row" style="margin-top:1rem"><button class="btn red" data-close>とじる</button></div>');
+  const row = (label, keys) => '<b style="font-size:1.15rem;text-align:right">' + label + '</b><div style="display:flex;gap:.5rem">' + keys.map(cell).join('') + '</div>';
+  const sec = (title, list) => '<div><p style="font-size:1.05rem;font-weight:700;color:var(--muted);margin:.2rem 0 .4rem">' + title + '</p><div style="display:grid;grid-template-columns:auto auto;gap:.45rem .7rem;align-items:center;justify-content:center">' + list.join('') + '</div></div>';
+  pop('<h2>🔴 はんこちょう</h2><div style="display:flex;gap:1.2rem 2rem;flex-wrap:wrap;justify-content:center;margin-top:.5rem">' +
+    sec('ゆびの たいそう・せんの れんしゅう', [row('たいそう', WARMS)].concat(STROKES.map(k => row(KINDS[k].label, LEVELS.map(L => k + '-' + L.n))))) +
+    sec(TASKS.fuji.name, CHARS.map(k => row(KINDS[k].label, LEVELS.map(L => k + '-' + L.n)))) +
+    '</div><div class="row" style="margin-top:1rem"><button class="btn red" data-close>とじる</button></div>');
 }
 
 /* ---------- 先生用画面 ---------- */
@@ -653,7 +821,7 @@ function openTeacher() {
   draw();
 }
 function teacher() {
-  const rows = STROKES.map(k => '<tr><th>' + KINDS[k].label + '</th>' + LEVELS.map(L => { const key = k + '-' + L.n; return '<td>' + (S.stamps[key] ? '◎' : '－') + (S.fails[key] ? '<br><small>やり直し ' + S.fails[key] + '回</small>' : '') + '</td>'; }).join('') + '</tr>').join('');
+  const rows = ALLK.map(k => '<tr><th>' + KINDS[k].label + '</th>' + LEVELS.map(L => { const key = k + '-' + L.n; return '<td>' + (S.stamps[key] ? '◎' : '－') + (S.fails[key] ? '<br><small>やり直し ' + S.fails[key] + '回</small>' : '') + '</td>'; }).join('') + '</tr>').join('');
   const warm = WARMS.map(k => KINDS[k].name + '：' + (S.stamps[k] ? '◎' : '－') + (S.fails[k] ? '（やり直し ' + S.fails[k] + '回）' : '')).join('　');
   pop('<h2>先生用画面</h2><div class="set">' +
     '<div><b>記録（この端末）</b><table><tr><th></th>' + LEVELS.map(L => '<th>ステップ' + L.n + '</th>').join('') + '</tr>' + rows + '</table><div style="text-align:center">' + warm + '</div><div style="text-align:center;color:var(--muted)">「やり直し」が多いところが、つまずいているところです。</div></div>' +
