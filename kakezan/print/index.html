@@ -72,7 +72,7 @@
   <div class="controls">
     <div class="panel">
       <h1><img src="../img/kakeru_happy.webp" alt="" style="height:64px" onerror="this.remove()"> かけざんの ひっさん プリント</h1>
-      <p>ケンジャの カケルさまの ひっさん クエスト（アプリ）と同じ順番で練習するプリントです。A4たて・1まいに5もんです。</p>
+      <p>ケンジャの カケルさまの ひっさん クエスト（アプリ）と同じ順番で練習するプリントです。A4たて。PDF は 1まいに5もんです。下の「1まいの もんだいの かず」で、3・5・7もん から えらべます。</p>
       <h2 style="margin-top:12px">できあがった PDF（そのまま印刷・保存できます）</h2>
       <div class="btns">
         <a class="btn small" href="pdf/かけざんひっさんプリント_1_カラー.pdf" target="_blank">📄 カラー（95まい）</a>
@@ -88,6 +88,9 @@
         <button class="btn small" id="allOff">ぜんぶ はずす</button>
       </div>
       <div class="grpick" id="pick"></div>
+      <div class="row2"><b>1まいの もんだいの かず</b>
+        <span class="btns" id="perBtns"><button class="btn small" data-n="3">3もん</button><button class="btn small" data-n="5">5もん</button><button class="btn small" data-n="7">7もん</button></span></div>
+      <p class="note">かずを へらすと、マスと 数字が 大きく なります。PDF と おなじ もんだいに なるのは、5もんの ときだけです。やりかたの わくは、どの かずでも 入ります。</p>
     </div>
     <div class="panel">
       <h2>2. いろ・名前・こたえ</h2>
@@ -327,7 +330,9 @@
   /* =========================================================
      1まいの プリント
      ========================================================= */
-  const NUM = ['①', '②', '③', '④', '⑤'];
+  const NUM = ['①', '②', '③', '④', '⑤', '⑥', '⑦'];
+  // 1まいの もんだいの かず → マスの 大きさ [九九, かける数が 1けた, かける数が 2けた]。5もんは いままでと おなじ
+  const PER_C = { 3: [20, 19, 13], 5: [15, 14, 9.4], 7: [13, 12, 7.6] };
   function faces() {
     const f = (mouth) => `<svg width="7mm" height="7mm" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.4" fill="none" stroke="#475569" stroke-width=".6"/><circle cx="3.5" cy="4" r=".6" fill="#475569"/><circle cx="6.5" cy="4" r=".6" fill="#475569"/><path d="${mouth}" stroke="#475569" stroke-width=".6" fill="none" stroke-linecap="round"/></svg>`;
     return `<span class="face">できたかな？ ${f('M3 6 Q5 8.2 7 6')}${f('M3.2 6.6 Q5 7.5 6.8 6.6')}${f('M3.3 6.8 L6.7 6.8')}</span>`;
@@ -336,12 +341,24 @@
     R = rng(seed);
     const C = opt.mono ? MONO : COLOR, key = opt.key;
     const used = new Set();
-    const probs = g.specs.map(s => makeProblem(s, used));
-    if (g.id !== 'test' && g.id !== 'p5' && g.id !== 'p7' && g.id !== 'p8') { while (probs.length < 5) probs.push(makeProblem(g.specs[0], used)); }
+    const per = PER_C[opt.per] ? opt.per : 5;
+    let probs;
+    if (per === 5) {   // 5もん：PDF と おなじ もんだいに なるように、この じゅんばんを かえない
+      probs = g.specs.map(s => makeProblem(s, used));
+      if (g.id !== 'test' && g.id !== 'p5' && g.id !== 'p7' && g.id !== 'p8') { while (probs.length < 5) probs.push(makeProblem(g.specs[0], used)); }
+    } else {           // 3もん・7もん：その だんかいの しゅるいを、かたよらないように えらぶ
+      const base = g.specs.slice(); while (base.length < 5) base.push(g.specs[0]);
+      let idx = base.map((_, i) => i);
+      if (per < 5) { const pickIdx = []; const pool = idx.slice(); while (pickIdx.length < per) pickIdx.push(pool.splice(Math.floor(R() * pool.length), 1)[0]); idx = pickIdx.sort((a, b) => a - b); }
+      else { const pool = idx.slice(); while (idx.length < per) { idx.push(pool.splice(Math.floor(R() * pool.length), 1)[0]); } idx.sort((a, b) => a - b); }
+      probs = idx.map(i => makeProblem(base[i], used));
+    }
     const two = probs.some(p => p[1] >= 10);
-    const c = g.id === 'p0' ? 15 : two ? 9.4 : 14;
-    // 2れつ × 3だん。6ばんめは やりかたの わく
-    const SW = 95, SH = 78;
+    const PC = PER_C[per];
+    const c = g.id === 'p0' ? PC[0] : two ? PC[2] : PC[1];
+    // 2れつ × ROWS だん。さいごの わくは やりかた
+    const ROWS = (per + 1) / 2, TOTAL = 234;
+    const SW = 95, SH = TOTAL / ROWS;
     let svg = '';
     probs.forEach((p, i) => {
       const col = i % 2, row = Math.floor(i / 2), x0 = col * SW, y0 = row * SH;
@@ -355,14 +372,14 @@
       if (key) svg += `<text x="${x0 + 5}" y="${y0 + SH - 6}" font-size="3.8" fill="${C.red}" font-weight="700" dominant-baseline="central">${p[0]} × ${p[1]} ＝ ${p[0] * p[1]}</text>`;
     });
     // やりかたの わく（おてほん つき）
-    const hx = SW, hy = 2 * SH;
+    const hx = SW, hy = (ROWS - 1) * SH;
     svg += `<rect x="${hx + 1}" y="${hy + 1}" width="${SW - 2}" height="${SH - 2}" rx="3" fill="${opt.mono ? '#fff' : '#eff6ff'}" stroke="#1e3a8a" stroke-width=".5"/>`;
     const ex = EXAMPLE[g.id] || [27, 3], ES = solve(ex[0], ex[1]), ec = ES.two ? 6.4 : 8, EW = ES.A.length + ES.B.length;
     const ehh = ec * (2 + (ES.two ? 3 : 1)) + (ES.two ? 3 : (ES.A.length > 1 && classify(ex[0], ex[1]) !== 'n0' ? 1 : 0)) * ec * .6;
     svg += drawHissan(hx + SW - EW * ec - 6, hy + SH - ehh - 5, ex[0], ex[1], ec, C, true).svg;
     svg += `<text x="${hx + SW - EW * ec / 2 - 6}" y="${hy + SH - ehh - 8}" font-size="3.6" fill="#1e3a8a" text-anchor="middle" font-weight="700">おてほん</text>`;
-    const how = `<div style="position:absolute;left:${10 + hx + 4}mm;top:${50 + hy + 4}mm;width:${SW - EW * ec - 14}mm;font-size:3.5mm;font-weight:700;line-height:1.55;color:#1e3a8a">
-      <div style="font-size:4.4mm;margin-bottom:1mm">📜 やりかた</div>${howTo(g, opt.mono).map(s => `<div>${s}</div>`).join('')}</div>`;
+    const how = `<div style="position:absolute;left:${10 + hx + 4}mm;top:${50 + hy + 4}mm;width:${SW - EW * ec - 14}mm;font-size:${per === 7 ? 3 : per === 3 ? 4.2 : 3.5}mm;font-weight:700;line-height:${per === 7 ? 1.4 : 1.55};color:#1e3a8a" class="how">
+      <div style="font-size:${per === 7 ? 3.8 : 4.4}mm;margin-bottom:${per === 7 ? .3 : 1}mm">📜 やりかた</div>${howTo(g, opt.mono).map(s => `<div>${s}</div>`).join('')}</div>`;
 
     const who = `<div class="who">
       <div class="date"><span>　　がつ</span><span>　　にち</span></div>
@@ -377,7 +394,7 @@
         ${key ? '<div class="key">こたえ</div>' : ''}
       </div>
       <div class="inst"><span>・つぎの けいさんを ひっさんで しましょう。</span>${faces()}</div>
-      <svg class="grid" viewBox="0 0 190 ${3 * SH}" width="190mm" height="${3 * SH}mm">${DEFS}${svg}</svg>
+      <svg class="grid" viewBox="0 0 190 ${TOTAL}" width="190mm" height="${TOTAL}mm">${DEFS}${svg}</svg>
       ${how}
     </div>`;
   }
@@ -390,6 +407,7 @@
   const q = new URLSearchParams(location.search);
   let seed = Number(q.get('seed')) || DEFAULT_SEED;
   let mono = q.get('mono') === '1';
+  let per = [3, 5, 7].includes(Number(q.get('n'))) ? Number(q.get('n')) : 5;
   const sel = {};
   function parseSel(str) {
     GROUPS.forEach(g => { delete sel[g.id]; });
@@ -407,7 +425,7 @@
 
   const pick = document.getElementById('pick');
   function render() {
-    const opt = { name: document.getElementById('nm').value.trim(), nen: document.getElementById('nen').value.trim(), kumi: document.getElementById('kumi').value.trim(), mono };
+    const opt = { name: document.getElementById('nm').value.trim(), nen: document.getElementById('nen').value.trim(), kumi: document.getElementById('kumi').value.trim(), mono, per };
     const withKey = document.getElementById('ans').checked, onlyKey = q.get('only') === 'key';
     let html = '', pages = 0;
     GROUPS.forEach(g => {
@@ -420,8 +438,9 @@
     });
     document.getElementById('out').innerHTML = html;
     document.getElementById('cnt').textContent = `${pages}まい`;
-    document.getElementById('seedNote').textContent = seed === DEFAULT_SEED ? '（PDF と 同じ もんだいです）' : `もんだいの ばんごう：${seed}（PDF とは ちがう もんだいです）`;
+    document.getElementById('seedNote').textContent = seed === DEFAULT_SEED && per === 5 ? '（PDF と 同じ もんだいです）' : seed === DEFAULT_SEED ? '（PDF とは ちがう もんだいです。5もんに すると PDF と 同じに なります）' : `もんだいの ばんごう：${seed}（PDF とは ちがう もんだいです）`;
     document.querySelectorAll('#modeBtns .btn').forEach(b => b.classList.toggle('on', (b.dataset.m === 'mono') === mono));
+    document.querySelectorAll('#perBtns .btn').forEach(b => b.classList.toggle('on', Number(b.dataset.n) === per));
     drawPick();
   }
   function drawPick() {
@@ -449,6 +468,7 @@
   ['nm', 'nen', 'kumi'].forEach(id => document.getElementById(id).addEventListener('input', render));
   document.getElementById('ans').addEventListener('change', render);
   document.querySelectorAll('#modeBtns .btn').forEach(b => b.onclick = () => { mono = b.dataset.m === 'mono'; render(); });
+  document.querySelectorAll('#perBtns .btn').forEach(b => b.onclick = () => { per = Number(b.dataset.n); render(); });
   document.getElementById('reroll').onclick = () => { seed = Math.floor(Math.random() * 900000) + 100000; render(); };
   document.getElementById('reset').onclick = () => { seed = DEFAULT_SEED; render(); };
   document.getElementById('printBtn').onclick = () => window.print();
