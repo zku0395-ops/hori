@@ -25,6 +25,7 @@
     .btn:active { top: 4px; box-shadow: 0 0 0 #0369a1; }
     .btn.big { font-size: 22px; padding: 14px 26px; background: #16a34a; border-color: #166534; color: #fff; box-shadow: 0 5px 0 #166534; }
     .btn.small { font-size: 14px; padding: 6px 10px; box-shadow: 0 3px 0 #0369a1; }
+    #perBtns .btn.on { background: #0369a1; color: #fff; }
     .grpick { display: grid; gap: 6px; }
     .grpick .grow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; border: 2px solid #cbd5e1; border-radius: 12px; padding: 8px 10px; font-size: 16px; }
     .grpick .grow.on { border-color: #0369a1; background: #e0f2fe; }
@@ -103,6 +104,9 @@
         <button class="btn small" id="allOff">ぜんぶ はずす</button>
       </div>
       <div class="grpick" id="pick"></div>
+      <div class="row2"><b>れんしゅう（ステップ1〜6）の 1まいの もんだいの かず</b></div>
+      <div class="btns" id="perBtns"><button class="btn small" data-n="0">PDF と おなじ（6・8もん）</button><button class="btn small" data-n="2">2もん</button><button class="btn small" data-n="4">4もん</button><button class="btn small" data-n="6">6もん</button><button class="btn small" data-n="8">8もん</button></div>
+      <p class="note">2もんに すると、マスと 数字が 大きく なります。4もんは 6もんと おなじ 大きさで、あいだが ひろく なります。じゅんびと テストの もんだいの かずは かわりません。</p>
     </div>
     <div class="panel">
       <h2>2. 名前と こたえ</h2>
@@ -364,14 +368,15 @@
   // ---- ステップ1〜6 ----
   function hissanSheet(g, no, seed, name, key) {
     const r = rng(seed);
-    const n = g.n;
+    const n = [2, 4, 6, 8].includes(per) ? per : g.n;   // per：せんせいが えらんだ かず（0 は PDF と おなじ）
     const zeroAt = g.zero ? rInt(r, 1, n - 1) : -1;
     const ps = pairs(r, n, zeroAt);
-    const c = n === 6 ? 14.5 : 11.5;
-    const rowH = n === 6 ? 66 : 50;
+    // かずごとの ならべかた：[マスの 大きさ, 1だんの たかさ, れつの かず, 1れつの はば]
+    const [c, rowH, cols, colW] = { 2: [21, 96, 1, 139], 4: [14.5, 96, 2, 96], 6: [14.5, 66, 2, 96], 8: [11.5, 50, 2, 96] }[n];
+    const left = cols === 1 ? (190 - colW) / 2 : 0;
     let svg = '';
     ps.forEach((p, i) => {
-      const x0 = (i % 2) * 96, y0 = Math.floor(i / 2) * rowH;
+      const x0 = left + (i % cols) * colW, y0 = Math.floor(i / cols) * rowH;
       svg += numLabel(x0, y0 + c * .72 + c / 2, i, c * .42);
       let o;
       if (key) o = { show: ALL, key };
@@ -383,13 +388,13 @@
       if (g.form === 'two' || g.form === 'one') svg += formula(fx, H, p, c, g.form, { given: g.given, faint: g.trace && !key, key });
       if (g.form === 'memo') {
         if (i < n / 2) svg += formula(fx, H, p, c, 'one', { key });
-        else svg += memoBox(fx, H, 92 - (fx - x0) - 4, c, key ? p : null);
+        else svg += memoBox(fx, H, colW - 4 - (fx - x0) - 4, c, key ? p : null);
       }
     });
     const inst = g.trace ? '・つぎの けいさんを ひっさんで しましょう。（うすい じは なぞりましょう。）'
-      : g.form === 'memo' ? '・つぎの けいさんを ひっさんで しましょう。（⑤〜⑧は けいさんメモを つかいましょう。）'
+      : g.form === 'memo' ? `・つぎの けいさんを ひっさんで しましょう。（${n === 2 ? '②' : NUM[n / 2] + (n === 4 ? '・' : '〜') + NUM[n - 1]}は けいさんメモを つかいましょう。）`
       : '・つぎの けいさんを ひっさんで しましょう。';
-    return page(g, no, name, key, inst, svg, n === 6 ? 192 : 200, ruleFooter(g.fig));
+    return page(g, no, name, key, inst, svg, n === 8 ? 200 : 192, ruleFooter(g.fig));
   }
   // ---- テスト ----
   function testSheet(g, no, seed, name, key) {
@@ -439,6 +444,7 @@
   const DEFAULT_SEED = 20261012;
   const q = new URLSearchParams(location.search);
   let seed = Number(q.get('seed')) || DEFAULT_SEED;
+  let per = [2, 4, 6, 8].includes(Number(q.get('n'))) ? Number(q.get('n')) : 0;   // れんしゅうの 1まいの もんだいの かず（0＝PDF と おなじ）
   const sel = {};   // id → [from, to]
   function parseSel(str) {
     GROUPS.forEach(g => { delete sel[g.id]; });
@@ -470,7 +476,8 @@
     });
     document.getElementById('out').innerHTML = html;
     document.getElementById('cnt').textContent = `${pages}まい`;
-    document.getElementById('seedNote').textContent = seed === DEFAULT_SEED ? '（PDF と 同じ もんだいです）' : `もんだいの ばんごう：${seed}（PDF とは ちがう もんだいです）`;
+    document.getElementById('seedNote').textContent = seed === DEFAULT_SEED && !per ? '（PDF と 同じ もんだいです）' : seed === DEFAULT_SEED ? '（れんしゅうは PDF と ちがう ことが あります。「PDF と おなじ」を おすと 同じに なります）' : `もんだいの ばんごう：${seed}（PDF とは ちがう もんだいです）`;
+    document.querySelectorAll('#perBtns .btn').forEach(b => b.classList.toggle('on', Number(b.dataset.n) === per));
     drawPick();
   }
   function drawPick() {
@@ -497,6 +504,7 @@
   document.getElementById('allOff').onclick = () => { GROUPS.forEach(g => delete sel[g.id]); render(); };
   document.getElementById('nm').addEventListener('input', render);
   document.getElementById('ans').addEventListener('change', render);
+  document.querySelectorAll('#perBtns .btn').forEach(b => b.onclick = () => { per = Number(b.dataset.n); render(); });
   document.getElementById('reroll').onclick = () => { seed = Math.floor(Math.random() * 900000) + 100000; render(); };
   document.getElementById('reset').onclick = () => { seed = DEFAULT_SEED; render(); };
   document.getElementById('printBtn').onclick = () => window.print();
