@@ -26,6 +26,7 @@
     .btn.big { font-size: 22px; padding: 14px 26px; background: #16a34a; border-color: #166534; color: #fff; box-shadow: 0 5px 0 #166534; }
     .btn.small { font-size: 14px; padding: 6px 10px; box-shadow: 0 3px 0 #1e40af; }
     .btn.on { background: #dbeafe; }
+    #perBtns .btn.on { background: #1e40af; color: #fff; }
     a.btn { display: inline-block; text-decoration: none; }
     .grpick { display: grid; gap: 6px; }
     .grpick .grow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; border: 2px solid #cbd5e1; border-radius: 12px; padding: 8px 10px; font-size: 16px; }
@@ -91,6 +92,9 @@
       </div>
       <div class="grpick" id="pick"></div>
       <div class="row2"><b>どれも</b> その <select id="rg0"></select> 〜 <select id="rg1"></select>（1つに 5まい あります）</div>
+      <div class="row2"><b>②じゅんばん・③ばらばら・④にんじゃ しけん の 1まいの もんだいの かず</b></div>
+      <div class="btns" id="perBtns"><button class="btn small" data-n="3">3もん</button><button class="btn small" data-n="5">5もん</button><button class="btn small" data-n="9">9もん（PDF と おなじ）</button></div>
+      <p class="note">かずを へらすと、数字と こたえの わくが 大きく なります。②じゅんばん は、その1・その2…の じゅんに ×1から ×9まで すすみます（5もん：×1〜×5 → ×5〜×9。3もん：×1〜×3 → ×4〜×6 → ×7〜×9）。おぼんの プリント（いりぐち・⓪であう）は 3もんの ままです。</p>
     </div>
     <div class="panel">
       <h2>2. いろ・名前・こたえ</h2>
@@ -242,6 +246,7 @@
 
   // くくの もんだい（9もん。2れつ × 5だん、たてに よむ）。10ばんめは ヒントか ごうかく シール
   function kukuPage(g, C, key, opt) {
+    if (opt.per === 3 || opt.per === 5) return kukuPageN(g, C, key, opt);
     const a = g.a;
     let bs = range(1, 9);
     if (g.kind !== 'junban') { bs = shuffle(bs); if (bs.every((v, i) => v === i + 1)) bs = shuffle(bs); }
@@ -276,10 +281,49 @@
     return { svg, h: 5 * RH, extra };
   }
 
+  // くくの もんだいを 3もん・5もんに した とき（数字と わくを 大きく する）。さいごの わくは ヒントか ごうかく シール
+  function kukuPageN(g, C, key, opt) {
+    const a = g.a, n = opt.per;
+    let bs = range(1, 9);
+    if (g.kind !== 'junban') { bs = shuffle(bs); if (bs.every((v, i) => v === i + 1)) bs = shuffle(bs); bs = bs.slice(0, n); }
+    else if (n === 5) bs = opt.no % 2 ? [1, 2, 3, 4, 5] : [5, 6, 7, 8, 9];        // その1・3・5：×1〜×5、その2・4：×5〜×9
+    else { const k = (opt.no - 1) % 3; bs = [k * 3 + 1, k * 3 + 2, k * 3 + 3]; } // その1・4：×1〜×3、その2・5：×4〜×6、その3：×7〜×9
+    // 5もん：2れつ × 3だん。3もん：1れつ × 4だん
+    const [cols, rows, CW, RH, sc, lx] = n === 5 ? [2, 3, 95, 76, 1.4, 13] : [1, 4, 190, 57.5, 2, 44];
+    let svg = '';
+    bs.forEach((b, i) => {
+      const col = Math.floor(i / rows), row = i % rows, x0 = col * CW, y0 = row * RH;
+      svg += `<rect x="${x0 + 1}" y="${y0 + 1}" width="${CW - 2}" height="${RH - 3}" rx="3" fill="none" stroke="${C.line}" stroke-width=".35"/>`;
+      svg += T(x0 + 8, y0 + 9, NUM[i], 7.5, C.box);
+      const cy = g.kind === 'junban' ? y0 + RH / 2 - 6 * sc : y0 + RH / 2 - 1;
+      let inner = line(0, 0, [{ t: a, w: 6, c: C.A, fs: 10 }, { t: '×', w: 6, fs: 9 }, { t: b, w: 6, c: C.B, fs: 10 }, { t: '＝', w: 8, fs: 9 }, { b: a * b, c: C.N }], C, key);
+      if (g.kind === 'junban') {
+        const [mae, ans] = D.TONAE[a][b - 1];
+        inner += TL(1, 14.5, key ? `${mae} ${ans}` : `${mae} …`, 4.6, opt.mono ? C.ink : '#4338ca');
+      }
+      svg += `<g transform="translate(${x0 + lx} ${cy}) scale(${sc})">${inner}</g>`;
+    });
+    const x0 = (cols - 1) * CW, y0 = (rows - 1) * RH;
+    let extra = '';
+    svg += `<rect x="${x0 + 1}" y="${y0 + 1}" width="${CW - 2}" height="${RH - 3}" rx="3" fill="${C.soft}" stroke="${C.box}" stroke-width=".5"/>`;
+    if (g.kind === 'shiken') {
+      const cx = x0 + CW - 30;
+      svg += `<circle cx="${cx}" cy="${y0 + RH / 2 - 1}" r="20" fill="#fff" stroke="${C.box}" stroke-width=".6" stroke-dasharray="1.6 1.1"/>`;
+      svg += T(cx, y0 + RH / 2 - 4, 'ごうかく', 4.6, C.box) + T(cx, y0 + RH / 2 + 2.5, 'シール', 4.6, C.box);
+      extra = `<div class="tip" style="color:${C.box};left:${10 + x0 + 5}mm;top:${51 + y0 + RH / 2 - 8}mm;width:${CW - 62}mm">ぜんぶ できたら<br>シールを はろう！</div>`;
+    } else {
+      const tip = g.kind === 'junban'
+        ? `💡 こたえは ${a}ずつ ふえるよ。<br>1つ まえの こたえに ${a}を たすと、<br>つぎの こたえに なるよ。`
+        : `💡 こまったら、${a}の だんを<br>こえに だして となえて みよう。`;
+      extra = `<div class="tip" style="color:${C.box};left:${10 + x0 + 6}mm;top:${51 + y0 + RH / 2 - (g.kind === 'junban' ? 11 : 8)}mm;width:${CW - 12}mm">${tip}</div>`;
+    }
+    return { svg, h: rows * RH, extra };
+  }
+
   function sheet(g, no, seed, opt) {
     R = rng(seed);
     const C = opt.mono ? MONO : COLOR, key = opt.key;
-    const body = g.kind === 'junban' || g.kind === 'bara' || g.kind === 'shiken' ? kukuPage(g, C, key, opt) : trayPage(g, C, key);
+    const body = g.kind === 'junban' || g.kind === 'bara' || g.kind === 'shiken' ? kukuPage(g, C, key, { ...opt, no }) : trayPage(g, C, key);
     const pic1 = g.iri ? '../img/kagemaru.webp' : `../img/ninja_${g.ninja}_${no % 2 ? 1 : 2}.webp`;
     const pic2 = g.iri ? `../img/ninja_${NINJA[no % 6]}_1.webp` : `../img/enemy_${g.en.id}.webp`;
     const who = `<div class="who">
@@ -309,6 +353,7 @@
   const q = new URLSearchParams(location.search);
   let seed = Number(q.get('seed')) || DEFAULT_SEED;
   let mono = q.get('mono') === '1';
+  let per = [3, 5].includes(Number(q.get('n'))) ? Number(q.get('n')) : 9;   // くくの プリントの 1まいの もんだいの かず（9＝PDF と おなじ）
   const sel = new Set();
   let rg = [1, PER];
   function parseSel(str) {
@@ -322,7 +367,7 @@
   const sheetSeed = (g, no) => (seed * 31 + GROUPS.indexOf(g) * 7919 + no * 104729) >>> 0;
 
   function render() {
-    const opt = { name: document.getElementById('nm').value.trim(), nen: document.getElementById('nen').value.trim(), kumi: document.getElementById('kumi').value.trim(), mono };
+    const opt = { name: document.getElementById('nm').value.trim(), nen: document.getElementById('nen').value.trim(), kumi: document.getElementById('kumi').value.trim(), mono, per };
     const withKey = document.getElementById('ans').checked, onlyKey = q.get('only') === 'key';
     let html = '', pages = 0;
     GROUPS.forEach(g => {
@@ -335,8 +380,9 @@
     });
     document.getElementById('out').innerHTML = html;
     document.getElementById('cnt').textContent = `${pages}まい`;
-    document.getElementById('seedNote').textContent = seed === DEFAULT_SEED ? '（PDF と 同じ もんだいです）' : `もんだいの ばんごう：${seed}（PDF とは ちがう もんだいです）`;
+    document.getElementById('seedNote').textContent = seed === DEFAULT_SEED && per === 9 ? '（PDF と 同じ もんだいです）' : seed === DEFAULT_SEED ? '（②③④は PDF と ちがいます。「9もん」を おすと 同じに なります）' : `もんだいの ばんごう：${seed}（PDF とは ちがう もんだいです）`;
     document.querySelectorAll('#modeBtns .btn').forEach(b => b.classList.toggle('on', (b.dataset.m === 'mono') === mono));
+    document.querySelectorAll('#perBtns .btn').forEach(b => b.classList.toggle('on', Number(b.dataset.n) === per));
     drawPick();
   }
   function drawPick() {
@@ -351,6 +397,7 @@
   ['nm', 'nen', 'kumi'].forEach(id => document.getElementById(id).addEventListener('input', render));
   document.getElementById('ans').addEventListener('change', render);
   document.querySelectorAll('#modeBtns .btn').forEach(b => b.onclick = () => { mono = b.dataset.m === 'mono'; render(); });
+  document.querySelectorAll('#perBtns .btn').forEach(b => b.onclick = () => { per = Number(b.dataset.n); render(); });
   document.getElementById('reroll').onclick = () => { seed = Math.floor(Math.random() * 900000) + 100000; render(); };
   document.getElementById('reset').onclick = () => { seed = DEFAULT_SEED; render(); };
   document.getElementById('printBtn').onclick = () => window.print();
