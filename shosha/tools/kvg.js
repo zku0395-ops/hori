@@ -1,17 +1,18 @@
 // 字の 線（まん中の線）を、KanjiVG の 書き順データから 作ります。
-// ・もとの データ：../../kanji1/data/strokes.js（KanjiVG, CC BY-SA 3.0）
-// ・使い方：node shosha/tools/kvg.js ふ じ 山
+// ・もとの データ：../../kanji1〜3/data/strokes.js（KanjiVG, CC BY-SA 3.0）
+// ・使い方：node shosha/tools/kvg.js ふ じ 山 平 和
 //   出てきた「const KVG = …」を、index.html の KVG の ところに 貼ります。
 //   あわせて、1画ごとの 区切り（0〜1）も 出ます。筆の ことば（トン・スー など）を 切りかえる 場所を 決める ときに 使います。
-// ・noSerif に 書いた 画は、書きはじめの 小さな かざり（うったての 形）を はずして、まっすぐ 始めます。
+// ・漢字の 画は、書きはじめの 小さな かざり（うったての 形）を はずして、まっすぐ 始めます。
+// ・漢字は、ことばの ふだを 左右に 置けるように、ひらがなより 少し 小さく 置きます。
 const path = require('path');
 global.window = {};
-require(path.join(__dirname, '../../kanji1/data/strokes.js'));
-const SRC = window.KANJI_STROKES;
+const SRC = {};
+[1, 2, 3].forEach(g => { require(path.join(__dirname, '../../kanji' + g + '/data/strokes.js')); Object.assign(SRC, window.KANJI_STROKES); });
 
-const NAMES = { 'ふ': 'fu', 'じ': 'ji', '山': 'yama' };
-const noSerif = { yama1: 1, yama2: 1, yama3: 1 };
-const F = 6.4, CX = 500, CY = 318;   // 109 の ますを、1000×640 の 画面の まん中に 置く
+const NAMES = { 'ふ': 'fu', 'じ': 'ji', '山': 'yama', '平': 'hei', '和': 'wa' };
+const SMALL = { '平': 5.6, '和': 5.6 };   // 字ごとの 大きさ（書いて いない 字は 6.4）
+const CX = 500, CY = 318;   // 109 の ますを、1000×640 の 画面の まん中に 置く
 
 function flatten(d) {
   const segs = [];   // 区切りごとの 点
@@ -41,11 +42,12 @@ function flatten(d) {
 
 const out = {}, info = [];
 for (const ch of process.argv.slice(2)) {
-  const name = NAMES[ch] || ch;
+  const name = NAMES[ch] || ch, F = SMALL[ch] || 6.4, kanji = ch.codePointAt(0) >= 0x4E00;
   (SRC[ch] || []).forEach((d, i) => {
     const key = name + (i + 1);
     let segs = flatten(d);
-    if (noSerif[key]) { const first = segs[2][0]; segs = [[[first[0], segs[0][0][1]]]].concat(segs.slice(2)); }
+    const L = s => { let d = 0, q = s === segs[1] ? segs[0][0] : null; s.forEach(p => { if (q) d += Math.hypot(p[0] - q[0], p[1] - q[1]); q = p; }); return d; };
+    if (kanji && segs.length > 2 && L(segs[1]) < 9) { const first = segs[2][0]; segs = [[[first[0], segs[0][0][1]]]].concat(segs.slice(2)); }
     const pts = [], cuts = [];
     segs.forEach(s => { s.forEach(p => pts.push([Math.round((p[0] - 54.5) * F + CX), Math.round((p[1] - 54.5) * F + CY)])); cuts.push(pts.length - 1); });
     const len = [0]; for (let k = 1; k < pts.length; k++) len.push(len[k - 1] + Math.hypot(pts[k][0] - pts[k - 1][0], pts[k][1] - pts[k - 1][1]));
