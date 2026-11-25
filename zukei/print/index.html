@@ -25,6 +25,7 @@
     .btn:active { top: 4px; box-shadow: 0 0 0 #0369a1; }
     .btn.big { font-size: 22px; padding: 14px 26px; background: #16a34a; border-color: #166534; color: #fff; box-shadow: 0 5px 0 #166534; }
     .btn.small { font-size: 14px; padding: 6px 10px; box-shadow: 0 3px 0 #0369a1; }
+    #lessBtns .btn.on { background: #0369a1; color: #fff; }
     a.btn { display: inline-block; text-decoration: none; }
     .grpick { display: grid; gap: 6px; }
     .grpick .grow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; border: 2px solid #cbd5e1; border-radius: 12px; padding: 8px 10px; font-size: 16px; }
@@ -120,6 +121,9 @@
         <button class="btn small" id="allOff">ぜんぶ はずす</button>
       </div>
       <div class="grpick" id="pick"></div>
+      <div class="row2"><b>1まいの もんだいの かず</b></div>
+      <div class="btns" id="lessBtns"><button class="btn small" data-l="0">ふつう（PDF と おなじ・6もん など）</button><button class="btn small" data-l="1">すくなめ（4もん など）</button><button class="btn small" data-l="2">もっと すくなめ（2もん など）</button></div>
+      <p class="note">ステージで もんだいの かずが ちがうので、3つの おおさから えらびます。てんを むすぶ プリント（0・1・2・6）は、かずを へらすと ますが 大きく なります。まとめテストの「できた かず ／ ○」も、かずに あわせて かわります。</p>
     </div>
     <div class="panel">
       <h2>2. 学年・名前と こたえ</h2>
@@ -318,8 +322,14 @@
      点の ます目（1問）
      p：{ n, cap, marks[], fixed[a,b], trace[[a,b]], ans[[a,b]], rei }
      ========================================================= */
-  function dotSvg(p, key, boxW, boxH) {
-    const n = p.n, sp = Math.min(n <= 4 ? 13.5 : n === 5 ? 10.8 : 9, (boxW - 8) / (n - 1), (boxH - 8) / (n - 1));
+  // 1まいの もんだいの かず：0＝ふつう（PDF と おなじ）、1＝すくなめ、2＝もっと すくなめ
+  let less = 0;
+  // K この 中から へらした かず
+  const fewer = (K) => less === 1 ? Math.max(2, Math.round(K * 0.65)) : less === 2 ? Math.min(K, 2) : K;
+  // ならびの はじめから おわりまで、かたよらないように n こ えらぶ（やさしい もの と むずかしい ものが のこる）
+  const spread = (arr, n) => n >= arr.length ? arr.slice() : n <= 1 ? arr.slice(0, 1) : Array.from({ length: n }, (_, i) => arr[Math.round(i * (arr.length - 1) / (n - 1))]);
+  function dotSvg(p, key, boxW, boxH, mul = 1) {
+    const n = p.n, sp = Math.min((n <= 4 ? 13.5 : n === 5 ? 10.8 : 9) * mul, (boxW - 8) / (n - 1), (boxH - 8) / (n - 1));
     const w = sp * (n - 1), ox = (boxW - w) / 2, oy = (boxH - w) / 2;
     const X = (i) => f1(ox + (i % n) * sp), Y = (i) => f1(oy + Math.floor(i / n) * sp);
     const seg = (a, b, attr) => `<line x1="${X(a)}" y1="${Y(a)}" x2="${X(b)}" y2="${Y(b)}" stroke-linecap="round" ${attr}/>`;
@@ -338,10 +348,12 @@
   const ring = (idxs) => idxs.map((a, i) => [a, idxs[(i + 1) % idxs.length]]);
   // 6問を 2れつ×3だんに ならべる
   function dotGrid(probs, key) {
-    const cw = 93, ch = 66, gx = 4, gy = 3.5;
+    // ふつう：2れつ×3だん。4もん：2れつ×2だん。2もん：1れつ×2だん（ますを 大きく する）
+    const N = probs.length, cols = N <= 2 ? 1 : 2, rowsN = Math.ceil(N / cols);
+    const gx = 4, gy = 3.5, cw = cols === 1 ? 190 : 93, ch = N >= 5 ? 66 : (3 * 66 + 2 * gy - (rowsN - 1) * gy) / rowsN, mul = N >= 5 ? 1 : N > 2 ? 1.35 : 1.8;
     return probs.map((p, i) => {
-      const x = (i % 2) * (cw + gx), y = Math.floor(i / 2) * (ch + gy);
-      return `<div class="cell" style="left:${x}mm;top:${y}mm;width:${cw}mm;height:${ch}mm"><div class="cap"><span class="no">${i + 1}</span><span>${rb(p.cap)}</span></div>${dotSvg(p, key, cw, ch - 10)}${key && p.rei ? '<div class="rei">（れい）</div>' : ''}</div>`;
+      const x = (i % cols) * (cw + gx), y = Math.floor(i / cols) * (ch + gy);
+      return `<div class="cell" style="left:${x}mm;top:${y}mm;width:${cw}mm;height:${ch}mm"><div class="cap"><span class="no">${i + 1}</span><span>${rb(p.cap)}</span></div>${dotSvg(p, key, cw, ch - 10, mul)}${key && p.rei ? '<div class="rei">（れい）</div>' : ''}</div>`;
     }).join('');
   }
 
@@ -374,7 +386,8 @@
   };
   function sheet0(def, r, key) {
     const made = [];
-    return { html: dotGrid(def.kinds.map(k => lineProb(r, k, def.n, made)), key), total: 6 };
+    const kinds = spread(def.kinds, fewer(def.kinds.length));
+    return { html: dotGrid(kinds.map(k => lineProb(r, k, def.n, made)), key), total: kinds.length };
   }
 
   /* =========================================================
@@ -413,7 +426,7 @@
     };
   };
   function sheet12(sides) {
-    return (def, r, key) => { const made = []; return { html: dotGrid(def.kinds.map(k => polyProb(r, sides, k, made)), key), total: 6 }; };
+    return (def, r, key) => { const made = [], kinds = spread(def.kinds, fewer(def.kinds.length)); return { html: dotGrid(kinds.map(k => polyProb(r, sides, k, made)), key), total: kinds.length }; };
   }
 
   /* =========================================================
@@ -454,7 +467,8 @@
     ],
   };
   function sheet3(def, r, key) {
-    const keys = def.mix ? shuffleR(r, def.keys) : def.keys, shs = keys.map(k => makeShape(r, k));
+    const base = spread(def.keys, fewer(def.keys.length));
+    const keys = def.mix ? shuffleR(r, base) : base, shs = keys.map(k => makeShape(r, k));
     const cw = 93, gx = 4;
     let html = '', top = 0, ch = 66, gy = 3.5, total = shs.length * (def.mode === 'both' ? 2 : 1);
     if (def.legend) { html += LEGEND(); top = 46; ch = 77; gy = 4; }
@@ -462,9 +476,9 @@
     html += shs.map((sh, i) => countCell(sh, i, def.mode, key, (i % 2) * (cw + gx), top + Math.floor(i / 2) * (ch + gy), cw, ch)).join('');
     if (def.sent) {
       const b = (v) => `<span class="box">${key ? v : ''}</span>`;
-      html += `<div class="sent" style="top:${2 * (ch + gy) + 1}mm">
-        <div class="ln"><span class="no" style="display:inline-block;width:6.5mm;height:6.5mm;border-radius:50%;background:#1f2937;color:#fff;text-align:center;line-height:6.5mm;font-size:4mm">5</span><span>${rb(SAN)}の へんは</span>${b(3)}<span>${rb('{本|ぼん}')}、${rb(TEN)}は</span>${b(3)}<span>つ。</span></div>
-        <div class="ln"><span class="no" style="display:inline-block;width:6.5mm;height:6.5mm;border-radius:50%;background:#1f2937;color:#fff;text-align:center;line-height:6.5mm;font-size:4mm">6</span><span>${rb(SHI)}の へんは</span>${b(4)}<span>${rb(HON)}、${rb(TEN)}は</span>${b(4)}<span>つ。</span></div></div>`;
+      html += `<div class="sent" style="top:${Math.ceil(shs.length / 2) * (ch + gy) + 1}mm">
+        <div class="ln"><span class="no" style="display:inline-block;width:6.5mm;height:6.5mm;border-radius:50%;background:#1f2937;color:#fff;text-align:center;line-height:6.5mm;font-size:4mm">${shs.length + 1}</span><span>${rb(SAN)}の へんは</span>${b(3)}<span>${rb('{本|ぼん}')}、${rb(TEN)}は</span>${b(3)}<span>つ。</span></div>
+        <div class="ln"><span class="no" style="display:inline-block;width:6.5mm;height:6.5mm;border-radius:50%;background:#1f2937;color:#fff;text-align:center;line-height:6.5mm;font-size:4mm">${shs.length + 2}</span><span>${rb(SHI)}の へんは</span>${b(4)}<span>${rb(HON)}、${rb(TEN)}は</span>${b(4)}<span>つ。</span></div></div>`;
       total += 4;
     }
     return { html, total };
@@ -475,7 +489,7 @@
      ========================================================= */
   // cat：tri・quad・both。easy：ほかの なかま（三角形を さがす ときの 四角形）を 入れない
   function findKeys(r, cat, count, easy) {
-    const nT = cat === 'both' ? Math.round(count / 3) : Math.round(count * 0.4) + (r() < 0.5 ? 0 : -1);
+    const nT = Math.max(1, cat === 'both' ? Math.round(count / 3) : Math.round(count * 0.4) + (r() < 0.5 ? 0 : -1));
     const cyc = (keys, k) => { const s = shuffleR(r, keys); return Array.from({ length: k }, (_, i) => s[i % s.length]); };
     if (cat === 'both') return shuffleR(r, [...cyc(TRI_KEYS, nT), ...cyc(QUAD_KEYS, nT), ...cyc([...new Set([...NON_TRI, ...NON_QUAD])], count - nT * 2)]);
     const tri = cat === 'tri', nO = easy ? 0 : Math.round(count * 0.25);
@@ -496,8 +510,10 @@
     ],
   };
   function sheet4(def, r, key) {
-    const keys = findKeys(r, def.cat, def.count, def.easy), rows = def.count / 3;
-    const cw = 60, gx = 5, ch = rows === 3 ? 60 : 45, gy = 3, size = rows === 3 ? 50 : 39;
+    // かたちの かず：ふつう 9・12、すくなめ 6・9、もっと すくなめ 3・6
+    const count = Math.max(3, def.count - 3 * less), rows = count / 3;
+    const keys = findKeys(r, def.cat, count, def.easy);
+    const cw = 60, gx = 5, ch = rows <= 3 ? 60 : 45, gy = 3, size = rows <= 3 ? 50 : 39;
     const hit = (c) => def.cat === 'both' ? c !== 'none' : c === def.cat;
     let html = keys.map((k, i) => {
       const sh = makeShape(r, k), h = key && hit(sh.cat);
@@ -549,7 +565,7 @@
     ],
   };
   function sheet5(def, r, key) {
-    const keys = shuffleR(r, def.keys(r)), rows = keys.length, ch = def.reason ? 49 : 38.5, gy = 3, size = def.reason ? 42 : 34;
+    const all = def.keys(r), keys = shuffleR(r, spread(all, fewer(all.length))), rows = keys.length, ch = def.reason ? 49 : 38.5, gy = 3, size = def.reason ? 42 : 34;
     const html = keys.map((k, i) => {
       const sh = makeShape(r, k);
       const chips = def.cats.map(c => `<span class="chip${key && c === sh.cat ? ' hit' : ''}">${rb(CAT_NAME[c])}</span>`).join('');
@@ -598,7 +614,8 @@
   };
   function sheet6(def, r, key) {
     const made = [];
-    return { html: dotGrid(def.kinds.map(k => addProb(r, k, def.n, made)), key), total: 6 };
+    const kinds = spread(def.kinds, fewer(def.kinds.length));
+    return { html: dotGrid(kinds.map(k => addProb(r, k, def.n, made)), key), total: kinds.length };
   }
 
   /* =========================================================
@@ -667,6 +684,7 @@
   document.getElementById('nm').value = q.get('name') || '';
   document.getElementById('gr').value = q.get('g') || '';
   const onlyKey = q.get('only') === 'key';
+  less = [1, 2].includes(Number(q.get('less'))) ? Number(q.get('less')) : 0;
 
   document.getElementById('pdfs').innerHTML = STAGES.map(st => `<a class="btn small" href="pdf/ずけいプリント_${st.id}_${st.file}.pdf" target="_blank">📄 ${st.id} ${plain(st.name)}</a>`).join('') +
     `<a class="btn small" href="pdf/ずけいプリント_ぜんぶ.pdf" target="_blank">📄 ぜんぶ（112まい）</a>`;
@@ -693,7 +711,8 @@
     });
     out.innerHTML = html;
     document.getElementById('cnt').textContent = `ぜんぶで ${n}まい`;
-    document.getElementById('seedNote').textContent = seed === DEFAULT_SEED ? '（PDF と 同じ もんだいです）' : `もんだいの ばんごう：${seed}（PDF とは ちがう もんだいです）`;
+    document.querySelectorAll('#lessBtns .btn').forEach(b => b.classList.toggle('on', Number(b.dataset.l) === less));
+    document.getElementById('seedNote').textContent = seed === DEFAULT_SEED && !less ? '（PDF と 同じ もんだいです）' : seed === DEFAULT_SEED ? '（PDF とは ちがいます。「ふつう」を おすと PDF と 同じに なります）' : `もんだいの ばんごう：${seed}（PDF とは ちがう もんだいです）`;
     const imgs = [...out.querySelectorAll('img')];
     Promise.all([document.fonts ? document.fonts.ready : null, ...imgs.map(im => im.complete ? null : new Promise(res => { im.onload = im.onerror = res; }))]).then(() => { document.body.dataset.ready = '1'; });
   }
@@ -703,6 +722,7 @@
   document.getElementById('ans').onchange = render;
   document.getElementById('nm').oninput = render;
   document.getElementById('gr').oninput = render;
+  document.querySelectorAll('#lessBtns .btn').forEach(b => { b.onclick = () => { less = Number(b.dataset.l); render(); }; });
   document.getElementById('reroll').onclick = () => { seed = Math.floor(Math.random() * 900000) + 100000; render(); };
   document.getElementById('reset').onclick = () => { seed = DEFAULT_SEED; render(); };
   document.getElementById('printBtn').onclick = () => window.print();
