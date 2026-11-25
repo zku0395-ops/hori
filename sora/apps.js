@@ -218,6 +218,7 @@ window.SORA = {
     { id: 'p-kotoba', emoji: '🐉', name: 'ことばの いみ ワークシート（1〜4年）', url: 'https://zku0395-ops.github.io/hori/kotobaprint/' },
     { id: 'p-kotobayusha', emoji: '⚔️', name: 'ことばの ゆうしゃ ワークシート（絵を見て 文を書く）', url: 'https://zku0395-ops.github.io/hori/kotobayushaprint/' },
     { id: 'p-monogatari', emoji: '🌸', name: '物語の読み取り（ものがたりの もり）文章プリント', url: 'https://zku0395-ops.github.io/hori/monogatari/print.html' },
+    { id: 'p-katachi', emoji: '🏰', name: '三角形・四角形 ワークシート（サンカの かたち）', url: 'https://zku0395-ops.github.io/hori/katachiprint/' },
   ],
 
   // どの Chromebook でも はじめから「きょうの おすすめ」に 出す アプリの id（先生用画面で 変えると、その 台の 設定が 先に なります）
