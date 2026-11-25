@@ -79,7 +79,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.2.1';
+    const APP_VERSION = '1.3.0';
     const BASE = window.WAKE_BASE;
     const IMG = BASE + 'img/';
     let STAGES = [], SHAPES = [], DEN_YOMI = {}, NUM_YOMI = {}, TIERS = [], ITEM_CATS = [], FX = {}, LEVELS = [], HAS_IMG = new Set(), ALL_ITEMS = [];
@@ -175,6 +175,8 @@
       coin() { this.tone(988, 0, .08, 'square', .05); this.tone(1319, .08, .22, 'square', .05); },
       buy() { [784, 988, 1175, 1568].forEach((f, i) => this.tone(f, i * .07, .18, 'square', .05)); },
       change() { [440, 554, 659, 880].forEach((f, i) => this.tone(f, i * .09, .2, 'sine', .1)); },
+      tick() { this.tone(1046, 0, .08, 'square', .05); }, // タイムトライアルの のこり 5びょう
+      whistle() { this.tone(1568, 0, .25, 'sine', .12); this.tone(1568, .3, .45, 'sine', .12); }, // おしまい
     };
 
     // =====================================================================
@@ -337,13 +339,20 @@
     // =====================================================================
     //  4. しんちょく（進み具合）
     // =====================================================================
-    const newProgress = () => ({ v: 1, t: 0, coins: 0, earned: 0, items: [], equip: {}, rounds: {}, plays: {}, zukan: {}, total: 0,
+    // タイムトライアル：30びょう。メダルは 5こで どう、10こで ぎん、15こで きん
+    const TT_SEC = 30;
+    const MEDALS = [null, { n: 'どう', e: '🥉', at: 5, color: '#b45309' }, { n: 'ぎん', e: '🥈', at: 10, color: '#64748b' }, { n: 'きん', e: '🥇', at: 15, color: '#ca8a04' }];
+    const medalOf = (n) => n >= 15 ? 3 : n >= 10 ? 2 : n >= 5 ? 1 : 0;
+    const ttStages = () => STAGES.filter(s => s.kind === 'hunt');
+    const ttOpen = (p, st) => st.kind === 'hunt' && (isCleared(p, st) || (st.hatten ? !!(p.unlockAll || p.hatten) : !!p.unlockAll));
+    const ttOf = (p, st) => (p.tt && p.tt[st.id]) || { best: 0, plays: 0, medal: 0 };
+    const newProgress = () => ({ v: 1, t: 0, coins: 0, earned: 0, items: [], equip: {}, rounds: {}, plays: {}, zukan: {}, total: 0, tt: {},
       perfect: 0, part: null, titles: [], unlockAll: false, hatten: false });
     function parseProgress(s) {
       let p = null;
       try { p = typeof s === 'string' ? (s ? JSON.parse(s) : null) : s; } catch (e) { p = null; }
       const q = { ...newProgress(), ...(p || {}) };
-      ['equip', 'rounds', 'plays', 'zukan'].forEach(k => { if (!q[k] || typeof q[k] !== 'object') q[k] = {}; });
+      ['equip', 'rounds', 'plays', 'zukan', 'tt'].forEach(k => { if (!q[k] || typeof q[k] !== 'object') q[k] = {}; });
       if (!Array.isArray(q.items)) q.items = [];
       return q;
     }
@@ -367,6 +376,11 @@
       { id: 'zukan', n: 'ずかん マスター', d: 'かたち ずかんを ぜんぶ うめる', ok: p => SHAPES.every(s => FRACS.every(n => p.zukan[`${s.id}_${n}`])) },
       { id: 'allclear', n: 'うちゅう パトロール マスター', d: 'ステージを ぜんぶ クリア', ok: p => mainStages().every(st => isCleared(p, st)) },
       { id: 'hatten', n: 'はってん チャレンジャー', d: 'はってんの ステージを クリア', ok: p => STAGES.some(st => st.hatten && isCleared(p, st)) },
+      // タイムトライアル
+      { id: 'tt1', n: 'はじめての タイムトライアル', d: 'タイムトライアルに 1かい ちょうせん', ok: p => ttStages().some(st => ttOf(p, st).plays >= 1) },
+      { id: 'ttmedal3', n: 'メダル コレクター', d: '3つの ステージで メダルを もらう', ok: p => ttStages().filter(st => ttOf(p, st).medal >= 1).length >= 3 },
+      { id: 'ttgold3', n: 'きんメダル ハンター', d: '3つの ステージで きんメダル', ok: p => ttStages().filter(st => ttOf(p, st).medal >= 3).length >= 3 },
+      { id: 'ttgoldall', n: 'タイムトライアル チャンピオン', d: 'ぜんぶの ステージで きんメダル', ok: p => ttStages().every(st => ttOf(p, st).medal >= 3) },
       ...ITEM_CATS.map(c => ({ id: 'cat_' + c.id, n: c.title, d: `${c.name}を ぜんぶ あつめる`, ok: p => c.items.every(it => p.items.includes(it.id)) })),
     ];
     const titlesOf = (p) => TITLES().filter(t => t.ok(p)).map(t => t.n);
@@ -443,13 +457,16 @@
         if (neu.t >= old.t) d.progress[p.name] = p.progress;
         const ids = new Set(d.log.map(r => r[12]));
         p.records.forEach(r => { if (!ids.has(r.id)) d.log.push(recRow(p.stamp, p.name, r)); });
+        d.ttlog = d.ttlog || [];
+        const tids = new Set(d.ttlog.map(r => r[6]));
+        (p.tt || []).forEach(r => { if (!tids.has(r.id)) d.ttlog.push([p.stamp, p.name, r.stage, r.found, r.miss, r.best, r.id]); });
         Local.save();
         return { ok: true };
       },
       // とどかなかった きろくは たまっておき、つぎの ときに おくりなおす
       readQueue() { try { return JSON.parse(safeStore.get(PENDING_KEY)) || []; } catch (e) { return []; } },
       async save(payload) {
-        const queue = api.readQueue().filter(q => !(q.name === payload.name && !q.records.length));
+        const queue = api.readQueue().filter(q => !(q.name === payload.name && !q.records.length && !(q.tt || []).length));
         queue.push({ ...payload, qid: uid() });
         safeStore.set(PENDING_KEY, JSON.stringify(queue));
         return api.flush();
@@ -509,6 +526,7 @@
         if (HAS_GAS) return gas('clearRecords', pin, name);
         const d = Local.data();
         d.log = d.log.filter(r => name && r[1] !== name);
+        d.ttlog = (d.ttlog || []).filter(r => name && r[1] !== name);
         (name ? [name] : d.roster).forEach(n => { delete d.progress[n]; safeStore.del(COPY_KEY(n)); });
         Local.save(); return { ok: true };
       },
@@ -778,7 +796,8 @@
       return `これは ${o.n}つに わけた 1つぶん、1/${o.n} だよ。${t}つに わけた ものを さがそう。${cnt}`;
     }
 
-    function Hunt({ st, round, count, startFound = 0, startTi = 0, settings, equip, onRecord, onCoin, onSave, onFinish, onQuit }) {
+    function Hunt({ st, round, count, startFound = 0, startTi = 0, settings, equip, onRecord, onCoin, onSave, onFinish, onQuit, tt = false, ttBest = 0 }) {
+      // tt：タイムトライアル（30びょうで いくつ みつけられるか。時間が くるまで おわらない）
       const talk = useTalk();
       const areaRef = useRef(null);
       const [size, setSize] = useState({ w: 900, h: 500 });
@@ -806,15 +825,18 @@
       const done = useRef(false);
       const perfect = useRef(true);
       const fxList = FX[(equip.fx && ITEM[equip.fx]) ? equip.fx : 'base'] || FX.base;
+      const timeLeft = useRef(TT_SEC * 1000);
+      const ttMiss = useRef(0);
+      const [timeUp, setTimeUp] = useState(false);
 
       // さがす ぶんすうが かわる ところ（まとめ）：1かいで 4つ まで
-      const perChange = st.change ? Math.max(1, Math.ceil(count / Math.min(4, targetsList.length))) : Infinity;
+      const perChange = st.change ? (tt ? 5 : Math.max(1, Math.ceil(count / Math.min(4, targetsList.length)))) : Infinity;
 
       useEffect(() => {
         const measure = () => { const el = areaRef.current; if (el) setSize({ w: el.clientWidth, h: el.clientHeight }); };
         measure();
         window.addEventListener('resize', measure);
-        const intro = startFound ? `つづきから はじめよう。1/${t} を さがそう。` : (round === 1 || st.change ? st.intro : `${round}かいめ だよ。1/${t} を さがそう。`);
+        const intro = tt ? `タイムトライアル！ ${TT_SEC}びょうで 1/${t} を いくつ みつけられるかな？${st.change ? ' とちゅうで さがす ぶんすうが かわるよ。' : ''}` : startFound ? `つづきから はじめよう。1/${t} を さがそう。` : (round === 1 || st.change ? st.intro : `${round}かいめ だよ。1/${t} を さがそう。`);
         talk.say(intro, { onEnd: () => {} });
         return () => window.removeEventListener('resize', measure);
       }, []);
@@ -832,13 +854,25 @@
           const dt = Math.min(0.05, (now - prev) / 1000); prev = now;
           const W = areaRef.current ? areaRef.current.clientWidth : size.w, H = areaRef.current ? areaRef.current.clientHeight : size.h;
           const sz = Math.max(96, Math.min(170, W / (settings.at + 1.6), H / 3.3));
-          const v = (H + sz) / fallSec * (hintRef.current >= 3 ? 0.5 : 1);
-          const tt = target();
+          const v = (H + sz) / fallSec * (!tt && hintRef.current >= 3 ? 0.5 : 1);
+          // タイムトライアルの のこり時間（とまって いる あいだは へらない）
+          if (tt && !done.current) {
+            const before = Math.ceil(timeLeft.current / 1000);
+            timeLeft.current -= dt * 1000;
+            const after = Math.ceil(timeLeft.current / 1000);
+            if (after < before && after <= 5 && after > 0) Sound.tick();
+            if (timeLeft.current <= 0) {
+              timeLeft.current = 0; done.current = true;
+              Sound.whistle(); setTimeUp(true);
+              setTimeout(() => { setRunning(false); onFinish({ found: foundRef.current, miss: ttMiss.current }); }, 1800);
+            }
+          }
+          const want = target();
           objs.current.forEach(o => { if (!o.stop) o.y += v * dt; });
           objs.current = objs.current.filter(o => o.y < H + 4 && !o.gone);
           // あたらしく おとす
           const alive = objs.current.filter(o => !o.stop);
-          const gap = fallSec / settings.at * 0.75 * 1000;
+          const gap = tt ? 600 : fallSec / settings.at * 0.75 * 1000;
           if (!done.current && alive.length < settings.at && (now - lastSpawn.current > gap || alive.length === 0)) {
             const lanes = Math.max(settings.at, Math.floor(W / (sz * 1.12)));
             const slot = W / lanes;
@@ -846,8 +880,8 @@
             const free = Array.from({ length: lanes }, (_, i) => i).filter(i => !busy.has(i));
             if (free.length) {
               const lane = pickOne(free);
-              const hasTarget = alive.some(o => o.kind === 'target' && o.n === tt);
-              const o = (!hasTarget || Math.random() < 0.35) ? makeObj('target', tt, { diag: st.diag }) : makeWrong(st, tt);
+              const hasTarget = alive.some(o => o.kind === 'target' && o.n === want);
+              const o = (!hasTarget || Math.random() < 0.35) ? makeObj('target', want, { diag: st.diag }) : makeWrong(st, want);
               o.lane = lane; o.x = lane * slot + (slot - sz) / 2; o.y = -sz; o.sz = sz;
               objs.current.push(o);
               lastSpawn.current = now;
@@ -872,8 +906,8 @@
       const PRAISE = ['みつけた！', 'すごい！', 'やったね！', 'ばっちり！', 'その ちょうし！'];
       const tap = (o, e) => {
         if (!running || paused || o.stop || done.current) return;
-        const tt = target();
-        if (o.kind === 'target' && o.n === tt) {
+        const tt0 = target();
+        if (o.kind === 'target' && o.n === tt0) {
           o.stop = true; o.got = true;
           Sound.got();
           const r = areaRef.current.getBoundingClientRect();
@@ -883,10 +917,11 @@
           setTimeout(() => setBursts(b => b.filter(x => x.id !== id)), 950);
           setTimeout(() => { o.gone = true; }, 700);
           record(o);
-          onCoin(1);
           const f = foundRef.current + 1; foundRef.current = f; setFound(f);
-          talk.say(`${pickOne(PRAISE)} 1/${tt} だね。`, { mood: 'happy' });
-          if (f >= count) {
+          // タイムトライアルは 2こで コイン 1まい。こえは かけない（かぞえる 時間が へるため）
+          if (!tt) { onCoin(1); talk.say(`${pickOne(PRAISE)} 1/${tt0} だね。`, { mood: 'happy' }); }
+          else if (f % 2 === 0) onCoin(1);
+          if (!tt && f >= count) {
             done.current = true;
             setTimeout(() => { setRunning(false); onFinish({ found: f, perfect: perfect.current }); }, 1300);
           } else if (st.change && f % perChange === 0) {
@@ -898,30 +933,31 @@
               const nt = target();
               Sound.change();
               setBanner({ k: uid(), n: nt });
-              talk.say(`こんどは 1/${nt} を さがそう！`);
-              onSave({ found: f, ti: tiRef.current });
-            }, 700);
-          } else if (f % 3 === 0) onSave({ found: f, ti: tiRef.current });
+              if (!tt) { talk.say(`こんどは 1/${nt} を さがそう！`); onSave({ found: f, ti: tiRef.current }); }
+            }, tt ? 300 : 700);
+          } else if (!tt && f % 3 === 0) onSave({ found: f, ti: tiRef.current });
         } else {
           if (o.wrong) return;
           o.stop = true; o.wrong = true;
           Sound.retry();
           const m = missRef.current;
           m.miss++; m.wrongs.push(`${o.shape.n}:${o.label}`); m.kinds.push(KIND_NAME[o.kind] || 'ほかの ぶんすう');
-          talk.say(wrongWords(o, tt), { mood: 'think' });
+          if (tt) { ttMiss.current++; setTimeout(() => { o.fade = true; }, 900); setTimeout(() => { o.gone = true; }, 1500); return; }
+          talk.say(wrongWords(o, tt0), { mood: 'think' });
           setTimeout(() => { o.fade = true; }, 2600);
           setTimeout(() => { o.gone = true; }, 3200);
-          if (m.miss >= 3 && hintRef.current < 3) { hintRef.current = 3; setHint(3); setTimeout(() => talk.say(`ひかって いる ものが 1/${tt} だよ。タッチしてね。`), 2800); }
+          if (m.miss >= 3 && hintRef.current < 3) { hintRef.current = 3; setHint(3); setTimeout(() => talk.say(`ひかって いる ものが 1/${tt0} だよ。タッチしてね。`), 2800); }
         }
       };
       const askHint = () => {
         Sound.tap();
-        const tt = target();
-        const lv = Math.min(3, hintRef.current + 1);
+        const tt0 = target();
+        // タイムトライアルの ヒントは ことば（1）だけ
+        const lv = tt ? 1 : Math.min(3, hintRef.current + 1);
         hintRef.current = lv; setHint(lv);
-        if (lv === 1) talk.say(`1/${tt} は、${tt}つに おなじ おおきさに わけた 1つぶん だよ。いくつに わけて あるか みて みよう。`);
-        if (lv === 2) talk.say(`みほんを みてね。ばんごうで かぞえて みよう。${tt}まで ある ものが なかまだよ。`);
-        if (lv === 3) talk.say(`ひかって いる ものが 1/${tt} だよ。タッチしてね。`);
+        if (lv === 1) talk.say(`1/${tt0} は、${tt0}つに おなじ おおきさに わけた 1つぶん だよ。いくつに わけて あるか みて みよう。`);
+        if (lv === 2) talk.say(`みほんを みてね。ばんごうで かぞえて みよう。${tt0}まで ある ものが なかまだよ。`);
+        if (lv === 3) talk.say(`ひかって いる ものが 1/${tt0} だよ。タッチしてね。`);
       };
       const quit = () => { talk.stop(); onQuit({ found: foundRef.current, ti: tiRef.current }); };
       const missNow = missRef.current.miss;
@@ -940,9 +976,14 @@
                 </div>
                 <button onClick={() => talk.say(`1/${t} を さがそう。${t}つに おなじ おおきさに わけた 1つぶんだよ。`)} className="ml-1 text-2xl rounded-full bg-sky-100 border-2 border-sky-300 w-12 h-12">🔊</button>
               </div>
+              {tt && (() => { const sec = Math.ceil(timeLeft.current / 1000); return (
+                <div className={`rounded-2xl px-4 py-1 text-center border-4 ${sec <= 5 ? 'bg-rose-100 border-rose-400' : 'bg-white/90 border-sky-400'}`}>
+                  <div className="text-sm font-bold text-slate-600">⏱ のこり</div>
+                  <div className={`text-4xl font-bold ${sec <= 5 ? 'text-rose-600 bump' : ''}`} key={sec <= 5 ? sec : 'n'}>{sec}<span className="text-lg">びょう</span></div>
+                </div>); })()}
               <div className="bg-white/90 rounded-2xl px-3 py-2 text-center">
                 <div className="text-sm font-bold text-slate-600">みつけた かず</div>
-                <div className="text-3xl font-bold"><span className="text-amber-600">{found}</span> / {count}</div>
+                <div className="text-3xl font-bold"><span className="text-amber-600">{found}</span>{tt ? 'こ' : ` / ${count}`}</div>
               </div>
             </div>
             {/* まんなか：おちて くる ところ */}
@@ -968,12 +1009,14 @@
                 <div className="text-base font-bold">みほん <Frac k={1} n={t} size={0.8} /></div>
                 <div className="flex gap-1">{sample.map(o => <ShapeSvg key={o.id} o={o} size={80} nums />)}</div>
               </div>}
-              {!running && !done.current && (
+              {!running && !done.current && !timeUp && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-slate-950/40 z-20">
                   <div className="bg-white rounded-3xl px-8 py-4 flex items-center gap-4 pop">
                     <ShapeSvg o={sample[0]} size={110} />
                     <div className="text-4xl font-bold flex items-center gap-1 whitespace-nowrap"><Frac k={1} n={t} size={1.4} color="#b45309" /> を さがせ！</div>
                   </div>
+                  {tt && <div className="bg-sky-100 border-4 border-sky-400 rounded-2xl px-6 py-2 text-2xl font-bold text-center">⏱ {TT_SEC}びょうで いくつ みつけられるかな？
+                    <div className="text-xl">じこベスト：{ttBest ? `${ttBest}こ` : 'まだ ないよ'}</div></div>}
                   <Btn onClick={begin} color="#f97316" light="#ffedd5" className="text-4xl px-14 py-5">▶ スタート</Btn>
                 </div>
               )}
@@ -981,13 +1024,14 @@
                 <div className="text-4xl font-bold text-white tshadow">とまって いるよ</div>
                 <Btn onClick={() => { Sound.tap(); setPaused(false); }} color="#16a34a" light="#dcfce7" className="text-3xl px-10">▶ つづける</Btn>
               </div>}
+              {timeUp && <div className="pop absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 bg-rose-500 text-white border-4 border-white rounded-3xl px-12 py-6 text-5xl font-bold shadow-2xl whitespace-nowrap">⏱ おしまい！</div>}
               {banner && <div key={banner.k} className="banner absolute left-1/2 top-1/2 z-30 bg-amber-300 border-4 border-white rounded-3xl px-10 py-5 text-4xl font-bold shadow-2xl whitespace-nowrap">
                 こんどは <Frac k={1} n={banner.n} size={1.3} /> を さがせ！</div>}
             </div>
             {/* した：ワケルン・ヒント */}
             <div className="flex items-end gap-3 px-3 py-2 bg-slate-950/50">
               <div className="flex-1"><TalkBar size={78} dark /></div>
-              <button onClick={askHint} disabled={!running} className={`btn3d rounded-2xl border-4 border-amber-500 bg-amber-100 px-4 py-2 text-2xl font-bold ${missNow >= 2 && hint < 3 ? 'glow' : ''}`}>💡 ヒント{hint ? ` ${hint}` : ''}</button>
+              <button onClick={askHint} disabled={!running} className={`btn3d rounded-2xl border-4 border-amber-500 bg-amber-100 px-4 py-2 text-2xl font-bold ${!tt && missNow >= 2 && hint < 3 ? 'glow' : ''}`}>💡 ヒント{hint && !tt ? ` ${hint}` : ''}</button>
               <button onClick={() => { Sound.tap(); setPaused(true); }} disabled={!running} className="btn3d rounded-2xl border-4 border-sky-500 bg-sky-100 px-4 py-2 text-2xl font-bold">⏸</button>
               <button onClick={quit} className="btn3d rounded-2xl border-4 border-slate-400 bg-slate-100 px-4 py-2 text-xl font-bold">🏠 やめる</button>
             </div>
@@ -1130,6 +1174,49 @@
       );
     }
 
+    // タイムトライアルの けっか
+    function TTResultScreen({ view, progress, onAgain, onStages, onHome }) {
+      const talk = useTalk();
+      const { st, result } = view;
+      const m = result.medal ? MEDALS[result.medal] : null;
+      const next = MEDALS.find(x => x && x.at > result.found);
+      useEffect(() => {
+        if (result.newBest && result.found > 0) { Sound.big(); talk.say(`しんきろく！ ${result.found}こ みつけたよ！ すごいね！`, { mood: 'happy' }); }
+        else if (result.found > 0) { Sound.fanfare(); talk.say(`${result.found}こ みつけたね。じこベストは ${result.best}こ だよ。また ちょうせん しよう！`, { mood: 'happy' }); }
+        else { Sound.retry(); talk.say('こんどは みつけられるかな。また ちょうせん しよう！'); }
+      }, []);
+      return (
+        <SpaceBg equip={progress.equip} className="w-full flex-1 flex flex-col items-center" style={{ minHeight: 'calc(100vh - 64px)' }}>
+          <div className="flex flex-col items-center gap-3 p-5">
+            <div className="text-5xl font-bold text-white tshadow pop">{result.newBest && result.found > 0 ? '🎊 しんきろく！' : '⏱ タイムトライアル'}</div>
+            <div className="flex items-center gap-6">
+              <Wakerun equip={progress.equip} size={150} mood="happy" className="floaty" />
+              <div className="bg-white rounded-3xl p-5 flex flex-col items-center gap-1 text-2xl font-bold min-w-[340px]">
+                <div>{st.icon} <Rich text={st.name} /></div>
+                <div className="text-xl text-slate-600">{TT_SEC}びょうで みつけた かず</div>
+                <div className={`text-7xl text-amber-600 ${result.newBest ? 'bump' : ''}`}>{result.found}<span className="text-3xl">こ</span></div>
+                <div className="text-xl">じこベスト：{result.best}こ{result.newBest && result.oldBest > 0 ? `（まえは ${result.oldBest}こ）` : ''}</div>
+                {result.miss > 0 && <div className="text-lg text-slate-500">まちがえた タッチ：{result.miss}かい</div>}
+                <div className="text-xl">もらった コイン：🪙 {result.coins}まい{result.bonus ? `（しんきろく ボーナス ${result.bonus}まい）` : ''}</div>
+              </div>
+              {m && <div className={`flex flex-col items-center rounded-3xl p-4 border-4 bg-white ${result.newMedal ? 'pop glow' : ''}`} style={{ borderColor: m.color }}>
+                <div className="text-8xl">{m.e}</div>
+                <div className="text-2xl font-bold" style={{ color: m.color }}>{m.n}メダル</div>
+                {result.newMedal && <div className="text-lg font-bold text-rose-600">はじめて ゲット！</div>}
+              </div>}
+            </div>
+            {next && <div className="bg-white/90 rounded-2xl px-4 py-2 text-xl font-bold">あと {next.at - result.found}こで {next.e} {next.n}メダル！</div>}
+            <div className="w-full max-w-3xl"><TalkBar size={70} /></div>
+            <div className="flex gap-4 flex-wrap justify-center">
+              <Btn onClick={onAgain} color="#0284c7" light="#e0f2fe" className="text-3xl">⏱ もういちど ちょうせん</Btn>
+              <Btn onClick={onStages} color="#16a34a" light="#dcfce7">🗺️ ステージを えらぶ</Btn>
+              <Btn onClick={onHome} color="#64748b" light="#f1f5f9">🏠 ホーム</Btn>
+            </div>
+          </div>
+        </SpaceBg>
+      );
+    }
+
     // =====================================================================
     // 11. はじめの がめん・ホーム・ステージ
     // =====================================================================
@@ -1204,14 +1291,16 @@
       );
     }
 
-    function StageScreen({ progress, onStart }) {
+    function StageScreen({ progress, onStart, onTT }) {
       const talk = useTalk();
       useEffect(() => { talk.say('どの ステージに する？'); }, []);
       const card = (st, i) => {
         const open = stageOpen(progress, st), r = progress.rounds[st.id] || 0;
         const cur = progress.part && progress.part.st === st.id;
+        const tto = ttOpen(progress, st), tr = ttOf(progress, st);
         return (
-          <button key={st.id} onClick={() => { Sound.tap(); if (open) onStart(st, cur); else talk.say(st.hatten ? 'はってんは せんせいが ひらいて くれるよ。' : 'まえの ステージを クリアすると ひらくよ。', { mood: 'think' }); }}
+          <div key={st.id} className="flex flex-col gap-2">
+          <button onClick={() => { Sound.tap(); if (open) onStart(st, cur); else talk.say(st.hatten ? 'はってんは せんせいが ひらいて くれるよ。' : 'まえの ステージを クリアすると ひらくよ。', { mood: 'think' }); }}
             className={`btn3d rounded-3xl border-4 p-3 flex flex-col items-center text-center ${open ? 'bg-white' : 'bg-slate-300 opacity-70'} ${st.hatten ? 'border-fuchsia-500' : 'border-sky-500'}`}>
             <div className="text-sm font-bold text-slate-500">{st.hatten ? 'はってん' : `ステージ ${st.no || i}`}</div>
             <div className="text-5xl">{open ? st.icon : '🔒'}</div>
@@ -1220,6 +1309,14 @@
             <div className="mt-1"><Stars n={r} of={st.rounds} /></div>
             {cur && <div className="text-sm font-bold text-orange-600">つづきが あるよ</div>}
           </button>
+          {st.kind === 'hunt' && (
+            <button onClick={() => { Sound.tap(); if (tto) onTT(st); else talk.say('この ステージを クリアすると、タイムトライアルが できるよ。', { mood: 'think' }); }}
+              className={`btn3d rounded-2xl border-4 px-2 py-1 font-bold flex flex-wrap items-center justify-center gap-x-1 ${tto ? 'bg-sky-100 border-sky-500' : 'bg-slate-300 border-slate-400 opacity-70'}`}>
+              <span className="text-lg whitespace-nowrap">{tto ? '⏱' : '🔒'} タイムトライアル</span>
+              {tto && tr.plays > 0 && <span className="text-base bg-white rounded-full px-2 whitespace-nowrap">{tr.medal ? MEDALS[tr.medal].e : ''}{tr.best}こ</span>}
+            </button>
+          )}
+          </div>
         );
       };
       const ms = mainStages(), hs = STAGES.filter(s => s.hatten);
@@ -1366,6 +1463,19 @@
                   </tbody>
                 </table>
                 <div className="text-center text-sm text-slate-500 mt-1">10こ みつけると 👑 に なるよ</div>
+              </div>
+            )}
+            {tab === 'title' && (
+              <div className="bg-white/95 rounded-3xl p-3 w-full max-w-4xl">
+                <div className="text-xl font-bold text-center mb-2">⏱ タイムトライアルの メダル <span className="text-base text-slate-500">（🥉 5こ・🥈 10こ・🥇 15こ）</span></div>
+                <div className="grid grid-cols-4 gap-2">
+                  {ttStages().map(st => { const r = ttOf(progress, st); const m = r.medal ? MEDALS[r.medal] : null; return (
+                    <div key={st.id} className={`rounded-2xl border-4 p-2 flex flex-col items-center text-center ${m ? 'bg-amber-50' : 'bg-slate-100'}`} style={{ borderColor: m ? m.color : '#cbd5e1' }}>
+                      <div className="text-5xl" style={m ? {} : { filter: 'grayscale(1)', opacity: .3 }}>{m ? m.e : '🏅'}</div>
+                      <div className="text-sm font-bold leading-tight"><Rich text={st.name} fsize={0.6} /></div>
+                      <div className="text-sm text-slate-600">{r.plays ? `ベスト ${r.best}こ` : 'まだ'}</div>
+                    </div>); })}
+                </div>
               </div>
             )}
             {tab === 'title' && (
@@ -1550,6 +1660,14 @@
                     <div className="text-sm text-slate-500 mt-2">ほかの ぶんすう：ちがう分数をタッチ。ひとしくない：同じ大きさに分けていない形をタッチ。2つぶん：2つ光っている形をタッチ（はってん）。</div>
                   </div>
                 </div>
+                <div className="bg-white rounded-xl p-3 overflow-x-auto">
+                  <div className="font-bold mb-2">⏱ タイムトライアル（30秒で見つけた数の じこベスト。かっこは ちょうせんした回数。🥉5こ・🥈10こ・🥇15こ）</div>
+                  <table className="w-full text-left text-sm"><thead className="bg-slate-100"><tr><th className="p-1">なまえ</th>{ttStages().map(st => <th key={st.id} className="px-1">{stageLabel(st.id)}</th>)}</tr></thead>
+                    <tbody>{data.students.map(stu => { const p = parseProgress(stu.progress); return (
+                      <tr key={stu.name} className="border-t"><td className="p-1 font-bold">{stu.name}</td>
+                        {ttStages().map(st => { const r = ttOf(p, st); return <td key={st.id} className="px-1">{r.plays ? <><b className="text-base">{r.best}こ</b> {r.medal ? MEDALS[r.medal].e : ''} <span className="text-slate-500">（{r.plays}）</span></> : '－'}</td>; })}</tr>); })}</tbody></table>
+                  <div className="text-sm text-slate-500 mt-1">子どもの画面では、自分の記録だけを出しています（ほかの子とは比べません）。1回ずつの記録は、スプレッドシートの「タイムトライアル」シートにあります。</div>
+                </div>
               </div>
             )}
 
@@ -1603,6 +1721,11 @@
                         <div className="font-bold mb-1">形ごとの結果</div>
                         <table className="w-full text-left"><thead className="bg-slate-100"><tr><th className="p-1">形</th><th>正しく タッチ</th><th>まちがえて タッチ</th></tr></thead>
                           <tbody>{SHAPES.map(sh => { const v = student.shapes[sh.n] || [0, 0]; return <tr key={sh.id} className="border-t"><td className="p-1">{sh.n}</td><td>{v[0]}</td><td>{v[1]}</td></tr>; })}</tbody></table>
+                      </div>
+                      <div>
+                        <div className="font-bold mb-1">⏱ タイムトライアル</div>
+                        <table className="w-full text-left"><thead className="bg-slate-100"><tr><th className="p-1">ステージ</th><th>じこベスト</th><th>メダル</th><th>ちょうせんした回数</th></tr></thead>
+                          <tbody>{ttStages().map(st => { const r = ttOf(prog, st); return <tr key={st.id} className="border-t"><td className="p-1">{stageLabel(st.id)}</td><td>{r.plays ? `${r.best}こ` : '－'}</td><td>{r.medal ? `${MEDALS[r.medal].e} ${MEDALS[r.medal].n}` : '－'}</td><td>{r.plays || '－'}</td></tr>; })}</tbody></table>
                       </div>
                     </div>
                   </div>
@@ -1666,6 +1789,7 @@
       const lastSay = useRef(null);
       const sayId = useRef(0);
       const records = useRef([]);
+      const ttRecs = useRef([]); // タイムトライアルの きろく（「タイムトライアル」シートへ）
       const roundCoins = useRef(0);
       const progRef = useRef(progress);
       progRef.current = progress;
@@ -1707,7 +1831,8 @@
         const json = JSON.stringify(p);
         safeStore.set(COPY_KEY(name), json);
         const recs = records.current; records.current = [];
-        api.save({ name, progress: json, records: recs, stamp: nowStr(), time: Date.now() });
+        const tts = ttRecs.current; ttRecs.current = [];
+        api.save({ name, progress: json, records: recs, tt: tts, stamp: nowStr(), time: Date.now() });
         return p;
       };
       const updateProg = (fn) => { progRef.current = fn(progRef.current); setProgress(progRef.current); return progRef.current; };
@@ -1736,6 +1861,35 @@
         if (st.kind === 'choose') { setView({ v: 'choose', st, round: part ? part.round : roundOf(st), found: part ? part.found : 0, key: uid() }); return; }
         setView({ v: 'hunt', st, round: part ? part.round : roundOf(st), found: part ? part.found : 0, ti: part ? part.ti || 0 : 0, key: uid() });
       };
+
+      // タイムトライアル
+      const startTT = (st) => {
+        talkApi.stop();
+        records.current = []; roundCoins.current = 0;
+        setView({ v: 'hunt', st, round: 1, found: 0, ti: 0, tt: true, key: uid() });
+      };
+      // タイムトライアルで みつけた かたちは ずかんと レベルに かぞえる（「きろく」シートには かかない）
+      const onRecordTT = (r) => updateProg(p => ({ ...p, total: (p.total || 0) + 1, zukan: { ...p.zukan, [r.zukan]: (p.zukan[r.zukan] || 0) + 1 } }));
+      const finishTT = (st, r) => {
+        const before = titlesOf(progRef.current);
+        const lvBefore = levelOf(progRef.current.total);
+        let p = { ...progRef.current };
+        const old = ttOf(p, st);
+        const newBest = r.found > old.best;
+        const medal = Math.max(old.medal || 0, medalOf(r.found));
+        const newMedal = medalOf(r.found) > (old.medal || 0);
+        let bonus = 0;
+        if (newBest) { bonus = 3; p.coins += bonus; p.earned += bonus; roundCoins.current += bonus; }
+        p.tt = { ...p.tt, [st.id]: { best: Math.max(old.best, r.found), plays: (old.plays || 0) + 1, medal } };
+        ttRecs.current.push({ id: uid(), stage: st.id, found: r.found, miss: r.miss, best: newBest ? '○' : '' });
+        p = persist(p);
+        setView({ v: 'ttresult', st, result: { ...r, newBest, oldBest: old.best, best: p.tt[st.id].best, bonus, coins: roundCoins.current, medal: medalOf(r.found), newMedal, plays: p.tt[st.id].plays } });
+        const nt = titlesOf(p).find(x => !before.includes(x));
+        const lv = levelOf(p.total);
+        if (lv > lvBefore) setTimeout(() => setLevelUp(lv), 2800);
+        if (nt) setTimeout(() => { Sound.big(); setNewTitle(nt); }, lv > lvBefore ? 200 : 2800);
+      };
+      const quitTT = () => { talkApi.stop(); persist(progRef.current); setView({ v: 'stages' }); };
 
       const onRecord = (r) => {
         records.current.push({ ...r, id: uid() });
@@ -1823,7 +1977,7 @@
           <HomeScreen name={name} progress={progress} onContinue={() => { const st = currentStage(progress); start(st, true); }}
             onStages={() => setView({ v: 'stages' })} onShop={() => setView({ v: 'shop' })} onZukan={() => setView({ v: 'zukan' })} /></div>;
       } else if (view.v === 'stages') {
-        body = <div className="min-h-screen flex flex-col">{bar()}<StageScreen progress={progress} onStart={start} /></div>;
+        body = <div className="min-h-screen flex flex-col">{bar()}<StageScreen progress={progress} onStart={start} onTT={startTT} /></div>;
       } else if (view.v === 'deau') {
         body = <div className="min-h-screen flex flex-col">{bar()}<SpaceBg equip={progress.equip} dim={0.65} className="flex-1 flex justify-center" style={{ minHeight: 'calc(100vh - 64px)' }}>
           <div className="flex justify-center"><Deau key={view.key} onFinish={() => finish(view.st, { found: 0, perfect: false })} onQuit={() => { talkApi.stop(); setView({ v: 'home' }); }} /></div></SpaceBg></div>;
@@ -1833,11 +1987,17 @@
             onSave={onSave(view.st, view.round)} onFinish={(r) => finish(view.st, r)} onQuit={quit(view.st, view.round)} /></div></SpaceBg></div>;
       } else if (view.v === 'hunt') {
         body = <div className="min-h-screen flex flex-col relative"><CoinFly fx={coinFx} />{bar()}
-          <Hunt key={view.key} st={view.st} round={view.round} count={settings.count} startFound={view.found} startTi={view.ti} settings={settings} equip={progress.equip}
-            onRecord={onRecord} onCoin={onCoin} onSave={onSave(view.st, view.round)} onFinish={(r) => finish(view.st, r)} onQuit={quit(view.st, view.round)} /></div>;
+          {view.tt
+            ? <Hunt key={view.key} tt ttBest={ttOf(progress, view.st).best} st={view.st} round={1} count={Infinity} settings={settings} equip={progress.equip}
+                onRecord={onRecordTT} onCoin={onCoin} onSave={() => {}} onFinish={(r) => finishTT(view.st, r)} onQuit={quitTT} />
+            : <Hunt key={view.key} st={view.st} round={view.round} count={settings.count} startFound={view.found} startTi={view.ti} settings={settings} equip={progress.equip}
+                onRecord={onRecord} onCoin={onCoin} onSave={onSave(view.st, view.round)} onFinish={(r) => finish(view.st, r)} onQuit={quit(view.st, view.round)} />}</div>;
       } else if (view.v === 'result') {
         body = <div className="min-h-screen flex flex-col">{bar()}<ResultScreen view={view} progress={progress}
           onAgain={() => start(view.st)} onHome={() => setView({ v: 'home' })} onNext={view.next} /></div>;
+      } else if (view.v === 'ttresult') {
+        body = <div className="min-h-screen flex flex-col">{bar()}<TTResultScreen view={view} progress={progress}
+          onAgain={() => startTT(view.st)} onStages={() => setView({ v: 'stages' })} onHome={() => setView({ v: 'home' })} /></div>;
       } else if (view.v === 'shop') {
         body = <div className="min-h-screen flex flex-col">{bar()}<ShopScreen progress={progress} onBuy={buy} onEquip={equip} onTitle={(t) => { Sound.big(); setNewTitle(t); }} /></div>;
       } else if (view.v === 'zukan') {
