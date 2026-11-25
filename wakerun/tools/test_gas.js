@@ -106,5 +106,18 @@ ok(sheets['きろく'].getLastRow() === 1 && sheets['名簿'].data[1][1] === '',
 ok(ctx.restoreBackup('0042', bk.data).ok && JSON.parse(sheets['名簿'].data[1][1]).coins === 0, 'バックアップから もどす');
 ok(ctx.restoreBackup('0042', { app: 'pico' }).ok === false, 'ほかの アプリの バックアップは うけつけない');
 
+// 6. タイムトライアル
+delete sheets['タイムトライアル'];
+r = ctx.saveResult({ name: 'たろう', progress: JSON.stringify({ t: 500 }), records: [], tt: [{ id: 't1', stage: 's1', found: 12, miss: 2, best: '○' }, { id: 't2', stage: '=s2', found: 4, miss: 0, best: '' }], time: Date.now() });
+ok(r.ok && sheets['タイムトライアル'], 'まえからの スプレッドシートにも タイムトライアル シートが できる');
+ok(sheets['タイムトライアル'].data[0].join(',') === '日時,なまえ,ステージ,みつけた かず,まちがい,じこベスト,ID', 'タイムトライアルの 見出し');
+ok(sheets['タイムトライアル'].getLastRow() === 3 && sheets['タイムトライアル'].data[1][3] === 12 && sheets['タイムトライアル'].data[1][5] === '○', 'タイムトライアルの きろくを かく');
+ok(sheets['タイムトライアル'].data[2][2] === "'=s2", 'タイムトライアルも 式に ならないように する');
+ctx.saveResult({ name: 'たろう', progress: JSON.stringify({ t: 600 }), records: [], tt: [{ id: 't1', stage: 's1', found: 12, miss: 2, best: '○' }], time: Date.now() });
+ok(sheets['タイムトライアル'].getLastRow() === 3, 'タイムトライアルの 同じ きろくは 二重に 書かない');
+ok(sheets['きろく'].getLastRow() === 1, 'タイムトライアルは きろく シートに かかない');
+ctx.clearRecords('0042', 'たろう');
+ok(sheets['タイムトライアル'].getLastRow() === 1, 'きろくを けすと タイムトライアルも きえる');
+
 console.log(bad ? `\n${bad}こ まちがい` : '\nぜんぶ OK');
 process.exit(bad ? 1 : 0);

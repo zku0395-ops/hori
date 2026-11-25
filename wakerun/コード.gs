@@ -5,8 +5,10 @@
  * シート：名簿・きろく・まとめ・せってい（なければ自動で作ります）
  */
 
-const SHEET = { ROSTER: '名簿', LOG: 'きろく', SUM: 'まとめ', SET: 'せってい' };
+const SHEET = { ROSTER: '名簿', LOG: 'きろく', SUM: 'まとめ', SET: 'せってい', TT: 'タイムトライアル' };
 const LOG_HEADER = ['日時', 'なまえ', 'ステージ', 'かい', 'さがす ぶんすう', 'みつけた かたち', 'けっか', 'まちがい', 'ヒント', 'まちがえた もの', 'まちがいの しゅるい', 'びょう', 'ID'];
+// タイムトライアル（30びょうで いくつ みつけたか）の きろく。1かいの ちょうせんで 1ぎょう
+const TT_HEADER = ['日時', 'なまえ', 'ステージ', 'みつけた かず', 'まちがい', 'じこベスト', 'ID'];
 const DEFAULT_PIN = '1234';
 // 「せってい」シートの項目（アプリの設定名 と 見出し）
 const SETTING_ROWS = [
@@ -72,6 +74,12 @@ function ensureSheets_() {
   if (!sh) {
     sh = ss.insertSheet(SHEET.LOG);
     sh.getRange(1, 1, 1, LOG_HEADER.length).setValues([LOG_HEADER]).setFontWeight('bold').setBackground('#e0f2fe');
+    sh.setFrozenRows(1);
+  }
+  sh = ss.getSheetByName(SHEET.TT);
+  if (!sh) {
+    sh = ss.insertSheet(SHEET.TT);
+    sh.getRange(1, 1, 1, TT_HEADER.length).setValues([TT_HEADER]).setFontWeight('bold').setBackground('#e0f2fe');
     sh.setFrozenRows(1);
   }
   sh = ss.getSheetByName(SHEET.SUM);
@@ -217,10 +225,27 @@ function saveResult(payload) {
         log.getRange(last + 1, 1, rows.length, LOG_HEADER.length).setValues(rows);
       }
     }
+    writeTT_(name, payload.tt || [], payload.time);
     return { ok: true };
   } finally {
     lock.releaseLock();
   }
+}
+
+// タイムトライアルの きろくを かく（同じ ID は 二重に 書かない）
+function writeTT_(name, recs, time) {
+  if (!recs.length) return;
+  const sh = ss_().getSheetByName(SHEET.TT);
+  const last = sh.getLastRow();
+  const known = {};
+  if (last >= 2) sh.getRange(2, TT_HEADER.length, last - 1, 1).getValues().forEach(function (r) { known[String(r[0])] = true; });
+  const t = new Date(time || Date.now());
+  const rows = recs.filter(function (r) { return r.id && !known[r.id]; }).map(function (r) {
+    return [t, name, String(r.stage), Number(r.found) || 0, Number(r.miss) || 0, r.best === '○' ? '○' : '', r.id].map(safe_);
+  });
+  if (!rows.length) return;
+  sh.getRange(last + 1, 3, rows.length, 1).setNumberFormat('@');
+  sh.getRange(last + 1, 1, rows.length, TT_HEADER.length).setValues(rows);
 }
 
 function emptyStudent_() {
@@ -320,6 +345,7 @@ function clearRecords(pin, name) {
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
+    ensureSheets_();
     const log = ss_().getSheetByName(SHEET.LOG);
     const last = log.getLastRow();
     if (last >= 2) {
@@ -329,6 +355,13 @@ function clearRecords(pin, name) {
         log.getRange(2, 1, last - 1, LOG_HEADER.length).clearContent();
         if (keep.length) log.getRange(2, 1, keep.length, LOG_HEADER.length).setValues(keep);
       }
+    }
+    const tts = ss_().getSheetByName(SHEET.TT);
+    const tlast = tts.getLastRow();
+    if (tlast >= 2) {
+      const tkeep = name ? tts.getRange(2, 1, tlast - 1, TT_HEADER.length).getValues().filter(function (r) { return String(r[1]).trim() !== name; }) : [];
+      tts.getRange(2, 1, tlast - 1, TT_HEADER.length).clearContent();
+      if (tkeep.length) tts.getRange(2, 1, tkeep.length, TT_HEADER.length).setValues(tkeep);
     }
     const sh = ss_().getSheetByName(SHEET.ROSTER);
     rosterValues_().forEach(function (r, i) {
