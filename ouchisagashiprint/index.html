@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ホーせんぱいの おうちさがし プリント</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4 portrait; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: 'BIZ UDPGothic', 'BIZ UDGothic', 'Yu Gothic', 'Meiryo', sans-serif; background: #e2e8f0; color: #0f172a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  /* ---------- うえの そうさ（画面だけ） ---------- */
+  .bar { position: sticky; top: 0; z-index: 10; background: #fff; border-bottom: 3px solid #cbd5e1; padding: 10px 14px; display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+  .bar h1 { font-size: 20px; margin: 0 8px 0 0; }
+  .bar label { font-size: 15px; }
+  .bar select { font: inherit; font-size: 16px; padding: 6px 8px; border: 2px solid #94a3b8; border-radius: 8px; background: #fff; }
+  .btn { font: inherit; font-size: 16px; font-weight: 700; padding: 9px 16px; border: 0; border-radius: 12px; background: #2563eb; color: #fff; box-shadow: 0 4px 0 #1e40af; cursor: pointer; text-decoration: none; display: inline-block; }
+  .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #1e40af; }
+  .btn.sub { background: #fff; color: #1e3a8a; border: 2px solid #93c5fd; box-shadow: 0 4px 0 #93c5fd; }
+  .btn.on { background: #dc2626; box-shadow: 0 4px 0 #991b1b; }
+  .note { width: 100%; font-size: 14px; color: #475569; margin: 0; line-height: 1.6; }
+  .pages { padding: 14px 0 40px; }
+
+  /* ---------- 1まい（A4 たて） ---------- */
+  .page { width: 210mm; height: 297mm; margin: 0 auto 14px; background: #fff; padding: 8mm 9mm 7mm; position: relative; overflow: hidden; box-shadow: 0 2px 10px rgba(15, 23, 42, .25); display: flex; flex-direction: column; }
+  .head { display: flex; align-items: stretch; gap: 3mm; height: 22mm; flex: none; }
+  .head .ttl { flex: 1; display: flex; align-items: center; gap: 2.5mm; min-width: 0; }
+  .head .ttl img { height: 20mm; width: auto; flex: none; }
+  .head .ttl .t1 { font-size: 10.5pt; font-weight: 700; color: #92400e; white-space: nowrap; }
+  .head .ttl .t2 { font-size: 15pt; font-weight: 700; margin-top: 1mm; white-space: nowrap; }
+  .head .ttl .t2 b { display: inline-block; background: #92400e; color: #fff; border-radius: 2mm; padding: .6mm 2.4mm; margin-right: 2mm; font-size: 12pt; vertical-align: 1px; }
+  .head .boxes { flex: none; width: 96mm; display: grid; grid-template-columns: 30mm 1fr; grid-template-rows: 1fr 1fr; gap: 1.5mm; }
+  .box { border: .5mm solid #334155; border-radius: 1.6mm; display: flex; align-items: center; padding: 0 2mm; font-size: 10pt; white-space: nowrap; }
+  .box .sp { flex: 1; }
+  .box .em { font-size: 15pt; margin-left: 1.6mm; line-height: 1; }
+  .guide { flex: none; margin: 2mm 0 0; font-size: 11pt; font-weight: 700; background: #fef3c7; border-radius: 2mm; padding: 1.4mm 3mm; white-space: nowrap; }
+  .guide span { font-size: 9.5pt; font-weight: 400; margin-left: 1mm; }
+
+  .q { flex: 1; min-height: 0; border: .6mm solid #94a3b8; border-radius: 3mm; margin-top: 2.6mm; padding: 2.4mm 3mm 2mm; display: flex; flex-direction: column; }
+  .talk { display: flex; align-items: flex-start; gap: 2.5mm; flex: none; }
+  .talk .qn { flex: none; width: 10mm; height: 10mm; border-radius: 2mm; background: #0f172a; color: #fff; font-weight: 700; font-size: 15pt; display: flex; align-items: center; justify-content: center; margin-top: 1mm; }
+  .talk .who { flex: none; width: 21mm; text-align: center; font-size: 8.5pt; font-weight: 700; line-height: 1.2; }
+  .talk .who img { width: 17mm; height: 17mm; object-fit: contain; display: block; margin: 0 auto .6mm; }
+  .talk .say { flex: 1; border: .5mm solid #f59e0b; background: #fffbeb; border-radius: 3mm; padding: 1.6mm 3mm 1.8mm; position: relative; }
+  .talk .say::before { content: ''; position: absolute; left: -2.6mm; top: 6mm; border: 1.5mm solid transparent; border-right: 2.6mm solid #f59e0b; border-left: 0; }
+  .talk .say .ask { font-size: 10pt; font-weight: 700; color: #92400e; margin-bottom: .8mm; }
+  .line { display: flex; align-items: flex-start; gap: 2mm; font-size: 14pt; font-weight: 700; line-height: 1.38; }
+  .line .ck { flex: none; width: 5mm; height: 5mm; border: .45mm solid #334155; border-radius: .8mm; margin-top: 1mm; background: #fff; }
+  .line .n { flex: none; }
+  .line .w { display: inline-block; white-space: nowrap; }
+
+  /* 家を 6けん ならべる（見ための 文） */
+  .grid6 { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; gap: 1.6mm 2mm; margin-top: 2.2mm; }
+  .cell { position: relative; border: .35mm solid #cbd5e1; border-radius: 2.4mm; display: flex; align-items: center; justify-content: center; min-height: 0; min-width: 0; padding: 1mm; }
+  .cell img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+  .num { position: absolute; left: 1mm; top: 1mm; width: 9.5mm; height: 9.5mm; border-radius: 50%; border: .5mm solid #334155; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 15pt; font-weight: 700; line-height: 1; }
+  .ans .hit { border: .8mm solid #dc2626; background: #fef2f2; }
+  .ans .hit .num { border: 1mm solid #dc2626; color: #dc2626; box-shadow: 0 0 0 1.2mm #fff, 0 0 0 2mm #dc2626; }
+
+  /* 小さな 町（場所の ことば） */
+  .town { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-top: 2mm; }
+  .trow { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 1.6mm; }
+  .trow .cell { border: 0; border-radius: 2mm; padding: .6mm 1mm; }
+  .trow .cell.empty { visibility: hidden; }
+  .trow .cell.mark { flex-direction: column; }
+  .trow .cell.mark img { max-height: 72%; }
+  .trow .cell.mark span { font-size: 9.5pt; font-weight: 700; margin-top: .4mm; white-space: nowrap; }
+  .trow .num { width: 8.4mm; height: 8.4mm; font-size: 13.5pt; left: .4mm; top: .4mm; }
+  .road { flex: none; height: 6.2mm; border-radius: 1.6mm; display: flex; align-items: center; justify-content: center; font-size: 10pt; font-weight: 700; letter-spacing: .1em; border: .35mm solid rgba(15, 23, 42, .35); }
+  .tgap { flex: none; height: 2.6mm; border-bottom: .4mm dashed #94a3b8; margin-bottom: 1.6mm; }
+  .stamp { position: absolute; right: 10.5mm; top: 32.7mm; border: .7mm solid #dc2626; color: #dc2626; font-weight: 700; font-size: 11pt; line-height: 1.2; padding: .2mm 2.6mm; border-radius: 1.6mm; background: #fff; }
+  .foot { flex: none; text-align: right; font-size: 7.5pt; color: #64748b; margin-top: 1mm; }
+
+  @media print {
+    body { background: #fff; }
+    .bar { display: none; }
+    .pages { padding: 0; }
+    .page { margin: 0; box-shadow: none; page-break-after: always; break-after: page; }
+    .page:last-child { page-break-after: auto; break-after: auto; }
+  }
+  body.pdf .bar { display: none; }
+  body.pdf .pages { padding: 0; }
+  body.pdf .page { margin: 0 auto; box-shadow: none; }
+</style>
+</head>
+<body>
+<div class="bar" id="bar">
+  <h1>🖨️ ホーせんぱいの おうちさがし プリント</h1>
+  <label>だす まい：<select id="from"></select> から <select id="to"></select> まで</label>
+  <button class="btn sub" id="ansBtn" type="button">こたえを 出す</button>
+  <button class="btn" id="printBtn" type="button">🖨️ いんさつ する</button>
+  <a class="btn sub" href="pdf/おうちさがしプリント.pdf" target="_blank" rel="noopener">📄 できあがった PDF</a>
+  <a class="btn sub" href="pdf/おうちさがしプリント_こたえ.pdf" target="_blank" rel="noopener">📄 こたえの PDF</a>
+  <p class="note">A4・たて・カラーで 印刷します。印刷の 画面では、「余白：なし」「背景のグラフィック：オン」に して ください。ぜんぶで 30まい（60もん）です。</p>
+</div>
+<div class="pages" id="pages"></div>
+
+<script src="data/print.js"></script>
+<script>
+(function () {
+  var P = window.OUCHI_PRINT, S = P.sheets;
+  var qs = new URLSearchParams(location.search);
+  var st = { from: Math.max(1, Number(qs.get('from')) || 1), to: Math.min(S.length, Number(qs.get('to')) || S.length), ans: qs.get('print') === 'ans' || qs.get('ans') === '1' };
+  if (qs.get('print')) document.body.className = 'pdf';
+  var CIRC = ['', '①', '②', '③', '④', '⑤', '⑥'];
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  // ことばの とちゅうで 行が かわらないように、わかち書きの ひとまとまりごとに くぎる
+  function words(l) { return l.split(' ').map(function (w) { return '<span class="w">' + esc(w) + '</span>'; }).join(' '); }
+  function house(id, n, hit) {
+    return '<div class="cell' + (hit ? ' hit' : '') + '"><img src="img/h_' + id + '.jpg" alt=""><div class="num">' + n + '</div></div>';
+  }
+  function question(q) {
+    var h = '<div class="q"><div class="talk"><div class="qn">' + q.no + '</div>' +
+      '<div class="who"><img src="img/r_' + q.target + '.jpg" alt="">' + esc(q.who) + 'さん</div>' +
+      '<div class="say"><div class="ask">わたしの いえを さがして ください。</div>' +
+      q.lines.map(function (l, i) { return '<div class="line"><span class="ck"></span><span class="n">' + CIRC[i + 1] + '</span><span>' + words(l) + '</span></div>'; }).join('') +
+      '</div></div>';
+    if (q.town) {
+      var rows = q.town.rows.map(function (r) {
+        return '<div class="trow">' + r.map(function (x) {
+          if (x === 'M') return '<div class="cell mark"><img src="img/m_' + q.town.mark.id + '.jpg" alt=""><span>' + esc(q.town.mark.n) + '</span></div>';
+          if (!x) return '<div class="cell empty"></div>';
+          return house(q.houses[x - 1], x, st.ans && q.ans === x);
+        }).join('') + '</div>';
+      });
+      var road = function (i) { return '<div class="road" style="background:' + P.roads[i].c + '">' + esc(P.roads[i].n) + '</div>'; };
+      h += '<div class="town">' + rows[0] + road(0) + rows[1] + '<div class="tgap"></div>' + rows[2] + road(1) + '</div>';
+    } else {
+      h += '<div class="grid6">' + q.houses.map(function (id, i) { return house(id, i + 1, st.ans && q.ans === i + 1); }).join('') + '</div>';
+    }
+    return h + '</div>';
+  }
+  function page(s) {
+    return '<section class="page' + (st.ans ? ' ans' : '') + '">' +
+      '<div class="head"><div class="ttl"><img src="img/ho_normal.jpg" alt=""><div><div class="t1">ホーせんぱいの おうちさがし プリント</div>' +
+      '<div class="t2"><b>' + s.no + '</b>' + esc(s.title) + '</div></div></div>' +
+      '<div class="boxes"><div class="box"><span class="sp"></span>ねん</div><div class="box">なまえ<span class="sp"></span></div>' +
+      '<div class="box"><span class="sp"></span>がつ<span class="sp"></span>にち</div><div class="box">できたかな？<span class="sp"></span><span class="em">😊</span><span class="em">😐</span><span class="em">😟</span></div></div></div>' +
+      '<div class="guide">ぶんを よんで、あう いえの ばんごうに ○を つけましょう。<span>（よんだ ぶんは、□に ✓）</span></div>' +
+      (st.ans ? '<div class="stamp">こたえ</div>' : '') +
+      s.qs.map(question).join('') +
+      '<div class="foot">ホーせんぱいの おうちさがし プリント　' + s.no + ' / ' + S.length + '（アプリの ステージ ' + esc(s.stage) + '）</div></section>';
+  }
+  function render() {
+    var out = [];
+    for (var i = st.from; i <= st.to; i++) out.push(page(S[i - 1]));
+    document.getElementById('pages').innerHTML = out.join('');
+    var b = document.getElementById('ansBtn'); b.textContent = st.ans ? 'こたえを かくす' : 'こたえを 出す'; b.className = 'btn ' + (st.ans ? 'on' : 'sub');
+  }
+  var from = document.getElementById('from'), to = document.getElementById('to');
+  S.forEach(function (s) { var t = s.no + '　' + s.title; from.add(new Option(t, s.no)); to.add(new Option(t, s.no)); });
+  from.value = st.from; to.value = st.to;
+  from.onchange = function () { st.from = Number(from.value); if (st.to < st.from) { st.to = st.from; to.value = st.to; } render(); };
+  to.onchange = function () { st.to = Number(to.value); if (st.to < st.from) { st.from = st.to; from.value = st.from; } render(); };
+  document.getElementById('ansBtn').onclick = function () { st.ans = !st.ans; render(); };
+  document.getElementById('printBtn').onclick = function () { window.print(); };
+  render();
+})();
+</script>
+</body>
+</html>
