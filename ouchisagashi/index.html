@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ホーせんぱいと おうちさがし たんていだん</title>
+
+  <script crossorigin="anonymous" src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+  <script crossorigin="anonymous" src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'BIZ UDPGothic', sans-serif; background: #fef9ec; margin: 0; color: #1e293b;
+      -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+      word-break: keep-all; overflow-wrap: anywhere; }
+    .btn3d { border-bottom-width: 6px; transition: transform .08s, border-bottom-width .08s; }
+    .btn3d:active:not(:disabled) { transform: translateY(4px); border-bottom-width: 2px; }
+    .pop { animation: pop .45s cubic-bezier(.17,.89,.32,1.28) both; }
+    @keyframes pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .floaty { animation: floaty 3s ease-in-out infinite; }
+    @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    .shake { animation: shake .4s 2; }
+    @keyframes shake { 0%,100% { transform: translateX(0); } 25%,75% { transform: translateX(-6px); } 50% { transform: translateX(6px); } }
+    .glow { animation: glow 1.1s ease-in-out infinite; }
+    @keyframes glow { 0%,100% { box-shadow: 0 0 0 0 rgba(250,204,21,.95); } 50% { box-shadow: 0 0 0 14px rgba(250,204,21,0); } }
+    .answer3d { animation: answer3d 1s ease-in-out infinite; }
+    @keyframes answer3d { 0%,100% { filter: drop-shadow(0 0 10px #facc15) drop-shadow(0 0 26px #fde047); } 50% { filter: drop-shadow(0 0 4px #facc15); } }
+    .walk { animation: walk .32s ease-in-out infinite; }
+    @keyframes walk { 0%,100% { translate: 0 0; } 50% { translate: 0 -9px; } }
+    .bob { animation: floaty 1.2s ease-in-out infinite; }
+    .answer { animation: answer 1s ease-in-out infinite; }
+    @keyframes answer { 0%,100% { box-shadow: 0 0 0 4px #facc15, 0 0 18px 6px rgba(250,204,21,.9); } 50% { box-shadow: 0 0 0 4px #fde047, 0 0 30px 14px rgba(250,204,21,.35); } }
+    .sticker { animation: sticker .9s cubic-bezier(.17,.89,.32,1.28) both; }
+    @keyframes sticker { 0% { transform: scale(2.4) rotate(-25deg); opacity: 0; } 60% { transform: scale(.9) rotate(6deg); opacity: 1; } 100% { transform: scale(1) rotate(-4deg); } }
+    .bubble { position: relative; }
+    .bubble:before { content: ''; position: absolute; left: 28px; top: -14px; border: 8px solid transparent; border-bottom: 8px solid #fff; }
+    .paper { background-image: linear-gradient(#fde68a55 1px, transparent 1px); background-size: 100% 2.2rem; }
+    mark.kw { background: #fde047; color: #b91c1c; border-radius: 6px; padding: 0 3px; }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div style="padding:60px;text-align:center;font-size:28px;color:#92400e;font-weight:bold;">じゅんび ちゅう…</div>
+  </div>
+
+  <!-- データと絵は GitHub Pages から読みこみます（このファイルを短くするため） -->
+  <script>
+    (function () {
+      var h = location.hostname;
+      var local = location.protocol === 'file:' || /github\.io$/.test(h) || h === 'localhost' || h === '127.0.0.1';
+      window.OUCHI_BASE = local ? '' : 'https://zku0395-ops.github.io/hori/ouchisagashi/';
+      var V = '3';
+      window.OUCHI_READY = new Promise(function (ok, ng) {
+        var s = document.createElement('script');
+        s.src = window.OUCHI_BASE + 'data/data.js?v=' + V;
+        s.onload = ok; s.onerror = function () { ng(new Error('data/data.js')); };
+        document.head.appendChild(s);
+      });
+    })();
+  </script>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef, useMemo } = React;
+    const APP_VERSION = '1.2.0';
+    const BASE = window.OUCHI_BASE;
+    const IMG = BASE + 'img/';
+    let D = null, HAS_IMG = new Set();
+
+    // =====================================================================
+    //  1. 小さな道具
+    // =====================================================================
+    const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    const pad = (n) => String(n).padStart(2, '0');
+    const nowStr = () => { const d = new Date(); return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+    const safeStore = {
+      get(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
+      set(k, v) { try { window.localStorage.setItem(k, v); } catch (e) {} },
+      del(k) { try { window.localStorage.removeItem(k); } catch (e) {} },
+    };
+    const downloadText = (name, text, type) => {
+      const blob = new Blob([text], { type: type || 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = name; document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
+    };
+    const plain = (s) => String(s).replace(/[【】]/g, '');
+    const pct = (a, b) => b ? Math.round(a / b * 100) + '%' : '－';
+    const rateColor = (a, b) => !b ? '' : a / b < 0.6 ? 'bg-red-200' : a / b < 0.8 ? 'bg-yellow-200' : 'bg-green-200';
+
+    // =====================================================================
+    //  2. こえ と おと
+    // =====================================================================
+    const Speech = {
+      rate: 0.8, voice: null,
+      ok: typeof window !== 'undefined' && 'speechSynthesis' in window,
+      pickVoice() {
+        if (!this.ok) return;
+        const vs = window.speechSynthesis.getVoices().filter(v => (v.lang || '').toLowerCase().replace('_', '-').startsWith('ja'));
+        this.voice = vs.find(v => /google/i.test(v.name)) || vs[0] || null;
+      },
+      say(text, onEnd, pitch) {
+        if (!this.ok || !text) { if (onEnd) setTimeout(onEnd, 200); return; }
+        try {
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(text);
+          u.lang = 'ja-JP'; if (this.voice) u.voice = this.voice;
+          u.rate = this.rate; u.pitch = pitch || 1;
+          let done = false;
+          const end = () => { if (!done) { done = true; onEnd && onEnd(); } };
+          u.onend = end; u.onerror = end;
+          // 声が出ない端末でも先へ進めるように、長さに合わせて待つ
+          setTimeout(end, 1500 + text.length * 260 / this.rate);
+          // Chrome は cancel の すぐ あとの speak を おとすことが あるので すこし まつ
+          setTimeout(() => window.speechSynthesis.speak(u), 60);
+        } catch (e) { if (onEnd) setTimeout(onEnd, 200); }
+      },
+      stop() { try { this.ok && window.speechSynthesis.cancel(); } catch (e) {} },
+    };
+    if (Speech.ok) { Speech.pickVoice(); window.speechSynthesis.onvoiceschanged = () => Speech.pickVoice(); }
+    const PITCH_HO = 0.85, PITCH_RES = 1.3;
+    const sayP = (text, pitch) => new Promise(r => Speech.say(text, r, pitch));
+
+    const Sound = {
+      on: true, ctx: null,
+      get() {
+        if (!this.ctx) { const C = window.AudioContext || window.webkitAudioContext; if (C) this.ctx = new C(); }
+        if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+        return this.ctx;
+      },
+      tone(freq, at, dur, type = 'triangle', vol = 0.16) {
+        const c = this.get(); if (!c || !this.on) return;
+        const o = c.createOscillator(), g = c.createGain(), t = c.currentTime + at;
+        o.type = type; o.frequency.value = freq;
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.05);
+      },
+      // このアプリのための オリジナルの おと
+      found() { [[587, 0], [740, .12], [880, .24], [1175, .4]].forEach(([f, t]) => this.tone(f, t, .22, 'triangle', .16)); },
+      big() { [[523, 0], [659, .15], [784, .3], [1046, .5], [784, .75], [1046, .9]].forEach(([f, t]) => this.tone(f, t, .22, 'triangle', .17)); [523, 659, 784, 1046].forEach(f => this.tone(f, 1.15, 1.0, 'triangle', .11)); },
+      retry() { this.tone(330, 0, .14, 'sine', .06); this.tone(294, .12, .2, 'sine', .06); }, // まちがえたとき（小さな音）
+      tap() { this.tone(660, 0, .06, 'sine', .07); },
+      hint() { [523, 659].forEach((f, i) => this.tone(f, i * .1, .18, 'sine', .09)); },
+      erase() { this.tone(440, 0, .1, 'sine', .05); },
+    };
+
+    // =====================================================================
+    //  3. 絵（自作の SVG と 絵文字。ChatGPT の 絵が とどいたら その 絵を つかう）
+    // =====================================================================
+    // 1まいに ならべた 絵（シート）から 1こ ぶんを 出す
+    function Sprite({ file, i, cols, rows, className, style }) {
+      const c = i % cols, r = Math.floor(i / cols);
+      return <div className={className} style={{ ...style, backgroundImage: `url(${IMG + file})`, backgroundRepeat: 'no-repeat',
+        backgroundSize: `${cols * 100}% ${rows * 100}%`, backgroundPosition: `${cols > 1 ? c / (cols - 1) * 100 : 0}% ${rows > 1 ? r / (rows - 1) * 100 : 0}%` }} />;
+    }
+    const Emo = ({ x, y, s, children }) => <text x={x} y={y} fontSize={s} textAnchor="middle" dominantBaseline="central">{children}</text>;
+    function TreeArt({ kind, x, y }) { // x,y は ねもと
+      const crown = kind === 'sakura' ? '#f9a8d4' : '#22c55e';
+      const dot = kind === 'apple' ? '#dc2626' : kind === 'mikan' ? '#f97316' : '#fdf2f8';
+      return <g transform={`translate(${x},${y})`}>
+        <rect x="-3" y="-22" width="6" height="22" fill="#92400e" />
+        <circle cx="0" cy="-34" r="16" fill={crown} stroke="#166534" strokeWidth={kind === 'sakura' ? 0 : 1} />
+        {[[-7, -38], [6, -40], [0, -30], [-9, -28], [9, -28]].map(([a, b], i) => <circle key={i} cx={a} cy={b} r={kind === 'sakura' ? 2 : 3.4} fill={dot} />)}
+      </g>;
+    }
+    function CarArt({ color, x, y }) { // x,y は まんなかの した
+      return <g transform={`translate(${x},${y})`}>
+        <path d="M-11 -13 L-7 -22 H7 L11 -13 Z" fill={color} stroke="#1e293b" strokeWidth="1.2" />
+        <rect x="-17" y="-14" width="34" height="10" rx="3" fill={color} stroke="#1e293b" strokeWidth="1.2" />
+        <path d="M-6 -20 H-1 V-14 H-9 Z M1 -20 H6 L9 -14 H1 Z" fill="#e0f2fe" />
+        <circle cx="-9" cy="-3" r="4.2" fill="#1e293b" /><circle cx="9" cy="-3" r="4.2" fill="#1e293b" />
+        <circle cx="-9" cy="-3" r="1.6" fill="#cbd5e1" /><circle cx="9" cy="-3" r="1.6" fill="#cbd5e1" />
+      </g>;
+    }
+    // いえ（やね・かべ・にわの もの・のりもの）。ななめ上から 見た 立体的な かたち。viewBox 180×120
+    function HouseSvg({ h }) {
+      const g = D.GARDEN[h.garden], v = D.VEHICLE[h.vehicle], wall = D.WALL[h.wall], roof = D.ROOF[h.roof];
+      const ln = { stroke: '#334155', strokeWidth: 1.6, strokeLinejoin: 'round' };
+      return <svg viewBox="0 0 180 120" className="w-full h-full block">
+        <ellipse cx="92" cy="106" rx="80" ry="9" fill="#00000018" />
+        {g.e.indexOf('tree:') === 0 ? <TreeArt kind={g.e.slice(5)} x={28} y={106} /> : <Emo x={28} y={84} s={36}>{g.e}</Emo>}
+        {/* よこの かべ（かげ） */}
+        <path d="M112 60 L136 48 V92 L112 104 Z" fill={wall} {...ln} /><path d="M112 60 L136 48 V92 L112 104 Z" fill="#0f172a" opacity=".22" />
+        <rect x="58" y="60" width="54" height="44" fill={wall} {...ln} />
+        {/* やね（よこ・まえ） */}
+        <path d="M85 24 L109 12 L142 48 L118 62 Z" fill={roof} {...ln} /><path d="M85 24 L109 12 L142 48 L118 62 Z" fill="#0f172a" opacity=".2" />
+        <path d="M52 62 L85 24 L118 62 Z" fill={roof} {...ln} />
+        {h.window === 'まる' ? <circle cx="71.5" cy="78" r="8" fill="#e0f2fe" stroke="#fff" strokeWidth="2.4" /> : h.window === 'さんかく' ? <path d="M71.5 68 L81 86 H62 Z" fill="#e0f2fe" stroke="#fff" strokeWidth="2.4" strokeLinejoin="round" /> : <rect x="63.5" y="70" width="16" height="16" fill="#e0f2fe" stroke="#fff" strokeWidth="2.4" />}
+        <rect x="88" y="76" width="14" height="28" rx="1.5" fill={D.DOOR[h.door] || '#a16207'} {...ln} strokeWidth="1.2" /><circle cx="99" cy="91" r="1.4" fill="#fff" />
+        <path d="M118 70 L130 64 V78 L118 84 Z" fill="#e0f2fe" opacity=".85" stroke="#334155" strokeWidth="1" />
+        {v.e.indexOf('car:') === 0 ? <g transform="translate(156,108) scale(1.15)"><CarArt color={v.e.slice(4)} x={0} y={0} /></g> : <Emo x={156} y={90} s={32}>{v.e}</Emo>}
+      </svg>;
+    }
+    function HouseArt({ h }) {
+      const f = 'h_' + h.id + '.webp';
+      if (HAS_IMG.has(f)) return <img src={IMG + f} alt="" draggable="false" className="w-full h-full block" style={{ objectFit: 'contain', objectPosition: 'bottom', filter: 'drop-shadow(0 8px 6px #0004)' }} />;
+      return <HouseSvg h={h} />;
+    }
+    // めじるし
+    function MarkArt({ m }) {
+      let art;
+      if (HAS_IMG.has('m_' + m.id + '.webp')) return <img src={IMG + 'm_' + m.id + '.webp'} alt="" draggable="false" className="w-full h-full" style={{ objectFit: 'contain' }} />;
+      if (m.e === 'pond') art = <svg viewBox="0 0 60 60" className="w-full h-full"><ellipse cx="30" cy="38" rx="26" ry="14" fill="#38bdf8" stroke="#0369a1" strokeWidth="2" /><ellipse cx="22" cy="35" rx="8" ry="3" fill="#bae6fd" /></svg>;
+      else if (m.e === 'lighthouse') art = <svg viewBox="0 0 60 60" className="w-full h-full"><path d="M22 56 L26 20 H34 L38 56 Z" fill="#fff" stroke="#334155" strokeWidth="2" /><path d="M24.5 34 H35.5 L36.6 44 H23.4 Z" fill="#ef4444" /><rect x="24" y="11" width="12" height="9" fill="#fde047" stroke="#334155" strokeWidth="2" /><path d="M22 11 L30 3 L38 11 Z" fill="#ef4444" stroke="#334155" strokeWidth="2" /></svg>;
+      else if (m.e === 'windmill') art = <svg viewBox="0 0 60 60" className="w-full h-full"><path d="M22 56 L26 26 H34 L38 56 Z" fill="#fde68a" stroke="#334155" strokeWidth="2" /><g stroke="#334155" strokeWidth="2" fill="#fff"><path d="M30 24 L26 4 H34 Z" /><path d="M30 24 L50 20 V28 Z" /><path d="M30 24 L34 44 H26 Z" /><path d="M30 24 L10 28 V20 Z" /></g><circle cx="30" cy="24" r="3" fill="#ef4444" /></svg>;
+      else art = <div className="w-full h-full flex items-center justify-center" style={{ fontSize: '2em', lineHeight: 1 }}>{m.e}</div>;
+      return art;
+    }
+    // じゅうにん
+    function Face({ h, size }) {
+      const f = 'r_' + h.id + '.webp';
+      if (HAS_IMG.has(f)) return <img src={IMG + f} alt="" draggable="false" className="rounded-full bg-white border-4 border-amber-300" style={{ width: size, height: size, objectFit: 'cover', objectPosition: 'center 20%' }} />;
+      return <div className="rounded-full bg-white border-4 border-amber-300 flex items-center justify-center" style={{ width: size, height: size, fontSize: size * 0.6, lineHeight: 1 }}>{h.face}</div>;
+    }
+    // たんてい（しゅじんこう）。90×130
+    function Hero() {
+      if (HAS_IMG.has('hero.webp')) return <img src={IMG + 'hero.webp'} alt="" draggable="false" style={{ width: 130, height: 188, objectFit: 'contain', objectPosition: 'bottom', filter: 'drop-shadow(0 6px 4px #0005)' }} />;
+      return <svg viewBox="0 0 90 130" width="130" height="188">
+        <ellipse cx="45" cy="124" rx="26" ry="6" fill="#00000030" />
+        <rect x="31" y="96" width="11" height="26" rx="5" fill="#1e3a8a" /><rect x="48" y="96" width="11" height="26" rx="5" fill="#1e3a8a" />
+        <path d="M22 62 Q45 50 68 62 L72 102 H18 Z" fill="#d6a15c" stroke="#334155" strokeWidth="2" strokeLinejoin="round" />
+        <path d="M45 58 V102" stroke="#334155" strokeWidth="1.5" /><circle cx="50" cy="72" r="2" fill="#334155" /><circle cx="50" cy="84" r="2" fill="#334155" />
+        <circle cx="45" cy="38" r="22" fill="#fcd9b6" stroke="#334155" strokeWidth="2" />
+        <circle cx="37" cy="40" r="3" fill="#1e293b" /><circle cx="53" cy="40" r="3" fill="#1e293b" /><path d="M39 48 Q45 53 51 48" fill="none" stroke="#1e293b" strokeWidth="2" strokeLinecap="round" />
+        <path d="M22 30 Q45 2 68 30 Z" fill="#b45309" stroke="#334155" strokeWidth="2" /><path d="M14 31 Q45 22 76 31 Q45 37 14 31 Z" fill="#92400e" stroke="#334155" strokeWidth="2" />
+        <circle cx="74" cy="84" r="9" fill="#e0f2fe" fillOpacity=".8" stroke="#334155" strokeWidth="3" /><path d="M67 91 L60 99" stroke="#334155" strokeWidth="4" strokeLinecap="round" />
+      </svg>;
+    }
+    // ホーせんぱい（フクロウの たんてい）
+    function Ho({ mood = 'normal', size = 120, className = '' }) {
+      const f = 'ho_' + mood + '.webp';
+      if (HAS_IMG.has(f)) return <img src={IMG + f} alt="" className={className} style={{ width: size, height: size, objectFit: 'contain' }} draggable="false" />;
+      const eye = (cx) => mood === 'happy'
+        ? <path d={`M${cx - 9} 52 Q${cx} 42 ${cx + 9} 52`} fill="none" stroke="#1e293b" strokeWidth="3.5" strokeLinecap="round" />
+        : <g><circle cx={cx} cy="50" r="12" fill="#fff" stroke="#1e293b" strokeWidth="2" /><circle cx={cx + (mood === 'think' ? 3 : 0)} cy={mood === 'think' ? 46 : 50} r="5.5" fill="#1e293b" /><circle cx={cx + 2} cy="47" r="1.8" fill="#fff" /></g>;
+      return <svg viewBox="0 0 120 120" width={size} height={size} className={className}>
+        <ellipse cx="60" cy="74" rx="38" ry="40" fill="#a16207" stroke="#1e293b" strokeWidth="2.5" />
+        <ellipse cx="60" cy="84" rx="24" ry="26" fill="#fde68a" />
+        {[[52, 76], [68, 76], [60, 88], [50, 98], [70, 98]].map(([x, y], i) => <path key={i} d={`M${x - 4} ${y} Q${x} ${y + 5} ${x + 4} ${y}`} fill="none" stroke="#b45309" strokeWidth="2" />)}
+        <circle cx="45" cy="50" r="16" fill="#fef3c7" /><circle cx="75" cy="50" r="16" fill="#fef3c7" />
+        {eye(45)}{eye(75)}
+        <path d="M55 60 L60 70 L65 60 Z" fill="#f59e0b" stroke="#1e293b" strokeWidth="1.5" />
+        <path d="M24 78 Q14 92 26 104 Q34 92 30 78 Z" fill="#854d0e" stroke="#1e293b" strokeWidth="2" />
+        <path d="M96 78 Q106 92 94 104 Q86 92 90 78 Z" fill="#854d0e" stroke="#1e293b" strokeWidth="2" />
+        {/* たんていの ぼうし */}
+        <path d="M30 34 Q60 2 90 34 Z" fill="#b45309" stroke="#1e293b" strokeWidth="2.5" />
+        <path d="M22 36 Q60 26 98 36 Q60 42 22 36 Z" fill="#92400e" stroke="#1e293b" strokeWidth="2" />
+        <path d="M45 20 L75 20 M40 27 L80 27" stroke="#fde68a" strokeWidth="2" /><circle cx="60" cy="12" r="4" fill="#fde68a" stroke="#1e293b" strokeWidth="1.5" />
+        {/* むしめがね */}
+        <circle cx="98" cy="96" r="10" fill="#e0f2fe" fillOpacity=".8" stroke="#1e293b" strokeWidth="3" /><path d="M105 104 L114 114" stroke="#1e293b" strokeWidth="5" strokeLinecap="round" />
+        <path d="M70 112 l6 4 M50 112 l-6 4" stroke="#f59e0b" strokeWidth="4" strokeLinecap="round" />
+      </svg>;
+    }
+    // ぶん（【 】の ことばに いろを つける）
+    function Marked({ text, on }) {
+      const parts = String(text).split(/【|】/);
+      return <span>{parts.map((p, i) => i % 2 === 1 && on ? <mark key={i} className="kw">{p}</mark> : <span key={i}>{p}</span>)}</span>;
+    }
+    const Btn = ({ color = 'sky', className = '', children, ...rest }) => {
+      const c = { sky: 'bg-sky-500 border-sky-700 text-white', green: 'bg-green-500 border-green-700 text-white', amber: 'bg-amber-400 border-amber-600 text-amber-950',
+        gray: 'bg-slate-200 border-slate-400 text-slate-700', white: 'bg-white border-slate-300 text-slate-700', red: 'bg-red-500 border-red-700 text-white', purple: 'bg-violet-500 border-violet-700 text-white' }[color];
+      return <button {...rest} className={`btn3d rounded-2xl font-bold disabled:opacity-40 ${c} ${className}`}>{children}</button>;
+    };
+
+    // =====================================================================
+    //  4. しんちょく
+    // =====================================================================
+    const newProgress = () => ({ t: 0, clear: {}, stickers: [], solved: 0, part: null, unlockAll: false, hatten: false, flagT: 0 });
+    const parseProgress = (s) => { let p = null; try { p = JSON.parse(s || 'null'); } catch (e) {} const n = newProgress(); return p && typeof p === 'object' ? { ...n, ...p, clear: p.clear || {}, stickers: p.stickers || [] } : n; };
+    const mainStages = () => D.STAGES.filter(s => !s.hatten);
+    const isCleared = (p, st) => (p.clear[st.id] || 0) > 0;
+    const stageOpen = (p, st) => {
+      if (st.hatten) return !!p.hatten;
+      if (p.unlockAll) return true;
+      const ms = mainStages(), i = ms.findIndex(s => s.id === st.id);
+      return i <= 0 || isCleared(p, ms[i - 1]);
+    };
+    const currentStage = (p) => { const ms = mainStages(); return ms.find(s => !isCleared(p, s)) || ms[ms.length - 1]; };
+    const areaName = (st) => st.area === 'all' ? 'いろいろな ばしょ' : D.area(st.area).n;
+
+    // =====================================================================
+    //  5. データの ほぞん（スプレッドシート／おためしモード）
+    // =====================================================================
+    const HAS_GAS = typeof google !== 'undefined' && google.script && google.script.run;
+    const gas = (fn, ...args) => new Promise((resolve, reject) => {
+      google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
+    });
+    const LOG_HEADER = ['日時', 'なまえ', 'ステージ', 'もん', 'ばしょ', 'じゅうにん', 'ヒントの ぶん', 'けっか', 'まちがい', 'ヒント', 'まちがえた いえ', 'まちがいの しゅるい', 'よみあげ', 'びょう', 'ID'];
+    const DEFAULT_SETTINGS = { rate: 0.8, font: 1, read: true, sound: true, map: true, wide: true };
+    const KIND_ORDER = ['やね', 'かべ', 'ドア', 'まど', 'にわ', 'のりもの', 'みち', 'となり（めじるし）', 'となり（いえ）', 'むかい', 'みぎ／ひだり', 'なんけんめ', 'あいだ', 'うちけし', 'うちけし（2つ）', 'いらない ぶん'];
+
+    // まとめ（先生用）— コード.gs の aggregate_ と おなじ しくみ
+    const emptyStu = () => ({ count: 0, ok: 0, miss: 0, hint: 0, last: '', stages: {}, kinds: {}, lens: {} });
+    function aggregate(rows) {
+      const students = {}, classKinds = {};
+      rows.forEach(r => {
+        const name = String(r[1] || '').trim(); if (!name) return;
+        const st = String(r[2]), ok = r[7] === '○' ? 1 : 0, miss = Number(r[8]) || 0, hint = Number(r[9]) || 0;
+        const s = students[name] || (students[name] = emptyStu());
+        const day = String(r[0]).slice(0, 10);
+        if (day > s.last) s.last = day;
+        s.count++; s.ok += ok; s.miss += miss; s.hint += hint ? 1 : 0;
+        const g = s.stages[st] || (s.stages[st] = [0, 0, 0]); g[0]++; g[1] += ok; g[2] += miss;
+        const ks = String(r[6] || '').split('・').filter(Boolean);
+        const len = ks.filter(k => k !== 'いらない ぶん').length;
+        const l = s.lens[len] || (s.lens[len] = [0, 0]); l[0]++; l[1] += ok;
+        ks.forEach(k => { const a = s.kinds[k] || (s.kinds[k] = [0, 0]); a[0]++; const c = classKinds[k] || (classKinds[k] = [0, 0]); c[0]++; });
+        String(r[11] || '').split('・').filter(Boolean).forEach(k => { const a = s.kinds[k] || (s.kinds[k] = [0, 0]); a[1]++; const c = classKinds[k] || (classKinds[k] = [0, 0]); c[1]++; });
+      });
+      return { students, classKinds };
+    }
+
+    const Local = {
+      key: 'ouchi_local_v1', mem: null,
+      data() {
+        if (this.mem) return this.mem;
+        let d = null; try { d = JSON.parse(safeStore.get(this.key)); } catch (e) {}
+        this.mem = d || { roster: ['たろう', 'はなこ', 'ゆうき'], progress: {}, log: [], pin: '1234', settings: { ...DEFAULT_SETTINGS } };
+        return this.mem;
+      },
+      save() { safeStore.set(this.key, JSON.stringify(this.mem)); },
+    };
+    const PENDING_KEY = 'ouchi_pending_v1';
+    const COPY_KEY = (name) => 'ouchi_copy_' + name;
+    const recRow = (stamp, name, r) => [stamp, name, r.stage, r.q, r.area, r.who, r.kinds, r.result, r.miss, r.hint, r.wrongs, r.wkinds, r.read, r.secs, r.id];
+    const api = {
+      async init() {
+        if (HAS_GAS) return gas('getInitData');
+        const d = Local.data();
+        return { students: d.roster, settings: { ...DEFAULT_SETTINGS, ...d.settings }, demo: true };
+      },
+      async student(name) {
+        if (HAS_GAS) return gas('getStudent', name);
+        return Local.data().progress[name] || '';
+      },
+      async sendOne(p) {
+        if (HAS_GAS) return gas('saveResult', p);
+        const d = Local.data();
+        const old = parseProgress(d.progress[p.name]), neu = parseProgress(p.progress);
+        if (neu.t >= old.t) {
+          if (old.flagT && old.flagT > (neu.t || 0)) { neu.unlockAll = !!old.unlockAll; neu.hatten = !!old.hatten; neu.flagT = old.flagT; }
+          d.progress[p.name] = JSON.stringify(neu);
+        }
+        const ids = new Set(d.log.map(r => r[14]));
+        p.records.forEach(r => { if (!ids.has(r.id)) d.log.push(recRow(p.stamp, p.name, r)); });
+        Local.save();
+        return { ok: true };
+      },
+      // とどかなかった きろくは たまっておき、つぎの ときに おくりなおす
+      readQueue() { try { return JSON.parse(safeStore.get(PENDING_KEY)) || []; } catch (e) { return []; } },
+      async save(payload) {
+        const queue = api.readQueue().filter(q => !(q.name === payload.name && !q.records.length));
+        queue.push({ ...payload, qid: uid() });
+        safeStore.set(PENDING_KEY, JSON.stringify(queue));
+        return api.flush();
+      },
+      pending() { return api.readQueue().reduce((n, q) => n + q.records.length, 0); },
+      flushing: false,
+      async flush() {
+        if (api.flushing) return;
+        api.flushing = true;
+        try {
+          for (let q = api.readQueue()[0]; q; q = api.readQueue()[0]) {
+            await api.sendOne(q);
+            safeStore.set(PENDING_KEY, JSON.stringify(api.readQueue().filter(x => x.qid !== q.qid)));
+          }
+        } catch (e) { console.warn('きろくを おくれませんでした。あとで おくりなおします。', e); }
+        finally { api.flushing = false; }
+      },
+      async teacher(pin) {
+        if (HAS_GAS) return gas('getTeacherData', pin);
+        const d = Local.data();
+        if (String(pin) !== String(d.pin)) return { ok: false };
+        const agg = aggregate(d.log);
+        return {
+          ok: true, isDefaultPin: d.pin === '1234', demo: true, settings: { ...DEFAULT_SETTINGS, ...d.settings },
+          students: d.roster.map(n => ({ name: n, progress: d.progress[n] || '', ...(agg.students[n] || emptyStu()) })),
+          classKinds: agg.classKinds,
+        };
+      },
+      async setFlag(pin, name, key, val) {
+        if (HAS_GAS) return gas('setFlag', pin, name, key, val);
+        const d = Local.data(); const p = parseProgress(d.progress[name]); p[key] = !!val; p.t = Date.now(); p.flagT = Date.now();
+        d.progress[name] = JSON.stringify(p); Local.save(); return { ok: true, progress: d.progress[name] };
+      },
+      async saveSettings(pin, s) {
+        if (HAS_GAS) return gas('saveSettings', pin, s);
+        const d = Local.data(); const { newPin, ...rest } = s;
+        d.settings = { ...d.settings, ...rest }; if (newPin) d.pin = newPin; Local.save(); return { ok: true };
+      },
+      async logRows(pin) {
+        if (HAS_GAS) return gas('getLogRows', pin);
+        return { ok: true, rows: [LOG_HEADER, ...Local.data().log] };
+      },
+      async backup(pin) {
+        if (HAS_GAS) return gas('getBackup', pin);
+        const d = Local.data(); return { ok: true, data: { app: 'ouchisagashi', roster: d.roster.map(n => [n, d.progress[n] || '']), settings: d.settings } };
+      },
+      async restore(pin, data) {
+        if (HAS_GAS) return gas('restoreBackup', pin, data);
+        if (!data || data.app !== 'ouchisagashi') return { ok: false };
+        const d = Local.data(); (data.roster || []).forEach(([n, p]) => { if (!d.roster.includes(n)) d.roster.push(n); d.progress[n] = p; }); Local.save(); return { ok: true };
+      },
+      async clear(pin, name) {
+        if (HAS_GAS) return gas('clearRecords', pin, name);
+        const d = Local.data();
+        d.log = d.log.filter(r => name && r[1] !== name);
+        (name ? [name] : d.roster).forEach(n => { delete d.progress[n]; });
+        Local.save(); return { ok: true };
+      },
+    };
+
+    // =====================================================================
+    //  6. がめんの ぶひん
+    // =====================================================================
+    function TopBar({ name, progress, onHome, onLogout, onTeacher, soundOn, onSound }) {
+      return (
+        <div className="flex items-center gap-2 px-3 py-2 bg-amber-800 text-white" style={{ minHeight: 56 }}>
+          {onHome ? <Btn color="white" className="px-4 py-1 text-lg" onClick={onHome}>🏠 ホーム</Btn> : <Btn color="white" className="px-4 py-1 text-lg" onClick={onLogout}>👤 なまえを かえる</Btn>}
+          <div className="flex-1 text-center font-bold text-lg truncate">{name}　<span className="bg-amber-100 text-amber-900 rounded-full px-3 py-0.5 text-base">🔎 {D.titleOf(progress.stickers.length)}</span></div>
+          <div className="font-bold text-lg bg-white/20 rounded-full px-3 py-0.5">🏷️ {progress.stickers.length} / 60</div>
+          <button className="text-2xl px-1" onClick={onSound} aria-label="おと">{soundOn ? '🔔' : '🔕'}</button>
+          <button className="text-xl px-1 opacity-70" onClick={onTeacher} aria-label="せんせい用">🔒</button>
+        </div>
+      );
+    }
+    function HoTalk({ text, mood, onRepeat, size = 96, children }) {
+      return (
+        <div className="flex items-start gap-2">
+          <button onClick={onRepeat} className="shrink-0" aria-label="もういちど きく"><Ho mood={mood} size={size} /></button>
+          <div className="flex-1 bg-white rounded-2xl border-2 border-amber-300 px-3 py-2 text-lg leading-relaxed shadow-sm" style={{ minHeight: 56 }}>
+            <div className="text-xs font-bold text-amber-700">ホーせんぱい</div>
+            {text}{children}
+          </div>
+        </div>
+      );
+    }
+
+    function LoginScreen({ students, onSelect, onTeacher, demo, busy }) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center p-6 gap-5" style={{ background: 'linear-gradient(#fde68a,#fef9ec)' }}>
+          <Ho size={150} className="floaty" />
+          <h1 className="text-3xl font-bold text-amber-900 text-center">ホーせんぱいと<br />おうちさがし たんていだん</h1>
+          {demo && <div className="bg-white/80 rounded-xl px-4 py-1 text-slate-600">おためしモード（きろくは この たんまつ だけに のこります）</div>}
+          <div className="text-2xl font-bold text-amber-900">なまえを えらんでね</div>
+          <div className="flex flex-wrap justify-center gap-4 max-w-4xl">
+            {students.map(n => <Btn key={n} color="amber" className="px-8 py-4 text-3xl" disabled={busy} onClick={() => onSelect(n)}>{n}</Btn>)}
+            {!students.length && <div className="text-xl text-slate-600 bg-white rounded-xl p-4">「名簿」シートに なまえが ありません。せんせいに しらせてね。</div>}
+          </div>
+          <button className="mt-4 text-slate-500 underline" onClick={onTeacher}>🔒 せんせい用</button>
+          <div className="text-xs text-slate-400">ばん {APP_VERSION}</div>
+        </div>
+      );
+    }
+
+    function HomeScreen({ name, progress, onContinue, onStages, onAlbum, say }) {
+      const st = currentStage(progress);
+      const part = progress.part && D.STAGES.find(s => s.id === progress.part.st);
+      const msg = part ? `${name} たんてい、おかえり。じけんの つづきを しらべよう。` : progress.solved ? `${name} たんてい、きょうも おうちを さがそう。` : `${name} たんてい、ようこそ。みんなの おうちを さがして ほしいんだ。`;
+      useEffect(() => { say(msg); }, []);
+      const next = D.TITLES.find(t => t[0] > progress.stickers.length);
+      return (
+        <div className="flex-1 p-5 flex flex-col items-center gap-5" style={{ background: 'linear-gradient(#bfdbfe,#fef9ec 55%)' }}>
+          <div className="text-5xl tracking-widest">🏠🌳🏡⛲🏠🌲🏡</div>
+          <div className="w-full max-w-3xl"><HoTalk text={msg} mood="happy" size={130} onRepeat={() => say(msg)} /></div>
+          <Btn color="green" className="px-12 py-5 text-4xl glow" onClick={onContinue}>▶ {part ? 'つづきから' : 'はじめる'}
+            <div className="text-lg font-normal">{part ? `${part.no}　${areaName(part)}（${progress.part.qi + 1}もんめ から）` : `${st.no}　${areaName(st)}`}</div></Btn>
+          <div className="flex gap-4">
+            <Btn color="sky" className="px-8 py-4 text-2xl" onClick={onStages}>🗺️ じけんを えらぶ</Btn>
+            <Btn color="amber" className="px-8 py-4 text-2xl" onClick={onAlbum}>📒 たんてい てちょう</Btn>
+          </div>
+          <div className="bg-white rounded-2xl px-6 py-3 text-xl border-2 border-amber-200">
+            🏷️ おれいの シール <b className="text-3xl text-amber-700">{progress.stickers.length}</b> まい
+            {next && <span className="text-slate-600">　あと {next[0] - progress.stickers.length}まいで「{next[1]}」</span>}
+          </div>
+        </div>
+      );
+    }
+
+    function StageScreen({ progress, onStart }) {
+      const groups = D.AREAS.map(a => ({ a, list: D.STAGES.filter(s => s.area === a.id) }));
+      const hat = D.STAGES.filter(s => s.hatten);
+      const btn = (st) => {
+        const open = stageOpen(progress, st), cl = isCleared(progress, st);
+        return <Btn key={st.id} color={!open ? 'gray' : cl ? 'amber' : 'sky'} disabled={!open} className="px-3 py-2 text-lg text-left w-full" onClick={() => onStart(st)}>
+          {!open ? '🔒' : cl ? '⭐' : '🔎'} {st.no}　{st.t}</Btn>;
+      };
+      return (
+        <div className="flex-1 p-4">
+          <h2 className="text-2xl font-bold text-amber-900 mb-3">🗺️ じけんを えらぶ</h2>
+          <div className="grid grid-cols-3 gap-4">
+            {groups.map(({ a, list }) => (
+              <div key={a.id} className="rounded-2xl p-3 border-2 border-white shadow" style={{ background: a.sky }}>
+                <div className="text-2xl font-bold mb-2">{a.e} {a.n}</div>
+                <div className="flex flex-col gap-2">{list.map(btn)}</div>
+              </div>
+            ))}
+          </div>
+          {progress.hatten && <div className="rounded-2xl p-3 mt-4 border-2 border-violet-200 bg-violet-100">
+            <div className="text-2xl font-bold mb-2">🌟 はってん</div>
+            <div className="grid grid-cols-3 gap-2">{hat.map(btn)}</div>
+          </div>}
+        </div>
+      );
+    }
+
+    function AlbumScreen({ progress }) {
+      const n = progress.stickers.length;
+      return (
+        <div className="flex-1 p-4 paper">
+          <h2 className="text-2xl font-bold text-amber-900">📒 たんてい てちょう</h2>
+          <div className="flex flex-wrap gap-2 my-3">
+            {D.TITLES.map(([need, t]) => <div key={t} className={`rounded-full px-4 py-1 text-lg font-bold border-2 ${n >= need ? 'bg-amber-300 border-amber-500 text-amber-950' : 'bg-white border-slate-200 text-slate-400'}`}>{n >= need ? '🏅' : '🔒'} {t}<span className="text-sm font-normal">（{need}まい）</span></div>)}
+          </div>
+          {D.AREAS.map(a => (
+            <div key={a.id} className="mb-4">
+              <div className="text-xl font-bold mb-1">{a.e} {a.n}</div>
+              <div className="grid grid-cols-10 gap-2">
+                {D.houses(a.id).map(h => {
+                  const got = progress.stickers.includes(h.id);
+                  return <div key={h.id} className={`rounded-xl border-2 p-1 flex flex-col items-center ${got ? 'bg-white border-amber-300' : 'bg-slate-100 border-dashed border-slate-300'}`} style={{ minHeight: 104 }}>
+                    {got ? <Face h={h} size={64} /> : <div className="rounded-full bg-slate-200 text-slate-400 flex items-center justify-center text-3xl font-bold" style={{ width: 64, height: 64 }}>？</div>}
+                    <div className={`font-bold text-center leading-tight mt-1 whitespace-nowrap ${got && h.who.length > 5 ? 'text-xs' : 'text-sm'} ${got ? '' : 'text-slate-400'}`}>{got ? h.who + 'さん' : '？？？'}</div>
+                  </div>;
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // =====================================================================
+    //  7. まち（ななめ上から 見た まちを あるいて さがす）
+    // =====================================================================
+    // town：{ cells:[{ house か mark, r:みち, s:'u' おくがわ / 'd' てまえがわ, c:ます }], roads:みちの かず, slots:ますの かず }
+    // wide：ひろい まち（みちが くねくね まがり、いえの あいだが 広く、行きどまりの こみちが ある）
+    const HW = 420, HH = 280;
+    const BG_TW = 2560, BG_TH = 1150; // はいけいの 絵を ならべる 大きさ（絵の 下 3分の2 ほどが じめん）
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const DECO = ['ido', 'benchi', 'iwa', 'taru', 'kirikabu', 'gaito'];
+    const DECO_E = { ido: '🪣', benchi: '🪑', iwa: '🪨', taru: '🛢️', kirikabu: '🪵', gaito: '🏮' };
+    function makeWorld(town, wide) {
+      const { cells, roads: nR, slots: S } = town;
+      const SW = wide ? 640 : 520, MX = wide ? 340 : 240, AMP = wide ? 85 : 0;
+      const W = MX * 2 + S * SW;
+      const hasD = (r) => cells.some(c => c.r === r && c.s === 'd');
+      // みちの たかさ：てまえがわに いえが ある みちの 下は、広く あける
+      const rel = []; let y = HH + AMP;
+      for (let r = 0; r < nR; r++) { rel.push(y); y += 60 + (hasD(r) ? HH + 50 : 0) + HH + AMP * 2 + (wide ? 80 : 0); }
+      const total = rel[nR - 1] + AMP + (hasD(nR - 1) ? HH + 190 : 140);
+      const TOP = Math.round(total * 0.15), H = total + TOP;
+      const roadY = (r, x) => TOP + rel[r] + AMP * (0.75 * Math.sin(x / 270 + r * 2.1) + 0.25 * Math.sin(x / 97 + r * 1.3));
+      const X0 = MX - 150, X1 = W - MX + 150;
+      const slotX = (c) => MX + c * SW + SW / 2;
+      const placed = cells.map(c => {
+        const x = slotX(c.c), yr = roadY(c.r, x);
+        return { ...c, x, by: c.s === 'u' ? yr - 26 : yr + 44 + (c.mark ? 240 : HH) };
+      });
+      // たての みち（みちと みちを つなぐ）
+      const links = [];
+      for (let b = 0; b < nR - 1; b++) {
+        const ks = S >= 4 ? [0, wide && b % 2 === 0 && S >= 5 ? 3 : Math.floor(S / 2), S] : [0, S];
+        ks.forEach((k, j) => {
+          const x = k === 0 ? MX - 40 : k === S ? W - MX + 40 : MX + k * SW;
+          links.push({ x, r0: b, r1: b + 1, y0: roadY(b, x), y1: roadY(b + 1, x), bend: wide && k > 0 && k < S ? (b % 2 ? 40 : -40) : 0 });
+        });
+      }
+      // 行きどまりの こみち（ひろい まちだけ）：あいて いる ますに、かざりの ある こみちを つくる
+      if (wide) {
+        let n = 0;
+        for (let r = 0; r < nR; r++) for (let c = 0; c < S; c++) {
+          if (cells.some(k => k.r === r && k.s === 'u' && k.c === c)) continue;
+          const x = slotX(c), yr = roadY(r, x);
+          links.push({ x, r0: null, r1: r, y0: yr - 200, y1: yr, bend: 0, dead: true, deco: DECO[(n++ + r) % DECO.length] });
+        }
+      }
+      const linkX = (L, y) => L.x + (L.bend ? L.bend * Math.sin(Math.PI * (y - L.y0) / (L.y1 - L.y0)) : 0);
+      return { W, H, TOP, nR, S, roadY, X0, X1, cells: placed, links, linkX };
+    }
+    function DecoArt({ id }) {
+      if (HAS_IMG.has('d_' + id + '.webp')) return <img src={IMG + 'd_' + id + '.webp'} alt="" draggable="false" className="w-full h-full" style={{ objectFit: 'contain', objectPosition: 'bottom', filter: 'drop-shadow(0 6px 4px #0004)' }} />;
+      return <div className="w-full h-full flex items-end justify-center" style={{ fontSize: 110, lineHeight: 1.1 }}>{DECO_E[id]}</div>;
+    }
+
+    // まちの 絵（ちずでも つかう）
+    function WorldLayer({ world, area, colored, stateOf, onHouse, shakeId, near, onInspect, isMap, children }) {
+      const { W, H, TOP, nR, roadY, X0, X1, cells, links, linkX } = world;
+      const bgImg = HAS_IMG.has('bg_' + area.id + '.webp');
+      const roadColor = (r) => colored ? D.ROADS[r].c : area.road;
+      const paths = useMemo(() => {
+        const road = (r) => { let d = ''; for (let x = X0; x <= X1; x += 40) d += (d ? ' L' : 'M') + x + ' ' + Math.round(roadY(r, x)); return d; };
+        const link = (L) => { let d = ''; for (let i = 0; i <= 12; i++) { const y = L.y0 + (L.y1 - L.y0) * i / 12; d += (d ? ' L' : 'M') + Math.round(linkX(L, y)) + ' ' + Math.round(y); } return d; };
+        return { roads: Array.from({ length: nR }, (_, r) => road(r)), links: links.map(link) };
+      }, [world]);
+      const op = bgImg && !colored ? .8 : .92, k = isMap ? 1.7 : 1;
+      return (
+        <div className="absolute left-0 top-0" style={{ width: W, height: H, background: `linear-gradient(${area.sky} 0, ${area.sky} ${TOP - 40}px, ${area.ground} ${TOP + 30}px)` }}>
+          {/* はいけい：じめんは、絵の 下の ぶぶんを かがみうつしに ならべる（広い まちでも もようが 大きく ならないように）。上には とおくの けしき */}
+          {bgImg && Array.from({ length: Math.ceil(H / (BG_TH - 2)) }, (_, j) => Array.from({ length: Math.ceil(W / (BG_TW - 2)) }, (_, i) => (
+            <div key={i + '-' + j} className="absolute" style={{ left: i * (BG_TW - 2), top: j * (BG_TH - 2), width: BG_TW, height: BG_TH, backgroundRepeat: 'no-repeat', transform: `scale(${i % 2 ? -1 : 1}, ${j % 2 ? -1 : 1})`, backgroundImage: `linear-gradient(#ffffff33,#ffffff33), url(${IMG}bg_${area.id}.webp)`, backgroundSize: `${BG_TW}px ${Math.round(BG_TW * 2 / 3)}px`, backgroundPosition: `0 ${-(Math.round(BG_TW * 2 / 3) - BG_TH)}px` }} />
+          )))}
+          {bgImg && <div className="absolute left-0 top-0" style={{ width: W, height: Math.round(W / 9) + 120, backgroundImage: `linear-gradient(#ffffff33,#ffffff33), url(${IMG}bg_${area.id}.webp)`, backgroundSize: `${W}px auto`, backgroundPosition: 'top', WebkitMaskImage: 'linear-gradient(#000 0, #000 55%, transparent 100%)', maskImage: 'linear-gradient(#000 0, #000 55%, transparent 100%)' }} />}
+          <svg width={W} height={H} className="absolute left-0 top-0 pointer-events-none" style={{ zIndex: 1 }} fill="none" strokeLinecap="round" strokeLinejoin="round">
+            {/* てまえがわの いえへ つづく こみち */}
+            {cells.filter(c => c.s === 'd').map((c, i) => <path key={'p' + i} d={`M${c.x} ${roadY(c.r, c.x)} V${c.by - 70}`} stroke={roadColor(c.r)} strokeWidth="60" opacity={op} />)}
+            {/* たての みち・行きどまりの こみち */}
+            {paths.links.map((d, i) => <path key={'l' + i} d={d} stroke={area.road} strokeWidth={links[i].dead ? 64 : 80} opacity={bgImg ? .72 : .92} />)}
+            {/* よこの みち */}
+            {paths.roads.map((d, r) => <g key={'r' + r}>
+              <path d={d} stroke="#00000030" strokeWidth="96" transform="translate(0,8)" />
+              <path d={d} stroke={roadColor(r)} strokeWidth="96" opacity={op} />
+              <path d={d} stroke="#ffffffcc" strokeWidth="5" strokeDasharray="26 24" strokeLinecap="butt" />
+            </g>)}
+          </svg>
+          {/* みちの なまえ */}
+          {colored && paths.roads.map((_, r) => [0.14, 0.5, 0.86].map(f => { const x = X0 + (X1 - X0) * f; return (
+            <div key={r + '-' + f} className="absolute bg-white rounded-full font-bold text-slate-800 border-4 flex items-center justify-center pointer-events-none" style={{ left: x - 120 * k, top: roadY(r, x) - 26 * k, width: 240 * k, height: 52 * k, fontSize: 30 * k, borderColor: D.ROADS[r].c, zIndex: 1 }}>{D.ROADS[r].n}</div>
+          ); }))}
+          {/* 行きどまりの かざり */}
+          {links.filter(L => L.dead).map((L, i) => <div key={'d' + i} className="absolute pointer-events-none" style={{ left: L.x - 100, top: L.y0 - 170, width: 200, height: 200, zIndex: 2 }}><DecoArt id={L.deco} /></div>)}
+          {/* いえ と めじるし */}
+          {cells.map((c, i) => {
+            if (c.mark) return (
+              <div key={'m' + i} className="absolute flex flex-col items-center justify-end pointer-events-none" style={{ left: c.x - 130, top: c.by - 230, width: 260, height: 230, zIndex: 2 }}>
+                <div style={{ width: 230, height: 190, fontSize: 64 }}><MarkArt m={c.mark} /></div>
+                <div className="font-bold bg-white rounded-xl px-4 border-2 border-slate-300 whitespace-nowrap" style={{ fontSize: 30 * (isMap ? 1.6 : 1) }}>{c.mark.n}</div>
+              </div>
+            );
+            const h = c.house, stt = stateOf(h), off = stt === 'wrong' || stt === 'out';
+            return (
+              <div key={h.id} className={`absolute ${shakeId === h.id ? 'shake' : ''}`} style={{ left: c.x - HW / 2, top: c.by - HH, width: HW, height: HH, zIndex: 2 }}>
+                <button disabled={off} onClick={(e) => { e.stopPropagation(); onHouse(h); }} aria-label="いえ" className={`w-full h-full block ${off ? 'opacity-30' : stt === 'answer' ? 'answer3d' : 'active:scale-95'}`} style={{ transition: 'transform .1s' }}>
+                  <HouseArt h={h} />
+                </button>
+                {stt === 'wrong' && <div className="absolute inset-0 flex items-center justify-center font-bold text-red-500 pointer-events-none" style={{ fontSize: 170, lineHeight: 1 }}>✕</div>}
+                {near && near.indexOf(h.id) >= 0 && !off && onInspect && <button onClick={(e) => { e.stopPropagation(); onInspect(h); }} className="bob absolute left-1/2 btn3d rounded-full bg-green-500 border-green-700 text-white font-bold whitespace-nowrap px-6 py-2" style={{ top: c.s === 'u' ? -60 : HH - 30, marginLeft: -120, width: 240, fontSize: 34, zIndex: 5 }}>🔍 しらべる</button>}
+              </div>
+            );
+          })}
+          {children}
+        </div>
+      );
+    }
+
+    function Town({ town, wide, area, colored, stateOf, onInspect, active, allowMap, mapSignal, shakeId }) {
+      const world = useMemo(() => makeWorld(town, wide), [town, wide]);
+      const vpRef = useRef(null), layerRef = useRef(null), meRef = useRef(null), heroRef = useRef(null);
+      // pos：いま いる ところ。loc は、よこの みち（road）か たての みち（link）か
+      const pos = useRef(null);
+      if (!pos.current) { const r = world.nR - 1, x = world.X0 + 130; pos.current = { x, y: world.roadY(r, x), loc: { t: 'road', r } }; }
+      const cam = useRef(null), path = useRef([]), goal = useRef(null), keys = useRef({}), nearRef = useRef('');
+      const [near, setNear] = useState([]);
+      const [map, setMap] = useState(false);
+      const [size, setSize] = useState({ w: 800, h: 560 });
+      const live = useRef({});
+      live.current = { active, map, size, onInspect, stateOf };
+
+      useEffect(() => {
+        const el = vpRef.current; if (!el) return;
+        const set = () => setSize({ w: el.clientWidth, h: el.clientHeight });
+        set();
+        const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(set) : null;
+        if (ro) ro.observe(el); else window.addEventListener('resize', set);
+        return () => { if (ro) ro.disconnect(); else window.removeEventListener('resize', set); };
+      }, []);
+      useEffect(() => { if (mapSignal) setMap(true); }, [mapSignal]);
+
+      const fit = Math.min(size.w / world.W, size.h / world.H);
+      const scale = Math.max(fit, size.h / 1000);
+      const scaleRef = useRef(scale); scaleRef.current = scale;
+      const XA = world.X0 + 50, XB = world.X1 - 50;
+
+      // みちじゅん：いまの ところから、みち tr の x=tx まで
+      const route = (tr, tx) => {
+        const P = pos.current, items = [];
+        let cr, cx;
+        if (P.loc.t === 'link') {
+          const L = world.links[P.loc.i], up = !L.dead && tr <= L.r0;
+          items.push({ t: 'link', i: P.loc.i, y: up ? L.y0 : L.y1 }); cr = up ? L.r0 : L.r1; cx = L.x;
+        } else { cr = P.loc.r; cx = P.x; }
+        while (cr !== tr) {
+          const dir = tr > cr ? 1 : -1, top = Math.min(cr, cr + dir);
+          let bi = -1, bd = Infinity;
+          world.links.forEach((L, i) => { if (L.dead || L.r0 !== top) return; const d = Math.abs(cx - L.x) + Math.abs(tx - L.x); if (d < bd) { bd = d; bi = i; } });
+          if (bi < 0) break;
+          const L = world.links[bi];
+          items.push({ t: 'road', r: cr, x: L.x }); items.push({ t: 'link', i: bi, y: dir > 0 ? L.y1 : L.y0 });
+          cr += dir; cx = L.x;
+        }
+        items.push({ t: 'road', r: tr, x: tx });
+        return items;
+      };
+      const cellOf = (h) => world.cells.find(c => c.house === h);
+      const walkToHouse = (h) => {
+        if (!live.current.active) return;
+        const at = cellOf(h); if (!at) return;
+        Sound.tap();
+        if (nearRef.current.split(',').indexOf(h.id) >= 0) { path.current = []; live.current.onInspect(h); return; }
+        goal.current = h; path.current = route(at.r, at.x);
+      };
+      const onGround = (e) => {
+        if (!live.current.active || live.current.map) return;
+        const rect = vpRef.current.getBoundingClientRect(), sc = scaleRef.current, c = cam.current || { x: 0, y: 0 };
+        const x = (e.clientX - rect.left) / sc + c.x, y = (e.clientY - rect.top) / sc + c.y;
+        goal.current = null;
+        // 行きどまりの こみち
+        const sp = world.links.findIndex(L => L.dead && Math.abs(x - L.x) < 110 && y > L.y0 - 180 && y < L.y1 - 60);
+        if (sp >= 0) { const L = world.links[sp]; path.current = route(L.r1, L.x).concat([{ t: 'link', i: sp, y: L.y0 }]); return; }
+        const tx = clamp(x, XA, XB);
+        let r = 0; for (let i = 1; i < world.nR; i++) if (Math.abs(y - world.roadY(i, tx)) < Math.abs(y - world.roadY(r, tx))) r = i;
+        path.current = route(r, tx);
+      };
+
+      // うごかす（1コマ ごと）
+      useEffect(() => {
+        let raf, last = performance.now();
+        const face = (d) => { if (d && meRef.current) meRef.current.dataset.face = d < 0 ? '-1' : '1'; };
+        const tick = (now) => {
+          const dt = Math.min(0.05, (now - last) / 1000); last = now;
+          const L0 = live.current, P = pos.current, k = keys.current, v = 470 * dt, sc = scaleRef.current;
+          const enterRoad = (r) => { P.loc = { t: 'road', r }; P.y = world.roadY(r, P.x); };
+          const settle = () => { if (P.loc.t !== 'link') return; const L = world.links[P.loc.i]; if (P.y >= L.y1 - 1) { P.x = L.x; enterRoad(L.r1); } else if (L.r0 !== null && P.y <= L.y0 + 1) { P.x = L.x; enterRoad(L.r0); } };
+          let moving = false;
+          if (L0.active && !L0.map) {
+            const dx = (k.right ? 1 : 0) - (k.left ? 1 : 0), dy = (k.down ? 1 : 0) - (k.up ? 1 : 0);
+            if (dx || dy) {
+              path.current = []; goal.current = null;
+              if (P.loc.t === 'road') {
+                const r = P.loc.r;
+                let mx = dx;
+                if (dy) {
+                  // ちかくの たての みちに 入る。とおい ときは、そこまで よこに あるく
+                  let bi = -1, bd = Infinity;
+                  world.links.forEach((L, i) => { if ((dy < 0 ? L.r1 : L.r0) !== r) return; const d = Math.abs(P.x - L.x); if (d < bd) { bd = d; bi = i; } });
+                  if (bi >= 0 && bd < Math.max(v, 6)) { const L = world.links[bi]; P.loc = { t: 'link', i: bi }; P.x = L.x; P.y = dy < 0 ? L.y1 : L.y0; mx = 0; moving = true; }
+                  else if (bi >= 0 && !dx) mx = world.links[bi].x > P.x ? 1 : -1;
+                  if (bi >= 0 && !dx && P.loc.t === 'road' && bd <= v) { P.x = world.links[bi].x; mx = 0; moving = true; }
+                }
+                if (mx && P.loc.t === 'road') { P.x = clamp(P.x + mx * v, XA, XB); P.y = world.roadY(r, P.x); face(mx); moving = true; }
+              } else {
+                const L = world.links[P.loc.i];
+                if (dy) { P.y = clamp(P.y + dy * v, L.y0, L.y1); P.x = world.linkX(L, P.y); moving = true; if ((dy > 0 && P.y >= L.y1) || (dy < 0 && P.y <= L.y0)) settle(); }
+                else if (dx) { if (L.y1 - P.y < 110) { P.x = L.x; enterRoad(L.r1); } else if (L.r0 !== null && P.y - L.y0 < 110) { P.x = L.x; enterRoad(L.r0); } }
+              }
+            } else if (path.current.length) {
+              moving = true;
+              const t = path.current[0];
+              if (t.t === 'road') {
+                if (P.loc.t !== 'road' || P.loc.r !== t.r) P.loc = { t: 'road', r: t.r };
+                const d = t.x - P.x; face(d);
+                if (Math.abs(d) <= v) { P.x = t.x; path.current.shift(); } else P.x += Math.sign(d) * v;
+                P.y = world.roadY(t.r, P.x);
+              } else {
+                const L = world.links[t.i]; P.loc = { t: 'link', i: t.i };
+                const d = t.y - P.y;
+                if (Math.abs(d) <= v) { P.y = t.y; path.current.shift(); } else P.y += Math.sign(d) * v;
+                P.x = world.linkX(L, P.y);
+              }
+              if (!path.current.length) { settle(); if (goal.current) { const h = goal.current; goal.current = null; L0.onInspect(h); } }
+            } else settle();
+          }
+          // ちかくの いえ（みちの 両がわ）
+          const ids = P.loc.t === 'road' ? world.cells.filter(c => c.house && c.r === P.loc.r && Math.abs(P.x - c.x) < 200).map(c => c.house.id) : [];
+          const key = ids.join(',');
+          if (key !== nearRef.current) { nearRef.current = key; setNear(ids); }
+          // カメラ
+          const vw = L0.size.w / sc, vh = L0.size.h / sc;
+          const tx = world.W <= vw ? -(vw - world.W) / 2 : clamp(P.x - vw / 2, 0, world.W - vw);
+          const ty = world.H <= vh ? -(vh - world.H) / 2 : clamp(P.y - vh * 0.58, 0, world.H - vh);
+          if (!cam.current) cam.current = { x: tx, y: ty };
+          cam.current.x += (tx - cam.current.x) * Math.min(1, dt * 7); cam.current.y += (ty - cam.current.y) * Math.min(1, dt * 7);
+          if (layerRef.current) layerRef.current.style.transform = `translate(${-cam.current.x * sc}px, ${-cam.current.y * sc}px) scale(${sc})`;
+          if (meRef.current) { meRef.current.style.transform = `translate(${P.x - 65}px, ${P.y - 180}px)`; meRef.current.style.zIndex = 3; }
+          if (heroRef.current) { heroRef.current.className = moving ? 'walk' : ''; heroRef.current.style.transform = `scaleX(${meRef.current && meRef.current.dataset.face === '-1' ? -1 : 1})`; }
+          raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
+      }, [world]);
+
+      // キーボードの やじるし
+      useEffect(() => {
+        const M = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down' };
+        const dn = (e) => { if (M[e.key]) { keys.current[M[e.key]] = true; e.preventDefault(); } };
+        const up = (e) => { if (M[e.key]) keys.current[M[e.key]] = false; };
+        window.addEventListener('keydown', dn); window.addEventListener('keyup', up);
+        return () => { window.removeEventListener('keydown', dn); window.removeEventListener('keyup', up); };
+      }, []);
+      const hold = (dir) => ({
+        onPointerDown: (e) => { e.preventDefault(); e.stopPropagation(); Sound.get(); keys.current[dir] = true; },
+        onPointerUp: () => { keys.current[dir] = false; }, onPointerLeave: () => { keys.current[dir] = false; }, onPointerCancel: () => { keys.current[dir] = false; },
+        onContextMenu: (e) => e.preventDefault(),
+      });
+      const arrow = 'btn3d rounded-2xl bg-white/95 border-slate-400 text-slate-700 font-bold flex items-center justify-center select-none touch-none';
+      const p = pos.current;
+
+      return (
+        <div ref={vpRef} className="absolute inset-0 touch-none" onPointerDown={onGround} onScroll={(e) => { e.currentTarget.scrollLeft = 0; e.currentTarget.scrollTop = 0; }} style={{ background: HAS_IMG.has('bg_' + area.id + '.webp') ? '#efe7d6' : area.ground, overflow: 'clip' }}>
+          <div ref={layerRef} className="absolute left-0 top-0" style={{ transformOrigin: '0 0', willChange: 'transform' }}>
+            <WorldLayer world={world} area={area} colored={colored} stateOf={stateOf} onHouse={walkToHouse} shakeId={shakeId} near={active ? near : null} onInspect={(h) => { path.current = []; onInspect(h); }}>
+              <div ref={meRef} className="absolute left-0 top-0 pointer-events-none" style={{ width: 130, height: 188 }}><div ref={heroRef}><Hero /></div></div>
+            </WorldLayer>
+          </div>
+          {/* やじるしの ボタン */}
+          {active && !map && <div className="absolute left-3 bottom-3 grid grid-cols-3 gap-1 z-10" style={{ width: 186 }} onPointerDown={e => e.stopPropagation()}>
+            <div /><button className={arrow} style={{ height: 58, fontSize: 28 }} {...hold('up')} aria-label="うえ">▲</button><div />
+            <button className={arrow} style={{ height: 58, fontSize: 28 }} {...hold('left')} aria-label="ひだり">◀</button>
+            <button className={arrow} style={{ height: 58, fontSize: 28 }} {...hold('down')} aria-label="した">▼</button>
+            <button className={arrow} style={{ height: 58, fontSize: 28 }} {...hold('right')} aria-label="みぎ">▶</button>
+          </div>}
+          {active && !map && allowMap && fit < scale * 0.98 && <button onPointerDown={e => e.stopPropagation()} onClick={() => { Sound.tap(); setMap(true); }} className="absolute right-3 top-3 z-10 btn3d rounded-2xl bg-white border-slate-400 font-bold px-4 py-2 text-xl">🗺️ ちず</button>}
+          {/* ちず（まち ぜんたい） */}
+          {map && (
+            <div className="absolute inset-0 z-10 bg-white" onPointerDown={e => e.stopPropagation()}>
+              <div className="absolute" style={{ left: (size.w - world.W * fit) / 2, top: (size.h - world.H * fit) / 2, width: world.W * fit, height: world.H * fit }}>
+                <div className="absolute left-0 top-0" style={{ transformOrigin: '0 0', transform: `scale(${fit})` }}>
+                  <WorldLayer world={world} area={area} colored={colored} stateOf={stateOf} shakeId={null} near={null} isMap onHouse={(h) => { if (!active) return; setMap(false); walkToHouse(h); }}>
+                    <div className="absolute bob pointer-events-none" style={{ left: p.x - 100, top: p.y - 250, fontSize: 190, lineHeight: 1, zIndex: 4 }}>📍</div>
+                  </WorldLayer>
+                </div>
+              </div>
+              <div className="absolute left-3 top-3 bg-white/95 rounded-xl px-3 py-1 font-bold border-2 border-slate-300">🗺️ ちず　<span className="font-normal">いえを タッチすると、そこまで あるくよ</span></div>
+              {active && <button onClick={() => { Sound.tap(); setMap(false); }} className="absolute right-3 top-3 btn3d rounded-2xl bg-sky-500 border-sky-700 text-white font-bold px-4 py-2 text-xl">✕ とじる</button>}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // =====================================================================
+    //  8. もんだいの がめん
+    // =====================================================================
+    // まちがえた いえに あわせた こえかけ
+    function wrongMessage(areaId, h, clues) {
+      const real = clues.filter(c => c.t !== 'extra'), fails = real.filter(c => !D.match(h, c));
+      const c = fails[0]; if (!c) return 'もういちど よんで みよう。';
+      const head = real.length > 1 && fails.length === 1 ? 'おしい！ ' : '';
+      const ref = (r) => D.refText(areaId, r);
+      let m = '';
+      const shape = (c.t === 'neg' || c.t === 'neg2') && c.a === 'window';
+      if (c.t === 'roof') m = h.wall === c.v ? 'それは かべの いろだよ。やねの いろを みて みよう。' : h.door === c.v ? 'それは ドアの いろだよ。やねの いろを みて みよう。' : D.VEHICLE[h.vehicle].c === c.v ? 'それは くるまの いろだよ。やねの いろを みて みよう。' : 'やねの いろが ちがうよ。やねを よく みて みよう。';
+      else if (c.t === 'door') m = h.roof === c.v ? 'それは やねの いろだよ。ドアの いろを みて みよう。' : h.wall === c.v ? 'それは かべの いろだよ。ドアの いろを みて みよう。' : D.VEHICLE[h.vehicle].c === c.v ? 'それは くるまの いろだよ。ドアの いろを みて みよう。' : 'ドアの いろが ちがうよ。ドアを よく みて みよう。';
+      else if (c.t === 'window') m = 'まどの かたちが ちがうよ。まどを よく みて みよう。';
+      else if (c.t === 'wall') m = h.roof === c.v ? 'それは やねの いろだよ。かべの いろを みて みよう。' : h.door === c.v ? 'それは ドアの いろだよ。かべの いろを みて みよう。' : 'かべの いろが ちがうよ。かべを よく みて みよう。';
+      else if (c.t === 'garden') m = `にわを みて みよう。${D.GARDEN[c.v].n}は あるかな。`;
+      else if (c.t === 'vehicle') m = `いえの まえを みて みよう。${D.VEHICLE[c.v].n}は あるかな。`;
+      else if (c.t === 'neg2') m = `「でも ありません」に きを つけよう。${c.vs[0]}でも ${c.vs[1]}でも ない いえだよ。`;
+      else if (c.t === 'neg') m = c.a !== 'garden' && c.a !== 'vehicle' ? `「では ありません」に きを つけよう。${c.v}では ない いえだよ。` : `「${(c.a === 'garden' ? D.GARDEN[c.v] : D.VEHICLE[c.v]).nv}」に きを つけよう。${(c.a === 'garden' ? D.GARDEN[c.v] : D.VEHICLE[c.v]).n}が ない いえだよ。`;
+      else if (c.t === 'row') m = `みちが ちがうよ。${D.ROADS[c.v].n}を さがして みよう。`;
+      else if (c.t === 'near') m = `ばしょが ちがうよ。${ref(c.ref)}の となりを みて みよう。`;
+      else if (c.t === 'side') m = `ばしょが ちがうよ。${ref(c.ref)}の ${c.dir === 'R' ? 'みぎ' : 'ひだり'}を みて みよう。`;
+      else if (c.t === 'opp') m = `ばしょが ちがうよ。みちを はさんで、${ref(c.ref)}の むかいを みて みよう。`;
+      else if (c.t === 'ord') m = `ばしょが ちがうよ。ならんで いる いえを、${c.dir === 'R' ? 'みぎ' : 'ひだり'}の はしから じゅんに かぞえて みよう。`;
+      else if (c.t === 'between') m = `ばしょが ちがうよ。${ref(c.refs[0])}と ${ref(c.refs[1])}の あいだを みて みよう。`;
+      return head + m;
+    }
+
+    function HouseButton({ h, state, onTap, big }) {
+      // state: '' | 'wrong' | 'out' | 'answer' | 'sel'
+      const off = state === 'wrong' || state === 'out';
+      return (
+        <button disabled={off} onClick={() => onTap(h)}
+          className={`relative w-full rounded-xl bg-white/90 border-2 transition-all ${off ? 'opacity-25 border-slate-200' : state === 'answer' ? 'answer border-yellow-400' : state === 'sel' ? 'border-sky-500 ring-4 ring-sky-300' : 'border-white shadow active:scale-95'}`}
+          style={{ aspectRatio: '5 / 3' }} aria-label="いえ">
+          <HouseArt h={h} />
+          {state === 'wrong' && <div className="absolute inset-0 flex items-center justify-center text-slate-500 font-bold" style={{ fontSize: big ? '4rem' : '2.2rem' }}>✕</div>}
+        </button>
+      );
+    }
+
+    function Play({ st, targets, startQi, settings, got, onSolved, onFinish, onQuit }) {
+      const [qi, setQi] = useState(startQi || 0);
+      const [q, setQ] = useState(null);
+      const [wrong, setWrong] = useState([]);      // まちがえた いえ
+      const [out, setOut] = useState([]);          // ヒント3で けした いえ
+      const [sel, setSel] = useState(null);
+      const [hintLv, setHintLv] = useState(0);
+      const [focus, setFocus] = useState(-1);      // ヒント3で いま よんで いる 文
+      const [showAnswer, setShowAnswer] = useState(false);
+      const [phase, setPhase] = useState('ask');   // ask / walk / correct
+      const [ho, setHo] = useState({ text: '', mood: 'normal' });
+      const [resTalk, setResTalk] = useState(false);
+      const [shakeId, setShakeId] = useState(null);
+      const [mapSignal, setMapSignal] = useState(0);
+      const run = useRef(0), t0 = useRef(Date.now()), log = useRef({ wrongs: [], wkinds: [] }), results = useRef([]);
+      const alive = useRef(true);
+      useEffect(() => () => { alive.current = false; run.current++; Speech.stop(); }, []);
+
+      const target = q && q.target, areaId = q && target.area, area = q && D.area(areaId);
+      const me = (h) => h.i % 2 ? 'ぼく' : 'わたし';
+      const introText = (h) => `こんにちは。${h.who}です。${me(h)}の いえを さがして ください。`;
+
+      const hoSay = async (text, mood = 'normal') => { const id = ++run.current; setResTalk(false); setHo({ text, mood }); await sayP(text, PITCH_HO); return alive.current && run.current === id; };
+      const readClues = async (qq) => {
+        if (!settings.read) return;
+        const id = ++run.current; setResTalk(true);
+        await sayP(introText(qq.target) + ' ' + qq.clues.map(c => plain(D.text(qq.target.area, c))).join(' '), PITCH_RES);
+        if (alive.current && run.current === id) setResTalk(false);
+      };
+
+      // もんだいを つくる
+      useEffect(() => {
+        const t = D.house(targets[qi]);
+        const qq = D.makeQuestion(st, t, qi);
+        setQ(qq); setWrong([]); setOut([]); setSel(null); setHintLv(0); setFocus(-1); setShowAnswer(false); setPhase('ask'); setMapSignal(0);
+        setHo({ text: settings.read ? 'はなしを よく きいて、まちを あるいて いえを さがそう。' : 'ぶんを よんで、まちを あるいて いえを さがそう。', mood: 'normal' });
+        t0.current = Date.now(); log.current = { wrongs: [], wkinds: [] };
+        readClues(qq);
+      }, [qi]);
+
+      // まちの かたち：10けんは 3ぼんの みち（ばしょごとに きまった ならび）、6けん・8けんは 2ほんの みち
+      const town = useMemo(() => {
+        if (!q) return null;
+        if (q.shown.length >= 10) return { cells: D.cells(q.target.area), roads: 3, slots: D.SLOTS };
+        const per = Math.ceil(q.shown.length / 2);
+        return { cells: q.shown.map((h, i) => ({ house: h, r: i < per ? 0 : 1, s: 'u', c: i < per ? i : i - per + 1 })), roads: 2, slots: per + 1 };
+      }, [q]);
+      if (!q) return null;
+      const real = q.clues.filter(c => c.t !== 'extra');
+      const miss = wrong.length;
+
+      // ヒント
+      const doHint = async (lv, wrongNow) => {
+        if (phase !== 'ask') return;
+        Sound.hint(); setHintLv(l => Math.max(l, lv)); setSel(null);
+        if (lv === 1) {
+          const t = real.length === 1 ? 'ぶんを よく よんで、おなじ ところが ある いえを さがそう。' : 'ぶんを 1つずつ よんで、いえを たしかめよう。ぜんぶ あう いえは、1けん だけだよ。';
+          hoSay(t + (q.clues.length > real.length ? ' いえに かんけいの ない ぶんも あるよ。' : ''), 'think');
+        } else if (lv === 2) {
+          hoSay('だいじな ことばに、いろを つけたよ。その ことばを みながら、いえを しらべよう。', 'think');
+        } else {
+          setPhase('walk'); setMapSignal(n => n + 1);
+          let live = q.shown.filter(h => !(wrongNow || wrong).includes(h.id));
+          let okk = await hoSay('いっしょに、1つずつ たしかめよう。', 'think');
+          for (let i = 0; okk && i < q.clues.length; i++) {
+            const c = q.clues[i];
+            setFocus(i);
+            if (c.t === 'extra') { okk = await hoSay(`「${plain(c.s)}」 この ぶんは、いえの ばしょとは かんけいが ないね。`, 'think'); continue; }
+            okk = await hoSay(`「${plain(D.text(areaId, c))}」 あわない いえを けすよ。`, 'think');
+            if (!okk) break;
+            const gone = live.filter(h => !D.match(h, c));
+            live = live.filter(h => D.match(h, c));
+            if (gone.length) { Sound.erase(); setOut(o => o.concat(gone.map(h => h.id))); await sleep(900); }
+          }
+          if (!alive.current) return;
+          setFocus(-1); setShowAnswer(true); setPhase('ask');
+          hoSay('のこった いえが こたえだよ。ちずの いえを タッチして、そこまで あるこう。', 'happy');
+        }
+      };
+
+      const tap = (h) => { if (phase !== 'ask') return; Sound.tap(); setSel(h); };
+      const decide = async () => {
+        const h = sel; if (!h || phase !== 'ask') return;
+        setSel(null);
+        if (h === target) {
+          setPhase('correct'); setShowAnswer(true); Sound.found();
+          const isNew = !got.includes(target.id);
+          const rec = { stage: st.id, q: qi + 1, area: area.n, who: target.who, kinds: q.clues.map(D.kind).join('・'), result: miss ? '△' : '○', miss, hint: hintLv,
+            wrongs: log.current.wrongs.join('・'), wkinds: [...new Set(log.current.wkinds)].join('・'), read: settings.read ? 'あり' : 'なし', secs: Math.round((Date.now() - t0.current) / 100) / 10 };
+          results.current.push({ id: target.id, isNew, miss });
+          onSolved(rec, target, qi + 1 < targets.length ? qi + 1 : null);
+          const id = ++run.current; setResTalk(true); setHo({ text: 'みごとな すいりだ！', mood: 'happy' });
+          await sayP(`せいかい！ ここが ${me(target)}の いえです。ありがとう！ おれいに シールを どうぞ。`, PITCH_RES);
+          if (alive.current && run.current === id) setResTalk(false);
+        } else {
+          Sound.retry(); setShakeId(h.id); setTimeout(() => setShakeId(null), 900);
+          const fails = real.filter(c => !D.match(h, c));
+          // いらない 文に つられた とき（「すきな いろは あか」で あかい やねを えらんだ など）
+          const trap = q.clues.find(c => c.t === 'extra' && c.trap && h[c.trap.a] === c.trap.v);
+          log.current.wrongs.push(h.who);
+          if (trap) log.current.wkinds.push('いらない ぶん'); else if (fails[0]) log.current.wkinds.push(D.kind(fails[0]));
+          const nw = wrong.concat([h.id]); setWrong(nw);
+          const ok2 = await hoSay(trap ? `「${trap.s}」は、いえの ことでは ないよ。いえの ことを かいた ぶんを さがそう。` : wrongMessage(areaId, h, q.clues), 'think');
+          if (ok2 && nw.length >= 3 && hintLv < 3) doHint(3, nw);
+        }
+      };
+      const next = () => { Speech.stop(); if (qi + 1 < targets.length) setQi(qi + 1); else onFinish(results.current); };
+
+      const stateOf = (h) => wrong.includes(h.id) ? 'wrong' : out.includes(h.id) ? 'out' : showAnswer && h === target ? 'answer' : sel === h ? 'sel' : '';
+      const hintGlow = phase === 'ask' && miss >= 2 && hintLv < 3;
+      return (
+        <div className="flex-1 flex flex-col p-3 gap-2" style={{ minHeight: 'calc(100vh - 56px)' }}>
+          <div className="flex items-center gap-3">
+            <div className="text-lg font-bold text-amber-900">{st.no}　{area.e} {area.n}</div>
+            <div className="flex gap-1">{targets.map((_, i) => <div key={i} className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-sm font-bold ${i < qi || (i === qi && phase === 'correct') ? 'bg-amber-400 border-amber-600' : i === qi ? 'bg-white border-sky-500' : 'bg-white border-slate-300 text-slate-400'}`}>{i + 1}</div>)}</div>
+            <div className="flex-1" />
+            <Btn color="white" className="px-4 py-1 text-base" onClick={() => onQuit()}>✋ やめる</Btn>
+          </div>
+
+          <div className="flex-1 grid gap-3" style={{ gridTemplateColumns: 'minmax(300px, 36%) 1fr' }}>
+            {/* ひだり：じゅうにんの はなし と ホーせんぱい */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-3">
+                <button onClick={() => settings.read && readClues(q)} className={resTalk ? 'floaty' : ''} aria-label="じゅうにん"><Face h={target} size={84} /></button>
+                <div className="text-2xl font-bold">{target.who}さん</div>
+                {settings.read && <Btn color="sky" className="ml-auto px-4 py-2 text-lg" onClick={() => readClues(q)}>🔊 もういちど</Btn>}
+              </div>
+              <div className="bubble bg-white rounded-2xl border-2 border-amber-300 p-3 shadow">
+                <div className="text-base text-slate-600 mb-1">{introText(target)}</div>
+                <div className="flex flex-col gap-2">
+                  {q.clues.map((c, i) => (
+                    <div key={i} className={`flex gap-2 text-2xl leading-relaxed font-bold rounded-xl px-2 py-1 ${focus === i ? 'bg-yellow-100 ring-2 ring-yellow-400' : ''}`}>
+                      {q.clues.length > 1 && <span className="shrink-0 w-8 h-8 mt-1 rounded-full bg-amber-200 text-amber-900 text-lg flex items-center justify-center">{i + 1}</span>}
+                      <Marked text={D.text(areaId, c)} on={hintLv >= 2} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-auto flex flex-col gap-2">
+                <HoTalk text={ho.text} mood={ho.mood} size={84} onRepeat={() => ho.text && sayP(ho.text, PITCH_HO)} />
+                {phase !== 'correct' && <Btn color="amber" disabled={phase !== 'ask' || hintLv >= 3} className={`px-4 py-2 text-xl ${hintGlow ? 'glow' : ''}`} onClick={() => doHint(Math.min(3, hintLv + 1))}>💡 ヒント{hintLv > 0 && hintLv < 3 ? `（${hintLv + 1}つめ）` : ''}</Btn>}
+              </div>
+            </div>
+
+            {/* みぎ：まち */}
+            <div className="relative rounded-2xl border-4 border-white shadow overflow-hidden" style={{ minHeight: 420 }}>
+              <Town key={qi} town={town} wide={settings.wide !== false} area={area} colored={q.shown.length >= 10} stateOf={stateOf} onInspect={tap} active={phase === 'ask' && !sel} allowMap={settings.map !== false} mapSignal={mapSignal} shakeId={shakeId} />
+
+              {/* えらんだ いえを 大きく みる */}
+              {sel && phase === 'ask' && (
+                <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-20" onClick={() => setSel(null)}>
+                  <div className="pop bg-white rounded-3xl p-4 flex flex-col items-center gap-3 w-full" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
+                    <div className="text-xl font-bold text-slate-600">🔍 この いえかな？</div>
+                    <div className="w-full rounded-2xl bg-sky-50 border-2 border-sky-200" style={{ aspectRatio: '3 / 2' }}><HouseArt h={sel} /></div>
+                    <div className="flex gap-3 w-full">
+                      <Btn color="gray" className="flex-1 py-3 text-xl" onClick={() => setSel(null)}>ほかの いえを みる</Btn>
+                      <Btn color="green" className="flex-1 py-3 text-2xl" onClick={decide}>この いえ です！</Btn>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {/* せいかい */}
+              {phase === 'correct' && (
+                <div className="absolute inset-0 bg-amber-50/85 flex items-center justify-center p-4 z-20">
+                  <div className="pop bg-white rounded-3xl p-4 flex flex-col items-center gap-2 border-4 border-amber-300 w-full" style={{ maxWidth: 520 }}>
+                    <div className="text-3xl font-bold text-red-500">⭕ せいかい！</div>
+                    <div className="w-2/3 rounded-2xl bg-sky-50" style={{ aspectRatio: '3 / 2' }}><HouseArt h={target} /></div>
+                    <div className="flex items-center gap-3">
+                      <div className="sticker"><Face h={target} size={88} /></div>
+                      <div className="text-xl font-bold">{target.who}さんの<br />おれいの シール{results.current.length && results.current[results.current.length - 1].isNew ? <span className="ml-2 bg-red-500 text-white rounded-full px-2 text-base">あたらしい！</span> : null}</div>
+                    </div>
+                    <Btn color="green" className="px-10 py-3 text-2xl glow" onClick={next}>{qi + 1 < targets.length ? 'つぎへ ▶' : 'けっかを みる ▶'}</Btn>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function ResultScreen({ st, results, progress, stageClear, onAgain, onHome, onNext, say }) {
+      const perfect = results.filter(r => !r.miss).length, news = results.filter(r => r.isNew).length;
+      const msg = stageClear ? 'じけん かいけつ！ つぎの じけんに すすめるよ。' : perfect === results.length ? 'ぜんぶ 1かいで みつけたね。すばらしい すいりだ！' : 'みんなの おうちが みつかったよ。よく がんばったね。';
+      useEffect(() => { Sound.big(); say(msg); }, []);
+      return (
+        <div className="flex-1 p-5 flex flex-col items-center gap-4" style={{ background: 'linear-gradient(#fde68a,#fef9ec)' }}>
+          <div className="text-4xl font-bold text-amber-900 pop">🎉 じけん かいけつ！</div>
+          <div className="w-full max-w-3xl"><HoTalk text={msg} mood="happy" size={110} onRepeat={() => say(msg)} /></div>
+          <div className="flex gap-4 flex-wrap justify-center">
+            {results.map((r, i) => { const h = D.house(r.id); return <div key={i} className="sticker bg-white rounded-2xl border-2 border-amber-300 p-2 flex flex-col items-center relative" style={{ animationDelay: i * 0.18 + 's', width: 120 }}>
+              <Face h={h} size={76} /><div className={`font-bold text-center leading-tight mt-1 whitespace-nowrap ${h.who.length > 5 ? 'text-xs' : ''}`}>{h.who}さん</div>
+              {r.isNew && <div className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full px-2 text-sm font-bold">NEW</div>}</div>; })}
+          </div>
+          <div className="text-xl bg-white rounded-2xl px-6 py-2 border-2 border-amber-200">1かいで みつけた：<b>{perfect}</b> / {results.length}　　あたらしい シール：<b>{news}</b>まい　　🔎 {D.titleOf(progress.stickers.length)}</div>
+          <div className="flex gap-4">
+            {onNext && <Btn color="green" className="px-8 py-4 text-2xl glow" onClick={onNext}>つぎの じけんへ ▶</Btn>}
+            <Btn color="sky" className="px-8 py-4 text-2xl" onClick={onAgain}>🔁 もういちど</Btn>
+            <Btn color="white" className="px-8 py-4 text-2xl" onClick={onHome}>🏠 ホーム</Btn>
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    //  9. 先生用画面
+    // =====================================================================
+    function PinPad({ onSubmit, onClose, error }) {
+      const [v, setV] = useState('');
+      useEffect(() => { setV(''); }, [error]);
+      const push = (d) => { const n = (v + d).slice(0, 4); setV(n); if (n.length === 4) onSubmit(n); };
+      return (
+        <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center z-50">
+          <div className="bg-white rounded-3xl p-6 w-80 text-center">
+            <div className="text-xl font-bold mb-2">🔒 せんせい用（暗証番号）</div>
+            <div className="text-3xl tracking-[0.5em] h-10 mb-1">{'●'.repeat(v.length)}</div>
+            <div className="h-6 text-red-600 text-sm">{error ? '番号が ちがいます' : ''}</div>
+            <div className="grid grid-cols-3 gap-2">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(d => <Btn key={d} color="white" className="py-3 text-2xl" onClick={() => push(d)}>{d}</Btn>)}
+              <Btn color="gray" className="py-3 text-base" onClick={onClose}>とじる</Btn>
+              <Btn color="white" className="py-3 text-2xl" onClick={() => push(0)}>0</Btn>
+              <Btn color="gray" className="py-3 text-base" onClick={() => setV(v.slice(0, -1))}>けす</Btn>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    const kindKeys = (m) => KIND_ORDER.filter(k => m[k]).concat(Object.keys(m).filter(k => !KIND_ORDER.includes(k)));
+    function KindTable({ kinds }) {
+      const ks = kindKeys(kinds || {});
+      if (!ks.length) return <div className="text-slate-500">まだ きろくが ありません。</div>;
+      return <table className="text-sm border-collapse"><thead><tr className="bg-slate-100">{['文の しゅるい', '出た かず', 'つまずいた かず', 'つまずいた わりあい'].map(h => <th key={h} className="border px-2 py-1">{h}</th>)}</tr></thead>
+        <tbody>{ks.map(k => { const [n, w] = kinds[k]; return <tr key={k}><td className="border px-2 py-1 font-bold">{k}</td><td className="border px-2 py-1 text-right">{n}</td><td className="border px-2 py-1 text-right">{w}</td>
+          <td className={`border px-2 py-1 text-right ${n && w / n >= 0.4 ? 'bg-red-200' : n && w / n >= 0.2 ? 'bg-yellow-200' : ''}`}>{pct(w, n)}</td></tr>; })}</tbody></table>;
+    }
+    const worstKind = (kinds) => { const ks = Object.keys(kinds || {}).filter(k => kinds[k][0] >= 2 && kinds[k][1] > 0); ks.sort((a, b) => kinds[b][1] / kinds[b][0] - kinds[a][1] / kinds[a][0]); return ks[0] ? `${ks[0]}（${kinds[ks[0]][1]}/${kinds[ks[0]][0]}）` : '－'; };
+
+    function TeacherView({ data, pin, onClose, onChanged, onSettings }) {
+      const [tab, setTab] = useState('class');
+      const [who, setWho] = useState(data.students[0] ? data.students[0].name : '');
+      const [s, setS] = useState({ ...data.settings });
+      const [newPin, setNewPin] = useState('');
+      const [msg, setMsg] = useState('');
+      const [busy, setBusy] = useState(false);
+      const fileRef = useRef(null);
+      const act = async (fn, done) => { setBusy(true); setMsg(''); try { const r = await fn(); if (r && r.ok === false) setMsg('できませんでした。'); else { setMsg(done || 'できました。'); await onChanged(); } } catch (e) { setMsg('できませんでした：' + (e && e.message || e)); } setBusy(false); };
+      const stu = data.students.find(x => x.name === who);
+      const sp = stu ? parseProgress(stu.progress) : newProgress();
+      const tabs = [['class', 'クラス全体'], ['child', '子どもごと'], ['set', 'せってい'], ['data', 'データ']];
+      const th = 'border px-2 py-1 bg-slate-100', td = 'border px-2 py-1';
+      return (
+        <div className="fixed inset-0 bg-white z-40 overflow-auto" style={{ fontSize: 16 }}>
+          <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white sticky top-0 z-10">
+            <div className="font-bold text-lg">🔒 先生用画面{data.demo ? '（おためしモード）' : ''}</div>
+            {tabs.map(([k, n]) => <button key={k} onClick={() => { setTab(k); setMsg(''); }} className={`px-3 py-1 rounded-lg font-bold ${tab === k ? 'bg-white text-slate-800' : 'bg-slate-600'}`}>{n}</button>)}
+            <div className="flex-1" /><span className="text-xs opacity-70">版 {APP_VERSION}</span>
+            <button onClick={onClose} className="px-3 py-1 rounded-lg bg-red-500 font-bold">とじる</button>
+          </div>
+          <div className="p-4">
+            {data.isDefaultPin && <div className="bg-yellow-100 border border-yellow-300 rounded-lg px-3 py-2 mb-3">暗証番号が はじめの 1234 のままです。「せってい」で変えてください。</div>}
+            {msg && <div className="bg-sky-100 border border-sky-300 rounded-lg px-3 py-2 mb-3">{msg}</div>}
+
+            {tab === 'class' && <div>
+              <table className="text-sm border-collapse mb-5"><thead><tr>{['なまえ', 'クリアした ステージ', 'シール', 'といた かず', '1回で みつけた わりあい', 'まちがえた かず', 'ヒントを つかった かず', 'つまずきやすい 文', 'さいごの 日'].map(h => <th key={h} className={th}>{h}</th>)}</tr></thead>
+                <tbody>{data.students.map(x => { const p = parseProgress(x.progress); return <tr key={x.name}>
+                  <td className={td + ' font-bold'}><button className="underline text-sky-700" onClick={() => { setWho(x.name); setTab('child'); }}>{x.name}</button></td>
+                  <td className={td + ' text-right'}>{mainStages().filter(st => isCleared(p, st)).length} / {mainStages().length}</td>
+                  <td className={td + ' text-right'}>{p.stickers.length} / 60</td><td className={td + ' text-right'}>{x.count}</td>
+                  <td className={`${td} text-right ${rateColor(x.ok, x.count)}`}>{pct(x.ok, x.count)}</td><td className={td + ' text-right'}>{x.miss}</td><td className={td + ' text-right'}>{x.hint}</td>
+                  <td className={td}>{worstKind(x.kinds)}</td><td className={td}>{x.last || '－'}</td></tr>; })}</tbody></table>
+              <div className="font-bold mb-1">クラス全体：どの しゅるいの 文で つまずいているか</div>
+              <KindTable kinds={data.classKinds} />
+              <div className="text-xs text-slate-500 mt-2">「つまずいた かず」は、その しゅるいの 文に 合わない いえを えらんだ もんだいの 数です。赤：40%以上　黄：20%以上。</div>
+            </div>}
+
+            {tab === 'child' && <div>
+              <div className="flex gap-2 flex-wrap mb-3">{data.students.map(x => <button key={x.name} onClick={() => setWho(x.name)} className={`px-3 py-1 rounded-lg font-bold border ${who === x.name ? 'bg-sky-500 text-white border-sky-600' : 'bg-white border-slate-300'}`}>{x.name}</button>)}</div>
+              {stu && <div className="flex flex-col gap-4">
+                <div>といた かず <b>{stu.count}</b>　1回で みつけた <b>{pct(stu.ok, stu.count)}</b>　まちがえた かず <b>{stu.miss}</b>　ヒント <b>{stu.hint}</b>回　シール <b>{sp.stickers.length}</b>まい（{D.titleOf(sp.stickers.length)}）</div>
+                <div><div className="font-bold mb-1">文の しゅるい ごと（どこで つまずいているか）</div><KindTable kinds={stu.kinds} /></div>
+                <div><div className="font-bold mb-1">文の かず ごと</div>
+                  <table className="text-sm border-collapse"><thead><tr>{['文の かず', 'といた かず', '1回で みつけた わりあい'].map(h => <th key={h} className={th}>{h}</th>)}</tr></thead>
+                    <tbody>{Object.keys(stu.lens).sort().map(k => <tr key={k}><td className={td}>{k}つの 文</td><td className={td + ' text-right'}>{stu.lens[k][0]}</td><td className={`${td} text-right ${rateColor(stu.lens[k][1], stu.lens[k][0])}`}>{pct(stu.lens[k][1], stu.lens[k][0])}</td></tr>)}</tbody></table></div>
+                <div><div className="font-bold mb-1">ステージ ごと</div>
+                  <table className="text-sm border-collapse"><thead><tr>{['ステージ', 'ないよう', 'クリア', 'といた かず', '1回で みつけた わりあい', 'まちがえた かず'].map(h => <th key={h} className={th}>{h}</th>)}</tr></thead>
+                    <tbody>{D.STAGES.filter(st => stu.stages[st.id] || isCleared(sp, st)).map(st => { const g = stu.stages[st.id] || [0, 0, 0]; return <tr key={st.id}><td className={td}>{st.no}（{st.id}）</td><td className={td}>{areaName(st)}：{st.t}</td><td className={td + ' text-center'}>{isCleared(sp, st) ? '⭐' : ''}</td>
+                      <td className={td + ' text-right'}>{g[0]}</td><td className={`${td} text-right ${rateColor(g[1], g[0])}`}>{pct(g[1], g[0])}</td><td className={td + ' text-right'}>{g[2]}</td></tr>; })}</tbody></table></div>
+                <div className="flex gap-3 flex-wrap items-center border-t pt-3">
+                  <label className="flex items-center gap-2"><input type="checkbox" className="w-5 h-5" checked={!!sp.unlockAll} disabled={busy} onChange={e => act(() => api.setFlag(pin, who, 'unlockAll', e.target.checked))} />ステージを 全部開く</label>
+                  <label className="flex items-center gap-2"><input type="checkbox" className="w-5 h-5" checked={!!sp.hatten} disabled={busy} onChange={e => act(() => api.setFlag(pin, who, 'hatten', e.target.checked))} />はってんを 開く</label>
+                  <button disabled={busy} className="ml-auto px-3 py-1 rounded-lg bg-red-100 border border-red-300 text-red-700 font-bold" onClick={() => { if (window.confirm(`${who} の 記録と 進み具合を 消します。元に もどせません。よろしいですか？`)) act(() => api.clear(pin, who), '消しました。'); }}>この子の 記録を 消す</button>
+                </div>
+              </div>}
+            </div>}
+
+            {tab === 'set' && <div className="flex flex-col gap-4 max-w-2xl">
+              <div><div className="font-bold">じゅうにんの 文の 読み上げ</div>
+                <div className="flex gap-2 mt-1">{[[true, '読み上げる'], [false, '読み上げない（自分で 読む）']].map(([v, n]) => <button key={n} onClick={() => setS({ ...s, read: v })} className={`px-3 py-1 rounded-lg border font-bold ${s.read === v ? 'bg-sky-500 text-white' : 'bg-white'}`}>{n}</button>)}</div>
+                <div className="text-xs text-slate-500">「読み上げない」にしても、ホーせんぱいの 声かけと ヒントは 読み上げます。</div></div>
+              <div><div className="font-bold">読み上げの 速さ</div>
+                <div className="flex gap-2 mt-1">{[0.6, 0.7, 0.8, 0.9, 1].map(v => <button key={v} onClick={() => setS({ ...s, rate: v })} className={`px-3 py-1 rounded-lg border font-bold ${Number(s.rate) === v ? 'bg-sky-500 text-white' : 'bg-white'}`}>{v}倍</button>)}</div></div>
+              <div><div className="font-bold">文字の 大きさ</div>
+                <div className="flex gap-2 mt-1">{[[0.9, 'ちいさめ'], [1, 'ふつう'], [1.15, 'おおきめ'], [1.3, 'とても おおきい']].map(([v, n]) => <button key={v} onClick={() => setS({ ...s, font: v })} className={`px-3 py-1 rounded-lg border font-bold ${Number(s.font) === v ? 'bg-sky-500 text-white' : 'bg-white'}`}>{n}</button>)}</div></div>
+              <div><div className="font-bold">「🗺️ ちず」ボタン（町全体を 上から みる）</div>
+                <div className="flex gap-2 mt-1">{[[true, 'つかう'], [false, 'つかわない（歩いて さがす）']].map(([v, n]) => <button key={n} onClick={() => setS({ ...s, map: v })} className={`px-3 py-1 rounded-lg border font-bold ${(s.map !== false) === v ? 'bg-sky-500 text-white' : 'bg-white'}`}>{n}</button>)}</div>
+                <div className="text-xs text-slate-500">「つかわない」にしても、3つめの ヒントでは ちずが 出ます。</div></div>
+              <div><div className="font-bold">まちの ひろさ</div>
+                <div className="flex gap-2 mt-1">{[[true, 'ひろい（みちが まがる・たくさん あるく）'], [false, 'ふつう（みちが まっすぐ・いえが ちかい）']].map(([v, n]) => <button key={n} onClick={() => setS({ ...s, wide: v })} className={`px-3 py-1 rounded-lg border font-bold ${(s.wide !== false) === v ? 'bg-sky-500 text-white' : 'bg-white'}`}>{n}</button>)}</div>
+                <div className="text-xs text-slate-500">あるくのが たいへんな 子が いる ときは「ふつう」に します。いえの ならびは どちらも 同じです。</div></div>
+              <div><div className="font-bold">効果音</div>
+                <div className="flex gap-2 mt-1">{[[true, 'ならす'], [false, 'ならさない']].map(([v, n]) => <button key={n} onClick={() => setS({ ...s, sound: v })} className={`px-3 py-1 rounded-lg border font-bold ${s.sound === v ? 'bg-sky-500 text-white' : 'bg-white'}`}>{n}</button>)}</div></div>
+              <div><div className="font-bold">暗証番号を 変える（4けたの 数字）</div>
+                <input value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))} inputMode="numeric" className="border rounded-lg px-3 py-1 mt-1 w-32 text-xl" placeholder="変えない" /></div>
+              <div><button disabled={busy || (newPin !== '' && newPin.length !== 4)} className="px-6 py-2 rounded-lg bg-green-500 text-white font-bold disabled:opacity-40"
+                onClick={() => act(async () => { const r = await api.saveSettings(pin, { ...s, newPin: newPin || undefined }); if (r && r.ok) onSettings(s, newPin || null); return r; }, '設定を 保存しました。')}>保存する</button></div>
+            </div>}
+
+            {tab === 'data' && <div className="flex flex-col gap-3 max-w-2xl">
+              <div className="border rounded-lg p-3">まだ 送れていない 記録：<b>{api.pending()}</b>件　<button disabled={busy} className="px-3 py-1 rounded-lg bg-sky-500 text-white font-bold" onClick={() => act(() => api.flush(), '送りました。')}>いま 送る</button></div>
+              <div className="border rounded-lg p-3">記録を CSV で 書き出す　<button disabled={busy} className="px-3 py-1 rounded-lg bg-sky-500 text-white font-bold" onClick={() => act(async () => { const r = await api.logRows(pin); if (r.ok) downloadText('おうちさがし_きろく.csv', '﻿' + r.rows.map(row => row.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\r\n'), 'text/csv'); return r; }, '書き出しました。')}>CSV</button></div>
+              <div className="border rounded-lg p-3">バックアップ（進み具合と 設定）　<button disabled={busy} className="px-3 py-1 rounded-lg bg-sky-500 text-white font-bold" onClick={() => act(async () => { const r = await api.backup(pin); if (r.ok) downloadText('おうちさがし_バックアップ.json', JSON.stringify(r.data), 'application/json'); return r; }, '保存しました。')}>保存する</button>
+                　<button disabled={busy} className="px-3 py-1 rounded-lg bg-white border font-bold" onClick={() => fileRef.current.click()}>元に もどす</button>
+                <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; const fr = new FileReader(); fr.onload = () => { let d = null; try { d = JSON.parse(fr.result); } catch (er) {} act(() => api.restore(pin, d), '元に もどしました。'); }; fr.readAsText(f); }} /></div>
+              <div className="border border-red-300 rounded-lg p-3">全員の 記録と 進み具合を 消す　<button disabled={busy} className="px-3 py-1 rounded-lg bg-red-500 text-white font-bold" onClick={() => { if (window.confirm('全員の 記録と 進み具合を 消します。元に もどせません。よろしいですか？')) act(() => api.clear(pin, ''), '消しました。'); }}>全部 消す</button></div>
+            </div>}
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    //  10. ぜんたい
+    // =====================================================================
+    function App() {
+      const [boot, setBoot] = useState(null);
+      const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+      const [name, setName] = useState(null);
+      const [progress, setProgress] = useState(newProgress());
+      const [view, setView] = useState({ v: 'login' });
+      const [pin, setPin] = useState(null);
+      const [pinOpen, setPinOpen] = useState(false);
+      const [pinError, setPinError] = useState(0);
+      const [teacher, setTeacher] = useState(null);
+      const [soundOn, setSoundOn] = useState(true);
+      const [busy, setBusy] = useState(false);
+      const pinRef = useRef(null);
+      const progRef = useRef(progress);
+      progRef.current = progress;
+      const say = (t) => { sayP(t, PITCH_HO); };
+
+      const applySettings = (s) => {
+        const v = { ...DEFAULT_SETTINGS, ...s };
+        ['sound', 'read', 'map', 'wide'].forEach(k => { v[k] = v[k] !== false && v[k] !== 'false'; });
+        setSettings(v);
+        Speech.rate = Number(v.rate) || 0.8;
+        Sound.on = v.sound; setSoundOn(Sound.on);
+        document.documentElement.style.fontSize = `${16 * (Number(v.font) || 1)}px`;
+      };
+
+      useEffect(() => {
+        api.init().then(d => { applySettings(d.settings || {}); setBoot(d); api.flush(); })
+          .catch(e => setBoot({ error: String(e && e.message || e) }));
+        const on = () => api.flush();
+        window.addEventListener('online', on);
+        return () => window.removeEventListener('online', on);
+      }, []);
+
+      // しんちょくを ほぞんする（この たんまつ ＋ スプレッドシート）
+      const persist = (p, recs) => {
+        p = { ...p, t: Date.now() };
+        progRef.current = p; setProgress(p);
+        const json = JSON.stringify(p);
+        safeStore.set(COPY_KEY(name), json);
+        api.save({ name, progress: json, records: recs || [], stamp: nowStr(), time: Date.now() });
+        return p;
+      };
+
+      const login = async (n) => {
+        Sound.get();
+        setBusy(true);
+        let server = '';
+        try { server = await api.student(n); } catch (e) {}
+        const a = parseProgress(server), b = parseProgress(safeStore.get(COPY_KEY(n)));
+        // あたらしい ほうを つかう。先生が変えた フラグ（全部開く・はってん）は スプレッドシートの ほうを つかう
+        let p = b.t > a.t ? b : a;
+        if ((a.flagT || 0) > (p.flagT || 0)) p = { ...p, unlockAll: !!a.unlockAll, hatten: !!a.hatten, flagT: a.flagT };
+        progRef.current = p; setProgress(p); setName(n); setBusy(false);
+        setView({ v: 'home' });
+      };
+      const logout = () => { Speech.stop(); setName(null); setView({ v: 'login' }); };
+
+      const start = (st, resume) => {
+        Speech.stop();
+        const part = resume && progRef.current.part && progRef.current.part.st === st.id ? progRef.current.part : null;
+        const targets = part ? part.targets : D.pickTargets(st);
+        setView({ v: 'play', st, targets, qi: part ? part.qi : 0, key: uid() });
+      };
+      const onSolved = (st, targets) => (rec, target, nextQi) => {
+        const p = progRef.current;
+        persist({ ...p, solved: (p.solved || 0) + 1, stickers: p.stickers.includes(target.id) ? p.stickers : [...p.stickers, target.id],
+          part: nextQi === null ? null : { st: st.id, targets, qi: nextQi } }, [{ ...rec, id: uid() }]);
+      };
+      const finish = (st) => (results) => {
+        let p = progRef.current;
+        const had = isCleared(p, st);
+        p = persist({ ...p, part: null, clear: { ...p.clear, [st.id]: (p.clear[st.id] || 0) + 1 } });
+        const ms = mainStages(), i = ms.findIndex(s => s.id === st.id);
+        const nextSt = !st.hatten && i >= 0 && ms[i + 1] && stageOpen(p, ms[i + 1]) ? ms[i + 1] : null;
+        setView({ v: 'result', st, results, stageClear: !had && !!nextSt, nextSt });
+      };
+
+      const openTeacher = () => { setPinError(0); setPinOpen(true); };
+      const submitPin = async (v) => {
+        try {
+          await api.flush();
+          const d = await api.teacher(v);
+          if (!d || !d.ok) { setPinError(e => e + 1); return; }
+          Speech.stop(); pinRef.current = v; setPin(v); setTeacher(d); setPinOpen(false);
+        } catch (e) { setPinError(e => e + 1); }
+      };
+      const reloadTeacher = async () => {
+        await api.flush();
+        const d = await api.teacher(pinRef.current);
+        if (d && d.ok) {
+          setTeacher(d);
+          if (name) {
+            const me = d.students.find(x => x.name === name);
+            if (me) {
+              const sp = parseProgress(me.progress);
+              const q = me.progress ? { ...progRef.current, unlockAll: !!sp.unlockAll, hatten: !!sp.hatten, flagT: sp.flagT, t: sp.t || Date.now() } : { ...newProgress(), t: Date.now() };
+              progRef.current = q; setProgress(q); safeStore.set(COPY_KEY(name), JSON.stringify(q));
+              if (!me.progress) setView({ v: 'home' });
+            }
+          }
+        }
+      };
+
+      if (!boot) return <div className="p-16 text-center text-3xl font-bold text-amber-800">じゅんび ちゅう…</div>;
+      if (boot.error) return <div className="p-10 text-2xl">ひらけませんでした。ページを よみこみなおして ください。<div className="text-base text-slate-500 mt-2">{boot.error}</div></div>;
+
+      const bar = (home = true) => (
+        <TopBar name={name} progress={progress} onHome={home ? () => { Speech.stop(); setView({ v: 'home' }); } : null}
+          onLogout={logout} onTeacher={openTeacher} soundOn={soundOn} onSound={() => { Sound.on = !Sound.on; setSoundOn(Sound.on); }} />
+      );
+      let body = null;
+      if (!name || view.v === 'login') {
+        body = <LoginScreen students={boot.students || []} onSelect={login} onTeacher={openTeacher} demo={boot.demo} busy={busy} />;
+      } else if (view.v === 'home') {
+        body = <div className="min-h-screen flex flex-col">{bar(false)}
+          <HomeScreen key={name} name={name} progress={progress} say={say} onStages={() => setView({ v: 'stages' })} onAlbum={() => setView({ v: 'album' })}
+            onContinue={() => { const part = progress.part && D.STAGES.find(s => s.id === progress.part.st); if (part && stageOpen(progress, part)) start(part, true); else start(currentStage(progress)); }} /></div>;
+      } else if (view.v === 'stages') {
+        body = <div className="min-h-screen flex flex-col">{bar()}<StageScreen progress={progress} onStart={(st) => start(st)} /></div>;
+      } else if (view.v === 'album') {
+        body = <div className="min-h-screen flex flex-col">{bar()}<AlbumScreen progress={progress} /></div>;
+      } else if (view.v === 'play') {
+        body = <div className="min-h-screen flex flex-col bg-white">{bar()}
+          <Play key={view.key} st={view.st} targets={view.targets} startQi={view.qi} settings={settings} got={progress.stickers}
+            onSolved={onSolved(view.st, view.targets)} onFinish={finish(view.st)} onQuit={() => { Speech.stop(); setView({ v: 'home' }); }} /></div>;
+      } else if (view.v === 'result') {
+        body = <div className="min-h-screen flex flex-col">{bar()}<ResultScreen st={view.st} results={view.results} progress={progress} stageClear={view.stageClear} say={say}
+          onAgain={() => start(view.st)} onHome={() => setView({ v: 'home' })} onNext={view.nextSt ? () => start(view.nextSt) : null} /></div>;
+      }
+
+      return (
+        <div>
+          {body}
+          {pinOpen && <PinPad error={pinError} onSubmit={submitPin} onClose={() => setPinOpen(false)} />}
+          {teacher && <TeacherView data={teacher} pin={pin} onClose={() => setTeacher(null)} onChanged={() => reloadTeacher()}
+            onSettings={(s, np) => { applySettings(s); if (np) { pinRef.current = np; setPin(np); } }} />}
+        </div>
+      );
+    }
+
+    window.OUCHI_READY.then(() => {
+      D = window.OUCHI;
+      HAS_IMG = new Set(D.IMAGES || []);
+      ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    }).catch(e => {
+      document.getElementById('root').innerHTML = '<div style="padding:40px;font-size:22px;">データを よみこめませんでした。ネットに つながって いるか たしかめて、ページを よみこみなおして ください。<br><small>' + String(e && e.message || e) + '</small></div>';
+    });
+  </script>
+</body>
+</html>
