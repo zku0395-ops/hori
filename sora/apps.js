@@ -201,7 +201,9 @@ window.SORA = {
       id: 'gyoji', name: 'ぎょうじの へや', emoji: '🎪', color: '#a855f7', img: 'img/gyoji.webp',
       spot: { x: 71.5, y: 53, w: 26, h: 27 },
       shelves: [
-        { id: 'gyoji', name: 'ぎょうじ', emoji: '🎪', apps: [] },
+        { id: 'gyoji', name: 'ぎょうじ', emoji: '🎪', apps: [
+          { id: 'kagakukan', emoji: '🔭', name: 'キラボと かがくかん たんけん', say: 'キラボと かがくかん たんけん', url: 'https://script.google.com/macros/s/AKfycbzjodmAgDCs-i9Sa-Fv4G3ivblfnB7d5MeKsM-l4wRqOY3ngB4cEkAuqZyGrLI5xg6L_A/exec' },
+        ] },
       ],
     },
   ],
