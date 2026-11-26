@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>キラボと かがくかん たんけん</title>
+
+  <script crossorigin="anonymous" src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
+  <script crossorigin="anonymous" src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.24.7/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'BIZ UDPGothic', sans-serif; background: #eef2ff; margin: 0; color: #1e293b;
+      -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+    .btn3d { border-bottom-width: 6px; transition: transform .08s, border-bottom-width .08s; }
+    .btn3d:active:not(:disabled) { transform: translateY(4px); border-bottom-width: 2px; }
+    .win { background: #fff; border: 4px solid #4338ca; border-radius: 20px; box-shadow: 0 6px 0 rgba(67,56,202,.2); }
+    .plain { background: #f8fafc; }
+    .space { background: radial-gradient(ellipse at 50% 120%, #4338ca 0%, #1e1b4b 55%, #0b0a24 100%); }
+    .pop { animation: pop .45s cubic-bezier(.17,.89,.32,1.28) both; }
+    @keyframes pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .floaty { animation: floaty 3s ease-in-out infinite; }
+    @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    .shake { animation: shake .45s; }
+    @keyframes shake { 0%,100% { transform: translateX(0); } 20%,60% { transform: translateX(-9px); } 40%,80% { transform: translateX(9px); } }
+    .glow { animation: glow 1.1s ease-in-out infinite; }
+    @keyframes glow { 0%,100% { box-shadow: 0 0 0 0 rgba(250,204,21,.95); } 50% { box-shadow: 0 0 0 14px rgba(250,204,21,0); } }
+    .twinkle { animation: twinkle 2.4s ease-in-out infinite; }
+    @keyframes twinkle { 0%,100% { opacity: 1; } 50% { opacity: .3; } }
+    .confetti span { position: absolute; animation: fall 1.6s ease-in forwards; }
+    @keyframes fall { from { transform: translateY(-40px) rotate(0); opacity: 1; } to { transform: translateY(260px) rotate(320deg); opacity: 0; } }
+    .stamp { animation: stamp .6s cubic-bezier(.2,1.6,.4,1) both; }
+    @keyframes stamp { from { transform: scale(2.6) rotate(-25deg); opacity: 0; } to { transform: scale(1) rotate(-8deg); opacity: 1; } }
+    .chara-img { filter: drop-shadow(0 4px 4px rgba(0,0,0,.18)); }
+    ruby rt { font-size: .5em; font-weight: 700; }
+    .keep { word-break: keep-all; overflow-wrap: anywhere; }
+    #printarea { display: none; }
+    @media print {
+      @page { size: A4 portrait; margin: 8mm; }
+      body { background: #fff !important; }
+      #root { display: none !important; }
+      #printarea { display: block !important; }
+      .ppage { break-after: page; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div style="padding:60px;text-align:center;font-size:28px;color:#4338ca;font-weight:bold;">じゅんび ちゅう…</div>
+  </div>
+  <div id="printarea"></div>
+
+  <!-- データと 絵は GitHub Pages から読みこみます（このファイルを短くするため） -->
+  <script>
+    (function () {
+      var h = location.hostname;
+      var local = location.protocol === 'file:' || /github\.io$/.test(h) || h === 'localhost' || h === '127.0.0.1';
+      window.KAGAKU_BASE = local ? '' : 'https://zku0395-ops.github.io/hori/kagakukan/';
+      var V = '1';
+      var load = function (f) {
+        return new Promise(function (ok, ng) {
+          var s = document.createElement('script');
+          s.src = window.KAGAKU_BASE + f + '?v=' + V + (f === 'data/img.js' ? '.' + Math.floor(Date.now() / 3600000) : '');
+          s.onload = ok; s.onerror = function () { ng(new Error(f)); };
+          document.head.appendChild(s);
+        });
+      };
+      window.KAGAKU_READY = Promise.all([load('data/kagakukan.js'), load('data/img.js')]);
+    })();
+  </script>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
+    const APP_VERSION = '1.0.0';
+    const BASE = window.KAGAKU_BASE;
+    const IMG = BASE + 'img/';
+
+    // =====================================================================
+    //  1. 小さな道具
+    // =====================================================================
+    const shuffle = (a) => { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+    const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    const nowStr = () => {
+      const d = new Date(), p = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    };
+    const safeStore = {
+      get(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
+      set(k, v) { try { window.localStorage.setItem(k, v); } catch (e) {} },
+      del(k) { try { window.localStorage.removeItem(k); } catch (e) {} },
+    };
+    const downloadText = (name, text, type) => {
+      const blob = new Blob([text], { type: type || 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = name; document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
+    };
+    const seeded = (n) => { const x = Math.sin(n * 9301 + 49297) * 233280; return x - Math.floor(x); };
+    const parseProgress = (s) => {
+      let p = {}; try { p = JSON.parse(s || '{}') || {}; } catch (e) { p = {}; }
+      p.cleared = p.cleared || {}; p.hearts = p.hearts || {}; p.best = p.best || []; p.pos = p.pos || {}; p.stars = p.stars || 0; p.t = p.t || 0;
+      return p;
+    };
+    // けんがくの 日（'2026/12/10'）→「12がつ10にち（もくようび）」
+    const WEEK = ['にち', 'げつ', 'か', 'すい', 'もく', 'きん', 'ど'];
+    const WEEK_K = ['日', '月', '火', '水', '木', '金', '土'];
+    function dateParts(s) {
+      const m = String(s || '').match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
+      if (!m) return null;
+      const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+      return { y: d.getFullYear(), m: d.getMonth() + 1, d: d.getDate(), w: d.getDay() };
+    }
+    const dateKana = (p) => p ? `${p.m}がつ${p.d}にち（${WEEK[p.w]}ようび）` : '';
+    const dateKanji = (p) => p ? `${p.m}月${p.d}日（${WEEK_K[p.w]}）` : '';
+    function shiftDay(p, n) {
+      const d = new Date(p.y, p.m - 1, p.d + n);
+      return { y: d.getFullYear(), m: d.getMonth() + 1, d: d.getDate(), w: d.getDay() };
+    }
+
+    // =====================================================================
+    //  2. こえ と おと
+    // =====================================================================
+    const Speech = {
+      rate: 0.8, pitch: 1.2, voice: null,
+      ok: typeof window !== 'undefined' && 'speechSynthesis' in window,
+      pickVoice() {
+        if (!this.ok) return;
+        const vs = window.speechSynthesis.getVoices().filter(v => (v.lang || '').toLowerCase().replace('_', '-').startsWith('ja'));
+        this.voice = vs.find(v => /google/i.test(v.name)) || vs[0] || null;
+      },
+      say(text, onEnd) {
+        if (!this.ok || !text) { if (onEnd) setTimeout(onEnd, 200); return; }
+        try {
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(String(text));
+          u.lang = 'ja-JP'; if (this.voice) u.voice = this.voice;
+          u.rate = this.rate; u.pitch = this.pitch;
+          let done = false;
+          const end = () => { if (!done) { done = true; onEnd && onEnd(); } };
+          u.onend = end; u.onerror = end;
+          setTimeout(end, 1500 + String(text).length * 230 / this.rate);
+          setTimeout(() => window.speechSynthesis.speak(u), 60);
+        } catch (e) { if (onEnd) setTimeout(onEnd, 200); }
+      },
+      stop() { try { this.ok && window.speechSynthesis.cancel(); } catch (e) {} },
+    };
+    if (Speech.ok) { Speech.pickVoice(); window.speechSynthesis.onvoiceschanged = () => Speech.pickVoice(); }
+
+    // このアプリのための オリジナルの おと
+    const Sound = {
+      on: true, ctx: null,
+      get() {
+        if (!this.ctx) { const C = window.AudioContext || window.webkitAudioContext; if (C) this.ctx = new C(); }
+        if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+        return this.ctx;
+      },
+      tone(freq, at, dur, type = 'square', vol = 0.06) {
+        const c = this.get(); if (!c || !this.on) return;
+        const t = c.currentTime + at, o = c.createOscillator(), g = c.createGain();
+        o.type = type; o.frequency.value = freq;
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.05);
+      },
+      seikai() { [[784, 0], [988, .09], [1319, .18]].forEach(([f, t]) => this.tone(f, t, .14, 'square', .05)); this.tone(1568, .3, .35, 'triangle', .1); },
+      fanfare() {
+        [[523, 0], [659, .14], [784, .28], [1047, .42], [988, .7], [1047, .84], [1319, 1.0]].forEach(([f, t]) => this.tone(f, t, .16, 'square', .055));
+        [262, 330, 392, 523].forEach(f => this.tone(f, 1.0, 1.0, 'triangle', .07));
+      },
+      retry() { this.tone(330, 0, .12, 'sine', .06); this.tone(294, .11, .18, 'sine', .06); }, // まちがえた とき（小さな おと）
+      tap() { this.tone(880, 0, .05, 'square', .035); },
+      heart() { this.tone(1047, 0, .08, 'triangle', .08); this.tone(1397, .08, .16, 'triangle', .08); },
+      star() { this.tone(1568, 0, .12, 'triangle', .08); this.tone(2093, .1, .3, 'triangle', .08); },
+    };
+
+    // =====================================================================
+    //  3. データ（data/kagakukan.js から）
+    // =====================================================================
+    let KD = null, IMG_OK = new Set();
+    const itemById = (id) => KD.ITEMS.find(i => i.id === id);
+    const stageById = (id) => KD.STAGES.find(s => s.id === id);
+    const groupName = (g) => g === 'p' ? 'プラネタリウム' : g === 'e' ? 'でんきの じっけん' : KD.ROOMS[g].n;
+    // クイズの {date} などを いれかえる
+    function fillQuiz(q, settings) {
+      const p = dateParts(settings.date) || { y: 2026, m: 12, d: 10, w: 4 };
+      const map = { '{date}': dateKana(p), '{dateW1}': dateKana(shiftDay(p, 7)), '{dateW2}': dateKana(shiftDay(p, 1)) };
+      const f = (s) => String(s).replace(/\{date(W1|W2)?\}/g, (k) => map[k]);
+      return { ...q, q: f(q.q), a: f(q.a), w: q.w.map(([t, m]) => [f(t), f(m)]), h1: f(q.h1), h3: f(q.h3) };
+    }
+    // ほしの かず → しょうごう
+    const TITLES = [[0, 'ほしの たまご', '🥚'], [10, 'ほしの みならい', '⭐'], [25, 'たんけんたい いん', '🌟'], [40, 'かがくかん はかせ', '🏅'], [50, 'うちゅう たんけん マスター', '👑']];
+    const titleOf = (n) => TITLES.filter(t => n >= t[0]).pop();
+
+    // =====================================================================
+    //  4. データの ほぞん（スプレッドシート／おためしモード）
+    // =====================================================================
+    const HAS_GAS = typeof google !== 'undefined' && google.script && google.script.run;
+    const gas = (fn, ...args) => new Promise((resolve, reject) => {
+      google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
+    });
+    const LOG_HEADER = ['日時', 'なまえ', 'ステージ', 'もんだいID', 'もんだい', 'こたえ', 'けっか', 'まちがい', 'ヒント', 'えらんだ まちがい', 'びょう', 'ID'];
+    const DEFAULT_SETTINGS = { rate: 0.8, font: 1, sound: true, date: '2026/12/10' };
+
+    // 先生用の まとめ — コード.gs の aggregate_ と おなじ しくみ
+    const emptyStu = () => ({ count: 0, ok: 0, last: '', stages: {}, miss: {} });
+    function aggregate(rows) {
+      const students = {}, classMiss = {};
+      rows.forEach(r => {
+        const name = String(r[1] || '').trim(); if (!name) return;
+        const st = String(r[2]);
+        if (st === '9') return; // ベスト3 は しんちょくから よむ
+        const s = students[name] || (students[name] = emptyStu());
+        const day = String(r[0]).slice(0, 10);
+        if (day > s.last) s.last = day;
+        const ok = r[6] === '○' ? 1 : 0;
+        s.count++; s.ok += ok;
+        const g = s.stages[st] || (s.stages[st] = [0, 0]); g[0]++; g[1] += ok;
+        if (!ok) {
+          const key = String(r[4]);
+          s.miss[key] = (s.miss[key] || 0) + 1;
+          const c = classMiss[key] || (classMiss[key] = { n: 0, w: {} }); c.n++;
+          String(r[9] || '').split('・').forEach(w => { if (w) c.w[w] = (c.w[w] || 0) + 1; });
+        }
+      });
+      return { students, classMiss };
+    }
+
+    const Local = {
+      key: 'kagakukan_local_v1', mem: null,
+      data() {
+        if (this.mem) return this.mem;
+        let d = null; try { d = JSON.parse(safeStore.get(this.key)); } catch (e) {}
+        this.mem = d || { roster: ['たろう', 'はなこ', 'ゆうき'], progress: {}, log: [], pin: '1234', settings: { ...DEFAULT_SETTINGS } };
+        return this.mem;
+      },
+      save() { safeStore.set(this.key, JSON.stringify(this.mem)); },
+      update(name, fn) { const d = this.data(); const p = parseProgress(d.progress[name]); fn(p); p.t = Date.now(); d.progress[name] = JSON.stringify(p); this.save(); return { ok: true, progress: d.progress[name] }; },
+    };
+
+    const PENDING_KEY = 'kagakukan_pending_v1';
+    const COPY_KEY = (name) => 'kagakukan_copy_' + name;
+    const recRow = (stamp, name, r) => [stamp, name, r.stage, r.qid, r.q, r.answer, r.result, r.miss, r.hint, r.wrong, r.secs, r.id];
+    const api = {
+      async init() {
+        if (HAS_GAS) return gas('getInitData');
+        const d = Local.data();
+        return { students: d.roster, settings: { ...DEFAULT_SETTINGS, ...d.settings }, demo: true };
+      },
+      async student(name) {
+        if (HAS_GAS) return gas('getStudent', name);
+        return Local.data().progress[name] || '';
+      },
+      async sendOne(p) {
+        if (HAS_GAS) return gas('saveResult', p);
+        const d = Local.data();
+        const old = parseProgress(d.progress[p.name]);
+        const neu = parseProgress(p.progress);
+        if (neu.t >= old.t) {
+          if (old.flagT && old.flagT > (neu.flagT || 0)) { neu.unlockAll = !!old.unlockAll; neu.flagT = old.flagT; }
+          d.progress[p.name] = JSON.stringify(neu);
+        }
+        const ids = new Set(d.log.map(r => r[11]));
+        p.records.forEach(r => { if (!ids.has(r.id)) d.log.push(recRow(p.stamp, p.name, r)); });
+        Local.save();
+        return { ok: true };
+      },
+      // とどかなかった きろくは たまっておき、つぎの ときに おくりなおす
+      readQueue() { try { return JSON.parse(safeStore.get(PENDING_KEY)) || []; } catch (e) { return []; } },
+      async save(payload) {
+        const queue = api.readQueue().filter(q => !(q.name === payload.name && !q.records.length));
+        queue.push({ ...payload, qid: uid() });
+        safeStore.set(PENDING_KEY, JSON.stringify(queue));
+        return api.flush();
+      },
+      pending() { return api.readQueue().length; },
+      flushing: false,
+      async flush() {
+        if (api.flushing) return;
+        api.flushing = true;
+        try {
+          for (let q = api.readQueue()[0]; q; q = api.readQueue()[0]) {
+            await api.sendOne(q);
+            safeStore.set(PENDING_KEY, JSON.stringify(api.readQueue().filter(x => x.qid !== q.qid)));
+          }
+        } catch (e) { console.warn('きろくを おくれませんでした。あとで おくりなおします。', e); }
+        finally { api.flushing = false; }
+      },
+      async teacher(pin) {
+        if (HAS_GAS) return gas('getTeacherData', pin);
+        const d = Local.data();
+        if (String(pin) !== String(d.pin)) return { ok: false };
+        const agg = aggregate(d.log);
+        return {
+          ok: true, isDefaultPin: d.pin === '1234', demo: true, settings: { ...DEFAULT_SETTINGS, ...d.settings },
+          students: d.roster.map(n => ({ name: n, progress: d.progress[n] || '', ...(agg.students[n] || emptyStu()) })),
+          classMiss: agg.classMiss,
+        };
+      },
+      async setFlag(pin, name, key, val) {
+        if (HAS_GAS) return gas('setFlag', pin, name, key, val);
+        return Local.update(name, p => { p[key] = !!val; p.flagT = Date.now(); });
+      },
+      async saveSettings(pin, s) {
+        if (HAS_GAS) return gas('saveSettings', pin, s);
+        const d = Local.data(); const { newPin, ...rest } = s;
+        d.settings = { ...d.settings, ...rest }; if (newPin) d.pin = newPin; Local.save(); return { ok: true };
+      },
+      async logRows(pin) {
+        if (HAS_GAS) return gas('getLogRows', pin);
+        return { ok: true, rows: [LOG_HEADER, ...Local.data().log] };
+      },
+      async backup(pin) {
+        if (HAS_GAS) return gas('getBackup', pin);
+        const d = Local.data(); return { ok: true, data: { app: 'kagakukan', roster: d.roster.map(n => [n, d.progress[n] || '']), settings: d.settings } };
+      },
+      async restore(pin, data) {
+        if (HAS_GAS) return gas('restoreBackup', pin, data);
+        const d = Local.data(); (data.roster || []).forEach(([n, p]) => { if (!d.roster.includes(n)) d.roster.push(n); d.progress[n] = p; }); Local.save(); return { ok: true };
+      },
+      async clear(pin, name) {
+        if (HAS_GAS) return gas('clearRecords', pin, name);
+        const d = Local.data();
+        d.log = d.log.filter(r => name && r[1] !== name);
+        (name ? [name] : d.roster).forEach(n => { delete d.progress[n]; safeStore.del(COPY_KEY(n)); });
+        Local.save(); return { ok: true };
+      },
+    };
+
+    // =====================================================================
+    //  5. え（キラボ・てんじ）
+    //     ChatGPT で つくった 絵（img/。data/img.js に なまえが ある もの）が あれば それを、なければ 自作の 絵や 絵文字を だす
+    // =====================================================================
+    const TalkCtx = createContext(null);
+    const useTalk = () => useContext(TalkCtx);
+    const SetCtx = createContext(DEFAULT_SETTINGS);
+
+    function Pic({ file, alt, size, className = '', fallback, style }) {
+      const [err, setErr] = useState(false);
+      if (!file || !IMG_OK.has(file) || err) return fallback || null;
+      return <img src={IMG + file} alt={alt || ''} onError={() => setErr(true)} className={`chara-img select-none ${className}`} style={{ width: size, height: size, objectFit: 'contain', ...style }} draggable={false} />;
+    }
+
+    // キラボ（オリジナルの ほしの たんけんロボ。ChatGPT の 絵が ない ときの 自作の 絵）
+    function KiraboSvg({ mood, size }) {
+      const happy = mood === 'happy', think = mood === 'think';
+      return (
+        <svg viewBox="0 0 120 140" width={size} height={size * 140 / 120} className="chara-img">
+          {/* アンテナの ほし */}
+          <line x1="60" y1="22" x2="60" y2="8" stroke="#94a3b8" strokeWidth="4" />
+          <path d="M60 -2 L64 7 L73 8 L66 14 L68 23 L60 18 L52 23 L54 14 L47 8 L56 7 Z" fill="#facc15" stroke="#ca8a04" strokeWidth="1.5" className="twinkle" />
+          {/* あたま */}
+          <rect x="18" y="22" width="84" height="62" rx="26" fill="#e0f2fe" stroke="#0369a1" strokeWidth="3" />
+          <rect x="28" y="34" width="64" height="38" rx="18" fill="#1e3a8a" />
+          {/* め */}
+          {happy ? <>
+            <path d="M40 54 Q46 46 52 54" stroke="#67e8f9" strokeWidth="4" fill="none" strokeLinecap="round" />
+            <path d="M68 54 Q74 46 80 54" stroke="#67e8f9" strokeWidth="4" fill="none" strokeLinecap="round" />
+          </> : think ? <>
+            <circle cx="46" cy="52" r="5" fill="#67e8f9" />
+            <path d="M68 53 L80 53" stroke="#67e8f9" strokeWidth="4" strokeLinecap="round" />
+          </> : <>
+            <circle cx="46" cy="52" r="6" fill="#67e8f9" /><circle cx="74" cy="52" r="6" fill="#67e8f9" />
+            <circle cx="48" cy="50" r="2" fill="#fff" /><circle cx="76" cy="50" r="2" fill="#fff" />
+          </>}
+          <path d={happy ? 'M50 62 Q60 70 70 62' : 'M52 63 Q60 67 68 63'} stroke="#67e8f9" strokeWidth="3" fill="none" strokeLinecap="round" />
+          <circle cx="24" cy="56" r="6" fill="#f472b6" opacity=".55" /><circle cx="96" cy="56" r="6" fill="#f472b6" opacity=".55" />
+          {/* からだ */}
+          <rect x="34" y="88" width="52" height="38" rx="14" fill="#e0f2fe" stroke="#0369a1" strokeWidth="3" />
+          <circle cx="60" cy="106" r="9" fill="#facc15" stroke="#ca8a04" strokeWidth="2" />
+          <path d="M60 99 L62 104 L67 104 L63 107 L65 112 L60 109 L55 112 L57 107 L53 104 L58 104 Z" fill="#fff" />
+          {/* うで */}
+          {happy ? <>
+            <path d="M34 96 L16 78" stroke="#0369a1" strokeWidth="7" strokeLinecap="round" />
+            <path d="M86 96 L104 78" stroke="#0369a1" strokeWidth="7" strokeLinecap="round" />
+          </> : <>
+            <path d="M34 98 L20 112" stroke="#0369a1" strokeWidth="7" strokeLinecap="round" />
+            <path d={think ? 'M86 98 L96 80' : 'M86 98 L100 112'} stroke="#0369a1" strokeWidth="7" strokeLinecap="round" />
+          </>}
+          <rect x="40" y="126" width="14" height="10" rx="4" fill="#0369a1" /><rect x="66" y="126" width="14" height="10" rx="4" fill="#0369a1" />
+          {think && <text x="100" y="30" fontSize="26" fontWeight="bold" fill="#f59e0b">?</text>}
+        </svg>
+      );
+    }
+    const KIRABO_FILE = { normal: 'kirabo.webp', happy: 'kirabo_happy.webp', think: 'kirabo_think.webp' };
+    function Kirabo({ mood = 'normal', size = 120, className = '' }) {
+      return <Pic file={KIRABO_FILE[mood] || KIRABO_FILE.normal} size={size} className={className}
+        fallback={<span className={className} style={{ display: 'inline-block' }}><KiraboSvg mood={mood} size={size * 0.86} /></span>} />;
+    }
+    function ItemArt({ it, size = 90, className = '' }) {
+      return <Pic file={`items/${it.id}.webp`} size={size} className={`rounded-2xl ${className}`}
+        fallback={<span className={className} style={{ fontSize: size * 0.72, lineHeight: 1.1, display: 'inline-block', width: size, textAlign: 'center' }}>{it.e}</span>} />;
+    }
+    // ステージ（へや）の 絵
+    function StageArt({ st, size = 70 }) {
+      const file = st.kind === 'room' ? `room_${st.room}.webp` : st.kind === 'dome' ? 'dome.webp' : null;
+      return <Pic file={file} size={size} className="rounded-xl"
+        fallback={<span style={{ fontSize: size * 0.7, lineHeight: 1, display: 'inline-block', width: size, textAlign: 'center' }}>{st.e}</span>} />;
+    }
+
+    // =====================================================================
+    //  6. がめんの ぶひん
+    // =====================================================================
+    function Btn({ children, onClick, color = '#4338ca', light = '#e0e7ff', className = '', disabled, style }) {
+      return (
+        <button onClick={onClick} disabled={disabled}
+          className={`btn3d rounded-2xl font-bold px-5 py-3 text-2xl border-2 ${className}`}
+          style={disabled ? { background: '#e7e5e4', borderColor: '#a8a29e', color: '#78716c', ...style } : { background: light, borderColor: color, color: '#1e293b', ...style }}>
+          {children}
+        </button>
+      );
+    }
+    function Seikai({ show }) {
+      if (!show) return null;
+      return (
+        <div className="fixed inset-0 z-40 flex items-center justify-center pointer-events-none">
+          <div className="confetti absolute inset-x-0 top-24 h-80">
+            {Array.from({ length: 18 }).map((_, i) => <span key={i} style={{ left: `${5 + seeded(i) * 90}%`, animationDelay: `${seeded(i + 30) * .4}s`, fontSize: 28 }}>{['⭐', '✨', '🌟', '💫'][i % 4]}</span>)}
+          </div>
+          <div className="pop text-7xl font-bold text-amber-500" style={{ textShadow: '0 4px 0 #fff, 0 6px 10px rgba(0,0,0,.2)' }}>せいかい！</div>
+        </div>
+      );
+    }
+    // キラボの ふきだし（タップで もういちど よむ）
+    function Talk({ text, mood = 'normal', size = 96, dark }) {
+      const talk = useTalk();
+      return (
+        <div className="flex items-end gap-2">
+          <button onClick={() => talk.say(text)} aria-label="キラボ" className="shrink-0"><Kirabo mood={mood} size={size} className="floaty" /></button>
+          <div className={`relative rounded-3xl px-5 py-3 text-2xl font-bold leading-relaxed keep border-4 text-slate-800 ${dark ? 'bg-white/95 border-indigo-300' : 'bg-white border-indigo-200'}`} style={{ maxWidth: 720 }}>
+            {text}
+            <button onClick={() => talk.say(text)} className="ml-3 align-middle text-lg rounded-xl px-2 py-0.5 border-2 border-indigo-300 bg-indigo-50">🔊 もういちど</button>
+          </div>
+        </div>
+      );
+    }
+    function TopBar({ title, onBack, right, color = '#4338ca' }) {
+      return (
+        <div className="flex items-center gap-3 px-4 py-3 text-white" style={{ background: color }}>
+          {onBack && <button onClick={onBack} className="btn3d rounded-xl px-4 py-2 text-xl font-bold border-2 bg-white text-slate-800" style={{ borderColor: '#1e293b' }}>◀ もどる</button>}
+          <div className="text-2xl font-bold flex-1 truncate">{title}</div>
+          {right}
+        </div>
+      );
+    }
+    function Stars({ n }) { return <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 border-2 border-amber-400 px-3 py-1 text-xl font-bold text-amber-700">⭐ {n}</span>; }
+
+    // ほしぞらの はいけい（ホーム・ごほうびだけ）
+    function StarField({ n = 40 }) {
+      return (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {Array.from({ length: n }).map((_, i) => (
+            <span key={i} className="absolute rounded-full bg-white twinkle" style={{ left: `${seeded(i) * 100}%`, top: `${seeded(i + 99) * 100}%`, width: 2 + seeded(i + 7) * 3, height: 2 + seeded(i + 7) * 3, animationDelay: `${seeded(i + 3) * 2}s` }} />
+          ))}
+        </div>
+      );
+    }
+
+    // ヒント②の 絵
+    function HintArt({ kind, q }) {
+      const settings = useContext(SetCtx);
+      if (kind === 'sched') return <SchedTable settings={settings} small />;
+      if (kind === 'sun') return (
+        <svg viewBox="0 0 320 170" width="320" height="170">
+          <rect x="0" y="130" width="320" height="40" fill="#bbf7d0" />
+          <path d="M30 130 Q160 -10 290 130" stroke="#f59e0b" strokeWidth="4" strokeDasharray="8 6" fill="none" />
+          <circle cx="40" cy="112" r="14" fill="#fb923c" /><circle cx="160" cy="34" r="18" fill="#facc15" /><circle cx="280" cy="112" r="14" fill="#f97316" />
+          <path d="M150 34 l-30 0" stroke="#f59e0b" strokeWidth="0" />
+          <text x="18" y="160" fontSize="20" fontWeight="bold">ひがし</text><text x="135" y="160" fontSize="20" fontWeight="bold">みなみ</text><text x="262" y="160" fontSize="20" fontWeight="bold">にし</text>
+          <text x="20" y="92" fontSize="14">のぼる</text><text x="140" y="70" fontSize="14">いちばん たかい</text><text x="262" y="92" fontSize="14">しずむ</text>
+        </svg>
+      );
+      if (kind === 'star') return (
+        <div className="flex gap-6 justify-center items-end bg-slate-900 rounded-2xl px-6 py-4">
+          {[['#f87171', 'あか'], ['#fde68a', 'きいろ'], ['#ffffff', 'しろ'], ['#93c5fd', 'あお']].map(([c, n], i) => (
+            <div key={i} className="text-center text-white text-lg font-bold"><div className="rounded-full mx-auto" style={{ width: 26 + i * 4, height: 26 + i * 4, background: c, boxShadow: `0 0 16px ${c}` }} />{n}</div>
+          ))}
+        </div>
+      );
+      if (kind === 'move') return (
+        <svg viewBox="0 0 320 150" width="320" height="150" className="rounded-2xl" style={{ background: '#0f172a' }}>
+          {[[0, '#64748b'], [1, '#facc15']].map(([k, c]) => {
+            const dx = k * 150, dy = k * -30;
+            const pts = [[40, 100], [70, 80], [100, 96], [85, 120]].map(([x, y]) => [x + dx, y + dy]);
+            return <g key={k}>
+              <polyline points={pts.map(p => p.join(',')).join(' ') + ' ' + pts[0].join(',')} stroke={c} strokeWidth="1.5" fill="none" />
+              {pts.map(([x, y], i) => <circle key={i} cx={x} cy={y} r="5" fill={c} />)}
+            </g>;
+          })}
+          <path d="M130 100 L170 80" stroke="#fff" strokeWidth="3" markerEnd="url(#ar)" />
+          <defs><marker id="ar" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#fff" /></marker></defs>
+          <text x="20" y="142" fill="#cbd5e1" fontSize="15">はじめ</text><text x="200" y="142" fill="#fde68a" fontSize="15">じかんが たつと（かたちは おなじ）</text>
+        </svg>
+      );
+      if (kind === 'moon') return (
+        <div className="flex gap-4 justify-center bg-slate-900 rounded-2xl px-6 py-4 text-5xl">🌒🌓🌔🌕🌖🌗🌘</div>
+      );
+      if (kind === 'card' && q.item) { const it = itemById(q.item); return <ItemCard it={it} small />; }
+      return <div className="text-6xl">💡</div>;
+    }
+
+    // てんじの カード
+    function ItemCard({ it, small, hearted, onHeart, heartLabel = 'みたい！' }) {
+      const talk = useTalk();
+      return (
+        <div className={`win ${small ? 'p-3' : 'p-6'} flex flex-col items-center text-center`} style={{ maxWidth: small ? 420 : 640, width: '100%' }}>
+          <div className="text-lg font-bold text-slate-500">{groupName(it.g)}</div>
+          <button onClick={() => talk.say(`${it.n}。${it.d}`)}><ItemArt it={it} size={small ? 90 : 170} /></button>
+          <div className={`${small ? 'text-2xl' : 'text-4xl'} font-bold mt-2 keep`}>{it.n}</div>
+          <div className={`${small ? 'text-lg' : 'text-2xl'} mt-2 leading-relaxed keep`}>{it.d}</div>
+          {onHeart && (
+            <button onClick={onHeart} className={`btn3d mt-4 rounded-full px-8 py-3 text-3xl font-bold border-2 ${hearted ? 'bg-pink-500 text-white border-pink-700' : 'bg-white text-pink-600 border-pink-400'}`}>
+              {hearted ? '💖' : '🤍'} {heartLabel}
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    // よていの ひょう
+    function SchedTable({ settings, small, onRead }) {
+      const p = dateParts(settings.date);
+      const cell = (k, ex) => { const pl = KD.PLACE[k]; return <div className="rounded-xl px-2 py-2 font-bold border-2 bg-white flex items-center justify-center gap-1 keep" style={{ borderColor: pl.c, color: '#1e293b', ...ex }}><span>{pl.e}</span><span>{pl.n}</span></div>; };
+      return (
+        <div className={`win ${small ? 'p-2 text-base' : 'p-4 text-2xl'}`} style={{ maxWidth: 760, width: '100%' }}>
+          <div className={`text-center font-bold ${small ? 'text-lg' : 'text-3xl'} mb-2`}>📅 {dateKana(p)}</div>
+          <div className="grid gap-2" style={{ gridTemplateColumns: small ? '7.5em 1fr 1fr' : '9em 1fr 1fr' }}>
+            <div /><div className="text-center font-bold rounded-xl bg-sky-100 py-1">Aはん</div><div className="text-center font-bold rounded-xl bg-orange-100 py-1">Bはん</div>
+            {KD.SCHEDULE.map((r, i) => (
+              <React.Fragment key={i}>
+                <button onClick={() => onRead && onRead(r)} className="font-bold text-left">{r.time}</button>
+                {r.all ? cell(r.all, { gridColumn: 'span 2' }) : <>{cell(r.A)}{cell(r.B)}</>}
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    const schedSay = (r) => {
+      const t = r.time.replace(/(\d+):00/g, '$1じ').replace(/(\d+):(\d+)/g, '$1じ$2ふん').replace('〜', 'から');
+      return r.all ? `${t}まで、みんなで ${KD.PLACE[r.all].n}。` : `${t}まで。Aはんは ${KD.PLACE[r.A].n}。Bはんは ${KD.PLACE[r.B].n}。`;
+    };
+
+    // =====================================================================
+    //  7. クイズ（ヒントは 3だんかい）
+    // =====================================================================
+    function Quiz({ stage, list, startAt = 0, onAnswer, onDone }) {
+      const talk = useTalk();
+      const settings = useContext(SetCtx);
+      const [qi, setQi] = useState(startAt);
+      const q = useMemo(() => fillQuiz(list[qi], settings), [qi]);
+      const choices = useMemo(() => shuffle([q.a, ...q.w.map(w => w[0])]), [qi]);
+      const [gone, setGone] = useState([]);
+      const [miss, setMiss] = useState(0);
+      const [hint, setHint] = useState(0);
+      const [shakeK, setShakeK] = useState('');
+      const [ok, setOk] = useState(false);
+      const t0 = useRef(Date.now());
+      const wrongs = useRef([]);
+      useEffect(() => { setGone([]); setMiss(0); setHint(0); setOk(false); wrongs.current = []; t0.current = Date.now(); talk.say(q.q); }, [qi]);
+      const showHint = (lv) => {
+        setHint(lv);
+        talk.say(lv === 1 ? q.h1 : lv === 2 ? 'えを みてね。' + q.h1 : q.h3);
+      };
+      const pick = (c) => {
+        if (ok || gone.includes(c)) return;
+        if (c === q.a) {
+          setOk(true); Sound.seikai(); talk.say('せいかい！ ' + q.a + '。', null, true);
+          onAnswer({ stage, qid: q.id, q: list[qi].q.replace(/\{.*?\}/g, ''), answer: q.a, result: miss === 0 ? '○' : '△', miss, hint, wrong: wrongs.current.join('・'), secs: Math.round((Date.now() - t0.current) / 1000), id: uid() }, qi + 1);
+          setTimeout(() => { if (qi + 1 < list.length) setQi(qi + 1); else onDone(); }, 1800);
+          return;
+        }
+        Sound.retry(); setShakeK(c); setTimeout(() => setShakeK(''), 500);
+        wrongs.current.push(c);
+        const m = miss + 1; setMiss(m); setGone([...gone, c]);
+        const why = (q.w.find(w => w[0] === c) || [])[1] || 'もういちど かんがえて みよう。';
+        // 2かい まちがえると のこりは こたえ だけ。いちばん くわしい ヒントを だす
+        if (m >= 2) { setHint(3); talk.say(why + ' ' + q.h3); }
+        else talk.say(why);
+      };
+      return (
+        <div className="flex flex-col items-center gap-5 px-4 py-5">
+          <div className="text-xl font-bold text-slate-500">もんだい {qi + 1} ／ {list.length}</div>
+          <Talk text={q.q} mood={hint ? 'think' : 'normal'} size={90} />
+          {hint > 0 && (
+            <div className="pop rounded-2xl border-4 border-amber-300 bg-amber-50 px-5 py-3 flex flex-col items-center gap-3" style={{ maxWidth: 760 }}>
+              <div className="text-2xl font-bold keep">💡 {q.h1}</div>
+              {hint >= 2 && <HintArt kind={q.h2} q={q} />}
+              {hint >= 3 && <div className="text-2xl font-bold text-amber-700 keep">{q.h3}</div>}
+            </div>
+          )}
+          <div className="grid gap-4 w-full" style={{ maxWidth: 760 }}>
+            {choices.map(c => {
+              const isGone = gone.includes(c), shine = hint >= 3 && c === q.a && !ok;
+              return (
+                <button key={c} onClick={() => pick(c)} disabled={isGone}
+                  className={`btn3d rounded-2xl border-2 px-5 py-4 text-3xl font-bold keep ${shakeK === c ? 'shake' : ''} ${shine ? 'glow' : ''}`}
+                  style={isGone ? { opacity: .25, background: '#f1f5f9', borderColor: '#cbd5e1' } : ok && c === q.a ? { background: '#fef08a', borderColor: '#ca8a04' } : { background: '#fff', borderColor: '#6366f1' }}>
+                  {c}
+                </button>
+              );
+            })}
+          </div>
+          {!ok && hint < 3 && (
+            <button onClick={() => showHint(hint + 1)} className={`btn3d rounded-2xl px-6 py-3 text-2xl font-bold border-2 bg-amber-100 border-amber-500 ${miss >= 1 ? 'glow' : ''}`}>
+              💡 ヒント{hint ? ` ${hint + 1}` : ''}
+            </button>
+          )}
+          <Seikai show={ok} />
+        </div>
+      );
+    }
+
+    // =====================================================================
+    //  8. ステージの がめん
+    // =====================================================================
+    function StageScreen({ st, progress, onSave, onBack, onCleared }) {
+      const talk = useTalk();
+      const settings = useContext(SetCtx);
+      const isWide = st.kind === 'room' || st.kind === 'dome';
+      const items = st.kind === 'room' ? KD.ITEMS.filter(i => i.g === st.room) : st.kind === 'dome' ? KD.ITEMS.filter(i => i.g === 'p') : st.kind === 'denki' ? KD.ITEMS.filter(i => i.g === 'e') : [];
+      const rules = KD.RULES[st.id] || [];
+      // まなぶ ページ：てんじの カード → やくそく → (よていは ひょう)
+      const pages = st.kind === 'sched' ? [{ t: 'sched' }] : [...items.map(it => ({ t: 'item', it })), ...(rules.length ? [{ t: 'rules' }] : [])];
+      const quiz = KD.QUIZ[st.id] || [];
+      const saved = progress.pos[st.id] || {};
+      const [ph, setPh] = useState(saved.ph === 'quiz' ? 'quiz' : 'learn');
+      const [pi, setPi] = useState(Math.min(saved.ph === 'learn' ? saved.i || 0 : 0, pages.length - 1));
+      const qStart = saved.ph === 'quiz' ? Math.min(saved.i || 0, quiz.length - 1) : 0;
+      const intro = st.kind === 'room' ? KD.ROOMS[st.room].say + ' みて みたい ものが あったら、「みたい！」を おしてね。'
+        : st.kind === 'dome' ? 'プラネタリウムでは、たいよう、ほし、つきの ことを べんきょう するよ。みて みたい ものに「みたい！」を おしてね。'
+        : st.kind === 'denki' ? 'でんきの じっけんを するよ。なにを するかは とうじつの おたのしみ！ やくそくを たしかめよう。'
+        : st.kind === 'sched' ? 'けんがくの 日の よていだよ。じかんの ところを おすと、よみあげるよ。'
+        : 'かがくかんの やくそくを たしかめよう。カードを おすと、よみあげるよ。';
+      useEffect(() => { if (ph === 'learn') talk.say(intro); }, []);
+      const page = pages[pi];
+      useEffect(() => {
+        if (ph !== 'learn') return;
+        onSave(p => { p.pos[st.id] = { ph: 'learn', i: pi }; });
+        if (pi > 0 && page.t === 'item') talk.say(`${page.it.n}。${page.it.d}`);
+        if (pi > 0 && page.t === 'rules') talk.say('やくそくだよ。' + rules.map(r => r.t).join('。'));
+      }, [pi, ph]);
+      const toggleHeart = (id) => {
+        const on = !progress.hearts[id];
+        if (on) { Sound.heart(); talk.say(st.kind === 'denki' ? 'やって みたいね！' : 'みたいね！'); } else Sound.tap();
+        onSave(p => { if (on) p.hearts[id] = 1; else delete p.hearts[id]; });
+      };
+      const goQuiz = () => { setPh('quiz'); onSave(p => { p.pos[st.id] = { ph: 'quiz', i: 0 }; }); };
+      const answer = (rec, next) => {
+        onSave(p => { p.stars += 1; p.pos[st.id] = { ph: 'quiz', i: next }; }, [rec]);
+      };
+      const done = () => onCleared(st.id);
+      return (
+        <div className="min-h-screen plain">
+          <TopBar title={`${st.e} ${st.n}`} onBack={onBack} color={st.c} right={<Stars n={progress.stars} />} />
+          {ph === 'learn' ? (
+            <div className="flex flex-col items-center gap-5 px-4 py-5">
+              {pi === 0 && <Talk text={intro} size={90} />}
+              {page.t === 'sched' && <SchedTable settings={settings} onRead={(r) => talk.say(schedSay(r))} />}
+              {page.t === 'item' && <ItemCard it={page.it} hearted={!!progress.hearts[page.it.id]} onHeart={() => toggleHeart(page.it.id)} heartLabel={page.it.g === 'e' ? 'やって みたい！' : 'みたい！'} />}
+              {page.t === 'rules' && (
+                <div className="grid gap-3 w-full" style={{ maxWidth: 720 }}>
+                  {rules.map((r, i) => (
+                    <button key={i} onClick={() => talk.say(r.t)} className="win flex items-center gap-4 px-5 py-3 text-3xl font-bold text-left keep">
+                      <span className="text-5xl">{r.e}</span>{r.t}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="flex items-center gap-4">
+                <Btn onClick={() => { Sound.tap(); setPi(Math.max(0, pi - 1)); }} disabled={pi === 0}>◀ まえ</Btn>
+                <div className="text-2xl font-bold">{pi + 1} ／ {pages.length}</div>
+                {pi < pages.length - 1
+                  ? <Btn onClick={() => { Sound.tap(); setPi(pi + 1); }}>つぎ ▶</Btn>
+                  : <Btn onClick={goQuiz} color="#b45309" light="#fef3c7" className="glow">クイズへ ▶</Btn>}
+              </div>
+              {isWide && (
+                <div className="flex gap-2 flex-wrap justify-center">
+                  {items.map((it, i) => (
+                    <button key={it.id} onClick={() => setPi(i)} className={`rounded-xl border-2 px-2 py-1 text-xl ${i === pi ? 'border-indigo-600 bg-indigo-50' : 'border-slate-300 bg-white'}`}>
+                      {it.e}{progress.hearts[it.id] ? '💖' : ''}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <Quiz stage={st.id} list={quiz} startAt={qStart} onAnswer={answer} onDone={done} />
+          )}
+        </div>
+      );
+    }
+
+    // ステージ クリア（スタンプ）
+    function ClearScreen({ st, progress, onHome, onNext }) {
+      const talk = useTalk();
+      useEffect(() => { Sound.fanfare(); talk.say(`${st.n}、クリア！ スタンプを おしたよ。`); }, []);
+      const hearts = KD.ITEMS.filter(i => progress.hearts[i.id] && (st.kind === 'room' ? i.g === st.room : st.kind === 'dome' ? i.g === 'p' : st.kind === 'denki' ? i.g === 'e' : false));
+      return (
+        <div className="min-h-screen space relative flex flex-col items-center justify-center gap-6 px-4 text-white">
+          <StarField />
+          <div className="stamp relative rounded-full flex flex-col items-center justify-center border-8 bg-white" style={{ width: 220, height: 220, borderColor: st.c, color: st.c }}>
+            <StageArt st={st} size={90} />
+            <div className="text-2xl font-bold">クリア！</div>
+          </div>
+          <div className="relative text-4xl font-bold">{st.n}</div>
+          {hearts.length > 0 && <div className="relative text-2xl font-bold">💖 みたい！：{hearts.map(h => h.e + h.n).join('、')}</div>}
+          <div className="relative"><Kirabo mood="happy" size={130} className="floaty" /></div>
+          <div className="relative flex gap-4">
+            <Btn onClick={onHome}>🏠 マップへ</Btn>
+            {onNext && <Btn onClick={onNext} color="#b45309" light="#fef3c7">つぎの ステージ ▶</Btn>}
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    //  9. ベスト3 と けんがく カード
+    // =====================================================================
+    function BestScreen({ name, progress, onSave, onBack, onCleared }) {
+      const talk = useTalk();
+      const settings = useContext(SetCtx);
+      const [best, setBest] = useState(progress.best.length === 3 ? progress.best : []);
+      const [step, setStep] = useState(progress.best.length === 3 ? 'card' : 'pick');
+      const [showAll, setShowAll] = useState(false);
+      const n = best.length; // いま えらんで いる ばんめ（0〜2）
+      const cur = best[n - 1];
+      const hearted = KD.ITEMS.filter(i => progress.hearts[i.id]);
+      const cands = (showAll || hearted.length < 3 ? KD.ITEMS : hearted).filter(i => !best.some(b => b.item === i.id));
+      const say = (s) => talk.say(s);
+      useEffect(() => {
+        if (step === 'pick') say(`${n + 1}ばんめに みたい もの、やって みたい ものを えらんでね。`);
+        if (step === 'reason') say(`どうして ${itemById(cur.item).n} を えらんだの？ りゆうを えらんでね。`);
+        if (step === 'card') say('けんがく カードが できたよ！ いんさつ して、とうじつ もって いこう。');
+      }, [step, n]);
+      const pickItem = (it) => { Sound.tap(); setBest([...best, { item: it.id, reason: '' }]); setStep('reason'); };
+      const pickReason = (r) => {
+        Sound.heart();
+        const nb = best.map((b, i) => i === n - 1 ? { ...b, reason: r.id } : b);
+        setBest(nb);
+        if (nb.length < 3) { setStep('pick'); setShowAll(false); return; }
+        setStep('card');
+        const recs = nb.map((b, i) => ({ stage: '9', qid: 'best' + (i + 1), q: `ベスト${i + 1}`, answer: itemById(b.item).n, result: KD.REASONS.find(x => x.id === b.reason).t, miss: 0, hint: 0, wrong: '', secs: 0, id: uid() }));
+        onSave(p => { p.best = nb; p.stars += 3; }, recs);
+        onCleared('9', true);
+      };
+      const back = () => { Sound.tap(); if (step === 'reason') { setBest(best.slice(0, -1)); setStep('pick'); } else if (n > 0) { setBest(best.slice(0, -1).map((b, i, a) => i === a.length - 1 ? { ...b, reason: '' } : b)); setStep('reason'); } };
+      return (
+        <div className="min-h-screen plain">
+          <TopBar title="🏆 ベスト3と けんがく カード" onBack={onBack} color="#ca8a04" right={<Stars n={progress.stars} />} />
+          <div className="flex flex-col items-center gap-5 px-4 py-5">
+            {step !== 'card' && (
+              <div className="flex gap-3">
+                {[0, 1, 2].map(i => {
+                  const b = best[i], it = b && itemById(b.item);
+                  return (
+                    <div key={i} className={`rounded-2xl border-4 px-3 py-2 text-center ${i === n - (step === 'reason' ? 1 : 0) ? 'border-amber-500 bg-amber-50' : 'border-slate-200 bg-white'}`} style={{ width: 170 }}>
+                      <div className="text-xl font-bold">{['🥇', '🥈', '🥉'][i]} {i + 1}ばんめ</div>
+                      <div className="text-4xl h-12">{it ? it.e : '？'}</div>
+                      <div className="text-base font-bold keep">{it ? it.n : ''}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {step === 'pick' && <>
+              <Talk text={`${n + 1}ばんめに みたい もの、やって みたい ものを えらんでね。`} size={80} />
+              {hearted.length < 3 && <div className="text-xl font-bold text-pink-600">💖 みたい！ が 3つより すくないので、ぜんぶ ならべたよ。</div>}
+              <div className="grid gap-3 w-full" style={{ maxWidth: 900, gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}>
+                {cands.map(it => (
+                  <button key={it.id} onClick={() => pickItem(it)} className="btn3d rounded-2xl border-2 border-indigo-400 bg-white px-2 py-3 flex flex-col items-center">
+                    <ItemArt it={it} size={64} />
+                    <div className="text-xl font-bold keep">{it.n}</div>
+                    <div className="text-sm text-slate-500">{groupName(it.g)}{progress.hearts[it.id] ? ' 💖' : ''}</div>
+                  </button>
+                ))}
+              </div>
+              {hearted.length >= 3 && <Btn onClick={() => setShowAll(!showAll)} className="text-xl">{showAll ? '💖 みたい！ だけ みる' : 'ほかの ものも みる'}</Btn>}
+            </>}
+            {step === 'reason' && <>
+              <ItemCard it={itemById(cur.item)} small />
+              <Talk text={`どうして ${itemById(cur.item).n} を えらんだの？`} mood="think" size={80} />
+              <div className="grid gap-3 w-full" style={{ maxWidth: 760, gridTemplateColumns: '1fr 1fr' }}>
+                {KD.REASONS.map(r => (
+                  <button key={r.id} onClick={() => pickReason(r)} className="btn3d rounded-2xl border-2 border-pink-400 bg-pink-50 px-3 py-4 text-2xl font-bold keep">{r.e} {r.t}</button>
+                ))}
+              </div>
+            </>}
+            {step !== 'card' && n > 0 && <button onClick={back} className="text-xl underline text-slate-500">ひとつ もどる</button>}
+            {step === 'card' && <>
+              <Talk text="けんがく カードが できたよ！ いんさつ して、とうじつ もって いこう。" mood="happy" size={90} />
+              <div className="bg-white shadow-xl" style={{ width: 'min(100%, 620px)' }}>
+                <KenCard name={name} best={best} settings={settings} hearts={progress.hearts} />
+              </div>
+              <div className="flex gap-4 flex-wrap justify-center">
+                <Btn onClick={() => printCards([{ name, best, hearts: progress.hearts }], settings)} color="#0f766e" light="#ccfbf1">🖨 いんさつ</Btn>
+                <Btn onClick={() => { setBest([]); setStep('pick'); }}>🔁 えらびなおす</Btn>
+              </div>
+            </>}
+          </div>
+        </div>
+      );
+    }
+
+    // けんがく カード（いんさつ用。A4 たて）
+    function KenCard({ name, best, settings, hearts, print }) {
+      const p = dateParts(settings.date);
+      const hs = KD.ITEMS.filter(i => hearts && hearts[i.id]);
+      const W = print ? { width: '194mm', minHeight: '279mm' } : {};
+      return (
+        <div className={print ? 'ppage' : ''} style={{ ...W, padding: print ? '4mm' : 14, fontFamily: "'BIZ UDPGothic', sans-serif", color: '#1e293b', boxSizing: 'border-box' }}>
+          <div style={{ border: '3px solid #4338ca', borderRadius: 16, padding: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Kirabo size={64} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: print ? 30 : 24, fontWeight: 700 }}>🔭 けんがく カード</div>
+                <div style={{ fontSize: print ? 16 : 13 }}><ruby>多摩六都<rt>たまろくと</rt></ruby><ruby>科学館<rt>かがくかん</rt></ruby>　{dateKana(p)}</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 8, fontSize: print ? 20 : 16, fontWeight: 700, alignItems: 'center' }}>
+              <div style={{ flex: 1, borderBottom: '2px solid #1e293b', padding: '4px 0' }}>なまえ：{name}</div>
+              <div>はん：　Ａ　・　Ｂ</div>
+            </div>
+            {/* よてい */}
+            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 10, fontSize: print ? 15 : 12 }}>
+              <thead><tr>{['じかん', 'Aはん', 'Bはん'].map(h => <th key={h} style={{ border: '1.5px solid #64748b', background: '#e0e7ff', padding: 4 }}>{h}</th>)}</tr></thead>
+              <tbody>{KD.SCHEDULE.map((r, i) => (
+                <tr key={i}>
+                  <td style={{ border: '1.5px solid #64748b', padding: 4, fontWeight: 700, whiteSpace: 'nowrap' }}>{r.time}</td>
+                  {r.all ? <td colSpan={2} style={{ border: '1.5px solid #64748b', padding: 4, textAlign: 'center' }}>{KD.PLACE[r.all].e} {KD.PLACE[r.all].n}（みんな）</td>
+                    : <><td style={{ border: '1.5px solid #64748b', padding: 4, textAlign: 'center' }}>{KD.PLACE[r.A].e} {KD.PLACE[r.A].n}</td><td style={{ border: '1.5px solid #64748b', padding: 4, textAlign: 'center' }}>{KD.PLACE[r.B].e} {KD.PLACE[r.B].n}</td></>}
+                </tr>
+              ))}</tbody>
+            </table>
+            {/* ベスト3 */}
+            <div style={{ fontSize: print ? 22 : 17, fontWeight: 700, marginTop: 12 }}>🏆 みたい もの・やって みたい もの ベスト3</div>
+            {best.map((b, i) => {
+              const it = itemById(b.item), r = KD.REASONS.find(x => x.id === b.reason) || { t: '' };
+              return (
+                <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'center', border: '2px solid #f59e0b', borderRadius: 12, padding: 8, marginTop: 8, background: '#fffbeb' }}>
+                  <div style={{ fontSize: print ? 34 : 26 }}>{['🥇', '🥈', '🥉'][i]}</div>
+                  <ItemArt it={it} size={print ? 64 : 48} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: print ? 22 : 17, fontWeight: 700 }}>{it.n}<span style={{ fontSize: print ? 14 : 11, fontWeight: 400, marginLeft: 8 }}>（{groupName(it.g)}）</span></div>
+                    <div style={{ fontSize: print ? 17 : 13 }}>りゆう：{r.t}</div>
+                    <div style={{ fontSize: print ? 15 : 12, marginTop: 6, borderBottom: '1.5px dashed #94a3b8', paddingBottom: 10 }}>じぶんの ことば：</div>
+                  </div>
+                  <div style={{ textAlign: 'center', fontSize: print ? 13 : 10, width: print ? 90 : 70 }}>
+                    <div>みられたかな？</div>
+                    <div style={{ fontSize: print ? 20 : 15, letterSpacing: 4 }}>◎ ○ △</div>
+                  </div>
+                </div>
+              );
+            })}
+            {hs.length > 0 && (
+              <div style={{ marginTop: 10, fontSize: print ? 14 : 11 }}>
+                <b>💖 みたい！ リスト：</b>{hs.map(h => h.e + h.n).join('　')}
+              </div>
+            )}
+            <div style={{ marginTop: 10, fontSize: print ? 16 : 12, fontWeight: 700 }}>✏️ けんがくの あとで：いちばん こころに のこった こと</div>
+            {[0, 1, 2].map(i => <div key={i} style={{ borderBottom: '1.5px solid #94a3b8', height: print ? 34 : 24 }} />)}
+          </div>
+        </div>
+      );
+    }
+    function printCards(list, settings) {
+      const el = document.getElementById('printarea');
+      if (!el.__root) el.__root = ReactDOM.createRoot(el);
+      el.__root.render(<div>{list.map((c, i) => <KenCard key={i} name={c.name} best={c.best} hearts={c.hearts} settings={settings} print />)}</div>);
+      setTimeout(() => { try { window.print(); } catch (e) { alert('いんさつ できませんでした。'); } }, 700);
+    }
+
+    // =====================================================================
+    //  10. ホーム（たんけん マップ）・パスポート
+    // =====================================================================
+    const isOpen = (progress, i) => i === 0 || progress.unlockAll || !!progress.cleared[KD.STAGES[i - 1].id];
+    function HomeScreen({ name, progress, onStage, onPass, onChange, demo }) {
+      const talk = useTalk();
+      const settings = useContext(SetCtx);
+      const next = KD.STAGES.findIndex(s => !progress.cleared[s.id]);
+      const greet = next < 0 ? `${name}さん、ぜんぶ クリア！ けんがく カードを もって、かがくかんへ いこう！` : `${name}さん、こんにちは！ ぼくは ほしの たんけんロボ、キラボ。いっしょに かがくかんを しらべよう！`;
+      useEffect(() => { talk.say(greet); }, []);
+      const tt = titleOf(progress.stars);
+      return (
+        <div className="min-h-screen space relative text-white pb-10">
+          <StarField n={60} />
+          <Pic file="home.webp" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: .55 }} />
+          <div className="relative flex items-center gap-3 px-4 pt-4 flex-wrap">
+            <div className="text-3xl font-bold flex-1">🔭 キラボと かがくかん たんけん</div>
+            <Stars n={progress.stars} />
+            <button onClick={onPass} className="btn3d rounded-2xl px-4 py-2 text-xl font-bold border-2 bg-white text-slate-800 border-indigo-400">📒 パスポート</button>
+            <button onClick={onChange} className="btn3d rounded-2xl px-4 py-2 text-xl font-bold border-2 bg-white/90 text-slate-800 border-slate-400">👤 {name}</button>
+          </div>
+          <div className="relative px-4 mt-3 flex flex-col items-center gap-2">
+            <div className="text-xl">{tt[2]} {tt[1]}　|　📅 {dateKana(dateParts(settings.date))}　<ruby>多摩六都<rt>たまろくと</rt></ruby><ruby>科学館<rt>かがくかん</rt></ruby></div>
+            <Talk text={greet} mood={next < 0 ? 'happy' : 'normal'} size={110} dark />
+          </div>
+          <div className="relative grid gap-4 px-4 mt-6 mx-auto" style={{ maxWidth: 1000, gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))' }}>
+            {KD.STAGES.map((st, i) => {
+              const open = isOpen(progress, i), clear = !!progress.cleared[st.id];
+              return (
+                <button key={st.id} disabled={!open} onClick={() => { Sound.tap(); onStage(st); }}
+                  className={`btn3d relative rounded-3xl border-2 px-3 py-4 flex flex-col items-center gap-1 ${i === next ? 'glow' : ''}`}
+                  style={open ? { background: '#fff', borderColor: st.c, color: '#1e293b' } : { background: 'rgba(255,255,255,.35)', borderColor: '#64748b', color: '#e2e8f0' }}>
+                  <div className="absolute left-2 top-1 text-lg font-bold" style={{ color: open ? st.c : '#e2e8f0' }}>{i}</div>
+                  {open ? <StageArt st={st} size={64} /> : <span className="text-5xl">🔒</span>}
+                  <div className="text-xl font-bold keep leading-tight">{st.n}</div>
+                  {clear && <div className="absolute -right-2 -top-3 rotate-12 rounded-full bg-rose-500 text-white text-base font-bold px-2 py-1 border-2 border-white">クリア</div>}
+                </button>
+              );
+            })}
+          </div>
+          {demo && <div className="relative text-center mt-6 text-amber-200 text-lg">おためしモード（きろくは この たんまつの なかだけ）</div>}
+        </div>
+      );
+    }
+
+    function PassScreen({ name, progress, onBack }) {
+      const talk = useTalk();
+      const tt = titleOf(progress.stars);
+      const nextT = TITLES.find(t => t[0] > progress.stars);
+      useEffect(() => { talk.say(`たんけん パスポートだよ。${name}さんは、${tt[1]}。` + (nextT ? `あと ${nextT[0] - progress.stars}こ ほしを あつめると、${nextT[1]} に なれるよ。` : 'いちばん うえの しょうごうだよ！')); }, []);
+      return (
+        <div className="min-h-screen space relative text-white">
+          <StarField />
+          <TopBar title="📒 たんけん パスポート" onBack={onBack} color="#312e81" />
+          <div className="relative flex flex-col items-center gap-5 px-4 py-6">
+            <div className="win text-slate-800 px-6 py-4 flex items-center gap-4">
+              <Kirabo mood="happy" size={90} />
+              <div>
+                <div className="text-2xl font-bold">{name}さん</div>
+                <div className="text-3xl font-bold">{tt[2]} {tt[1]}</div>
+                <div className="text-xl">⭐ {progress.stars}こ{nextT ? `（つぎの しょうごうまで あと ${nextT[0] - progress.stars}こ）` : ''}</div>
+              </div>
+            </div>
+            <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', maxWidth: 900, width: '100%' }}>
+              {KD.STAGES.map(st => {
+                const c = !!progress.cleared[st.id];
+                return (
+                  <div key={st.id} className="flex flex-col items-center gap-1">
+                    <div className={`rounded-full flex items-center justify-center border-4 bg-white ${c ? 'stamp' : ''}`} style={{ width: 110, height: 110, borderColor: c ? st.c : '#cbd5e1', opacity: c ? 1 : .35 }}>
+                      {c ? <StageArt st={st} size={62} /> : <span className="text-4xl text-slate-400">？</span>}
+                    </div>
+                    <div className="text-base font-bold text-center keep">{st.n}</div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="text-2xl font-bold mt-2">💖 みたい！ ({KD.ITEMS.filter(i => progress.hearts[i.id]).length})</div>
+            <div className="flex flex-wrap gap-2 justify-center" style={{ maxWidth: 900 }}>
+              {KD.ITEMS.filter(i => progress.hearts[i.id]).map(i => <span key={i.id} className="rounded-xl bg-white text-slate-800 px-3 py-1 text-xl font-bold">{i.e} {i.n}</span>)}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    //  11. なまえを えらぶ
+    // =====================================================================
+    function NameScreen({ students, onPick, onTeacher, demo }) {
+      const talk = useTalk();
+      useEffect(() => { talk.say('じぶんの なまえを おしてね。'); }, []);
+      return (
+        <div className="min-h-screen space relative text-white flex flex-col items-center gap-6 px-4 py-8">
+          <StarField n={60} />
+          <Pic file="home.webp" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: .55 }} />
+          <div className="relative text-4xl font-bold text-center">🔭 キラボと かがくかん たんけん</div>
+          <div className="relative"><Talk text="じぶんの なまえを おしてね。" size={110} dark /></div>
+          <div className="relative grid gap-4 w-full" style={{ maxWidth: 900, gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+            {students.map(n => <button key={n} onClick={() => { Sound.tap(); onPick(n); }} className="btn3d rounded-3xl border-2 border-indigo-400 bg-white text-slate-800 px-4 py-5 text-3xl font-bold">{n}</button>)}
+          </div>
+          {!students.length && <div className="relative text-2xl bg-white/90 text-slate-800 rounded-2xl px-5 py-3">スプレッドシートの「名簿」シートに、子どもの なまえを 入れてください。</div>}
+          {demo && <div className="relative text-amber-200 text-lg">おためしモード（きろくは この たんまつの なかだけ。先生用の 暗証番号は 1234）</div>}
+          <button onClick={onTeacher} className="relative mt-auto self-end rounded-xl px-4 py-2 text-lg border-2 border-white/60 bg-white/10">🔒 せんせい</button>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    //  12. 先生用画面
+    // =====================================================================
+    function TeacherScreen({ onBack, onSettings }) {
+      const [pin, setPin] = useState('');
+      const [data, setData] = useState(null);
+      const [err, setErr] = useState('');
+      const [tab, setTab] = useState('rec');
+      const [msg, setMsg] = useState('');
+      const [busy, setBusy] = useState(false);
+      const flash = (m) => { setMsg(m); setTimeout(() => setMsg(''), 2500); };
+      const load = async (p = pin) => {
+        setBusy(true);
+        try { const r = await api.teacher(p); if (!r.ok) { setErr('暗証番号が ちがいます'); setPin(''); } else { setData(r); setErr(''); } }
+        catch (e) { setErr('読みこめませんでした：' + e.message); }
+        setBusy(false);
+      };
+      if (!data) {
+        return (
+          <div className="min-h-screen plain flex flex-col items-center gap-4 pt-16">
+            <div className="text-3xl font-bold">🔒 先生用画面</div>
+            <div className="text-xl">4けたの 暗証番号を 入れてください</div>
+            <div className="text-4xl tracking-widest font-bold h-12">{pin.replace(/./g, '●')}</div>
+            <div className="grid grid-cols-3 gap-3">
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'けす', '0', 'OK'].map(k => (
+                <button key={k} disabled={busy} onClick={() => {
+                  if (k === 'けす') setPin(pin.slice(0, -1));
+                  else if (k === 'OK') load();
+                  else if (pin.length < 4) { const np = pin + k; setPin(np); if (np.length === 4) load(np); }
+                }} className="btn3d rounded-2xl border-2 border-slate-400 bg-white w-24 h-16 text-2xl font-bold">{k}</button>
+              ))}
+            </div>
+            {err && <div className="text-red-600 text-xl font-bold">{err}</div>}
+            <Btn onClick={onBack} className="mt-4 text-xl">◀ もどる</Btn>
+          </div>
+        );
+      }
+      const studs = data.students.map(s => ({ ...s, p: parseProgress(s.progress) }));
+      // にんき ランキング
+      const rank = KD.ITEMS.map(it => {
+        const bestBy = studs.filter(s => s.p.best.some(b => b.item === it.id)).map(s => s.name);
+        const heartBy = studs.filter(s => s.p.hearts[it.id]).map(s => s.name);
+        return { it, bestBy, heartBy, score: bestBy.length * 3 + heartBy.length };
+      }).filter(r => r.score > 0).sort((a, b) => b.score - a.score);
+      const missList = Object.entries(data.classMiss || {}).sort((a, b) => b[1].n - a[1].n).slice(0, 12);
+      const tabs = [['rec', '📋 きろく'], ['rank', '💖 にんき'], ['set', '⚙️ せってい'], ['data', '💾 データ']];
+      return (
+        <div className="min-h-screen bg-slate-50 pb-10">
+          <TopBar title="先生用画面" onBack={onBack} color="#334155" right={<span className="text-sm">版 {APP_VERSION}{data.demo ? '（おためし）' : ''}</span>} />
+          {data.isDefaultPin && <div className="bg-amber-100 text-amber-800 px-4 py-2 text-lg">暗証番号が はじめの「1234」のままです。「せってい」で 変えてください。</div>}
+          <div className="flex gap-2 px-4 pt-3">
+            {tabs.map(([k, l]) => <button key={k} onClick={() => setTab(k)} className={`rounded-t-xl px-4 py-2 text-xl font-bold border-2 border-b-0 ${tab === k ? 'bg-white border-slate-400' : 'bg-slate-200 border-transparent'}`}>{l}</button>)}
+          </div>
+          <div className="bg-white border-t-2 border-slate-400 px-4 py-4">
+            {msg && <div className="mb-3 rounded-xl bg-emerald-100 text-emerald-800 px-4 py-2 text-lg font-bold">{msg}</div>}
+            {tab === 'rec' && (
+              <div className="flex flex-col gap-4">
+                <div className="flex gap-3 flex-wrap">
+                  <Btn onClick={() => load()} className="text-lg">🔄 さいしんに する</Btn>
+                  <Btn onClick={() => { const l = studs.filter(s => s.p.best.length === 3).map(s => ({ name: s.name, best: s.p.best, hearts: s.p.hearts })); if (!l.length) flash('ベスト3を えらんだ 子が まだ いません'); else printCards(l, data.settings); }} color="#0f766e" light="#ccfbf1" className="text-lg">🖨 全員の けんがく カードを いんさつ</Btn>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="text-base border-collapse w-full">
+                    <thead><tr className="bg-slate-100">{['なまえ', 'すすみ', 'クイズ', 'つまずいた もんだい', 'ベスト3（りゆう）', 'みたい！', ''].map(h => <th key={h} className="border px-2 py-1 text-left">{h}</th>)}</tr></thead>
+                    <tbody>{studs.map(s => (
+                      <tr key={s.name} className="align-top">
+                        <td className="border px-2 py-1 font-bold text-lg">{s.name}<div className="text-xs text-slate-500">{s.last}</div></td>
+                        <td className="border px-2 py-1">{KD.STAGES.map(st => <span key={st.id} title={st.n} className={`inline-block w-6 text-center rounded ${s.p.cleared[st.id] ? 'bg-emerald-200' : 'bg-slate-100 text-slate-400'}`}>{st.id}</span>)}</td>
+                        <td className="border px-2 py-1 whitespace-nowrap">{s.count ? `${s.ok}／${s.count}` : '−'}<div className="text-xs text-slate-500">まちがえずに できた／ぜんぶ</div></td>
+                        <td className="border px-2 py-1 text-sm">{Object.entries(s.miss || {}).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, v]) => <div key={k}>{k}（{v}）</div>)}</td>
+                        <td className="border px-2 py-1 text-sm">{s.p.best.map((b, i) => { const it = itemById(b.item); const r = KD.REASONS.find(x => x.id === b.reason); return it ? <div key={i}>{i + 1}. {it.e}{it.n}（{r ? r.t : ''}）</div> : null; })}</td>
+                        <td className="border px-2 py-1 text-sm">{KD.ITEMS.filter(i => s.p.hearts[i.id]).map(i => i.e).join(' ')}</td>
+                        <td className="border px-2 py-1 text-sm">
+                          <label className="flex items-center gap-1 whitespace-nowrap"><input type="checkbox" checked={!!s.p.unlockAll} onChange={async (e) => { await api.setFlag(pin, s.name, 'unlockAll', e.target.checked); load(); }} /> 全部開く</label>
+                          {s.p.best.length === 3 && <button className="underline mt-1" onClick={() => printCards([{ name: s.name, best: s.p.best, hearts: s.p.hearts }], data.settings)}>🖨 カード</button>}
+                        </td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+                <div>
+                  <div className="text-xl font-bold mb-1">学級で つまずきが 多い もんだい</div>
+                  {missList.length ? missList.map(([q, v]) => (
+                    <div key={q} className="text-base border-b py-1">{q}：{v.n}回　<span className="text-slate-500">えらんだ まちがい：{Object.entries(v.w).sort((a, b) => b[1] - a[1]).map(([w, n]) => `${w}（${n}）`).join('・')}</span></div>
+                  )) : <div className="text-slate-500">まだ ありません</div>}
+                </div>
+              </div>
+            )}
+            {tab === 'rank' && (
+              <div>
+                <div className="text-lg mb-2">ベスト3に えらばれると3点、みたい！は1点で ならべています。当日の 見学の 順番を 決めるときに 使えます。</div>
+                <table className="text-base border-collapse w-full">
+                  <thead><tr className="bg-slate-100">{['', 'てんじ', 'ばしょ', 'ベスト3に えらんだ 子', 'みたい！ の 子'].map(h => <th key={h} className="border px-2 py-1 text-left">{h}</th>)}</tr></thead>
+                  <tbody>{rank.map((r, i) => (
+                    <tr key={r.it.id}><td className="border px-2 py-1">{i + 1}</td><td className="border px-2 py-1 font-bold">{r.it.e} {r.it.n}</td><td className="border px-2 py-1">{groupName(r.it.g)}</td>
+                      <td className="border px-2 py-1">{r.bestBy.join('・')}</td><td className="border px-2 py-1">{r.heartBy.join('・')}</td></tr>
+                  ))}</tbody>
+                </table>
+                {!rank.length && <div className="text-slate-500 mt-2">まだ ありません</div>}
+              </div>
+            )}
+            {tab === 'set' && <SettingsTab pin={pin} settings={data.settings} onSaved={(s) => { onSettings(s); flash('ほぞん しました'); load(); }} />}
+            {tab === 'data' && <DataTab pin={pin} studs={studs} flash={flash} reload={load} />}
+          </div>
+        </div>
+      );
+    }
+
+    function SettingsTab({ pin, settings, onSaved }) {
+      const [s, setS] = useState({ ...settings });
+      const [newPin, setNewPin] = useState('');
+      const row = (label, el) => <div className="flex items-center gap-4 py-2 border-b"><div className="w-56 text-lg font-bold">{label}</div>{el}</div>;
+      return (
+        <div className="flex flex-col" style={{ maxWidth: 760 }}>
+          {row('けんがくの 日', <input type="date" value={(s.date || '').replace(/\//g, '-')} onChange={e => setS({ ...s, date: e.target.value.replace(/-/g, '/') })} className="border-2 rounded-lg px-2 py-1 text-lg" />)}
+          {row('よみあげの はやさ', <><input type="range" min="0.5" max="1.2" step="0.05" value={s.rate} onChange={e => setS({ ...s, rate: Number(e.target.value) })} /><span className="text-lg">{Number(s.rate).toFixed(2)}倍</span><button className="underline" onClick={() => { Speech.rate = s.rate; Speech.say('キラボだよ。この はやさで よむよ。'); }}>ためす</button></>)}
+          {row('もじの おおきさ', <select value={s.font} onChange={e => setS({ ...s, font: Number(e.target.value) })} className="border-2 rounded-lg px-2 py-1 text-lg">{[[0.9, 'ちいさめ'], [1, 'ふつう'], [1.15, 'おおきめ'], [1.3, 'とても おおきい']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>)}
+          {row('こうかおん', <label className="text-lg"><input type="checkbox" checked={!!s.sound} onChange={e => setS({ ...s, sound: e.target.checked })} /> ならす</label>)}
+          {row('暗証番号を 変える', <input value={newPin} onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="4けた" className="border-2 rounded-lg px-2 py-1 text-lg w-28" />)}
+          <div className="text-base text-slate-500 mt-2">予定の 時間（10:00〜 など）を 変えたいときは、data/kagakukan.js の SCHEDULE を 直します。</div>
+          <Btn onClick={async () => { const body = { ...s }; if (/^\d{4}$/.test(newPin)) body.newPin = newPin; const r = await api.saveSettings(pin, body); if (r.ok) onSaved(s); }} className="mt-4 self-start text-xl">💾 ほぞん</Btn>
+        </div>
+      );
+    }
+
+    function DataTab({ pin, studs, flash, reload }) {
+      const [pending, setPending] = useState(api.pending());
+      const [who, setWho] = useState('');
+      const fileRef = useRef(null);
+      const csv = async () => {
+        const r = await api.logRows(pin); if (!r.ok) return;
+        const text = '﻿' + r.rows.map(row => row.map(v => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+        downloadText(`かがくかん_きろく_${nowStr().slice(0, 10).replace(/\//g, '')}.csv`, text, 'text/csv');
+      };
+      return (
+        <div className="flex flex-col gap-4 text-lg" style={{ maxWidth: 760 }}>
+          <div>まだ送れていない記録：{pending} 件 <button onClick={async () => { await api.flush(); setPending(api.pending()); flash('送り直しました'); }} className="ml-2 rounded-xl px-3 py-1 border-2 bg-white font-bold">いま送る</button></div>
+          <div className="flex gap-3 flex-wrap">
+            <Btn onClick={csv} className="text-lg">📄 記録を CSV で 書き出す</Btn>
+            <Btn onClick={async () => { const r = await api.backup(pin); if (r.ok) downloadText(`かがくかん_バックアップ_${nowStr().slice(0, 10).replace(/\//g, '')}.json`, JSON.stringify(r.data)); }} className="text-lg">💾 バックアップ</Btn>
+            <Btn onClick={() => fileRef.current.click()} className="text-lg">📂 バックアップから もどす</Btn>
+            <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={async (e) => {
+              const f = e.target.files[0]; if (!f) return;
+              try { const data = JSON.parse(await f.text()); const r = await api.restore(pin, data); flash(r.ok ? 'もどしました' : 'この アプリの バックアップでは ありません'); reload(); } catch (err) { flash('読みこめませんでした'); }
+            }} />
+          </div>
+          <div className="border-2 border-red-300 rounded-2xl p-4 bg-red-50">
+            <div className="font-bold text-red-700">記録を 消す（もとに もどせません）</div>
+            <div className="flex gap-3 items-center mt-2">
+              <select value={who} onChange={e => setWho(e.target.value)} className="border-2 rounded-lg px-2 py-1"><option value="">全員</option>{studs.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}</select>
+              <button onClick={async () => { if (!confirm(`${who || '全員'}の 記録を 消します。よろしいですか？`)) return; await api.clear(pin, who); (who ? [who] : studs.map(s => s.name)).forEach(n => safeStore.del(COPY_KEY(n))); flash('消しました'); reload(); }} className="rounded-xl px-4 py-2 border-2 border-red-500 bg-white text-red-700 font-bold">消す</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // =====================================================================
+    //  13. アプリ ぜんたい
+    // =====================================================================
+    function App() {
+      const [boot, setBoot] = useState(null);
+      const [err, setErr] = useState('');
+      const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+      const [name, setName] = useState('');
+      const [progress, setProgress] = useState(null);
+      const [view, setView] = useState({ v: 'names' });
+      const lastSay = useRef('');
+      const talk = useMemo(() => ({ say: (t, cb) => { lastSay.current = t; Speech.say(t, cb); } }), []);
+      const applySettings = (s) => {
+        const m = { ...DEFAULT_SETTINGS, ...s };
+        setSettings(m); Speech.rate = Number(m.rate) || 0.8; Sound.on = m.sound !== false;
+        document.documentElement.style.fontSize = (16 * (Number(m.font) || 1)) + 'px';
+      };
+      useEffect(() => {
+        (async () => {
+          try {
+            await window.KAGAKU_READY;
+            KD = window.KAGAKU_DATA; IMG_OK = new Set(window.KAGAKU_IMG || []);
+            const r = await api.init();
+            applySettings(r.settings); setBoot(r);
+            api.flush();
+          } catch (e) { setErr(String(e && e.message || e)); }
+        })();
+        const on = () => api.flush();
+        window.addEventListener('online', on);
+        return () => window.removeEventListener('online', on);
+      }, []);
+      // しんちょくを かえて ほぞん（records が あれば いっしょに おくる）
+      const saveProgress = (fn, records = []) => {
+        setProgress(prev => {
+          const p = parseProgress(JSON.stringify(prev));
+          fn(p); p.t = Date.now();
+          const json = JSON.stringify(p);
+          safeStore.set(COPY_KEY(name), json);
+          api.save({ name, progress: json, records, stamp: nowStr(), time: Date.now() });
+          return p;
+        });
+      };
+      const pickName = async (n) => {
+        setName(n);
+        let s = '';
+        try { s = await api.student(n); } catch (e) { s = ''; }
+        const server = parseProgress(s), copy = parseProgress(safeStore.get(COPY_KEY(n)));
+        // この たんまつの ほうが あたらしければ それを つかう（先生が かえた「全部開く」は のこす）
+        let p = copy.t > server.t ? copy : server;
+        if (p === copy && server.flagT && server.flagT > (copy.flagT || 0)) { p.unlockAll = !!server.unlockAll; p.flagT = server.flagT; }
+        setProgress(p); setView({ v: 'home' });
+      };
+      const cleared = (id, stay) => {
+        saveProgress(p => { p.cleared[id] = 1; delete p.pos[id]; });
+        if (!stay) setView({ v: 'clear', st: stageById(id) });
+      };
+      if (err) return <div className="p-10 text-2xl text-red-700">よみこめませんでした。インターネットに つながって いるか たしかめて、ページを よみこみなおして ください。<div className="text-base mt-4">{err}</div></div>;
+      if (!boot) return <div className="p-16 text-center text-3xl font-bold text-indigo-700">じゅんび ちゅう…</div>;
+      let body;
+      if (view.v === 'teacher') body = <TeacherScreen onBack={() => setView({ v: name ? 'home' : 'names' })} onSettings={applySettings} />;
+      else if (!name || !progress) body = <NameScreen students={boot.students} demo={boot.demo} onPick={pickName} onTeacher={() => setView({ v: 'teacher' })} />;
+      else if (view.v === 'stage') body = view.st.kind === 'best'
+        ? <BestScreen name={name} progress={progress} onSave={saveProgress} onBack={() => setView({ v: 'home' })} onCleared={cleared} />
+        : <StageScreen key={view.st.id + (view.k || '')} st={view.st} progress={progress} onSave={saveProgress} onBack={() => setView({ v: 'home' })} onCleared={cleared} />;
+      else if (view.v === 'clear') {
+        const i = KD.STAGES.findIndex(s => s.id === view.st.id);
+        const nx = KD.STAGES[i + 1];
+        body = <ClearScreen st={view.st} progress={progress} onHome={() => setView({ v: 'home' })} onNext={nx ? () => setView({ v: 'stage', st: nx, k: uid() }) : null} />;
+      }
+      else if (view.v === 'pass') body = <PassScreen name={name} progress={progress} onBack={() => setView({ v: 'home' })} />;
+      else body = <HomeScreen name={name} progress={progress} demo={boot.demo} onStage={(st) => setView({ v: 'stage', st, k: uid() })} onPass={() => setView({ v: 'pass' })} onChange={() => { Speech.stop(); setName(''); setProgress(null); setView({ v: 'names' }); }} />;
+      return <SetCtx.Provider value={settings}><TalkCtx.Provider value={talk}>{body}</TalkCtx.Provider></SetCtx.Provider>;
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
