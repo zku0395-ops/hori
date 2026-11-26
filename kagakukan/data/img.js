@@ -7,6 +7,7 @@ window.KAGAKU_IMG = [
   'items/c2.webp',
   'items/c3.webp',
   'items/c4.webp',
+  'items/c5.webp',
   'items/e1.webp',
   'items/k1.webp',
   'items/k2.webp',
