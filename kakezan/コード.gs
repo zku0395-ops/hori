@@ -220,7 +220,7 @@ function saveResult(payload) {
       const neu = parseProgress_(payload.progress);
       // 古い 端末の しんちょくでは 上書きしない。先生が あとから 変えた ところは のこす
       if (!old.t || (neu.t || 0) >= old.t) {
-        if (old.flagT && old.flagT > (neu.t || 0)) {
+        if (old.flagT && old.flagT > (neu.flagT || 0)) {
           TEACHER_KEYS.forEach(function (k) { neu[k] = old[k] === undefined ? null : old[k]; });
           neu.flagT = old.flagT;
         }

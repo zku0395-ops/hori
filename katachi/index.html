@@ -836,7 +836,7 @@
       async sendOne(p) {
         if (HAS_GAS) return gas('saveResult', p);
         const d = Local.data(), old = parseProgress(d.progress[p.name]), neu = parseProgress(p.progress);
-        if (neu.t >= old.t) { if (old.flagT && old.flagT > neu.t) copyFlags(neu, old); d.progress[p.name] = JSON.stringify(neu); }
+        if (neu.t >= old.t) { if (old.flagT && old.flagT > (neu.flagT || 0)) copyFlags(neu, old); d.progress[p.name] = JSON.stringify(neu); }
         const ids = new Set(d.log.map(r => r[9]));
         p.records.forEach(r => { if (!ids.has(r.id)) d.log.push(recRow(p.stamp, p.name, r)); });
         Local.save(); return { ok: true };

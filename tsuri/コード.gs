@@ -193,7 +193,7 @@ function saveResult(payload) {
       const neu = parseProgress_(payload.progress);
       // 先生が変えた フラグは のこす。古い 端末の しんちょくでは 上書きしない
       if (!old.t || (neu.t || 0) >= old.t) {
-        if (old.flagT && old.flagT > (neu.t || 0)) {
+        if (old.flagT && old.flagT > (neu.flagT || 0)) {
           FLAGS.forEach(function (k) { neu[k] = !!old[k]; });
           neu.flagT = old.flagT;
         }
