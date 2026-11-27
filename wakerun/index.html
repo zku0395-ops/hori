@@ -79,7 +79,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, createContext, useContext } = React;
-    const APP_VERSION = '1.3.0';
+    const APP_VERSION = '1.3.1';
     const BASE = window.WAKE_BASE;
     const IMG = BASE + 'img/';
     let STAGES = [], SHAPES = [], DEN_YOMI = {}, NUM_YOMI = {}, TIERS = [], ITEM_CATS = [], FX = {}, LEVELS = [], HAS_IMG = new Set(), ALL_ITEMS = [];
@@ -776,6 +776,30 @@
     // かいの さがす ぶんぼ
     const roundTargets = (st, round) => st.roundTargets ? st.roundTargets[(round - 1) % st.roundTargets.length] : st.targets;
     // まちがいの かたちを つくる
+    // つぎに おとす ものを えらぶ。さがす ぶんすう・ほかの ぶんすう（・ひとしくない・2つぶん）を おなじ わりあいで えらび、
+    // すぐ まえと おなじ しゅるいは つづけない（正しい 形も つづけない）。まちがいの 形が 2つ つづいたら、つぎは 正しい 形
+    function pickNext(st, t, hasTarget, hist, tt) {
+      const pool = ['t', ...st.others.filter(n => n !== t).map(n => 'n' + n)];
+      if (st.unequal) pool.push('uneq');
+      if (st.two) pool.push('two');
+      const last = hist[hist.length - 1];
+      // 正しい 形が 出てから いくつ たったか（まちがいの 形が 2つ つづいたら、つぎは かならず 正しい 形）
+      const since = hist.length - 1 - hist.lastIndexOf('t');
+      let key;
+      if (!hasTarget && last !== 't' && since >= 2) key = 't';
+      else {
+        const c = pool.filter(k => k !== last);
+        // タイムトライアルは 正しい 形を すこし 多めに（30びょうで みつけられる 数が へりすぎないように）
+        if (tt && !hasTarget && last !== 't') c.push('t', 't');
+        key = pickOne(c.length ? c : pool);
+      }
+      let o;
+      if (key === 't') o = makeObj('target', t, { diag: st.diag });
+      else if (key === 'uneq') o = makeObj('uneq', t, { diag: st.diag });
+      else if (key === 'two') o = makeObj('two', pickOne([3, 4, 8].filter(n => 2 / n !== 1 / t)), { diag: st.diag });
+      else o = makeObj('other', Number(key.slice(1)), { diag: st.diag });
+      return { o, key };
+    }
     function makeWrong(st, t) {
       const kinds = ['other'];
       if (st.unequal) kinds.push('uneq');
@@ -822,6 +846,7 @@
       const [bursts, setBursts] = useState([]);
       const started = useRef(false);
       const lastSpawn = useRef(0);
+      const lastKey = useRef([]); // さいきん おとした しゅるい
       const done = useRef(false);
       const perfect = useRef(true);
       const fxList = FX[(equip.fx && ITEM[equip.fx]) ? equip.fx : 'base'] || FX.base;
@@ -871,17 +896,27 @@
           objs.current.forEach(o => { if (!o.stop) o.y += v * dt; });
           objs.current = objs.current.filter(o => o.y < H + 4 && !o.gone);
           // あたらしく おとす
-          const alive = objs.current.filter(o => !o.stop);
+          let alive = objs.current.filter(o => !o.stop);
+          const hasTarget = alive.some(o => o.kind === 'target' && o.n === want);
+          // さがす 形が 画面に ない ときは、つぎを はやく おとす（まつ 時間を みじかく する）
           const gap = tt ? 600 : fallSec / settings.at * 0.75 * 1000;
-          if (!done.current && alive.length < settings.at && (now - lastSpawn.current > gap || alive.length === 0)) {
+          const due = alive.length === 0 || now - lastSpawn.current > (hasTarget ? gap : tt ? 300 : Math.min(gap, 1500));
+          // 画面が まちがいの 形だけで いっぱいの ときは、いちばん 下の 1つを けして 場所を あける。
+          // （のこった 形が 場所を ふさいで、あたらしく おちて くる ものが 正しい 形 ばかりに ならないように）
+          if (!done.current && due && !hasTarget && alive.length >= settings.at) {
+            const old = alive.reduce((a, b) => (b.y > a.y ? b : a));
+            old.stop = true; old.fade = true; setTimeout(() => { old.gone = true; }, 550);
+            alive = alive.filter(o => o !== old);
+          }
+          if (!done.current && due && alive.length < settings.at) {
             const lanes = Math.max(settings.at, Math.floor(W / (sz * 1.12)));
             const slot = W / lanes;
             const busy = new Set(objs.current.filter(o => o.y < sz * 1.4).map(o => o.lane));
             const free = Array.from({ length: lanes }, (_, i) => i).filter(i => !busy.has(i));
             if (free.length) {
               const lane = pickOne(free);
-              const hasTarget = alive.some(o => o.kind === 'target' && o.n === want);
-              const o = (!hasTarget || Math.random() < 0.35) ? makeObj('target', want, { diag: st.diag }) : makeWrong(st, want);
+              const { o, key } = pickNext(st, want, hasTarget, lastKey.current, tt);
+              lastKey.current = [...lastKey.current, key].slice(-8);
               o.lane = lane; o.x = lane * slot + (slot - sz) / 2; o.y = -sz; o.sz = sz;
               objs.current.push(o);
               lastSpawn.current = now;
