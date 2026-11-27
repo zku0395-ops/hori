@@ -194,7 +194,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, useCallback } = React;
-    const APP_VERSION = '1.6.1';
+    const APP_VERSION = '1.7.0';
 
     // =====================================================================
     //  1. 小さな道具
@@ -667,17 +667,26 @@
     // =====================================================================
     //  5. 文章の 画面
     // =====================================================================
-    function TextPane({ title, doc, marks, sel, reading, vertical, paint, heat, preview, onTap, onPaint, ansSet, glow, maybe, okStart, hl, para, picId, charMode, onChar, fit }) {
-      const ref = useRef(null), painting = useRef(false);
+    function TextPane({ title, doc, marks, sel, reading, vertical, paint, heat, preview, onTap, onPaint, ansSet, glow, maybe, okStart, hl, para, picId, charMode, onChar, fit, onDrag }) {
+      const ref = useRef(null), painting = useRef(false), dragRef = useRef(null), skipClick = useRef(false);
       const unitAt = (e) => { const el = document.elementFromPoint(e.clientX, e.clientY); const u = el && el.closest && el.closest('[data-i]'); return u ? Number(u.dataset.i) : -1; };
       const charAt = (e) => { const el = document.elementFromPoint(e.clientX, e.clientY); const c = el && el.closest && el.closest('[data-c]'); return c ? Number(c.dataset.c) : -1; };
       const down = (e) => {
         if (charMode && onChar) { const p = charAt(e); if (p < 0) return; painting.current = true; onChar('start', p); return; } // もじ：1文字ずつ なぞって えらぶ
+        skipClick.current = false;
+        // ぶん・かたまり：おした ところから はなした ところまでを、なぞって えらぶ（おすだけ のときは、今までどおり click で えらぶ）
+        if (!paint && onDrag) { const i = unitAt(e); if (i < 0) return; dragRef.current = { i0: i, moved: false }; return; }
         if (!paint || !onPaint) return; const i = unitAt(e); if (i < 0) return; painting.current = true; onPaint('start', i);
       };
-      const move = (e) => { if (!painting.current) return; if (charMode) { const p = charAt(e); if (p >= 0) onChar('move', p); return; } const i = unitAt(e); if (i >= 0) onPaint('move', i); };
-      const up = () => { if (!painting.current) return; painting.current = false; if (charMode) onChar('end', -1); else onPaint('end', -1); };
-      const click = (e) => { if (paint || charMode || !onTap) return; const u = e.target.closest('[data-i]'); if (u) onTap(Number(u.dataset.i)); };
+      const move = (e) => {
+        const d = dragRef.current;
+        if (d) { const i = unitAt(e); if (i < 0 || (i === d.i0 && !d.moved)) return; d.moved = true; onDrag('move', d.i0, i); return; }
+        if (!painting.current) return; if (charMode) { const p = charAt(e); if (p >= 0) onChar('move', p); return; } const i = unitAt(e); if (i >= 0) onPaint('move', i); };
+      const up = () => {
+        const d = dragRef.current;
+        if (d) { dragRef.current = null; if (d.moved) { skipClick.current = true; onDrag('end', d.i0, -1); } return; }
+        if (!painting.current) return; painting.current = false; if (charMode) onChar('end', -1); else onPaint('end', -1); };
+      const click = (e) => { if (skipClick.current) { skipClick.current = false; return; } if (paint || charMode || !onTap) return; const u = e.target.closest('[data-i]'); if (u) onTap(Number(u.dataset.i)); };
       const scroll = (dir) => { const el = ref.current; if (!el) return; vertical ? el.scrollBy({ left: -dir * el.clientWidth * 0.7, behavior: 'smooth' }) : el.scrollBy({ top: dir * el.clientHeight * 0.7, behavior: 'smooth' }); };
       const [over, setOver] = useState(false);
       // fit：スクロールしなくても ぜんぶ 読めるように、入りきる いちばん 大きい 文字に する。
@@ -707,7 +716,7 @@
       }, [doc, vertical, fit]);
       return (
         <>
-          <div ref={ref} className={'tscroll' + (vertical ? ' v' : '') + (paint || charMode ? ' paint' : '') + (over ? ' over' : '')} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerLeave={up} onClick={click}>
+          <div ref={ref} className={'tscroll' + (vertical ? ' v' : '') + (paint || charMode || onDrag ? ' paint' : '') + (over ? ' over' : '')} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onPointerLeave={up} onClick={click}>
             <div className={'tbody' + (preview ? ' preview' : '') + (fit ? ' fit' : '')}>
               {picId ? <Pic id={picId} className="tpic" /> : null}
               {title ? <h2 className="ttitle">{rubyNodes(title)}</h2> : null}
@@ -932,6 +941,7 @@
       const [work, setWork] = useState(null);
       const [done, setDone] = useState(false);
       const [sel, setSel] = useState(null);
+      const [dragging, setDragging] = useState(false); // なぞって いる 間は、下の バーを 出さない（文章の 大きさが 変わって、指の 下の ことばが ずれる ため）
       const [tool, setTool] = useState('sel');
       const [gran, setGran] = useState('u');
       const [layout, setLayout] = useState('both');
@@ -1070,13 +1080,20 @@
         else if (sel.one) setSel({ a: Math.min(sel.a, a), b: Math.max(sel.b, b), one: false });
         else setSel({ a, b, one: true });
       };
+      // ぶん・かたまり：なぞって えらぶ。前の えらびは 消えて、なぞった ところだけに なる
+      const onDrag = (ph, i0, i) => {
+        if (ph === 'end') { setDragging(false); sfx.tap(); return; }
+        setDragging(true);
+        const [a0, b0] = range(i0), [a1, b1] = range(i);
+        setSel({ a: Math.min(a0, a1), b: Math.max(b0, b1), one: false });
+      };
       // もじ：1文字ずつ えらぶ（なぞる。または、はじめの 文字と おわりの 文字を おす）
       const cRange = (p, q, one) => { const ca = Math.min(p, q), cb = Math.max(p, q); return { ch: true, ca, cb, a: doc.cu[ca], b: doc.cu[cb], one }; };
       const onChar = (ph, p) => {
         if (ph === 'start') { charRef.current = { p0: p, moved: false }; return; }
         const d = charRef.current; if (!d) return;
-        if (ph === 'move') { if (p === d.p0 && !d.moved) return; d.moved = true; setSel(cRange(d.p0, p, false)); return; }
-        charRef.current = null; sfx.tap();
+        if (ph === 'move') { if (p === d.p0 && !d.moved) return; d.moved = true; setDragging(true); setSel(cRange(d.p0, p, false)); return; }
+        charRef.current = null; setDragging(false); sfx.tap();
         if (d.moved) return;
         const q = d.p0;
         if (!sel || !sel.ch) setSel(cRange(q, q, true));
@@ -1326,9 +1343,9 @@
                     <div className="qmsg">{qmsg}</div>
                   </div>
                 ) : null}
-                <TextPane fit picId={text.id} title={text.title} doc={doc} marks={work.marks} sel={sel} reading={reading} vertical={settings.vertical} paint={tool !== 'sel'} onTap={onTap} onPaint={onPaint} charMode={tool === 'sel' && gran === 'c'} onChar={onChar}
+                <TextPane fit picId={text.id} title={text.title} doc={doc} marks={work.marks} sel={sel} reading={reading} vertical={settings.vertical} paint={tool !== 'sel'} onTap={onTap} onPaint={onPaint} charMode={tool === 'sel' && gran === 'c'} onChar={onChar} onDrag={tool === 'sel' && gran !== 'c' ? onDrag : null}
                   hl={A && lv >= 2 ? new Set(A.u) : null} glow={A && lv >= 3 ? new Set(A.u) : null} okStart={chk ? chk.ok : null} maybe={chk ? chk.maybe : null} para={ANS.paraShow && ANS.para.length ? ANS.para : null} />
-                {sel ? (
+                {sel && !dragging ? (
                   <div className="selbar">
                     <div className="selword">「{selWord}」</div>
                     <button className="btn sm" onClick={speakSel}>🔊 よむ</button>
