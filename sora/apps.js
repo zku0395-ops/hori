@@ -40,6 +40,7 @@ window.SORA = {
           { id: 'kanjitest1', emoji: '💯', name: 'かんじテスト（1ねん）', url: 'https://sites.google.com/view/kannjitestnew/%E3%83%9B%E3%83%BC%E3%83%A0' },
           { id: 'kanjiquiz1', emoji: '❓', name: 'かんじクイズ①', say: 'かんじクイズ いち', url: 'https://sites.google.com/view/kanjikuizu1/%E3%83%9B%E3%83%BC%E3%83%A0' },
           { id: 'kanjiquiz2', emoji: '❓', name: 'かんじクイズ②', say: 'かんじクイズ に', url: 'https://sites.google.com/view/kanjijkuizu2/%E3%83%9B%E3%83%BC%E3%83%A0' },
+          { id: 'kanjiquest', emoji: '🐲', name: 'フデリュウと かんじの ぼうけん', say: 'フデリュウと かんじの ぼうけん', url: 'https://script.google.com/macros/s/AKfycbyBHM4Viiawbpit8QeuuMxeiD6tZOGPBXWzH9vPbu3PhM_6alVab8jZKB-EyyMC5fQP/exec' },
         ] },
         { id: 'kotoba', name: 'ことばと ぶん', emoji: '💬', apps: [
           { id: 'kuttsuki', emoji: '🔗', name: 'くっつきことばマスター', url: 'https://sites.google.com/view/kuttukikotobamaster/%E3%83%9B%E3%83%BC%E3%83%A0' },
@@ -60,6 +61,9 @@ window.SORA = {
           { id: 'dracchikotoba', emoji: '🐉', name: 'ドラッチと ことばの ぼうけん', say: 'ドラッチと ことばの ぼうけん', url: 'https://script.google.com/macros/s/AKfycbzqChsiLiRsDFR35HsC31TjfR8OsVqIp5Rr45uFSu1vkRHLXXJuEe-3auBd05JttFnuUA/exec' },
           { id: 'bunbunkotoba', emoji: '🧙', name: 'ブンブンちょうろうの ことばの ぼうけん', say: 'ブンブンちょうろうの ことばの ぼうけん', url: 'https://script.google.com/macros/s/AKfycbxVQOeY_SsNNFZAKkU2BoqpOBZgAGBVop7p-QW7jN5tVWI5e-773ZGFZJ96y40dHPdwtg/exec' },
           { id: 'sukiwake', emoji: '📺', name: 'ペラリさんの すきの わけ テレビきょく', say: 'ペラリさんの すきの わけ テレビきょく', url: 'https://script.google.com/macros/s/AKfycbw8kUP_NuwnsVz48ukZfkCjZ_Ei1hH3vPsvCLVXCp01PLrzm7U9wCPSVK90j2oMhTq8/exec' },
+          { id: 'yumefusen', emoji: '🎈', name: 'フワリさんの ゆめの ふうせんやさん', say: 'フワリさんの ゆめの ふうせんやさん', url: 'https://script.google.com/macros/s/AKfycbzvPFIVDDZWYIhLTlFMdnCxQkI9prTrckJMme062okV8iO14fTcP7u7enSNZPF7PYQzaw/exec' },
+          { id: 'kotobayusha', emoji: '⚔️', name: 'ことばの ゆうしゃ', say: 'ことばの ゆうしゃ', url: 'https://zku0395-ops.github.io/hori/kotobayusha/' },
+          { id: 'kotobayushaprint', emoji: '📝', name: 'ことばの ゆうしゃ ワークシート', say: 'ことばの ゆうしゃ ワークシート', url: 'https://zku0395-ops.github.io/hori/kotobayushaprint/' },
         ] },
         { id: 'yomu', name: 'よむ', emoji: '📗', apps: [
           { id: 'ondokumaster', emoji: '🗣️', name: 'おんどくマスター', url: 'https://sites.google.com/view/ondokumasterda/%E3%83%9B%E3%83%BC%E3%83%A0' },
@@ -72,6 +76,17 @@ window.SORA = {
           { id: 'shiofuro', emoji: '🛁', name: '{詩|し}の {音読|おんどく}（おふろ だいすき）', say: 'しの おんどく おふろ だいすき', url: 'https://zku0395-ops.github.io/hori/shi/ofuro/' },
           { id: 'shiundoukai', emoji: '🏃', name: '{詩|し}の {音読|おんどく}（わくわく うんどうかい）', say: 'しの おんどく わくわく うんどうかい', url: 'https://zku0395-ops.github.io/hori/shi/undoukai/' },
           { id: 'shiyuki', emoji: '⛄', name: '{詩|し}の {音読|おんどく}（ゆきの ひ）', say: 'しの おんどく ゆきの ひ', url: 'https://zku0395-ops.github.io/hori/shi/yuki/' },
+          { id: 'shiharu', emoji: '🌷', name: '{詩|し}の {音読|おんどく}（はるの のはら）', say: 'しの おんどく はるの のはら', url: 'https://zku0395-ops.github.io/hori/shi/haru/' },
+          { id: 'shiumi', emoji: '🌊', name: '{詩|し}の {音読|おんどく}（うみで あそぼう）', say: 'しの おんどく うみで あそぼう', url: 'https://zku0395-ops.github.io/hori/shi/umi/' },
+          { id: 'shidoubutsuen', emoji: '🦁', name: '{詩|し}の {音読|おんどく}（どうぶつえんへ いこう）', say: 'しの おんどく どうぶつえんへ いこう', url: 'https://zku0395-ops.github.io/hori/shi/doubutsuen/' },
+          { id: 'shicookie', emoji: '🍪', name: '{詩|し}の {音読|おんどく}（クッキーを つくろう）', say: 'しの おんどく クッキーを つくろう', url: 'https://zku0395-ops.github.io/hori/shi/cookie/' },
+          { id: 'shidensha', emoji: '🚃', name: '{詩|し}の {音読|おんどく}（でんしゃで おでかけ）', say: 'しの おんどく でんしゃで おでかけ', url: 'https://zku0395-ops.github.io/hori/shi/densha/' },
+          { id: 'monogatari', emoji: '🌸', name: 'ピカリせんせいの ものがたりの もり', say: 'ピカリせんせいの ものがたりの もり', url: 'https://script.google.com/macros/s/AKfycbxuT2z3PhAXIhhxaWGg2bL0UPpnr1R0AXROsUQ9NDSFOG6X0cbw9dasZhA1Azdta4V5Bw/exec' },
+          { id: 'kokuban', emoji: '🖍️', name: 'チョークんの マイこくばん', say: 'チョークんの マイこくばん', url: 'https://script.google.com/macros/s/AKfycbzcWs4Korrmy003Ew_ymIUg5lmv0LlywokiQ3X5UViyjmAeHxgftrGpIWFFdhaOk_7JPg/exec' },
+          { id: 'ouchisagashi', emoji: '🏠', name: 'ホーせんぱいと おうちさがし たんていだん', say: 'ホーせんぱいと おうちさがし たんていだん', url: 'https://script.google.com/macros/s/AKfycbw0wX8_ZLYx08wtisrmeIRZEBCXoqV2i6icz2RPWGDGQtbFFjUk8ebUZmAGXWNhIzv1/exec' },
+        ] },
+        { id: 'shosha', name: 'しょしゃ', emoji: '🖌️', apps: [
+          { id: 'shosha', emoji: '🖌️', name: 'スミまると ふでの どうじょう', say: 'スミまると ふでの どうじょう', url: 'https://zku0395-ops.github.io/hori/shosha/' },
         ] },
       ],
     },
@@ -89,9 +104,11 @@ window.SORA = {
         ] },
         { id: 'tashihiki', name: 'たしざん・ひきざん', emoji: '➕', apps: [
           { id: 'tashihissan', emoji: '➕', name: 'たしざん（ひっさん）マスター', url: 'https://sites.google.com/view/tasizanhissannmasternew/%E3%83%9B%E3%83%BC%E3%83%A0' },
+          { id: 'tashizanquest', emoji: '⚔️', name: 'たしざん ひっさん クエスト', say: 'たしざん ひっさん クエスト', url: 'https://script.google.com/macros/s/AKfycbwUFdGgbZtaKOQH8F7UYwwknOy2zTgCayhMi9pwXMMm2x3MZLlO1JvFcvM5FdXVY9PEVg/exec' },
           { id: 'hikimaster', emoji: '➖', name: 'ひきざんマスター', url: 'https://tadashi-hori.my.canva.site/c73hahewarmzp1m7' },
           { id: 'hikihissan', emoji: '➖', name: 'ひきざん（ひっさん）マスター', url: 'https://sites.google.com/view/hikizanhissann/%E3%83%9B%E3%83%BC%E3%83%A0' },
           { id: 'kurisagari', emoji: '🐿️', name: 'くりさがりの ある ひきざんマスター', url: 'https://sites.google.com/view/kurisagariarihissann/%E3%83%9B%E3%83%BC%E3%83%A0' },
+          { id: 'donguriginkou', emoji: '🌰', name: 'クルミせんせいの どんぐり ぎんこう', say: 'クルミせんせいの どんぐり ぎんこう', url: 'https://zku0395-ops.github.io/hori/hissan/' },
           { id: 'bunshoumondai', emoji: '📝', name: 'ぶんしょうもんだいマスター（たしざん・ひきざん）', url: 'https://sites.google.com/view/bunsyoumondai1/%E3%83%9B%E3%83%BC%E3%83%A0' },
           { id: 'kaimono', emoji: '🛒', name: 'かいものマスター', url: 'https://sites.google.com/view/kaimonomasternew/%E3%83%9B%E3%83%BC%E3%83%A0' },
           { id: 'tsurimaster', emoji: '🎣', name: 'ゲンじいの つりマスター への みち', url: 'https://script.google.com/macros/s/AKfycbzPdlp3vc2V6KOM0Mta6P4qFObfaGoxYf97l-aUhhF-kwrglbW7iX3OJ7D6ZPCrzNnR/exec' },
@@ -105,6 +122,7 @@ window.SORA = {
           { id: 'kukubingo', emoji: '🎯', name: 'かけ{算|ざん}{九九|くく}（ビンゴよう）', url: 'https://sites.google.com/view/kakezanbingo/%E3%83%9B%E3%83%BC%E3%83%A0' },
           { id: 'anaaki', emoji: '🕳️', name: 'あなあき かけざん', url: 'https://sites.google.com/view/anaakikakezan/%E3%83%9B%E3%83%BC%E3%83%A0' },
           { id: 'kakehissan', emoji: '📐', name: 'かけざんの ひっさんマスター', url: 'https://sites.google.com/view/kakezanhissannmaster/%E3%83%9B%E3%83%BC%E3%83%A0' },
+          { id: 'kakezanquest', emoji: '🧙', name: 'ケンジャの カケルさまの ひっさん クエスト', url: 'https://script.google.com/macros/s/AKfycbx1KDdpc8r3NYfusWoUs7EyZPY9NbJ3SuP-k3yqu5seKv0OSsfMbqNoV5CdsPcRVmSK/exec' },
           { id: 'warimaster', emoji: '🍎', name: 'わり{算|ざん}マスター', url: 'https://sites.google.com/view/warizanmaster/%E3%83%9B%E3%83%BC%E3%83%A0' },
         ] },
         { id: 'tokei', name: 'とけい・じかん', emoji: '🕐', apps: [
@@ -123,10 +141,13 @@ window.SORA = {
           { id: 'sankakushikaku', emoji: '📐', name: 'さんかくけい・しかくけいマスター', url: 'https://sites.google.com/view/sannkakukeisiakkujke/%E3%83%9B%E3%83%BC%E3%83%A0' },
           { id: 'kakudomaster', emoji: '📐', name: '{角度|かくど}マスター', url: 'https://script.google.com/a/macros/kodaira.ed.jp/s/AKfycbxw8fASLD8nHe3qW3Z1Sz9M1-V3sIbk3NRCLYKLJjUEHTLWbLgTkrgHH6iRzHh7igJX/exec' },
           { id: 'kakudowani', emoji: '🐊', name: 'かくどを はかろう（ワニ）', url: 'https://sites.google.com/view/kakudowohakarou/%E3%83%9B%E3%83%BC%E3%83%A0' },
+          { id: 'katachioukoku', emoji: '🏰', name: 'サンカと かたちの おうこく', say: 'サンカと かたちの おうこく', url: 'https://script.google.com/macros/s/AKfycbxpAnXst3q60XPHMcufprCHtjPUGRT_70NIkHzOUDhe1tRYLhDUp-2E-O8z8CNV_kggEQ/exec' },
         ] },
         { id: 'bunsu', name: 'ぶんすう・しょうすう', emoji: '🍰', apps: [
           { id: 'bunsumaster', emoji: '🍰', name: 'ぶんすうマスター', url: 'https://sites.google.com/view/bunsumasternew/%E3%83%9B%E3%83%BC%E3%83%A0' },
           { id: 'bunsumaster2', emoji: '🎂', name: '{分数|ぶんすう}マスター②', say: 'ぶんすうマスター に', url: 'https://sites.google.com/view/bunsumaste/%E3%83%9B%E3%83%BC%E3%83%A0' },
+          { id: 'bunsumasterninarou', emoji: '🍕', name: '{分数|ぶんすう}マスターに なろう', say: 'ぶんすうマスターに なろう', url: 'https://claude.ai/artifact/SphxMy4VW4MzgJx24wD8yZ' },
+          { id: 'wakerun', emoji: '🤖', name: 'ワケルンの ぶんすう うちゅう パトロール', url: 'https://script.google.com/macros/s/AKfycbz1UBqBPe5mBFPPCror3c7lUIhE0CXE1HfHSlwzDREqEF1w6zrwcyIlKtJ0Bu9oPhvw/exec' },
           { id: 'shousuhissan', emoji: '🔟', name: '{小数|しょうすう}の かけ{算|ざん}（ひっ{算|さん}）', url: 'https://sites.google.com/view/syousuunohissann/%E3%83%9B%E3%83%BC%E3%83%A0' },
         ] },
       ],
@@ -180,19 +201,27 @@ window.SORA = {
       id: 'gyoji', name: 'ぎょうじの へや', emoji: '🎪', color: '#a855f7', img: 'img/gyoji.webp',
       spot: { x: 71.5, y: 53, w: 26, h: 27 },
       shelves: [
-        { id: 'gyoji', name: 'ぎょうじ', emoji: '🎪', apps: [] },
+        { id: 'gyoji', name: 'ぎょうじ', emoji: '🎪', apps: [
+          { id: 'kagakukan', emoji: '🔭', name: 'キラボと かがくかん たんけん', say: 'キラボと かがくかん たんけん', url: 'https://script.google.com/macros/s/AKfycbzjodmAgDCs-i9Sa-Fv4G3ivblfnB7d5MeKsM-l4wRqOY3ngB4cEkAuqZyGrLI5xg6L_A/exec' },
+        ] },
       ],
     },
   ],
 
   // 先生用画面の「プリント」（子どもの画面には 出しません）
   prints: [
+    { id: 'p-tashizan', emoji: '⚔️', name: 'たし算の ひっ算（プリント）', url: 'https://zku0395-ops.github.io/hori/tashizan/print/' },
     { id: 'p-hissan', emoji: '🐿️', name: 'くりさがりの ある ひき算（プリント）', url: 'https://zku0395-ops.github.io/hori/hissan/print/' },
+    { id: 'p-kakezan', emoji: '🧙', name: 'かけ算の ひっ算（プリント）', url: 'https://zku0395-ops.github.io/hori/kakezan/print/' },
     { id: 'p-katakana', emoji: '🤖', name: 'カタカナプリント作成', url: 'https://sites.google.com/view/katakanapurinnto/%E3%83%9B%E3%83%BC%E3%83%A0' },
     { id: 'p-kanji1', emoji: '1️⃣', name: '漢字（1年）プリント', url: 'https://zku0395-ops.github.io/hori/kanjiprint/' },
     { id: 'p-kanji2', emoji: '2️⃣', name: '漢字（2年）プリント', url: 'https://zku0395-ops.github.io/hori/kanjiprint/?g=2' },
     { id: 'p-kanji3', emoji: '3️⃣', name: '漢字（3年）プリント', url: 'https://zku0395-ops.github.io/hori/kanjiprint/?g=3' },
     { id: 'p-nazotoki', emoji: '🐶', name: '文の読解（いつ・だれが）プリント', url: 'https://zku0395-ops.github.io/hori/nazotokiprint/' },
+    { id: 'p-kotoba', emoji: '🐉', name: 'ことばの いみ ワークシート（1〜4年）', url: 'https://zku0395-ops.github.io/hori/kotobaprint/' },
+    { id: 'p-kotobayusha', emoji: '⚔️', name: 'ことばの ゆうしゃ ワークシート（絵を見て 文を書く）', url: 'https://zku0395-ops.github.io/hori/kotobayushaprint/' },
+    { id: 'p-monogatari', emoji: '🌸', name: '物語の読み取り（ものがたりの もり）文章プリント', url: 'https://zku0395-ops.github.io/hori/monogatari/print.html' },
+    { id: 'p-katachi', emoji: '🏰', name: '三角形・四角形 ワークシート（サンカの かたち）', url: 'https://zku0395-ops.github.io/hori/katachiprint/' },
   ],
 
   // どの Chromebook でも はじめから「きょうの おすすめ」に 出す アプリの id（先生用画面で 変えると、その 台の 設定が 先に なります）

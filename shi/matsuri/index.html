@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px sans-serif}img{max-width:100%}[hidden]{display:none!important}.poem h1, .line { cursor: pointer; }
+.bar .speak { background: #fff7d6; border-color: #e8c84a; }
+</style>
 <title>どうぶつ たちの おまつり</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -253,6 +255,7 @@ body {
     <button type="button" id="restart">はじめから</button>
     <button type="button" id="back">◀ もどる</button>
     <span class="count" id="count">0 / 9</span>
+    <button type="button" class="speak" id="speak">🔊 よむ</button>
     <button type="button" class="next" id="next">つぎの ぎょう ▶</button>
     <button type="button" id="all">ぜんぶ だす</button>
     <span class="sep" aria-hidden="true"></span>
@@ -491,6 +494,15 @@ document.getElementById('full').addEventListener('click', () => {
     else document.documentElement.requestFullscreen().catch(() => {});
   } catch (e) {}
 });
+
+// お手本の こえ（Google AI Studio で 作った こえ。v0 = だいめい、v1〜v9 = ぎょう）
+const voice = new Audio();
+function speak(i) {
+  try { voice.pause(); voice.src = 'voice/v' + i + '.mp3'; voice.currentTime = 0; voice.play().catch(() => {}); } catch (e) {}
+}
+document.getElementById('speak').addEventListener('click', () => speak(shown));
+poem.querySelector('h1').addEventListener('click', () => speak(0));
+lineEls.forEach((p, i) => p.addEventListener('click', e => { if (!e.target.closest('.hide')) speak(i + 1); }));
 
 render();
 fit();

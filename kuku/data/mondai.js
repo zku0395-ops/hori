@@ -196,6 +196,125 @@
     { id: 's_okane', name: 'おにの こばん', e: '🪙' }, { id: 's_sakura', name: 'さくらの えだ', e: '🌸' }, { id: 's_oukan', name: 'おにの おうかん', e: '👑', sp: true },
   ];
 
+  // ---- まおうの もり（ぼうけんを ぜんぶ クリアすると ひらく） ----
+  // 8かしょ。絵は img/mori_<p>.webp。⑧の さいごに まおう（M9）が でる
+  const MORI_PLACES = [
+    { p: 1, name: 'もりの いりぐち', e: '🌳', color: '#15803d', bg: '夕ぐれの 深い森の 入口（大きな 古木の 門、光る 小さな 玉が うかぶ）',
+      intro: 'ここが まおうの もりの いりぐちだよ。おおきな きが ざわざわ……。もりの なかから だれかが みて いるよ。' },
+    { p: 2, name: 'きのこの もり', e: '🍄', color: '#c026d3', bg: '光る 大きな きのこが 生えた 森（むらさきと 水色の 光）',
+      intro: 'きのこの もりに ついたよ。おおきな きのこが ぴかぴか ひかって いるね。' },
+    { p: 3, name: 'ほたるの たに', e: '✨', color: '#ca8a04', bg: '夜の 谷間（小川と たくさんの ほたるの 光）',
+      intro: 'ほたるの たにだよ。きらきら ひかる ほたるが いっぱい。きれいだけど、ゆだんは きんもつ！' },
+    { p: 4, name: 'くらやみの ぬま', e: '🌑', color: '#475569', bg: '暗い 沼地（枯れ木、霧、水面に うつる 月）',
+      intro: 'くらやみの ぬまに ついたよ。あしもとに きを つけて すすもう。' },
+    { p: 5, name: 'ねじれぎの みち', e: '🌀', color: '#92400e', bg: 'ぐるぐる ねじれた 木が 並ぶ 森の 小道（つたと 光る 文字の 石）',
+      intro: 'ねじれぎの みちだよ。きが ぐにゃぐにゃ まがって いるね。みちに まよわないように しよう。' },
+    { p: 6, name: 'きりの みずうみ', e: '🌫️', color: '#0891b2', bg: '霧に つつまれた 静かな 湖（小さな 島と 鳥居）',
+      intro: 'きりの みずうみに ついたよ。きりで まわりが よく みえないね。みずうみの なかに なにか いるよ。' },
+    { p: 7, name: 'いばらの とりで', e: '🏯', color: '#be123c', bg: 'いばらに おおわれた 古い 砦の 門（赤い 月）',
+      intro: 'いばらの とりでだよ。まおうの けらいたちが まもって いるよ。' },
+    { p: 8, name: 'まおうの しろ', e: '🏰', color: '#6d28d9', bg: '森の 奥の 黒い 城の 大広間（むらさきの 炎の 灯り）',
+      intro: 'いよいよ まおうの しろ！ けらいを たおして、さいごに まおうと たたかおう！' },
+  ];
+  // 48たい ＋ まおう。n：じゅんばん（6＝ボス、7＝まおう）、e：絵が ないときの 絵文字（絵は img/enemy_<id>.webp）
+  // ふつうの あいては くく 10もん。ボスは 6もん（ぶんしょうだい・□を もとめる・しきを さがす）、まおうは 10もん
+  const MORI = [
+    // 1 もりの いりぐち
+    { id: 'mr_kodama', p: 1, n: 1, name: 'こだま', e: '🌱', hello: 'こだま〜 こだま〜。もりに はいる ものは だれだ〜？', item: 'm_donguri' },
+    { id: 'mr_happa', p: 1, n: 2, name: 'はっぱ こぞう', e: '🍃', hello: 'ひらひら〜っ！ はっぱに かくれて いたんだよ！', item: 'm_happa' },
+    { id: 'mr_risu', p: 1, n: 3, name: 'いたずら りす', e: '🐿️', hello: 'きみの おべんとう、もらっちゃうぞ！', item: 'm_kurumi' },
+    { id: 'mr_fukurou', p: 1, n: 4, name: 'よふかし ふくろう', e: '🦉', hello: 'ほう ほう。よるの もりは わしの なわばりじゃ。', item: 'm_hane' },
+    { id: 'mr_mihari', p: 1, n: 5, name: 'もりの みはり にんじゃ', e: '🥷', hello: 'まおうさまの もりには いれさせないぞ！', item: 'm_fue' },
+    { id: 'mr_kusunoki', p: 1, n: 6, boss: true, name: 'くすのき じい', e: '🌳', hello: 'わしは この もりで 1000ねん いきて おる。わしの なぞが とけるかな？', item: 'm_ki' },
+    // 2 きのこの もり
+    { id: 'mr_odorikinoko', p: 2, n: 1, name: 'おどる きのこ', e: '🍄', hello: 'るんるん るん♪ いっしょに おどろうよ！', item: 'm_shiitake' },
+    { id: 'mr_houshi', p: 2, n: 2, name: 'ほうし ぐも', e: '☁️', hello: 'ふわふわ〜。くしゃみが でちゃう ぞ〜。', item: 'm_wata' },
+    { id: 'mr_katatsumuri', p: 2, n: 3, name: 'かたつむり むしゃ', e: '🐌', hello: 'ゆっくり いくぞ。でも からは かたいぞ！', item: 'm_ajisai' },
+    { id: 'mr_kinokoninja', p: 2, n: 4, name: 'きのこ にんじゃ', e: '🥷', hello: 'きのこの かさに かくれる じゅつ！', item: 'm_kasa' },
+    { id: 'mr_kinokomajo', p: 2, n: 5, name: 'きのこの まほうつかい', e: '🧙', hello: 'ちちんぷいぷい！ きのこに なあれ！', item: 'm_tsue' },
+    { id: 'mr_ookinoko', p: 2, n: 6, boss: true, name: 'おおきのこ さま', e: '🍄', hello: 'ぽよん ぽよん！ わしが きのこの もりの おうさまじゃ！', item: 'm_kinokokanmuri' },
+    // 3 ほたるの たに
+    { id: 'mr_hotarubouzu', p: 3, n: 1, name: 'ほたる ぼうず', e: '💡', hello: 'ぴかっ ぴかっ。おしりが ひかるんだ！', item: 'm_hotaru' },
+    { id: 'mr_hoshikuzu', p: 3, n: 2, name: 'ほしくず こびと', e: '⭐', hello: 'ほしの かけらを あつめて いるんだ。じゃま しないで！', item: 'm_hoshi' },
+    { id: 'mr_tsukiusagi', p: 3, n: 3, name: 'つきよの うさぎ', e: '🐇', hello: 'ぴょーん！ おつきさままで とんで いけるよ！', item: 'm_mochi' },
+    { id: 'mr_hotaruninja', p: 3, n: 4, name: 'ほたるび にんじゃ', e: '🥷', hello: 'ひかりに まぎれて しのびよったぞ！', item: 'm_chochin' },
+    { id: 'mr_tanikaze', p: 3, n: 5, name: 'たにかぜ こぞう', e: '🌬️', hello: 'ぴゅーっ！ かぜで ふきとばして やる！', item: 'm_kazaguruma' },
+    { id: 'mr_hotaruhime', p: 3, n: 6, boss: true, name: 'ほたるの ひめ', e: '🌟', hello: 'わたくしの ひかりの まほう、みやぶれるかしら？', item: 'm_hikaridama' },
+    // 4 くらやみの ぬま
+    { id: 'mr_dorotabou', p: 4, n: 1, name: 'どろたぼう', e: '🟫', hello: 'どろ どろ〜。ぬまに ひきこんで やるぞ〜。', item: 'm_hasu' },
+    { id: 'mr_koumori', p: 4, n: 2, name: 'くらやみ こうもり', e: '🦇', hello: 'きーきー！ くらやみなら まけないよ！', item: 'm_tsukimi' },
+    { id: 'mr_mizugumo', p: 4, n: 3, name: 'みずぐも', e: '🕷️', hello: 'すいすい〜。みずの うえを あるけるのさ。', item: 'm_ito' },
+    { id: 'mr_kageninja', p: 4, n: 4, name: 'かげ にんじゃ', e: '🥷', hello: 'わたしは かげ。どこに いるか わかるまい！', item: 'm_kagami' },
+    { id: 'mr_numahitodama', p: 4, n: 5, name: 'ぬまの ひとだま', e: '👻', hello: 'ふわ〜り ふわり。こっちへ おいで〜。', item: 'm_ame' },
+    { id: 'mr_daija', p: 4, n: 6, boss: true, name: 'くらやみ だいじゃ', e: '🐍', hello: 'しゅるるる……。ぬまの ぬしは この わしだ。', item: 'm_hebinoko' },
+    // 5 ねじれぎの みち
+    { id: 'mr_nejireeda', p: 5, n: 1, name: 'ねじれえだ おばけ', e: '🌿', hello: 'ぐにゃ〜り。みちを まげて やったぞ！', item: 'm_eda' },
+    { id: 'mr_karasutengu', p: 5, n: 2, name: 'からす てんぐ', e: '🐦‍⬛', hello: 'かあ かあ！ そらから まる みえだぞ！', item: 'm_uchiwa' },
+    { id: 'mr_tsuchigumo', p: 5, n: 3, name: 'つちぐも', e: '🕸️', hello: 'あみに かかったな！ にがさないぞ〜。', item: 'm_kumonosu' },
+    { id: 'mr_tsutamajo', p: 5, n: 4, name: 'つたの まほうつかい', e: '🧝', hello: 'つたよ のびろ！ ぐるぐる まきに して あげる！', item: 'm_tsuta' },
+    { id: 'mr_oomukade', p: 5, n: 5, name: 'おおむかで', e: '🐛', hello: 'あしが いっぱい！ はやいぞ はやいぞ！', item: 'm_kutsu' },
+    { id: 'mr_daitengu', p: 5, n: 6, boss: true, name: 'だいてんぐ', e: '👺', hello: 'わしは やまの だいてんぐ。ちえくらべを しようでは ないか！', item: 'm_tenguuchiwa' },
+    // 6 きりの みずうみ
+    { id: 'mr_kiri', p: 6, n: 1, name: 'きり にゅうどう', e: '🌫️', hello: 'もわ〜ん。きりで なにも みえないだろう〜。', item: 'm_shizuku' },
+    { id: 'mr_sagi', p: 6, n: 2, name: 'あおさぎ ようかい', e: '🪶', hello: 'くわっ！ ながい あしで まって いたぞ！', item: 'm_sakana' },
+    { id: 'mr_kame', p: 6, n: 3, name: 'ふしぎな かめ', e: '🐢', hello: 'わしは 100ねん いきた かめじゃ。のんびり いこう。', item: 'm_koura' },
+    { id: 'mr_kirininja', p: 6, n: 4, name: 'きり にんじゃ', e: '🥷', hello: 'きりの なかから しゅっ！ みえたかな？', item: 'm_hasuha' },
+    { id: 'mr_suishou', p: 6, n: 5, name: 'すいしょう ようせい', e: '💠', hello: 'きらきら〜。わたしの まほうで こおらせちゃう！', item: 'm_suishou' },
+    { id: 'mr_kiriryu', p: 6, n: 6, boss: true, name: 'きりの りゅう', e: '🐉', hello: 'みずうみの そこから めざめたぞ。わしの もんだいに こたえて みよ！', item: 'm_ryutama' },
+    // 7 いばらの とりで
+    { id: 'mr_ibaramusha', p: 7, n: 1, name: 'いばら むしゃ', e: '🌹', hello: 'とげとげの よろいだ！ ちかよるな！', item: 'm_bara' },
+    { id: 'mr_karakuri', p: 7, n: 2, name: 'からくり へい', e: '⚙️', hello: 'がしゃん がしゃん。とりでを まもる からくりだ。', item: 'm_haguruma' },
+    { id: 'mr_inoshishi', p: 7, n: 3, name: 'いばら いのしし', e: '🐗', hello: 'ぶもー！ まっすぐ とっしんだ！', item: 'm_kuri' },
+    { id: 'mr_kuromajo', p: 7, n: 4, name: 'くろい まほうつかい', e: '🧙', hello: 'まおうさまの ために、まほうで とめて みせる！', item: 'm_hon' },
+    { id: 'mr_toridenin', p: 7, n: 5, name: 'とりでの もんばん にんじゃ', e: '🥷', hello: 'この もんは とおさん！ まおうさまの めいれいだ！', item: 'm_hata' },
+    { id: 'mr_kurokage', p: 7, n: 6, boss: true, name: 'くろかげ しょうぐん', e: '⚔️', hello: 'わしは まおうさまの みぎうで。ここで おまえを とめる！', item: 'm_kabuto' },
+    // 8 まおうの しろ
+    { id: 'mr_shimobe', p: 8, n: 1, name: 'まおうの しもべ おに', e: '👹', hello: 'まおうさまの ところへは いかせないぞ！', item: 'm_kanabou' },
+    { id: 'mr_kageboushi', p: 8, n: 2, name: 'かげぼうし', e: '👤', hello: 'きみの かげに なって ついて いくよ〜。', item: 'm_rousoku' },
+    { id: 'mr_yamineko', p: 8, n: 3, name: 'やみねこ', e: '🐈‍⬛', hello: 'にゃおーん。くらやみで めが ひかるのさ。', item: 'm_suzu' },
+    { id: 'mr_yamimajo', p: 8, n: 4, name: 'やみの まほうつかい', e: '🔮', hello: 'まおうさまの まほうを みよ！ むらさきの ほのお！', item: 'm_tama' },
+    { id: 'mr_yamininja', p: 8, n: 5, name: 'やみ にんじゃ', e: '🥷', hello: 'わたしが まおうさまの さいごの まもり！', item: 'm_kunai' },
+    { id: 'mr_monban', p: 8, n: 6, boss: true, name: 'やみの もんばん', e: '🛡️', hello: 'この とびらの さきに まおうさまが いる。とおりたければ わしを たおせ！', item: 'm_kagi' },
+    // さいごの たたかい（⑧の ボスを たおすと でる）
+    { id: 'mr_maou', p: 8, n: 7, boss: true, maou: true, name: 'まおう', e: '😈', hello: 'ぐわっはっは！ よくぞ ここまで きた。わしが この もりの まおうだ！ くくの ちからで かかって こい！',
+      lose: 'まいった〜！ きみは ほんとうに つよいのう。……わしも きみの なかまに して くれんか？', item: 'm_maoukanmuri' },
+  ];
+  // もりの おみやげ（49こ。ばしょごとに 6こ、6こめは ボスの とくべつな アイテム。さいごは まおうの もの）
+  const MORI_SOUVENIRS = [
+    { id: 'm_donguri', name: 'どんぐり', e: '🌰' }, { id: 'm_happa', name: 'もみじの はっぱ', e: '🍁' }, { id: 'm_kurumi', name: 'くるみ', e: '🥜' },
+    { id: 'm_hane', name: 'ふくろうの はね', e: '🪶' }, { id: 'm_fue', name: 'くさぶえ', e: '🎶' }, { id: 'm_ki', name: 'せんねんの きの み', e: '🍏', sp: true },
+    { id: 'm_shiitake', name: 'しいたけ', e: '🍄‍🟫' }, { id: 'm_wata', name: 'わたげ', e: '🌼' }, { id: 'm_ajisai', name: 'あじさい', e: '💐' },
+    { id: 'm_kasa', name: 'きのこの かさ', e: '☂️' }, { id: 'm_tsue', name: 'まほうの つえ', e: '🪄' }, { id: 'm_kinokokanmuri', name: 'きのこの かんむり', e: '🍄', sp: true },
+    { id: 'm_hotaru', name: 'ほたるの ひかり', e: '💡' }, { id: 'm_hoshi', name: 'ほしの かけら', e: '⭐' }, { id: 'm_mochi', name: 'つきみ もち', e: '🍡' },
+    { id: 'm_chochin', name: 'ほたる ちょうちん', e: '🏮' }, { id: 'm_kazaguruma', name: 'かざぐるま', e: '🎡' }, { id: 'm_hikaridama', name: 'ひかりの たま', e: '🌟', sp: true },
+    { id: 'm_hasu', name: 'ぬまの はす', e: '🪷' }, { id: 'm_tsukimi', name: 'つきの しずく', e: '🌙' }, { id: 'm_ito', name: 'ぎんの いと', e: '🧵' },
+    { id: 'm_kagami', name: 'かげの かがみ', e: '🪞' }, { id: 'm_ame', name: 'あめだま', e: '🍬' }, { id: 'm_hebinoko', name: 'へびの ぬけがら', e: '🐍', sp: true },
+    { id: 'm_eda', name: 'ねじれた えだ', e: '🪵' }, { id: 'm_uchiwa', name: 'からすの うちわ', e: '🪭' }, { id: 'm_kumonosu', name: 'くもの す', e: '🕸️' },
+    { id: 'm_tsuta', name: 'つたの わ', e: '🌿' }, { id: 'm_kutsu', name: 'はやい わらじ', e: '👡' }, { id: 'm_tenguuchiwa', name: 'てんぐの はうちわ', e: '🍃', sp: true },
+    { id: 'm_shizuku', name: 'きりの しずく', e: '💧' }, { id: 'm_sakana', name: 'みずうみの さかな', e: '🐟' }, { id: 'm_koura', name: 'かめの こうら', e: '🐢' },
+    { id: 'm_hasuha', name: 'はすの は', e: '☘️' }, { id: 'm_suishou', name: 'すいしょう', e: '💎' }, { id: 'm_ryutama', name: 'りゅうの たま', e: '🔮', sp: true },
+    { id: 'm_bara', name: 'のばらの はな', e: '🌹' }, { id: 'm_haguruma', name: 'はぐるま', e: '⚙️' }, { id: 'm_kuri', name: 'いがぐり', e: '🌰' },
+    { id: 'm_hon', name: 'まほうの ほん', e: '📕' }, { id: 'm_hata', name: 'とりでの はた', e: '🚩' }, { id: 'm_kabuto', name: 'くろい かぶと', e: '🪖', sp: true },
+    { id: 'm_kanabou', name: 'おにの かなぼう', e: '🏏' }, { id: 'm_rousoku', name: 'むらさきの ろうそく', e: '🕯️' }, { id: 'm_suzu', name: 'ねこの すず', e: '🔔' },
+    { id: 'm_tama', name: 'すいしょうだま', e: '🫧' }, { id: 'm_kunai', name: 'やみの くない', e: '🗡️' }, { id: 'm_kagi', name: 'とびらの かぎ', e: '🗝️', sp: true },
+    { id: 'm_maoukanmuri', name: 'まおうの かんむり', e: '👑', sp: true },
+  ];
+  // ぶんしょうだい（ボス・まおう）。1つ分（a）の もの と、いくつ分（b）の いれもの
+  // u：もの の かぞえかた、bu：いれもの の かぞえかた（すうじが かわっても よみが かわらない ものだけ）
+  const MORI_STORY = [
+    { thing: 'きのこ', e: '🍄', u: 'こ', box: 'かご', bu: 'こ' },
+    { thing: 'どんぐり', e: '🌰', u: 'こ', box: 'ふくろ', bu: 'つ' },
+    { thing: 'りんご', e: '🍎', u: 'こ', box: 'はこ', bu: 'こ' },
+    { thing: 'いちご', e: '🍓', u: 'こ', box: 'おさら', bu: 'まい' },
+    { thing: 'おだんご', e: '🍡', u: 'こ', box: 'おさら', bu: 'まい' },
+    { thing: 'もみじの はっぱ', e: '🍁', u: 'まい', box: 'ふくろ', bu: 'つ' },
+    { thing: 'ひかる いし', e: '💎', u: 'こ', box: 'はこ', bu: 'こ' },
+    { thing: 'おせんべい', e: '🍘', u: 'まい', box: 'おさら', bu: 'まい' },
+  ];
+  // まおうの もりを ぜんぶ クリアすると もらえる とくべつな いろ と あいぼう（よろずやでは うらない）
+  const MORI_COLOR = { id: 'mori', name: 'もりの しのび', zukin: '#166534', fuku: '#4d7c0f', obi: '#a16207', pattern: 'shine' };
+  const MORI_AIBOU = { id: 'a_maou', n: 'まおう', e: '😈', img: 'enemy_mr_maou.webp', cat: 'aibou' };
+
   // ---- にんじゃの すがた ----
   // いろ（ずきん・ふく・おびの セット）。はじめから えらべる 6いろ と、よろずやで かう とくべつな いろ
   const COLORS = [
@@ -254,7 +373,7 @@
     ] },
   ];
 
-  // ---- しょうごう（f：ごうかく した 階の かず、all：はってんを ぜんぶ クリア、bouken：ぼうけんを ぜんぶ クリア） ----
+  // ---- しょうごう（f：ごうかく した 階の かず、all：はってんを ぜんぶ クリア、bouken：ぼうけんを ぜんぶ クリア、mori：まおうの もりを ぜんぶ クリア） ----
   const TITLES = [
     { n: 'みならい にんじゃ', f: 0 },
     { n: 'げにん', f: 3 },
@@ -262,9 +381,11 @@
     { n: 'じょうにん', f: 9 },
     { n: 'にんじゃ マスター', all: true },
     { n: 'くく でんせつの にんじゃ', bouken: true },
+    { n: 'まおうの もりの えいゆう', mori: true },
   ];
   // ぼうけんを ぜんぶ クリアすると もらえる とくべつな いろ（よろずやでは うらない）
   const BOUKEN_COLOR = { id: 'densetsu', name: 'でんせつの よろい', zukin: '#b91c1c', fuku: '#facc15', obi: '#b91c1c', pattern: 'shine' };
 
-  (typeof window !== 'undefined' ? window : globalThis).KUKU_DATA = { TONAE, FLOORS, ENEMIES, TREASURES, STEP, STAGES, COLORS, ITEM_CATS, TITLES, PLACES, BOUKEN, SOUVENIRS, BOUKEN_COLOR };
+  (typeof window !== 'undefined' ? window : globalThis).KUKU_DATA = { TONAE, FLOORS, ENEMIES, TREASURES, STEP, STAGES, COLORS, ITEM_CATS, TITLES, PLACES, BOUKEN, SOUVENIRS, BOUKEN_COLOR,
+    MORI_PLACES, MORI, MORI_SOUVENIRS, MORI_STORY, MORI_COLOR, MORI_AIBOU };
 })();

@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>フデリュウの かんじ ワークシート</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Klee+One:wght@600&display=swap" rel="stylesheet">
+  <style>
+    @page { size: A4 landscape; margin: 0; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #e2e8f0; font-family: 'BIZ UDPGothic', sans-serif; color: #1c1917; }
+    .kyo { font-family: 'Klee One', 'BIZ UDPGothic', serif; font-weight: 600; }
+
+    /* 先生が えらぶ ところ（印刷には 出ない） */
+    .panel { max-width: 1100px; margin: 16px auto; background: #fff; border-radius: 16px; padding: 16px 20px; box-shadow: 0 2px 8px #0002; }
+    .panel h1 { margin: 0 0 6px; font-size: 26px; display: flex; align-items: center; gap: 10px; }
+    .panel h1 img { width: 56px; height: 56px; object-fit: contain; }
+    .panel .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+    .panel select, .panel button { font: inherit; font-size: 18px; padding: 8px 12px; border-radius: 12px; border: 2px solid #15803d; background: #fff; }
+    .panel button.big { background: #22c55e; color: #fff; font-weight: 700; box-shadow: 0 4px 0 #15803d; }
+    .panel .note { font-size: 14px; color: #57534e; }
+    .panel .dl a { display: inline-block; margin: 4px 8px 4px 0; font-size: 15px; }
+
+    /* シート */
+    .sheet { width: 297mm; height: 210mm; margin: 10px auto; background: #fff; position: relative; overflow: hidden; box-shadow: 0 2px 8px #0003; page-break-after: always; break-after: page; }
+    .sheet:last-child { break-after: auto; page-break-after: auto; }
+    .head { position: absolute; left: 9mm; right: 9mm; top: 5mm; height: 17mm; display: flex; align-items: center; gap: 3mm; border-bottom: .6mm solid var(--c, #16a34a); }
+    .head img { width: 15mm; height: 15mm; object-fit: contain; }
+    .head .ttl { display: flex; flex-direction: column; line-height: 1.2; }
+    .head .ttl small { font-size: 3.2mm; color: #57534e; font-weight: 700; }
+    .head .ttl b { font-size: 5.4mm; white-space: nowrap; }
+    .head .tag { font-size: 4mm; font-weight: 700; color: #fff; background: var(--c, #16a34a); border-radius: 3mm; padding: 1mm 3mm; white-space: nowrap; }
+    .head .sp { flex: 1; }
+    .head .nm { font-size: 4.4mm; white-space: nowrap; display: flex; align-items: flex-end; gap: 1.2mm; }
+    .head .nm .ln { display: inline-block; border-bottom: .35mm solid #44403c; height: 8mm; }
+    .foot { position: absolute; right: 9mm; bottom: 3.5mm; font-size: 2.6mm; color: #a8a29e; }
+
+    /* みぎ：まものと HPゲージ */
+    .mon { position: absolute; right: 8mm; top: 26mm; bottom: 9mm; width: 38mm; border: .7mm solid var(--c, #16a34a); border-radius: 4mm; background: #f8fafc; display: flex; flex-direction: column; align-items: center; padding: 2mm 1.5mm; gap: 1.6mm; }
+    .mon .pic { width: 33mm; height: 33mm; display: flex; align-items: center; justify-content: center; }
+    .mon .pic img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .mon .mn { font-size: 4.4mm; font-weight: 700; text-align: center; }
+    .mon .lab { font-size: 3.1mm; font-weight: 700; text-align: center; line-height: 1.35; }
+    .hp { display: grid; grid-template-columns: repeat(2, var(--hp, 8mm)); gap: 1.4mm 2.4mm; }
+    .hp i { width: var(--hp, 8mm); height: var(--hp, 8mm); border: .5mm solid #e11d48; border-radius: 1.5mm; background: #fff; font-style: normal; font-size: 2.6mm; color: #fda4af; display: flex; align-items: center; justify-content: center; }
+    .stamp { width: 30mm; height: 30mm; border: .6mm dashed #f59e0b; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 3mm; line-height: 1.5; font-size: 3.6mm; font-weight: 700; color: #b45309; margin-top: auto; }
+    .boss .mon { background: #fff7ed; }
+    .boss .mon .mn:before { content: '👑 '; }
+
+    /* ひだり：ヒントの まど（うしろに おって かくせる） */
+    .hint { position: absolute; left: 8mm; top: 26mm; bottom: 9mm; width: 22mm; border: .5mm solid #94a3b8; border-radius: 3mm; background: #f1f5f9; padding: 1.5mm 1mm; display: flex; flex-direction: column; align-items: center; gap: 1.5mm; }
+    .hint .ht { font-size: 3.4mm; font-weight: 700; white-space: nowrap; }
+    .hint .hk { display: flex; flex-direction: row-reverse; align-items: flex-start; gap: .8mm; background: #fff; border-radius: 1.5mm; padding: 1mm; width: 100%; justify-content: center; flex: 1; max-height: 31mm; }
+    .hint .hk .k { font-size: 8.5mm; line-height: 1; }
+    .hint .hk .r { writing-mode: vertical-rl; font-size: 2.9mm; line-height: 1.15; color: #334155; }
+    .hint.many .hk { max-height: none; padding: .4mm .2mm; flex: none; height: 13.2mm; width: auto; min-width: 0; overflow: hidden; gap: .4mm; }
+    .hint.many { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-auto-rows: min-content; gap: 1mm; align-content: start; }
+    .hint.many .ht { grid-column: 1 / 3; text-align: center; }
+    .hint.many .hk .k { font-size: 5.2mm; }
+    .hint.many .hk .r { font-size: 2.2mm; }
+    .fold { position: absolute; left: 31.5mm; top: 26mm; bottom: 9mm; width: 4mm; border-left: .5mm dashed #64748b; }
+    .fold span { position: absolute; left: .6mm; top: 50%; transform: translateY(-50%); writing-mode: vertical-rl; font-size: 2.6mm; color: #64748b; white-space: nowrap; background: #fff; padding: 1mm 0; }
+
+    /* まんなか：もんだい（たてがき） */
+    .qarea { position: absolute; left: 36mm; right: 48mm; top: 26mm; bottom: 9mm; display: flex; flex-direction: row-reverse; justify-content: space-between; gap: 2mm; }
+    .grp { display: flex; flex-direction: column; min-width: 0; }
+    .ghead { font-size: 3.7mm; font-weight: 700; color: #fff; border-radius: 2mm; padding: 1mm 2mm; text-align: center; white-space: nowrap; margin-bottom: 1.5mm; }
+    .ghead small { font-weight: 400; font-size: 3mm; display: block; white-space: normal; line-height: 1.2; }
+    .gcols { display: flex; flex-direction: row-reverse; flex: 1; }
+    .q { flex: 1 1 0; min-width: 0; position: relative; padding-top: 8mm; display: flex; flex-direction: row-reverse; justify-content: center; gap: .6mm; }
+    .q .no { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 6.2mm; height: 6.2mm; border-radius: 50%; background: #334155; color: #fff; font-size: 3.6mm; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .q .s { writing-mode: vertical-rl; white-space: nowrap; line-height: 1.25; font-size: var(--fs, 6.2mm); }
+    .q ruby rt { font-family: 'BIZ UDPGothic', sans-serif; font-weight: 400; font-size: 45%; }
+    .tg { font-weight: 700; color: #0f172a; text-decoration: underline; text-decoration-color: #e11d48; text-decoration-thickness: .6mm; text-underline-offset: .8mm; }
+    .tw { position: relative; display: inline-block; text-decoration: underline; text-decoration-color: #e11d48; text-decoration-thickness: .6mm; text-underline-offset: .8mm; }
+    .tw .ab { position: absolute; left: 100%; top: 50%; transform: translateY(-50%); margin-left: 1mm; width: var(--ab); border: .45mm solid #475569; border-radius: 1mm; background: #fff; display: flex; flex-direction: column; }
+    .tw .ab i { height: var(--ab); }
+    .tw .ab i + i { border-top: .3mm dashed #94a3b8; }
+    .q.yw .s { margin-right: calc(var(--ab) + 1mm); }
+    
+    .q.kw .s { margin-right: 4mm; }
+    .q + .q { border-right: .3mm dashed #e2e8f0; }
+    
+    .bx { display: inline-block; width: 1.05em; height: 1.05em; border: .4mm solid #0ea5e9; border-radius: .8mm; vertical-align: middle; }
+    .kb { position: relative; display: inline-block; margin: 1mm 0; }
+    .kbox { display: block; width: var(--kb, 19mm); height: var(--kb, 19mm); border: .5mm solid #0ea5e9; background: #fff; position: relative; }
+    .kbox:before, .kbox:after { content: ''; position: absolute; border: 0 dashed #7dd3fc; }
+    .kbox:before { left: 50%; top: 0; bottom: 0; border-left-width: .3mm; }
+    .kbox:after { top: 50%; left: 0; right: 0; border-top-width: .3mm; }
+    .kb .yo { position: absolute; left: 100%; top: 50%; transform: translateY(-50%); margin-left: .8mm; writing-mode: vertical-rl; white-space: nowrap; font-family: 'BIZ UDPGothic', sans-serif; font-weight: 400; font-size: 3.4mm; line-height: 1; }
+    
+    .ch { display: flex; flex-direction: column; gap: 4.5mm; padding-top: 1mm; }
+    .ch span { writing-mode: vertical-rl; border: .4mm solid #94a3b8; border-radius: 3mm; background: #fff; padding: 1.6mm .7mm; font-size: 5.2mm; line-height: 1; text-align: center; min-height: 9mm; display: flex; align-items: center; justify-content: center; }
+    .ch.kj span { font-size: 6mm; padding: .5mm .2mm; writing-mode: horizontal-tb; width: 8.6mm; height: 8.6mm; min-height: 0; }
+
+    /* こたえ */
+    .ans .qarea { left: 9mm; right: 9mm; }
+    .ans .q { padding-top: 7mm; }
+    .ans .q .s { --fs: 5mm; }
+    .ans .red { color: #e11d48; font-weight: 700; }
+    .ans rt.red { color: #e11d48; font-weight: 700; }
+    .ans .ghead { font-size: 3.4mm; }
+
+    @media print {
+      body { background: #fff; }
+      .panel { display: none; }
+      .sheet { margin: 0; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="panel" id="panel">
+    <h1><img src="../kanjiquest/img/fude.png" alt="">フデリュウの かんじ ワークシート</h1>
+    <div class="note" id="about">「フデリュウと かんじの ぼうけん」と おなじ ステージ・おなじ 例文の ワークシートです。A4よこで 印刷します。</div>
+    <div class="row">
+      <select id="grade"><option value="1">1年生</option><option value="2">2年生</option><option value="3">3年生</option></select>
+      <select id="stage"></select>
+      <button class="big" onclick="window.print()">🖨️ 印刷する</button>
+    </div>
+    <div class="note" style="margin-top:6px">印刷の せってい：用紙 A4・よこ・余白「なし」・「背景の グラフィック」に チェック</div>
+    <div class="row dl" id="dl"></div>
+  </div>
+  <div id="sheets"></div>
+
+  <script>
+    window.GRADE = ({ 2: 2, 3: 3 })[new URLSearchParams(location.search).get('g')] || 1;
+    ['../kanji' + window.GRADE + '/data/mondai.js', '../kanjiquest/data/quest.js', '../kanjiquest/data/imglist.js']
+      .forEach(src => document.write('<script src="' + src + '"><\/script>'));
+  </script>
+  <script>
+    const G = window.GRADE;
+    const { KANJI, STAGES } = window.KANJI_DATA;
+    const Q = window.QUEST;
+    const IMGS = window.KQ_IMG || {};
+    const NAME = 'フデリュウの かんじ ワークシート';
+    const key = (id) => (G === 1 ? id : `${G}-${id}`);
+    const img = (n) => (IMGS[n] ? `../kanjiquest/img/${n}.${IMGS[n]}` : '');
+    const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const KSTAGES = STAGES.filter(s => s.type === 'kanji');
+    const RSTAGES = STAGES.filter(s => s.type === 'review');
+    const GRADE_ALL = KSTAGES.flatMap(s => s.kanji);
+    const AREAS = Q.AREAS.filter(a => a.grade === G);
+    const areaOf = (st) => AREAS.find(a => a.stages.includes(key(st.id)) || a.boss === key(st.id));
+    const stageNo = (st) => Number(st.id.slice(1));
+    const monOf = (st) => { const k = key(st.id); return { name: (Q.MON[k] || {}).name || '', src: img('mon_' + k.replace('-', '_')) }; };
+    // 学年ごとの 大きさ（1年生は 大きめ）
+    const SIZE = G === 1 ? { fs: '6.6mm', kb: '17mm', ab: 9 } : { fs: '6.2mm', kb: '15mm', ab: 8 };
+
+    // ---------------------------------------------------------------
+    // いつも おなじ 問題に なるように、ステージの 名前から 乱数を 作る
+    // ---------------------------------------------------------------
+    let seed = 1;
+    const setSeed = (s) => { seed = [...s].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0, 2166136261); };
+    const rnd = (n) => { seed = (seed + 0x6D2B79F5) >>> 0; let t = seed; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return Math.floor((((t ^ (t >>> 14)) >>> 0) / 4294967296) * n); };
+    const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+    // ---------------------------------------------------------------
+    // 問題を つくる（アプリと おなじ かんがえかた。選択肢は 3つ）
+    // ---------------------------------------------------------------
+    const targetOf = (ex) => (ex.s.match(/\[(.+?)\]/) || [])[1] || '';
+    const isWordEx = (ex) => [...targetOf(ex)].length > 1;
+    const plainKana = (r) => r.normalize('NFD').replace(/[゙゚]/g, '');
+    const readingOf = (l) => { const d = KANJI[l]; if (!d) return ''; const e = d.ex.find((x) => !isWordEx(x)) || d.ex[0]; return e.y; };
+    const lookOf = (k) => (KANJI[k] ? KANJI[k].look : []);
+    // 例文を えらぶ（used に ある 例文は なるべく さける）
+    function pickEx(k, kanjiType, used) {
+      const all = KANJI[k].ex;
+      const ok = kanjiType ? all.filter(x => !isWordEx(x)) : all;
+      const list = ok.length ? ok : all;
+      const fresh = list.filter(x => !used.includes(x));
+      const e = shuffle(fresh.length ? fresh : list)[0];
+      used.push(e);
+      return e;
+    }
+    function makeQ(k, type, pool, used) {
+      const ex = pickEx(k, type === 'kanjiSelect' || type === 'kanjiWrite', used);
+      const q = { type, k, ex };
+      if (type === 'yomiSelect') {
+        const picked = [];
+        const add = (r) => { if (r && r !== ex.y && plainKana(r) !== plainKana(ex.y) && !picked.includes(r) && picked.length < 2) picked.push(r); };
+        if (isWordEx(ex)) (ex.ng || []).forEach(add);
+        const same = shuffle(KANJI[k].yomi.filter((r) => r !== ex.y));
+        const looks = lookOf(k).filter((l) => KANJI[l]).map(readingOf);
+        if (same[0]) add(same[0]);
+        if (looks[0]) add(looks[0]);
+        shuffle(pool.filter((x) => x !== k)).forEach((l) => add(readingOf(l)));
+        shuffle(GRADE_ALL).forEach((l) => add(readingOf(l)));
+        q.answer = ex.y; q.options = shuffle([ex.y].concat(picked));
+      }
+      if (type === 'kanjiSelect') {
+        const picked = [];
+        const add = (c) => { if (c && c !== k && KANJI[c] && !picked.includes(c) && picked.length < 2) picked.push(c); };
+        lookOf(k).slice(0, 2).forEach(add);
+        shuffle(pool).forEach(add);
+        shuffle(GRADE_ALL).forEach(add);
+        q.answer = k; q.options = shuffle([k].concat(picked));
+      }
+      if (type === 'yomiWrite' || type === 'kanjiWrite') q.answer = type === 'yomiWrite' ? ex.y : k;
+      return q;
+    }
+    // ステージ：1まいめ（えらぶ）よみ5・かんじ5、2まいめ（かく）よみ5・かんじ5
+    function stageQs(st) {
+      setSeed('stage-' + G + '-' + st.id);
+      const used = {};
+      st.kanji.forEach(k => { used[k] = []; });
+      const mk = (type) => shuffle(st.kanji).map(k => makeQ(k, type, st.kanji, used[k]));
+      const ys = mk('yomiSelect'), ks = mk('kanjiSelect'), yw = mk('yomiWrite'), kw = mk('kanjiWrite');
+      return { sel: [ys, ks], wri: [yw, kw] };
+    }
+    // ボス：4ステージの 20字から 10字。えらぶ 4もん（よみ2・かんじ2）、かく 6もん（よみ3・かんじ3）
+    function bossQs(r) {
+      setSeed('boss-' + G + '-' + r.id);
+      const from = r.from.map(id => KSTAGES.find(s => s.id === id));
+      const pool = from.flatMap(s => s.kanji);
+      // どの ステージからも 2〜3字
+      const per = shuffle([3, 3, 2, 2]);
+      const ks = shuffle(from.flatMap((s, i) => shuffle(s.kanji).slice(0, per[i])));
+      const used = {};
+      ks.forEach(k => { used[k] = []; });
+      const types = ['yomiSelect', 'yomiSelect', 'kanjiSelect', 'kanjiSelect', 'yomiWrite', 'yomiWrite', 'yomiWrite', 'kanjiWrite', 'kanjiWrite', 'kanjiWrite'];
+      const qs = ks.map((k, i) => makeQ(k, types[i], pool, used[k]));
+      return { pool, groups: [qs.slice(0, 2), qs.slice(2, 4), qs.slice(4, 7), qs.slice(7, 10)] };
+    }
+
+    // ---------------------------------------------------------------
+    // 文を たてがきで かく
+    // mode：yomiSelect／kanjiSelect／yomiWrite／kanjiWrite／answer
+    // ---------------------------------------------------------------
+    function parse(s) {
+      const out = [], re = /\[(.+?)\]|\{(.+?)\|(.+?)\}/g;
+      let last = 0, m;
+      while ((m = re.exec(s))) {
+        if (m.index > last) out.push({ t: 'text', v: s.slice(last, m.index) });
+        if (m[1]) out.push({ t: 'target', v: m[1] }); else out.push({ t: 'ruby', k: m[2], r: m[3] });
+        last = re.lastIndex;
+      }
+      if (last < s.length) out.push({ t: 'text', v: s.slice(last) });
+      return out;
+    }
+    function sentence(q, mode) {
+      const ex = q.ex;
+      return parse(ex.s).map(p => {
+        if (p.t === 'text') return esc(p.v);
+        if (p.t === 'ruby') return `<ruby>${esc(p.k)}<rt>${esc(p.r)}</rt></ruby>`;
+        if (mode === 'yomiSelect') return `<span class="tg">${esc(p.v)}</span>`;
+        if (mode === 'yomiWrite') return `<span class="tw">${esc(p.v)}<span class="ab">${[...ex.y].map(() => "<i></i>").join("")}</span></span>`;
+        if (mode === 'kanjiSelect') return `<ruby><span class="bx"></span><rt>${esc(ex.y)}</rt></ruby>`;
+        if (mode === 'kanjiWrite') return `<span class="kb"><span class="kbox"></span><span class="yo">${esc(ex.y)}</span></span>`;
+        // こたえ：よみの もんだいは よみが 赤、かんじの もんだいは かんじが 赤
+        const yomi = q.type === 'yomiSelect' || q.type === 'yomiWrite';
+        return `<ruby><span class="${yomi ? 'tg' : 'red'}">${esc(p.v)}</span><rt class="${yomi ? 'red' : ''}">${esc(ex.y)}</rt></ruby>`;
+      }).join('');
+    }
+    const CLS = { yomiSelect: 'ys', kanjiSelect: 'ks', yomiWrite: 'yw', kanjiWrite: 'kw' };
+    function qHTML(q, no, mode) {
+      const m = mode || q.type;
+      let ch = '';
+      if (m === 'yomiSelect') ch = `<div class="ch kyo">${q.options.map(o => `<span>${esc(o)}</span>`).join('')}</div>`;
+      if (m === 'kanjiSelect') ch = `<div class="ch kj kyo">${q.options.map(o => `<span>${esc(o)}</span>`).join('')}</div>`;
+      return `<div class="q ${mode ? '' : CLS[q.type]}"><span class="no">${no}</span><div class="s kyo">${sentence(q, m)}</div>${ch}</div>`;
+    }
+    const GH = {
+      yomiSelect: ['#2563eb', 'よみを えらぼう', '＿＿の よみに ○を つけよう'],
+      kanjiSelect: ['#7c3aed', 'かんじを えらぼう', '□に はいる かんじに ○を つけよう'],
+      yomiWrite: ['#0891b2', 'よみを かこう', '＿＿の よみを □に かこう'],
+      kanjiWrite: ['#db2777', 'かんじを かこう', '□に かんじを かこう'],
+    };
+    function groupHTML(qs, start, ans) {
+      const [c, t, sub] = GH[qs[0].type];
+      const w = qs.length * (ans ? 1 : ({ kanjiWrite: 1.15, kanjiSelect: 1.08, yomiWrite: 1.02 })[qs[0].type] || 1);
+      return `<div class="grp" style="flex:${w}"><div class="ghead" style="background:${c}">${t}${ans ? '' : `<small>${sub}</small>`}</div>
+        <div class="gcols">${qs.map((q, i) => qHTML(q, start + i, ans ? 'answer' : '')).join('')}</div></div>`;
+    }
+
+    // ---------------------------------------------------------------
+    // シートの 部品
+    // ---------------------------------------------------------------
+    function head(st, tag, color, noName) {
+      return `<div class="head" style="--c:${color}">
+        <img src="../kanjiquest/img/fude.png" alt="">
+        <div class="ttl"><small>フデリュウと かんじの ぼうけん</small><b>${esc(tag)}</b></div>
+        <span class="sp"></span>
+        ${noName ? "<span class=\"tag\">せんせい よう</span>" : `<span class="nm"><span class="ln" style="width:11mm"></span>ねん</span>
+        <span class="nm"><span class="ln" style="width:9mm"></span>がつ<span class="ln" style="width:9mm"></span>にち</span>
+        <span class="nm">なまえ<span class="ln" style="width:58mm"></span></span>`}
+      </div>`;
+    }
+    function monPanel(st, color, boss) {
+      const m = monOf(st);
+      const hp = Array.from({ length: 10 }, (_, i) => `<i>${i + 1}</i>`).join('');
+      return `<div class="mon" style="--c:${color};${boss ? '--hp:9.4mm' : ''}">
+        <div class="pic">${m.src ? `<img src="${m.src}" alt="">` : ''}</div>
+        <div class="mn">${esc(m.name)}</div>
+        <div class="lab">${boss ? 'ボスの HP' : 'まものの HP'}<br><span style="font-weight:400">1もん できたら<br>□を 1つ ぬろう</span></div>
+        <div class="hp">${hp}</div>
+        <div class="stamp">なかまに<br>なった！</div>
+      </div>`;
+    }
+    function hintPanel(ks) {
+      const many = ks.length > 5;
+      const cell = (k) => `<div class="hk"><span class="k kyo">${esc(k)}</span>${KANJI[k].yomi.slice(0, many ? 2 : 4).map(r => `<span class="r">${esc(r)}</span>`).join('')}</div>`;
+      return `<div class="hint ${many ? 'many' : ''}"><span class="ht">💡ヒント</span>${ks.map(cell).join('')}</div>
+        <div class="fold"><span>‥‥ ここで うしろに おると、ヒントが かくれるよ ‥‥</span></div>`;
+    }
+    const sheet = (cls, color, inner, foot) => `<div class="sheet ${cls}" style="--fs:${SIZE.fs};--kb:${SIZE.kb};--ab:${SIZE.ab}mm;--c:${color}">${inner}<div class="foot">${esc(foot)}</div></div>`;
+    const colorOf = (st) => st.color || '#16a34a';
+    const stTag = (st) => `ステージ${stageNo(st)}「${st.name}」`;
+
+    function stageSheets(st) {
+      const { sel, wri } = stageQs(st);
+      const c = colorOf(st);
+      const s1 = sheet('', c, head(st, `${stTag(st)}　1まいめ　えらぶ`, c) + hintPanel(st.kanji) + monPanel(st, c) +
+        `<div class="qarea">${groupHTML(sel[0], 1)}${groupHTML(sel[1], 6)}</div>`, `${NAME}（${G}ねん）　${stTag(st)}　1まいめ`);
+      const s2 = sheet('', c, head(st, `${stTag(st)}　2まいめ　かく`, c) + hintPanel(st.kanji) + monPanel(st, c) +
+        `<div class="qarea">${groupHTML(wri[0], 1)}${groupHTML(wri[1], 6)}</div>`, `${NAME}（${G}ねん）　${stTag(st)}　2まいめ`);
+      const a = sheet('ans', c, head(st, `${stTag(st)}　こたえ`, c, true) +
+        `<div class="qarea">${groupHTML(sel[0], 1, true)}${groupHTML(sel[1], 6, true)}<div style="border-left:.5mm dashed #a8a29e"></div>${groupHTML(wri[0], 1, true)}${groupHTML(wri[1], 6, true)}</div>`,
+        `${NAME}（${G}ねん）　${stTag(st)}　こたえ（みぎ：1まいめ　ひだり：2まいめ）`);
+      return s1 + s2 + a;
+    }
+    function bossSheets(r) {
+      const { pool, groups } = bossQs(r);
+      const area = areaOf(r);
+      const c = '#ea580c';
+      const tag = `ボス「${area ? area.name : r.name}」`;
+      let n = 1;
+      const gs = groups.map(g => { const h = groupHTML(g, n); n += g.length; return h; }).join('');
+      n = 1;
+      const ga = groups.map(g => { const h = groupHTML(g, n, true); n += g.length; return h; }).join('');
+      return sheet('boss', c, head(r, `${tag}　まとめ`, c) + hintPanel(pool) + monPanel(r, c, true) + `<div class="qarea">${gs}</div>`, `${NAME}（${G}ねん）　${tag}`) +
+        sheet('ans boss', c, head(r, `${tag}　こたえ`, c, true) + `<div class="qarea">${ga}</div>`, `${NAME}（${G}ねん）　${tag}　こたえ`);
+    }
+
+    // ---------------------------------------------------------------
+    // ひょうじ と PDF の なまえ
+    // ---------------------------------------------------------------
+    const params = new URLSearchParams(location.search);
+    const sel = document.getElementById('stage');
+    const gsel = document.getElementById('grade');
+    gsel.value = String(G);
+    gsel.onchange = () => { location.search = gsel.value === '1' ? '' : '?g=' + gsel.value; };
+    const clean = (t) => t.replace(/[①②③・ 　「」]/g, (c) => ({ '①': '1', '②': '2', '③': '3' }[c] || ''));
+    const PRE = G === 1 ? 'かんじワークシート' : `かんじワークシート${G}ねん`;
+    const DIR = G === 1 ? 'pdf/' : `pdf/${G}nen/`;
+    const fileName = (st) => st.type === 'review'
+      ? `${PRE}_ボス${RSTAGES.indexOf(st) + 1}_${clean((areaOf(st) || {}).name || '')}.pdf`
+      : `${PRE}_ステージ${String(stageNo(st)).padStart(2, '0')}_${clean(st.name)}.pdf`;
+    const label = (st) => st.type === 'review' ? `ボス${RSTAGES.indexOf(st) + 1}「${(areaOf(st) || {}).name || ''}」` : `ステージ${stageNo(st)}　${st.name}（${st.kanji.join('')}）`;
+    window.WS_DIR = DIR;
+    window.WS_ALL = `${PRE}_ぜんぶ.pdf`;
+    window.WS_FILES = STAGES.map(st => ({ id: st.id, file: fileName(st) }));
+    sel.innerHTML = STAGES.map(st => `<option value="${st.id}">${esc(label(st))}</option>`).join('') + '<option value="all">ぜんぶ</option>';
+    document.getElementById('dl').innerHTML = `<span>できあがった PDF：</span><a href="${DIR}${encodeURIComponent(window.WS_ALL)}" download>ぜんぶ</a>` +
+      STAGES.map(st => `<a href="${DIR}${encodeURIComponent(fileName(st))}" download>${st.type === 'review' ? 'ボス' + (RSTAGES.indexOf(st) + 1) : 'ステージ' + stageNo(st)}</a>`).join('');
+    const one = (st) => st.type === 'review' ? bossSheets(st) : stageSheets(st);
+    function render(id) {
+      document.getElementById('sheets').innerHTML = id === 'all' ? STAGES.map(one).join('') : STAGES.filter(s => s.id === id).map(one).join('');
+      const imgs = [...document.images];
+      Promise.all([document.fonts.ready, ...imgs.map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; }))])
+        .then(() => { document.body.dataset.ready = '1'; });
+    }
+    sel.value = params.get('stage') || 's1';
+    sel.onchange = () => { document.body.dataset.ready = ''; render(sel.value); };
+    render(sel.value);
+    if (params.get('print')) document.getElementById('panel').style.display = 'none';
+    // ?p=2 … 2まいめ だけ 見せる（たしかめる とき）
+    if (params.get('p')) document.querySelectorAll('.sheet').forEach((el, i) => { if (i !== Number(params.get('p')) - 1) el.style.display = 'none'; });
+  </script>
+</body>
+</html>
