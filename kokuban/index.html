@@ -198,7 +198,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, useCallback } = React;
-    const APP_VERSION = '1.9.0';
+    const APP_VERSION = '1.10.0';
 
     // =====================================================================
     //  1. 小さな道具
@@ -219,7 +219,12 @@
     function jaVoice() {
       try { const vs = window.speechSynthesis.getVoices(); return vs.find(v => v.lang === 'ja-JP') || vs.find(v => (v.lang || '').startsWith('ja')) || null; } catch (e) { return null; }
     }
-    function stopSpeak() { speakToken++; try { window.speechSynthesis.cancel(); } catch (e) {} }
+    // 先に 作って ある 声（Google AI Studio の Gemini で 作った。れんしゅう用の 文章の だいめいと 1文ずつ）。
+    //  文の よみ（空白を のぞく）の ハッシュ → koe/k<ハッシュ>.wav。ない 文・とちゅうだけ えらんだ ときは、Chromebook の 声で 読む
+    const KOE_BASE = (location.protocol === 'file:' || /github.io$/.test(location.hostname) || location.hostname === 'localhost' || location.hostname === '127.0.0.1') ? 'koe/' : 'https://zku0395-ops.github.io/hori/kokuban/koe/';
+    const KOE = new Set(['1089505917','-732548707','1206634888','1826969755','871094634','-1723098714','-882524450','-1602884966','-1508186695','-923983896','-714492474','-847072442','2082460217','-923221358','-441741890','1367632739','789311441','-356989684']);
+    let koeAudio = null;
+    function stopSpeak() { speakToken++; try { window.speechSynthesis.cancel(); } catch (e) {} if (koeAudio) { try { koeAudio.pause(); } catch (e) {} koeAudio = null; } }
     // list を じゅんばんに 読む。onIndex(i) で いま 読んでいる ところを 知らせる
     function speakSeq(list, onIndex, onDone) {
       stopSpeak();
@@ -228,6 +233,18 @@
         if (token !== speakToken) return;
         if (i >= list.length) { onIndex && onIndex(-1); onDone && onDone(); return; }
         onIndex && onIndex(i);
+        const key = hashOf(String(list[i]).replace(/[ 　]/g, ''));
+        if (KOE.has(key) && !koeBad) { // 作って ある 声。鳴らせない ときは、下の Chromebook の 声で 読む
+          const a = new Audio(KOE_BASE + 'k' + key + '.wav'); let done = false; koeAudio = a;
+          const fin = (ok) => { if (done) return; done = true; if (koeAudio === a) koeAudio = null; if (token !== speakToken) return; if (ok) next(i + 1); else { koeBad = true; synth(i); } };
+          a.playbackRate = clamp(SPEAK_RATE / 0.8, 0.75, 1.25); a.onended = () => fin(true); a.onerror = () => fin(false);
+          try { const p = a.play(); if (p && p.catch) p.catch(() => fin(false)); } catch (e) { fin(false); }
+          return;
+        }
+        synth(i);
+      };
+      let koeBad = false;
+      const synth = (i) => {
         try {
           const u = new SpeechSynthesisUtterance(list[i]);
           u.lang = 'ja-JP'; u.rate = SPEAK_RATE; u.pitch = 1.15;
