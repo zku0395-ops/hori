@@ -198,7 +198,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, useCallback } = React;
-    const APP_VERSION = '1.10.0';
+    const APP_VERSION = '1.11.0';
 
     // =====================================================================
     //  1. 小さな道具
@@ -781,54 +781,69 @@
       if (it.v) { const per = Math.max(1, Math.floor(((it.mh || 420) - 26) / fs)); return { w: Math.max(60, Math.ceil(n / per) * line + 30), h: Math.min(n, per) * fs + 26 }; }
       const per = Math.max(1, Math.floor(330 / fs)); return { w: Math.max(60, Math.min(n, per) * fs + 30), h: Math.ceil(n / per) * line + 26 };
     }
-    // こくばんに 納まるように、ふせんの 文字を 自動で 小さく する ときの 大きさ（大きい 順）
-    const FIT_ZS = [1, 0.9, 0.8, 0.75, 0.7, 0.65, 0.6];
+    // こくばんに 納まるように、ふせんの 文字を 自動で 小さく する ときの 大きさ（大きい 順）。入るまで 小さく する
+    const FIT_ZS = [1, 0.9, 0.8, 0.75, 0.7, 0.65, 0.6, 0.55, 0.5, 0.45, 0.4, 0.35, 0.3];
+    const FLOW_FULL = 684; // 1だんに した ときの だんの 高さ（こくばんの 高さ いっぱい）
     function flowLayout(items, sizes) { // sizes ＝ 画面で はかった ふせんの 幅（ない ときは 文字数から 見つもる）
-      const calc = items.some(i => (i.t === 'h' && (i.k === 'f_toi' || i.k === 'f_kotae')) || (i.t === 'f' && i.g === 'matome')) ? flowPosE : flowPosS;
-      // アプリが ならべる ふせん（じぶんで 動かした もの・大きさを 変えた ものは のぞく）は、ぜんぶが 入る いちばん 大きい 文字に そろえる
+      const E = items.some(i => (i.t === 'h' && (i.k === 'f_toi' || i.k === 'f_kotae')) || (i.t === 'f' && i.g === 'matome'));
+      // アプリが ならべる ふせん（じぶんで 動かした もの・大きさを 変えた ものは のぞく）は、ぜんぶが 入る いちばん 大きい 文字に そろえる。
+      //  ものがたりの 型：少ない うちは 1だん（たてに 長い ふせん）、入らなく なったら 2だん。それでも 入らない ときは 文字を 小さく する
       const auto = (i) => i.t === 'f' && i.au && !i.zu && !i.fr;
-      let z = FIT_ZS[FIT_ZS.length - 1];
-      for (const k of FIT_ZS) { if (!calc(items, (it) => fusenSize(auto(it) ? Object.assign({}, it, { z: k }) : it).w).over) { z = k; break; } }
-      let zc = false; const sized = items.map(i => auto(i) && (i.z || 1) !== z ? (zc = true, Object.assign({}, i, { z })) : i), base = zc ? sized : items;
-      const wOf = (it) => sizes && sizes[it.id] && Number(sizes[it.id + '/z']) === (it.z || 1) ? sizes[it.id] : fusenSize(it).w; // はかった 幅は、同じ 大きさの ときだけ 使う
-      return placeItems(base, calc(base, wOf).pos);
+      const run = (rows, wOf) => E ? flowPosE(items, wOf) : flowPosS(items, wOf, rows);
+      const est = (z) => (it, mh) => fusenSize(Object.assign({}, it, { mh }, auto(it) ? { z } : {})).w;
+      let z = FIT_ZS[FIT_ZS.length - 1], rows = 2, found = false;
+      for (const k of FIT_ZS) { for (const r of (E ? [2] : [1, 2])) { if (!run(r, est(k)).over) { z = k; rows = r; found = true; break; } } if (found) break; }
+      const zOf = (it) => auto(it) ? z : it.z || 1;
+      // はかった 幅は、同じ 大きさ・同じ 高さの ときだけ 使う
+      const wOf = (it, mh) => { const k = zOf(it), m = sizes && sizes[it.id]; return m && sizes[it.id + '/z'] === k + '|' + mh ? m : fusenSize(Object.assign({}, it, { z: k, mh })).w; };
+      const pos = run(rows, wOf).pos;
+      items.forEach(i => { if (auto(i) && pos[i.id]) pos[i.id].z = z; });
+      return placeItems(items, pos);
     }
-    function flowPosS(items, wOf) {
+    function flowPosS(items, wOf, rows) {
+      const bands = rows === 1 ? [FLOW_BANDS[0]] : FLOW_BANDS, bh = rows === 1 ? FLOW_FULL : FLOW_BH;
+      const mhOf = (key) => bh - (key === 'hatsugen' ? FLOW_SP : key === 'kimochi' ? 40 : 0) - 6;
       const pos = {}, L = 10, R = BW - 6, HW = 58; let band = 0, x = L, over = false;
-      const wrap = () => { if (band < FLOW_BANDS.length - 1) { band++; x = L; } };
+      const wrap = () => { if (band < bands.length - 1) { band++; x = L; } };
       FLOW.filter(s => s.head).forEach(s => {
         const head = items.find(i => i.t === 'h' && i.k === 'f_' + s.key); if (!head) return;
-        const group = items.filter(i => i.t === 'f' && i.g === s.key && i.au);
-        const first = HW + (group[0] ? wOf(group[0]) + 8 : 0), total = HW + 8 + group.reduce((a, it) => a + wOf(it) + 8, 0);
+        const group = items.filter(i => i.t === 'f' && i.g === s.key && i.au), mh = mhOf(s.key);
+        const first = HW + (group[0] ? wOf(group[0], mh) + 8 : 0), total = HW + 8 + group.reduce((a, it) => a + wOf(it, mh) + 8, 0);
         // のこりに 入りきらない ときは、見出しごと 下の だんへ（見出しと ふせんが はなれないように）
         if (x > L && x + total > R && (total <= R - L || x + first > R)) wrap();
-        if (head.au) pos[head.id] = { x, y: FLOW_BANDS[band] };
+        if (head.au) pos[head.id] = { x, y: bands[band] };
         x += HW + 8;
-        group.forEach(it => { const w = wOf(it); if (x + w > R && x > L + HW + 8) wrap(); if (x + w > R) over = true; pos[it.id] = { x: Math.max(0, Math.min(x, BW - w)), y: FLOW_BANDS[band] + (s.key === 'hatsugen' ? FLOW_SP : 0) }; x += w + 8; });
+        group.forEach(it => { const w = wOf(it, mh); if (x + w > R && x > L + HW + 8) wrap(); if (x + w > R) over = true; pos[it.id] = { x: Math.max(0, Math.min(x, BW - w)), y: bands[band] + (s.key === 'hatsugen' ? FLOW_SP : 0), mh }; x += w + 8; });
         x += 12;
       });
       return { pos, over };
     }
     function placeItems(items, pos) {
       let changed = false;
-      const out = items.map(i => { const p = pos[i.id]; if (!p || (i.x === p.x && i.y === p.y)) return i; changed = true; return Object.assign({}, i, p); });
+      const out = items.map(i => { const p = pos[i.id]; if (!p || Object.keys(p).every(k => (k === 'z' ? i.z || 1 : i[k]) === p[k])) return i; changed = true; return Object.assign({}, i, p); });
       return changed ? out : items;
     }
-    // せつめいぶんの 型：上の だん ＝「とい」、下の だん ＝「こたえ」。こたえは、その「とい」の ま下に ならぶ。まとめは その 右
+    // せつめいぶんの 型：上の だん ＝「とい」、下の だん ＝「こたえ」。こたえは、その「とい」の ま下に ならぶ。まとめは その 右。
+    //  だんの 高さは、文の 長さに 合わせる（みじかい「とい」の だんは ひくく、長い「こたえ」の だんは 高く）。「こたえ」が まだ ない うちは、1だん
     function flowPosE(items, wOf) {
       let over = false;
       const pos = {}, L = 10, R = BW - 6, HW = 58, fs = items.filter(i => i.t === 'f' && i.au), tois = fs.filter(i => i.g === 'toi');
-      items.forEach(i => { if (i.t === 'h' && i.au && (i.k === 'f_toi' || i.k === 'f_kotae')) pos[i.id] = { x: L, y: FLOW_BANDS[i.k === 'f_toi' ? 0 : 1] }; });
       const kn = (i) => /^kotae\d+$/.test(i.g || '') ? Number(i.g.slice(5)) : -1;
+      const kots = fs.filter(i => kn(i) >= 0), two = kots.length > 0 || items.some(i => i.t === 'h' && i.k === 'f_kotae');
+      const len = (l) => Math.max(0, ...l.map(i => [...plainOf(i.text)].length));
+      const la = len(tois) || 1, lb = len(kots) || la, GAP = 8;
+      const hTop = two ? Math.round((FLOW_FULL - GAP) * clamp(la / (la + lb), 0.38, 0.6)) : FLOW_FULL, hBot = two ? FLOW_FULL - GAP - hTop : 0;
+      const ys = [FLOW_BANDS[0], FLOW_BANDS[0] + hTop + GAP], mhs = [hTop - 6, hBot - 6];
+      items.forEach(i => { if (i.t === 'h' && i.au && (i.k === 'f_toi' || i.k === 'f_kotae')) pos[i.id] = { x: L, y: ys[i.k === 'f_toi' ? 0 : 1] }; });
       const n = Math.max(-1, ...tois.map(i => i.gn >= 0 ? i.gn : -1), ...fs.map(kn)) + 1;
       let x = L + HW + 8;
-      const row = (list, y) => { let xx = x; list.forEach(it => { const w = wOf(it); if (xx + w > R) over = true; pos[it.id] = { x: Math.max(0, Math.min(xx, BW - w)), y }; xx += w + 8; }); return xx - x; };
+      const row = (list, b) => { let xx = x; list.forEach(it => { const w = wOf(it, mhs[b]); if (xx + w > R) over = true; pos[it.id] = { x: Math.max(0, Math.min(xx, BW - w)), y: ys[b], mh: mhs[b] }; xx += w + 8; }); return xx - x; };
       for (let k = 0; k <= n; k++) { // k === n：どの「とい」でも ない ふせん
-        const top = tois.filter(i => k < n ? i.gn === k : !(i.gn >= 0)), bot = k < n ? fs.filter(i => kn(i) === k) : [];
-        if (top.length || bot.length) x += Math.max(row(top, FLOW_BANDS[0]), row(bot, FLOW_BANDS[1])) + 12;
+        const top = tois.filter(i => k < n ? i.gn === k : !(i.gn >= 0)), bot = k < n ? kots.filter(i => kn(i) === k) : [];
+        if (top.length || bot.length) x += Math.max(row(top, 0), row(bot, 1)) + 12;
       }
       const x0 = x; let band = 0;
-      fs.filter(i => i.g === 'matome').forEach(it => { const w = wOf(it); if (x + w > R && x > x0 && band < FLOW_BANDS.length - 1) { band++; x = x0; } if (x + w > R) over = true; pos[it.id] = { x: Math.max(0, Math.min(x, BW - w)), y: FLOW_BANDS[band] }; x += w + 8; });
+      fs.filter(i => i.g === 'matome').forEach(it => { let w = wOf(it, mhs[band]); if (x + w > R && x > x0 && two && band < 1) { band++; x = x0; w = wOf(it, mhs[band]); } if (x + w > R) over = true; pos[it.id] = { x: Math.max(0, Math.min(x, BW - w)), y: ys[band], mh: mhs[band] }; x += w + 8; });
       return { pos, over };
     }
     // 型を 使わない とき：アプリが おいた ふせん（fr。じぶんで 動かすと au が 消える）を、こくばんの 中に ならべ直す。
@@ -932,7 +947,7 @@
               {items.filter(x => x.t === 'f' || x.t === 's').map(it => it.t === 's' ? (
                 <div key={it.id} className={'it stamp' + (it.id === selId ? ' on' : '')} style={{ left: it.x, top: it.y, fontSize: 64 * (it.z || 1) }} onPointerDown={(e) => down(e, it, 'body')}>{it.e}</div>
               ) : (
-                <div key={it.id} data-fid={it.au ? it.id : undefined} data-z={it.z || 1} className={'it fusen c-' + (FCOL[it.c] ? it.c : 'w') + (it.id === selId ? ' on' : '') + (pickIds && pickIds.has(it.id) ? ' pickme' : '') + (fmaybe && fmaybe.has(it.id) ? ' fmaybe' : '')} onPointerDown={(e) => down(e, it, 'body')}
+                <div key={it.id} data-fid={it.au ? it.id : undefined} data-z={(it.z || 1) + '|' + (it.mh || '')} className={'it fusen c-' + (FCOL[it.c] ? it.c : 'w') + (it.id === selId ? ' on' : '') + (pickIds && pickIds.has(it.id) ? ' pickme' : '') + (fmaybe && fmaybe.has(it.id) ? ' fmaybe' : '')} onPointerDown={(e) => down(e, it, 'body')}
                   style={Object.assign({ left: it.x, top: it.y, fontSize: 28 * (it.z || 1) }, it.v ? { writingMode: 'vertical-rl', maxHeight: it.mh || 420 } : { maxWidth: 360 })}>
                   {it.sp ? <span className={'stag' + (it.v ? ' v' : '')}>{fok && fok.has(it.id) ? <span className="ok">◎</span> : null}{rubyNodes(it.sp)}</span> : null}
                   {it.src ? <span className="tab">📖</span> : null}{rubyNodes(it.text)}
