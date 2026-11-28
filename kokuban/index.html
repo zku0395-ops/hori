@@ -198,7 +198,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, useCallback } = React;
-    const APP_VERSION = '1.11.1';
+    const APP_VERSION = '1.12.0';
 
     // =====================================================================
     //  1. 小さな道具
@@ -404,16 +404,18 @@
     const FLOW_E = [
       { key: 'toi', head: '❓「とい」の ぶん', say: '「とい」の ぶんを ○つ みつけよう。' },
       { key: 'kotae', head: '💡「こたえ」の ぶん', say: '「（といの 文）」の こたえを みつけよう。（「とい」1つずつ 聞きます）' },
-      { key: 'matome', head: '', say: 'わかった ことを、こくばんに まとめよう。' },
+      { key: 'matome', head: '📝 わかった こと', say: 'わかった ことを、こくばんに まとめよう。（せんたくしから えらぶ・じぶんで かく）' },
     ];
     const FLOW_LABELS = {}; FLOW.concat(FLOW_E).forEach(s => { if (s.head) FLOW_LABELS['f_' + s.key] = s.head; });
-    const emptyFlow = () => ({ on: false, who: '', off: [], sp: {}, quiz: [0, 1, 2, 3].map(() => ({ q: '', o: ['', '', ''], w: false })) });
+    const emptyFlow = () => ({ on: false, who: '', off: [], sp: {}, quiz: [0, 1, 2, 3].map(() => ({ q: '', o: ['', '', ''], w: false })), matome: [0, 1, 2, 3].map(() => ({ t: '', ok: true })) });
     function parseFlow(f, ok) {
       const out = emptyFlow(); if (!f || typeof f !== 'object') return out;
       out.on = f.on === true; out.who = String(f.who || '').slice(0, 20);
       out.off = Array.isArray(f.off) ? f.off.map(String).filter(k => FLOW.concat(FLOW_E).some(s => s.key === k)) : [];
       if (ok && f.sp && typeof f.sp === 'object') Object.keys(f.sp).forEach(k => { const v = String(f.sp[k] || '').trim().slice(0, 40); if (v) out.sp[k] = v; });
       if (Array.isArray(f.quiz)) out.quiz = out.quiz.map((e, i) => { const q = f.quiz[i]; return q && typeof q === 'object' ? { q: String(q.q || '').slice(0, 100), o: [0, 1, 2].map(j => String(Array.isArray(q.o) && q.o[j] || '').slice(0, 30)), w: q.w === true } : e; });
+      // せつめいぶんの 型：「わかった こと」の せんたくし（ok ＝ 合って いる）
+      if (Array.isArray(f.matome)) out.matome = out.matome.map((e, i) => { const m = f.matome[i]; return m && typeof m === 'object' ? { t: String(m.t || '').slice(0, 60), ok: m.ok !== false } : e; });
       return out;
     }
     // 子どもの 画面に 出す 発問（型を 使わない ときは null）
@@ -436,7 +438,7 @@
         if (!tr.length) steps.push(st('kotae0', 'f_kotae', '「こたえ」の ぶんを みつけよう。', ku, 'p'));
         tr.forEach((r, i) => { const end = tr[i + 1] ? tr[i + 1][0] : Infinity; steps.push(st('kotae' + i, 'f_kotae', '「' + (doc ? joinUnits(doc, r[0], r[1], 'src').trim() : 'とい') + '」の こたえを みつけよう。', ku.filter(k => k > r[1] && k < end), 'p')); });
       }
-      if (!off.has('matome')) steps.push(st('matome', '', 'わかった ことを、こくばんに まとめよう。', [], ''));
+      if (!off.has('matome')) steps.push(Object.assign(st('matome', 'f_matome', 'わかった ことを、こくばんに まとめよう。', [], ''), { opts: ((a.flow && a.flow.matome) || []).filter(m => m.t.trim()) }));
       return steps;
     }
     const nameList = (s) => String(s || '').split(/[、,，\/／・]/).map(x => x.trim()).filter(String);
@@ -563,7 +565,7 @@
       { id: 's2', title: 'だんごむしの ひみつ', kind: 'せつめいぶん', use: true,
         body: 'だんごむしは、石（いし）や おちばの 下（した）に います。\n\nだんごむしは、どうして まるく なるのでしょうか。\nだんごむしは、てきに おそわれると、からだを まるく して、やわらかい おなかを まもる ことが できます。\n\nだんごむしは、何（なに）を たべるのでしょうか。\nだんごむしは、おちばを たべます。\nたべた おちばは、土（つち）の えいように なります。',
         qs: ['「とい」の ぶんを ２つ みつけよう。', '「こたえ」の ぶんを みつけよう。', 'わかった ことを、こくばんに まとめよう。'],
-        ans: '{"th":"-1858911988","n":31,"q":[{"u":[],"k":"toi","hint":true,"check":true,"c":"b"},{"u":[],"k":"kotae","hint":true,"check":true,"c":"r"},{"u":[],"k":"","hint":true,"check":true,"c":""}],"cats":{"toi":[5,6,7,8,20,21,22],"kotae":[9,10,11,12,13,14,15,16,17,18,19,23,24,25]},"custom":[],"heads":["toi","kotae"],"para":[0,5,20],"paraShow":true,"words":[],"flow":{"on":true,"who":"","off":[],"sp":{},"quiz":[]}}' },
+        ans: '{"th":"-1858911988","n":31,"q":[{"u":[],"k":"toi","hint":true,"check":true,"c":"b"},{"u":[],"k":"kotae","hint":true,"check":true,"c":"r"},{"u":[],"k":"","hint":true,"check":true,"c":""}],"cats":{"toi":[5,6,7,8,20,21,22],"kotae":[9,10,11,12,13,14,15,16,17,18,19,23,24,25]},"custom":[],"heads":["toi","kotae"],"para":[0,5,20],"paraShow":true,"words":[],"flow":{"on":true,"who":"","off":[],"sp":{},"quiz":[{"q":"だんごむしは、どこに いるかな？","o":["石（いし）や おちばの 下（した）","木（き）の 上（うえ）","水（みず）の 中（なか）"]},{"q":"だんごむしは、どうして まるく なるのかな？","o":["おなかを まもる ため","ねむる ため","あそぶ ため"]},{"q":"だんごむしは、何（なに）を たべるかな？","o":["おちば","石（いし）","土（つち）"]},{"q":"たべた おちばは、何（なに）に なるかな？","o":["土（つち）の えいよう","石（いし）","水（みず）"]}],"matome":[{"t":"だんごむしは、おなかを まもる ために、まるく なる。","ok":true},{"t":"だんごむしは、おちばを たべる。","ok":true},{"t":"たべた おちばは、土（つち）の えいように なる。","ok":true},{"t":"だんごむしは、石（いし）を たべる。","ok":false}]}}' },
     ];
     const DEMO_KEY = 'kokuban_demo';
     const demo = {
@@ -786,7 +788,7 @@
     const FIT_ZS = [1, 0.9, 0.8, 0.75, 0.7, 0.65, 0.6, 0.55, 0.5, 0.45, 0.4, 0.35, 0.3];
     const FLOW_FULL = 684; // 1だんに した ときの だんの 高さ（こくばんの 高さ いっぱい）
     function flowLayout(items, sizes) { // sizes ＝ 画面で はかった ふせんの 幅（ない ときは 文字数から 見つもる）
-      const E = items.some(i => (i.t === 'h' && (i.k === 'f_toi' || i.k === 'f_kotae')) || (i.t === 'f' && i.g === 'matome'));
+      const E = items.some(i => (i.t === 'h' && (i.k === 'f_toi' || i.k === 'f_kotae' || i.k === 'f_matome')) || (i.t === 'f' && i.g === 'matome'));
       // アプリが ならべる ふせん（じぶんで 動かした もの・大きさを 変えた ものは のぞく）は、ぜんぶが 入る いちばん 大きい 文字に そろえる。
       //  ものがたりの 型：少ない うちは 1だん（たてに 長い ふせん）、入らなく なったら 2だん。それでも 入らない ときは 文字を 小さく する
       const auto = (i) => i.t === 'f' && i.au && !i.zu && !i.fr;
@@ -843,6 +845,8 @@
         const top = tois.filter(i => k < n ? i.gn === k : !(i.gn >= 0)), bot = k < n ? kots.filter(i => kn(i) === k) : [];
         if (top.length || bot.length) x += Math.max(row(top, 0), row(bot, 1)) + 12;
       }
+      const mhead = items.find(i => i.t === 'h' && i.k === 'f_matome'); // 見出し「わかった こと」は、「とい」「こたえ」の 右
+      if (mhead) { if (x + HW > R) over = true; if (mhead.au) pos[mhead.id] = { x: Math.max(0, Math.min(x, BW - HW - 4)), y: ys[0] }; x += HW + 8; }
       const x0 = x; let band = 0;
       fs.filter(i => i.g === 'matome').forEach(it => { let w = wOf(it, mhs[band]); if (x + w > R && x > x0 && two && band < 1) { band++; x = x0; w = wOf(it, mhs[band]); } if (x + w > R) over = true; pos[it.id] = { x: Math.max(0, Math.min(x, BW - w)), y: ys[band], mh: mhs[band] }; x += w + 8; });
       return { pos, over };
@@ -1062,6 +1066,10 @@
       const step = FL ? FL[qi] || null : null;
       const QZ = FL && FL[FL.length - 1].key === 'quiz' ? FL[FL.length - 1].quiz : null;
       const [attach, setAttach] = useState(null), [quiz, setQuiz] = useState(null), [quizW, setQuizW] = useState(false);
+      // せつめいぶんの 型「わかった こと」：せんたくしから えらんで はる（mpick ＝ えらぶ 画面。order ＝ ならび順、gone ＝ まちがえて 消えた もの）
+      const [mpick, setMpick] = useState(null);
+      const MOPTS = step && step.key === 'matome' && step.opts && step.opts.length ? step.opts : null;
+      useEffect(() => { setMpick(null); }, [qi]);
       const charRef = useRef(null), sizesRef = useRef(null);
       const onSizes = (m) => { // はかった 幅で ならべ直す（重ならないように）
         sizesRef.current = m; if (!workRef.current) return;
@@ -1355,6 +1363,15 @@
         }
       };
       const addFeel = (w) => { addItem(fitNew(Object.assign({ t: 'f', fw: 1, text: w, c: 'p', v: !!settings.vertical, z: 1 }, grp()))); log('きもちの ことば', '', w); award('write'); setFeelOpen(false); };
+      const openMpick = () => { setSelId(null); setMpick({ order: shuffle(MOPTS.map((_, k) => k)), gone: [], msg: '' }); speak('わかった ことを えらんで、こくばんに はろう。'); };
+      const pickMatome = (k) => {
+        const o = MOPTS[k];
+        log('わかった こと', '', plainOf(o.t) + (o.ok ? ' ◎' : ''), step.q);
+        if (!o.ok) { sfx.tap(); setMpick(m => Object.assign({}, m, { gone: m.gone.concat([k]), msg: 'もう いちど よんで みよう' })); speak('もう いちど よんで みよう。'); return; }
+        addItem(fitNew(Object.assign({ t: 'f', mo: k, text: o.t, c: 'y', v: !!settings.vertical, z: 1 }, grp()))); setSelId(null);
+        if (!award('paste')) say('📌', 'こくばんに はったよ');
+        setMpick(m => Object.assign({}, m, { msg: '◎ こくばんに はったよ' })); speak('いいね。こくばんに はったよ。');
+      };
       // ---- 型：かくにん もんだい（3つの 中から えらぶ。q.o[0] が 正しい 答え）----
       const readSent = (i) => { const [a, b] = sentRange(doc, i); sfx.tap(); speak(joinSel(doc, { a, b }, 'read')); }; // もんだいの 間：おした 文を 読む（えらばない）
       const openQuiz = (then) => { setQuiz({ i: 0, order: shuffle([0, 1, 2]), gone: [], miss: QZ.map(() => 0), own: {}, msg: '', ok: false, then }); setQuizW(false); speak(readOf(QZ[0].q)); };
@@ -1388,7 +1405,7 @@
       const exit = async () => { stopSpeak(); if (!touched.current) { onExit(null); return; } await saveNow(); onExit({ id: text.id, done: doneRef.current, updated: nowStr() }); };
 
       if (!work) return <div className="app"><div className="page" style={{ textAlign: 'center', fontSize: '1.6rem', fontWeight: 700, paddingTop: '4rem' }}>よみこんで います…</div></div>;
-      const showText = quiz ? true : layout !== 'board', showBoard = quiz ? true : layout !== 'text'; // かくにん もんだいの 間は、左に 文章・右に もんだい
+      const showText = quiz || mpick ? true : layout !== 'board', showBoard = quiz || mpick ? true : layout !== 'text'; // かくにん もんだいの 間は、左に 文章・右に もんだい
       const cols = cur ? (cur.t === 'f' ? FCOL : cur.t === 's' || cur.t === 'h' ? null : CHALK) : null;
       return (
         <div className="app">
@@ -1433,6 +1450,12 @@
                     <button className="btn sm blue" onClick={() => openQuiz('')}>📝 かくにん もんだい{work.quiz ? 'を もう いちど' : 'を はじめる'}</button>
                     <div className="qmsg">{work.quiz ? '✅ かくにん もんだいが できたよ' : ''}</div>
                   </div>
+                ) : step && step.key === 'matome' ? (
+                  <div className={'qtools' + (quiz ? ' off' : '')}>
+                    {MOPTS ? <button className="btn sm blue" onClick={openMpick}>🗒 えらんで はる</button> : null}
+                    <button className="btn sm" style={{ background: '#fff3a6' }} onClick={() => { setMpick(null); setWriter({ text: '' }); }}>✏️ じぶんで かく</button>
+                    <div className="qmsg"></div>
+                  </div>
                 ) : A && (A.hint || A.check) ? (
                   <div className={'qtools' + (quiz ? ' off' : '')}>
                     {A.hint ? <button className={'btn sm' + ((missN[qi] || 0) >= 2 && lv < 3 ? ' glowb on' : '')} disabled={lv >= 3} onClick={() => showHint(lv + 1)}>💡 ヒント{lv ? '①②③'[lv - 1] : ''}</button> : null}
@@ -1456,6 +1479,33 @@
             ) : null}
             {showBoard ? (
               <div className="pane pane-board">
+          {mpick && MOPTS ? (() => {
+            const onBoard = (k) => work.items.some(i => i.t === 'f' && i.g === 'matome' && i.mo === k);
+            const left = mpick.order.filter(k => MOPTS[k] && !mpick.gone.includes(k) && !onBoard(k)), more = left.some(k => MOPTS[k].ok);
+            return (
+              <Ov side>
+                <div className="card" style={{ width: '36rem', textAlign: 'center' }}>
+                  <div className="row" style={{ marginBottom: '.6rem', textAlign: 'left', flexWrap: 'nowrap' }}>
+                    <Chalkun size={60} />
+                    <div className="bubble grow" style={{ fontSize: '1.2rem' }}><small>📝 わかった こと</small><br />わかった ことを えらんで、こくばんに はろう。</div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '.7rem', margin: '1rem .3rem .4rem' }}>
+                    {more ? left.map(k => (
+                      <div key={k} className="row" style={{ flexWrap: 'nowrap', gap: '.5rem' }}>
+                        <button className="btn sm" onClick={() => speak(readOf(MOPTS[k].t))}>🔊</button>
+                        <button className="btn big grow" style={{ fontSize: '1.25rem', textAlign: 'left', lineHeight: 1.9 }} onClick={() => pickMatome(k)}>{rubyNodes(MOPTS[k].t)}</button>
+                      </div>
+                    )) : <div style={{ fontWeight: 700, fontSize: '1.4rem', margin: '1rem 0' }}>🎉 ぜんぶ えらべたね！</div>}
+                  </div>
+                  <div style={{ minHeight: '2.2rem', fontWeight: 700, fontSize: '1.2rem', margin: '.4rem 0' }}>{mpick.msg}</div>
+                  <div className="row" style={{ justifyContent: 'center', gap: '1rem' }}>
+                    <button className="btn" style={{ background: '#fff3a6' }} onClick={() => { setMpick(null); setWriter({ text: '' }); }}>✏️ じぶんで かく</button>
+                    <button className="btn big orange" onClick={() => setMpick(null)}>おわり</button>
+                  </div>
+                </div>
+              </Ov>
+            );
+          })() : null}
           {quiz && QZ ? (() => {
             const q = QZ[quiz.i], sayIt = () => speak(readOf(q.q));
             return (
@@ -1798,6 +1848,7 @@
       // ものがたりの 型
       const isE = t.kind === 'せつめいぶん', fl = ans.flow, flowOn = fl.on;
       const setFlow = (p) => setAns(a => Object.assign({}, a, { flow: Object.assign({}, a.flow, p) }));
+      const setMatome = (i, p) => setFlow({ matome: fl.matome.map((m, j) => j === i ? Object.assign({}, m, p) : m) });
       const setQuizQ = (i, p) => setFlow({ quiz: fl.quiz.map((q, j) => j === i ? Object.assign({}, q, p) : q) });
       const [target, setTarget] = useState(0); // 0〜4 = とい、'c:なまえ' = しゅるい、'para' = 意味段落
       const [gran, setGran] = useState('u');
@@ -1852,7 +1903,7 @@
         const ok = ans.n === doc.units.length; // 本文を 直しても、ことばの 数が 同じなら 印は そのまま 使う
         const out = { th: doc.hash, n: doc.units.length, q: keep.map(i => { const q = ans.q[i]; return { u: ok ? q.raw : [], k: q.k, hint: q.hint, check: q.check, c: q.c }; }),
           cats: ok ? ans.cats : {}, fm: ok ? Object.fromEntries(Object.keys(ans.fm).filter(k => { const [c, i] = k.split(':'); return runsOf(ans.cats[c] || []).some(r => r[0] === Number(i)); }).map(k => [k, ans.fm[k]])) : {}, custom: ans.custom, heads: ans.heads, para: ok ? ans.para : [], paraShow: ans.paraShow, words: ans.words,
-          flow: { on: flowOn, who: fl.who.trim(), off: fl.off, sp: ok ? Object.fromEntries(runsOf(ans.cats.hatsugen || []).filter(r => String(fl.sp[r[0]] || '').trim()).map(r => [r[0], String(fl.sp[r[0]]).trim()])) : {}, quiz: fl.quiz.map(q => Object.assign({ q: q.q.trim(), o: q.o.map(x => x.trim()) }, q.w ? { w: true } : {})) } };
+          flow: { on: flowOn, who: fl.who.trim(), off: fl.off, sp: ok ? Object.fromEntries(runsOf(ans.cats.hatsugen || []).filter(r => String(fl.sp[r[0]] || '').trim()).map(r => [r[0], String(fl.sp[r[0]]).trim()])) : {}, quiz: fl.quiz.map(q => Object.assign({ q: q.q.trim(), o: q.o.map(x => x.trim()) }, q.w ? { w: true } : {})), matome: fl.matome.map(m => ({ t: m.t.trim(), ok: m.ok })).filter(m => m.t) } };
         try { const r = await api.saveText(pin, Object.assign({}, t, { body, qs: keep.map(i => t.qs[i]), ans: JSON.stringify(out) })); if (r && r.ok) onSaved(r.texts); else setMsg('ほぞん できませんでした'); } catch (e) { setMsg('ほぞん できませんでした（つながりを 確かめて ください）'); }
       };
       const pick = (on, color) => ({ flexWrap: 'nowrap', margin: '.25rem 0', padding: '.3rem .5rem', borderRadius: 8, background: on ? color : '#fff', border: '2px solid ' + (on ? '#7c3aed' : '#cbd5e1') });
@@ -1908,6 +1959,16 @@
                       </label>
                     ))}
                     {isE ? null : <label className="row" style={{ flexWrap: 'nowrap', marginTop: '.3rem' }}><span style={{ whiteSpace: 'nowrap' }}>きもちを 読み取る 人物（○○）</span><input type="text" style={{ width: '10rem' }} value={fl.who} maxLength={20} placeholder="例：ポル" onChange={e => setFlow({ who: e.target.value })} /></label>}
+                    {isE ? <>
+                      <div style={{ marginTop: '.5rem' }}><b>🗒 「わかった こと」の せんたくし</b>　<small>4つまで。「わかった ことを、こくばんに まとめよう。」で、子どもが えらんで はれます。空なら、「✏️ じぶんで かく」だけが 出ます</small></div>
+                      {fl.matome.map((m, i) => (
+                        <div key={i} className="row" style={{ flexWrap: 'nowrap', margin: '.2rem 0' }}>
+                          <input type="text" value={m.t} maxLength={60} style={m.ok ? { background: '#dcfce7' } : null} placeholder={`せんたくし${i + 1}（例：だんごむしは、おちばを たべる。）`} onChange={e => setMatome(i, { t: e.target.value })} />
+                          <label style={{ whiteSpace: 'nowrap' }}><input type="checkbox" checked={m.ok} onChange={e => setMatome(i, { ok: e.target.checked })} /> ◎ 合って いる</label>
+                        </div>
+                      ))}
+                      <small>みどりの らんが 合って いる 答えです。印を 外すと、まちがいの 答え（えらぶと 消えて、「もう いちど よんで みよう」と 声を かけます）に なります。合って いる ものは、いくつでも えらべます。順番は 毎回 入れかわります。</small>
+                    </> : null}
                     <div style={{ marginTop: '.5rem' }}><b>📝 かくにん もんだい</b>　<small>4問まで。発問の あと、「できた！」の 前に 出ます。3つの 中から 選びます。空の 問題は 出ません</small></div>
                     {fl.quiz.map((q, i) => (
                       <div key={i} style={{ margin: '.3rem 0' }}>
