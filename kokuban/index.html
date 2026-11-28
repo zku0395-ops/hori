@@ -133,6 +133,10 @@
 
     /* まどの 上に かさねる もの */
     .ov { position: fixed; inset: 0; background: rgba(15,23,42,.55); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 1rem; }
+    /* かくにん もんだい：こくばんの 場所に 重ねて 出す（左の 文章は 見えた まま） */
+    .ov.side { position: absolute; z-index: 20; padding: 10px; background: #3f2f1c; }
+    .ov.side > .card { max-width: none; max-height: none; overflow: visible; flex: none; }
+    .tbar.off, .qtools.off { pointer-events: none; opacity: .35; }
     .card { background: #fffdf4; border-radius: 22px; padding: 1.2rem; max-width: 100%; max-height: 100%; overflow: auto; box-shadow: 0 10px 30px rgba(0,0,0,.35); border: 4px solid #e7c98f; }
     .toast { position: fixed; top: .5rem; left: 50%; transform: translateX(-50%); background: #fff; border: 4px solid #f59e0b; border-radius: 999px; padding: .5rem 1.4rem; font-weight: 700; font-size: 1.25rem; z-index: 60; display: flex; align-items: center; gap: .6rem; box-shadow: 0 6px 14px rgba(0,0,0,.25); animation: pop .45s cubic-bezier(.2,1.5,.4,1); pointer-events: none; white-space: nowrap; }
     @keyframes pop { 0% { transform: translateX(-50%) scale(.4); opacity: 0; } 100% { transform: translateX(-50%) scale(1); opacity: 1; } }
@@ -194,7 +198,7 @@
 
   <script type="text/babel" data-presets="react">
     const { useState, useEffect, useRef, useMemo, useCallback } = React;
-    const APP_VERSION = '1.8.0';
+    const APP_VERSION = '1.9.0';
 
     // =====================================================================
     //  1. 小さな道具
@@ -944,7 +948,17 @@
       const r = map[base] === h ? base : map[base];
       return kata ? toKata(r) : r;
     }
-    function Writer({ initial, onOK, onCancel, okLabel }) {
+    // かさねて 出す 画面。side：こくばんの 場所だけに 出す（入りきらない ときは、ちぢめる）
+    function Ov({ side, children }) {
+      const ref = useRef(null);
+      useEffect(() => {
+        const el = ref.current; if (!el || !side) return; const card = el.firstElementChild; if (!card) return;
+        const fit = () => { card.style.zoom = 1; const k = Math.min(1, (el.clientWidth - 20) / card.offsetWidth, (el.clientHeight - 20) / card.offsetHeight); card.style.zoom = k > 0.2 ? k : 1; };
+        fit(); const ro = new ResizeObserver(fit); ro.observe(el); return () => ro.disconnect();
+      });
+      return <div ref={ref} className={'ov' + (side ? ' side' : '')}>{children}</div>;
+    }
+    function Writer({ initial, onOK, onCancel, okLabel, side }) {
       const [text, setText] = useState(initial || '');
       const [kata, setKata] = useState(false);
       const MAX = 80;
@@ -952,7 +966,7 @@
       const mod = (map) => { sfx.tap(); setText(t => { if (!t) return t; const r = cycle(t[t.length - 1], map); return r ? t.slice(0, -1) + r : t; }); };
       const fn = (label, f, w) => <button className="kkey fn" style={w ? { minWidth: w } : null} onClick={f}>{label}</button>;
       return (
-        <div className="ov">
+        <Ov side={side}>
           <div className="card" style={{ width: '46rem' }}>
             <div className="row" style={{ marginBottom: '.6rem' }}>
               <Chalkun size={52} />
@@ -978,7 +992,7 @@
               <button className="btn big green" disabled={!text.trim()} onClick={() => onOK(text.trim())}>{okLabel || '📌 こくばんに はる'}</button>
             </div>
           </div>
-        </div>
+        </Ov>
       );
     }
 
@@ -1309,6 +1323,7 @@
       };
       const addFeel = (w) => { addItem(fitNew(Object.assign({ t: 'f', fw: 1, text: w, c: 'p', v: !!settings.vertical, z: 1 }, grp()))); log('きもちの ことば', '', w); award('write'); setFeelOpen(false); };
       // ---- 型：かくにん もんだい（3つの 中から えらぶ。q.o[0] が 正しい 答え）----
+      const readSent = (i) => { const [a, b] = sentRange(doc, i); sfx.tap(); speak(joinSel(doc, { a, b }, 'read')); }; // もんだいの 間：おした 文を 読む（えらばない）
       const openQuiz = (then) => { setQuiz({ i: 0, order: shuffle([0, 1, 2]), gone: [], miss: QZ.map(() => 0), own: {}, msg: '', ok: false, then }); setQuizW(false); speak(readOf(QZ[0].q)); };
       // 「✏️ じぶんで かく」：合って いる・ちがうは 決めずに、そのまま 受け取る（先生の きろくに のこる）
       const writeQuiz = (t) => {
@@ -1340,7 +1355,7 @@
       const exit = async () => { stopSpeak(); if (!touched.current) { onExit(null); return; } await saveNow(); onExit({ id: text.id, done: doneRef.current, updated: nowStr() }); };
 
       if (!work) return <div className="app"><div className="page" style={{ textAlign: 'center', fontSize: '1.6rem', fontWeight: 700, paddingTop: '4rem' }}>よみこんで います…</div></div>;
-      const showText = layout !== 'board', showBoard = layout !== 'text';
+      const showText = quiz ? true : layout !== 'board', showBoard = quiz ? true : layout !== 'text'; // かくにん もんだいの 間は、左に 文章・右に もんだい
       const cols = cur ? (cur.t === 'f' ? FCOL : cur.t === 's' || cur.t === 'h' ? null : CHALK) : null;
       return (
         <div className="app">
@@ -1368,7 +1383,7 @@
           <div className="work">
             {showText ? (
               <div className="pane pane-text">
-                <div className="tbar">
+                <div className={'tbar' + (quiz ? ' off' : '')}>
                   <button className={'btn sm' + (tool === 'sel' ? ' on' : '')} onClick={() => { setTool('sel'); }}>👆 えらぶ</button>
                   {Object.keys(MARKS).map(c => <button key={c} className={'pen' + (tool === c ? ' on' : '')} style={{ background: MARKS[c].bg }} onClick={() => { setTool(c); setSel(null); }} aria-label={MARKS[c].name + 'の ペン'} title={MARKS[c].name + 'の ペン'}>🖍️</button>)}
                   <button className={'btn sm' + (tool === 'erase' ? ' on' : '')} onClick={() => { setTool('erase'); setSel(null); }}>🧽 けしゴム</button>
@@ -1381,20 +1396,20 @@
                   <button className={'btn sm' + (readAll ? ' on' : '')} onClick={toggleReadAll}>{readAll ? '⏹ とめる' : '🔊 ぜんぶ'}</button>
                 </div>
                 {step && step.key === 'quiz' ? (
-                  <div className="qtools">
+                  <div className={'qtools' + (quiz ? ' off' : '')}>
                     <button className="btn sm blue" onClick={() => openQuiz('')}>📝 かくにん もんだい{work.quiz ? 'を もう いちど' : 'を はじめる'}</button>
                     <div className="qmsg">{work.quiz ? '✅ かくにん もんだいが できたよ' : ''}</div>
                   </div>
                 ) : A && (A.hint || A.check) ? (
-                  <div className="qtools">
+                  <div className={'qtools' + (quiz ? ' off' : '')}>
                     {A.hint ? <button className={'btn sm' + ((missN[qi] || 0) >= 2 && lv < 3 ? ' glowb on' : '')} disabled={lv >= 3} onClick={() => showHint(lv + 1)}>💡 ヒント{lv ? '①②③'[lv - 1] : ''}</button> : null}
                     {A.check ? <button className="btn sm blue" onClick={doCheck}>✔ たしかめる</button> : null}
                     <div className="qmsg">{qmsg}</div>
                   </div>
                 ) : null}
-                <TextPane fit picId={text.id} title={text.title} doc={doc} marks={work.marks} sel={sel} reading={reading} vertical={settings.vertical} paint={tool !== 'sel'} onTap={onTap} onPaint={onPaint} charMode={tool === 'sel' && gran === 'c'} onChar={onChar} onDrag={tool === 'sel' && gran !== 'c' ? onDrag : null}
+                <TextPane fit picId={text.id} title={text.title} doc={doc} marks={work.marks} sel={quiz ? null : sel} reading={reading} vertical={settings.vertical} paint={!quiz && tool !== 'sel'} onTap={quiz ? readSent : onTap} onPaint={onPaint} charMode={!quiz && tool === 'sel' && gran === 'c'} onChar={onChar} onDrag={!quiz && tool === 'sel' && gran !== 'c' ? onDrag : null}
                   hl={A && lv >= 2 ? new Set(A.u) : null} glow={A && lv >= 3 ? new Set(A.u) : null} okStart={chk ? chk.ok : null} maybe={chk ? chk.maybe : null} para={ANS.paraShow && ANS.para.length ? ANS.para : null} />
-                {sel && !dragging ? (
+                {sel && !dragging && !quiz ? (
                   <div className="selbar">
                     <div className="selword">「{selWord}」</div>
                     <button className="btn sm" onClick={speakSel}>🔊 よむ</button>
@@ -1408,6 +1423,29 @@
             ) : null}
             {showBoard ? (
               <div className="pane pane-board">
+          {quiz && QZ ? (() => {
+            const q = QZ[quiz.i], sayIt = () => speak(readOf(q.q));
+            return (
+              <Ov side>
+                <div className="card" style={{ width: '32rem', textAlign: 'center' }}>
+                  <div className="row" style={{ marginBottom: '.6rem', textAlign: 'left', flexWrap: 'nowrap' }}>
+                    <Chalkun size={60} onClick={sayIt} />
+                    <div className="bubble grow" style={{ fontSize: '1.25rem', cursor: 'pointer' }} onClick={sayIt}><small>📝 かくにん もんだい {quiz.i + 1}／{QZ.length}</small><br />{rubyNodes(q.q)} 🔊</div>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '.8rem', margin: '1rem 2rem .4rem' }}>
+                    {quiz.own[quiz.i] != null ? <div className="fusen c-y" style={{ position: 'static', fontSize: '1.5rem', textAlign: 'left' }}>✏️ {quiz.own[quiz.i]}</div>
+                      : quiz.order.filter(k => !quiz.gone.includes(k) && (!quiz.ok || k === 0)).map(k => <button key={k} className={'btn big' + (quiz.ok ? ' green' : '')} style={{ fontSize: '1.5rem', minWidth: '9rem' }} onClick={() => { if (!quiz.ok) pickQuiz(k); }}>{quiz.ok ? '◎ ' : ''}{rubyNodes(q.o[k])}</button>)}
+                    {q.w && !quiz.ok ? <button className="btn big" style={{ fontSize: '1.5rem', minWidth: '9rem', background: '#fff3a6' }} onClick={() => setQuizW(true)}>✏️ じぶんで かく</button> : null}
+                  </div>
+                  <div style={{ minHeight: '2.2rem', fontWeight: 700, fontSize: '1.2rem', margin: '.4rem 0' }}>{quiz.msg}</div>
+                  <div className="row" style={{ justifyContent: 'center', gap: '1rem' }}>
+                    {quiz.ok ? <button className="btn big orange" onClick={nextQuiz}>{quiz.i + 1 < QZ.length ? 'つぎへ ▶' : '🙌 おわり'}</button> : <button className="btn" onClick={() => setQuiz(null)}>あとで やる</button>}
+                  </div>
+                </div>
+              </Ov>
+            );
+          })() : null}
+          {quiz && QZ && quizW ? <Writer initial="" okLabel="✔ これで こたえる" onOK={writeQuiz} onCancel={() => setQuizW(false)} side /> : null}
                 <Board items={work.items} selId={selId} onSelect={setSelId} onBegin={pushUndo} onPatch={(id, p) => patchItem(id, 'x' in p ? Object.assign({ au: 0 }, p) : p, false)} labels={LABELS}
                   pickIds={attach ? new Set(quoteIds()) : null} onPick={doAttach} fok={chk ? chk.fok : null} fmaybe={chk ? chk.fmaybe : null} onSizes={FL ? onSizes : null} />
                 {attach ? (
@@ -1496,29 +1534,6 @@
               </div>
             </div>
           ) : null}
-          {quiz && QZ ? (() => {
-            const q = QZ[quiz.i], sayIt = () => speak(readOf(q.q));
-            return (
-              <div className="ov">
-                <div className="card" style={{ width: '42rem', textAlign: 'center' }}>
-                  <div className="row" style={{ marginBottom: '.6rem', textAlign: 'left', flexWrap: 'nowrap' }}>
-                    <Chalkun size={60} onClick={sayIt} />
-                    <div className="bubble grow" style={{ fontSize: '1.25rem', cursor: 'pointer' }} onClick={sayIt}><small>📝 かくにん もんだい {quiz.i + 1}／{QZ.length}</small><br />{rubyNodes(q.q)} 🔊</div>
-                  </div>
-                  <div className="row" style={{ justifyContent: 'center', gap: '.9rem', margin: '1.2rem 0 .4rem' }}>
-                    {quiz.own[quiz.i] != null ? <div className="fusen c-y" style={{ position: 'static', fontSize: '1.5rem', textAlign: 'left' }}>✏️ {quiz.own[quiz.i]}</div>
-                      : quiz.order.filter(k => !quiz.gone.includes(k) && (!quiz.ok || k === 0)).map(k => <button key={k} className={'btn big' + (quiz.ok ? ' green' : '')} style={{ fontSize: '1.5rem', minWidth: '9rem' }} onClick={() => { if (!quiz.ok) pickQuiz(k); }}>{quiz.ok ? '◎ ' : ''}{rubyNodes(q.o[k])}</button>)}
-                    {q.w && !quiz.ok ? <button className="btn big" style={{ fontSize: '1.5rem', minWidth: '9rem', background: '#fff3a6' }} onClick={() => setQuizW(true)}>✏️ じぶんで かく</button> : null}
-                  </div>
-                  <div style={{ minHeight: '2.2rem', fontWeight: 700, fontSize: '1.2rem', margin: '.4rem 0' }}>{quiz.msg}</div>
-                  <div className="row" style={{ justifyContent: 'center', gap: '1rem' }}>
-                    {quiz.ok ? <button className="btn big orange" onClick={nextQuiz}>{quiz.i + 1 < QZ.length ? 'つぎへ ▶' : '🙌 おわり'}</button> : <button className="btn" onClick={() => setQuiz(null)}>あとで やる</button>}
-                  </div>
-                </div>
-              </div>
-            );
-          })() : null}
-          {quiz && QZ && quizW ? <Writer initial="" okLabel="✔ これで こたえる" onOK={writeQuiz} onCancel={() => setQuizW(false)} /> : null}
           {finish && finish.ask ? (
             <div className="ov">
               <div className="card" style={{ textAlign: 'center', width: '32rem' }}>
