@@ -46,7 +46,7 @@ const ctx = {
 };
 vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'コード.gs'), 'utf8'), ctx);
-vm.runInContext('function SAMPLE_TEXTS_FOR_TEST() { return SAMPLE_TEXTS; } function OLD_S2_FOR_TEST() { return [OLD_S2_BODY, OLD_S2_QS, OLD_S2_ANS]; } function OLD_S1_ANS_FOR_TEST() { return OLD_S1_ANS; } function OLD_S1_ANS_2_FOR_TEST() { return OLD_S1_ANS_2; } function OLD_S1_3_FOR_TEST() { return [OLD_S1_BODY, OLD_S1_ANS_3]; }', ctx); // const は 外から 見えないので、テスト用に 取り出す
+vm.runInContext('function SAMPLE_TEXTS_FOR_TEST() { return SAMPLE_TEXTS; } function OLD_S2_FOR_TEST() { return [OLD_S2_BODY, OLD_S2_QS, OLD_S2_ANS]; } function OLD_S2_ANS_2_FOR_TEST() { return OLD_S2_ANS_2; } function OLD_S1_ANS_FOR_TEST() { return OLD_S1_ANS; } function OLD_S1_ANS_2_FOR_TEST() { return OLD_S1_ANS_2; } function OLD_S1_3_FOR_TEST() { return [OLD_S1_BODY, OLD_S1_ANS_3]; }', ctx); // const は 外から 見えないので、テスト用に 取り出す
 
 let bad = 0;
 const ok = (c, msg) => { console.log((c ? '✔ ' : '✖ ') + msg); if (!c) bad++; };
@@ -189,6 +189,30 @@ ok(ctx.restoreBackup('0420', { app: 'ほか' }).ok === false, 'ほかの アプ�
   uiAnswer = 'cancel'; ctx.resetSample2(); ok(sh.data[row][5] === '先生の とい', '「キャンセル」なら 何も 変えない');
   uiAnswer = 'ok'; ctx.resetSample2();
   ok(JSON.stringify(sh.data[row]) === JSON.stringify(S) && JSON.stringify(sh.data.find(r => r[0] === 's1')) === s1, '「OK」で、だんごむしだけが 新しい れいに 入れかわる');
+}
+// だんごむしの ひみつ：「わかった こと」の せんたくしと かくにん もんだい
+{
+  const sh = sheets['ぶんしょう'], S = ctx.SAMPLE_TEXTS_FOR_TEST()[1], OA2 = ctx.OLD_S2_ANS_2_FOR_TEST(), find = () => sh.data.findIndex(r => r[0] === 's2');
+  const A = JSON.parse(S[10]);
+  ok(A.flow.matome.length === 4 && A.flow.matome.filter(m => m.ok).length === 3 && A.flow.quiz.length === 4 && A.flow.quiz.every(q => q.q && q.o.length === 3 && q.o.every(o => o && o.length <= 30)), 'れいの だんごむしに、わかった こと（4つ・合って いる 3つ）と かくにん もんだい（4問）が 入って いる');
+  ok(JSON.parse(OA2).flow.quiz.length === 0 && !JSON.parse(OA2).flow.matome, '前の 版の こたえには、まだ 入って いない');
+  const row = find();
+  sh.data[row] = S.slice(); sh.data[row][10] = OA2; ctx.doGet();
+  ok(JSON.stringify(sh.data[row]) === JSON.stringify(S), '前の 版の ままの「だんごむし」は、自動で 新しく なる');
+  // 先生が 本文を 直して いる とき：自動では 変えない。メニューで 足す（本文は そのまま）
+  const T = S.slice(); T[4] = 'だんごむしは、にわの 石（いし）の 下（した）に います。\nだから、だんごむしは、土（つち）を げんきに する いきものなのです。'; T[10] = OA2;
+  sh.data[row] = T.slice(); ctx.doGet();
+  ok(sh.data[row][10] === OA2 && sh.data[row][4] === T[4], '先生が 本文を 直して いたら、自動では 入れない');
+  ctx.onOpen(); ok(menu.includes('addS2Extra'), 'メニューに「わかった こと と かくにん もんだいを 入れる」が ある');
+  ctx.addS2Extra();
+  let B = JSON.parse(sh.data[row][10]);
+  ok(sh.data[row][4] === T[4] && B.flow.matome.length === 4 && B.flow.matome[2].t.includes('げんきに') && B.flow.quiz.length === 4 && B.cats.toi.join() === JSON.parse(OA2).cats.toi.join(), 'メニューで 足すと、本文と 印は そのままで、せんたくしと もんだいが 入る');
+  // 先生が 入れた ものは 消さない
+  B.flow.matome = [{ t: '先生の せんたくし', ok: true }]; B.flow.quiz = []; sh.data[row][10] = JSON.stringify(B); ctx.addS2Extra();
+  B = JSON.parse(sh.data[row][10]);
+  ok(B.flow.matome.length === 1 && B.flow.matome[0].t === '先生の せんたくし' && B.flow.quiz.length === 4, '先生が 入れた せんたくしは 残して、ない ほうだけ 足す');
+  const before = sh.data[row][10]; ctx.addS2Extra(); ok(sh.data[row][10] === before, '両方 入って いたら、何も 変えない');
+  sh.data[row] = S.slice();
 }
 
 console.log(bad ? `\n✖ ${bad}こ しっぱい` : '\n✔ ぜんぶ OK');
